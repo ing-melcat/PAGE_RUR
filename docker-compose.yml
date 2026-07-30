@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      - DB_HOST=db
+      - DB_NAME=login_system
+      - DB_USER=postgres
+      - DB_PASS=SecretPass123!
+      - LIVEKIT_HOST=ws://livekit:7880
+      - LIVEKIT_API_KEY=dev_key
+      - LIVEKIT_API_SECRET=dev_secret
+    depends_on:
+      - db
+    volumes:
+      - uploads_data:/var/www/html/api/uploads
+    restart: always
+    networks:
+      - empresa_network
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=SecretPass123!
+      - POSTGRES_DB=login_system
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Opcional: Montar un archivo de inicialización SQL si se tiene uno.
+      # - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: always
+    # No exponemos los puertos al host, solo dentro de rur_network
+    expose:
+      - 5432
+    networks:
+      - empresa_network
+
+volumes:
+  pgdata:
+  uploads_data:
+
+networks:
+  empresa_network:
+    external: true

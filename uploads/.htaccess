@@ -1,0 +1,13 @@
+# Deshabilitar la ejecución de cualquier script en esta carpeta por seguridad
+<FilesMatch "\.(php|php4|php5|php7|php8|phtml|pl|py|jsp|asp|htm|shtml|sh|cgi)$">
+    Require all denied
+</FilesMatch>
+
+# Forzar Content-Type para evitar MIME sniffing
+ForceType application/octet-stream
+<FilesMatch "\.(jpg|jpeg|gif|png|webp)$">
+    ForceType none
+</FilesMatch>
+
+# Deshabilitar opciones de directorios
+Options -Indexes -ExecCGI

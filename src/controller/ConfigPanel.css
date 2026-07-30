@@ -1,0 +1,210 @@
+.config-panel {
+    z-index: 110;
+}
+
+/* The track */
+
+/* Style for Chrome, Edge y Safari */
+.slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 10px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Style for Firefox */
+.slider::-moz-range-track {
+    width: 100%;
+    height: 10px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+
+/*Style for Chrome, Edge and Safari */
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+
+    width: 30px;
+    height: 30px;
+    background: var(--accent);
+    /* color when active */
+    cursor: grab;
+    margin-top: -10px;
+
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%,
+            50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    /* Star shape using  clip-path */
+
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:active {
+    cursor: grabbing;
+}
+
+/*Star interaction*/
+.slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+}
+
+.slider::-webkit-slider-thumb:active {
+    transform: scale(1.2) rotate(45deg);
+    background: var(--bone);
+}
+
+/* For firefox */
+.slider::-moz-range-thumb {
+    border: none;
+    width: 30px;
+    height: 30px;
+    background: var(--accent);
+    cursor: grab;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%,
+            50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.slider::-moz-range-thumb:active {
+    cursor: grabbing;
+}
+
+.slider::-moz-range-thumb:hover {
+    transform: scale(1.1);
+}
+
+.slider::-moz-range-thumb:active {
+    transform: scale(1.2) rotate(45deg);
+    background: var(--bone);
+}
+
+
+/* Glow in the slider bar */
+.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    background: transparent;
+    outline: none;
+    padding: 10px 0;
+}
+
+/* when the slider is active (being dragged), we can enhance the glow effect to give more feedback to the user. */
+.slider:active {
+    /* Removed neon glow */
+}
+
+
+
+/* ------------------------Toggle button---------------------------------*/
+.config-toggle {
+    background-color: transparent;
+    color: var(--muted);
+    border: none;
+    font-size: 1rem;
+    font-family: var(--font-ibm-mono), monospace;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease-out;
+    padding: 5px 10px;
+    letter-spacing: 2px;
+}
+
+.config-toggle:hover {
+    color: var(--accent);
+    text-shadow: 0 0 8px rgba(251, 202, 1, 0.4);
+}
+
+.config-toggle .hud-bracket {
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.config-toggle:hover .hud-bracket {
+    opacity: 1;
+}
+
+.config-toggle.open .hud-icon {
+    transform: rotate(90deg);
+}
+
+.config-toggle .hud-icon {
+    transition: transform 0.5s ease;
+}
+
+/* ------------------------Panel config---------------------------------*/
+.config-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 320px;
+    max-width: 85vw;
+    height: 100vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+    background-color: var(--surface);
+    border-left: 1px solid var(--border);
+    padding: 70px 20px 20px;
+    color: var(--text);
+    transform: translateX(100%);
+    transition: transform 0.37s ease-in-out;
+    pointer-events: auto;
+}
+
+.config-panel.open {
+    transform: translateX(0);
+}
+
+.config-panel.closed {
+    transform: translateX(100%);
+}
+
+.config-close {
+    background-color: var(--surface-strong);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.config-close:hover {
+    background-color: var(--accent);
+    color: var(--background);
+}
+
+.config-close:active {
+    transform: scale(0.95);
+    background-color: var(--bone);
+}
+
+/* Landscape móviles/tablet*/
+@media (min-width: 568px) and (max-width: 932px) and (orientation: landscape) {
+    .config-panel {
+        width: 240px;
+        padding: 60px 14px 14px;
+    }
+}
+
+/* Portrait angosto (celulares) */
+@media (max-width: 480px) {
+    .config-panel {
+        width: 100%;
+        max-width: 100vw;
+    }
+}
+
+.config-toggle { pointer-events: auto; }

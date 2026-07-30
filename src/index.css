@@ -1,0 +1,585 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-ibm-sans: 'Outfit', sans-serif;
+  --font-ibm-mono: 'IBM Plex Mono', monospace;
+  
+  /* PALETA OFICIAL RUR */
+  --background: #020713; /* Fondo principal (más oscuro que la base para contraste) */
+  --surface: #051025; /* Azul oscuro institucional (Base) */
+  --surface-strong: #0a1a3a; /* Variante ligeramente más clara para hovers */
+  --text: #EBF0F6; /* Gris claro institucional para textos */
+  --muted: #8c9bb0; /* Texto secundario apagado */
+  --bone: #F5F3E9; /* Color Hueso */
+  --border: rgba(245, 243, 233, 0.15); /* Líneas estructurales color hueso translúcido */
+  --accent: #FBCA01; /* Amarillo institucional (Resaltados) */
+  --accent-muted: rgba(251, 202, 1, 0.15); /* Amarillo transparente para fondos de botones */
+  --error: #ef4444;
+  --success: #2ecc71;
+}
+
+body.large-text {
+  font-size: 1.15rem;
+}
+body.large-text h1 { font-size: 2.2rem; }
+body.large-text h2 { font-size: 1.5rem; }
+body.large-text input, body.large-text button { font-size: 1.1rem; }
+body.large-text .topbar-title { font-size: 1.2rem; }
+body.large-text .user-meta p { font-size: 0.95rem; }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 1.2s linear infinite;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--background);
+  /* Grid Esquemático color HUESO */
+  background-image: 
+    linear-gradient(rgba(245, 243, 233, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 243, 233, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: center center;
+  color: var(--text);
+  font-family: var(--font-ibm-sans), Inter, system-ui, sans-serif;
+  overflow-y: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Typography Scale */
+h1, h2, h3, .mono, .panel-label, .topbar-title {
+  font-family: var(--font-ibm-mono), ui-monospace, monospace;
+}
+
+h1 {
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+  margin: 0;
+  color: var(--text);
+}
+
+.eyebrow {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Topbar - Industrial Rail */
+.topbar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.topbar-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--bone);
+  font-size: 14px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.topbar-icon:hover {
+  background: rgba(245, 243, 233, 0.1);
+  border-color: rgba(245, 243, 233, 0.3);
+}
+
+.topbar-logo {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(251, 202, 1, 0.15));
+}
+
+.topbar-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.4em;
+  color: var(--text);
+}
+
+.container {
+  width: min(500px, calc(100% - 32px));
+  margin: 64px auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* Interactive Elements */
+.logout-btn-small {
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s ease;
+}
+
+.logout-btn-small:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-muted);
+}
+
+/* Panels */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: calc(100vh - 60px);
+  align-items: start;
+}
+
+.sidebar {
+  border-right: 1px solid var(--border);
+  padding: 24px;
+  min-height: calc(100vh - 60px);
+  background: rgba(2, 7, 19, 0.5); /* Slight tint over background */
+}
+
+.main-content {
+  padding: 40px;
+  width: 100%;
+}
+
+.login-panel, .dashboard-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 40px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Signature Element: Crosshair corners */
+.login-panel::before, .dashboard-card::before,
+.login-panel::after, .dashboard-card::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--muted);
+  pointer-events: none;
+}
+.login-panel::before, .dashboard-card::before {
+  top: -4px; left: -4px;
+  border-right: none; border-bottom: none;
+}
+.login-panel::after, .dashboard-card::after {
+  bottom: -4px; right: -4px;
+  border-left: none; border-top: none;
+}
+
+.panel-header {
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.panel-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+/* Inputs - Utilitarian */
+.input-group {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.input-group label {
+  display: block;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+
+input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--text);
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.9rem;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* Buttons - Physical Actuators */
+button[type="submit"], .action-card {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--accent);
+  background: var(--accent-muted);
+  color: var(--accent);
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+button[type="submit"]:hover:not(:disabled), .action-card:hover {
+  background: var(--accent);
+  color: var(--background);
+}
+
+button[type="submit"]:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+/* Messages */
+.message {
+  margin-top: 16px;
+  padding: 12px;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.8rem;
+  border-left: 2px solid;
+  border-radius: 2px;
+}
+
+.message.error {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.message.success {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: var(--success);
+  color: var(--success);
+}
+.dashboard-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 0 24px;
+}
+
+.full-container {
+  width: 100%;
+  max-width: 100%;
+  padding: 0 40px;
+  margin: 0 auto;
+}
+.dashboard-card {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.dashboard-card h1 {
+  margin: 8px 0 10px;
+  font-size: 1.8rem;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.dashboard-card p {
+  color: var(--muted);
+  margin: 0 0 18px;
+}
+
+.user-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 24px;
+  border-radius: 2px;
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+.user-label {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin: 0 0 8px 0;
+}
+
+.user-card h2 {
+  margin: 0 0 16px 0;
+  font-size: 1.25rem;
+  font-weight: 400;
+}
+
+.user-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.8rem;
+}
+
+.user-welcome {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.action-card, .menu-card {
+  justify-content: space-between;
+  text-align: left;
+  background: var(--background);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 2px;
+  padding: 16px;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  text-decoration: none;
+  display: flex;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.action-card::after, .menu-card::after {
+  content: "→";
+  font-family: monospace;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.action-card:hover, .menu-card:hover {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.action-card:hover::after, .menu-card:hover::after {
+  opacity: 1;
+}
+
+.logout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 16px;
+  border-radius: 2px;
+  border: 1px solid var(--error);
+  background: transparent;
+  color: var(--error);
+  font-family: var(--font-ibm-mono), monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 24px;
+}
+
+.logout-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+}
+
+.back-link {
+  display: inline-block;
+  margin-top: 24px;
+  color: var(--muted);
+  text-decoration: none;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.back-link:hover {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+}
+
+@media (max-width: 540px) {
+  .container {
+    width: min(95%, 100%);
+    margin-top: 32px;
+  }
+
+  .topbar {
+    grid-template-columns: auto 1fr auto;
+    padding: 16px 18px;
+  }
+
+  .topbar-title {
+    font-size: 0.85rem;
+  }
+}
+
+.primary-btn {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--accent);
+  background: var(--accent-muted);
+  color: var(--accent);
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.primary-btn:hover {
+  background: var(--accent);
+  color: var(--background);
+}
+
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.75rem;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.social-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface);
+}
+
+
+/* Animaciones y Botones Mejorados */
+button, .action-card, .logout-btn-small {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0);
+}
+
+button:hover, .action-card:hover, .logout-btn-small:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 20px rgba(251, 202, 1, 0.3);
+  background: var(--accent);
+  color: var(--background) !important;
+}
+
+button:active, .action-card:active, .logout-btn-small:active {
+  transform: translateY(1px) scale(0.95);
+  box-shadow: 0 0 15px var(--accent);
+}
+
+button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1, 1) translate(-50%, -50%);
+  transform-origin: 50% 50%;
+}
+
+button:active::after {
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(20); opacity: 0; }
+}
+
+/* Efecto hover suave en tarjetas */
+.dashboard-card {
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+.dashboard-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}

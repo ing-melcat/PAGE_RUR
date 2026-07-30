@@ -1,0 +1,22 @@
+# Bloquear acceso web directo a carpetas sensibles del código fuente y frontend crudo
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Si la petición es hacia carpetas de desarrollo o archivos sensibles, bloquearla
+    RewriteRule ^(src|node_modules|\.git|\.env|package\.json|package-lock\.json|vite\.config\.ts|tsconfig\.json) - [F,L]
+</IfModule>
+
+# Deshabilitar listado de directorios globalmente
+Options -Indexes
+
+# Prevenir acceso a archivos ocultos (ej. .env, .git)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Configuración básica de seguridad HTTP Headers (opcional pero recomendado)
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>

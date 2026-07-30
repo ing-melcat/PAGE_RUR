@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Mando Xbox / Gamepad API</title>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #161b22;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            text-align: center;
+            border: 1px solid #30363d;
+            max-width: 600px;
+            width: 90%;
+        }
+        h1 {
+            color: #58a6ff;
+            margin-top: 0;
+        }
+        .status {
+            font-size: 1.5rem;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .disconnected {
+            background: rgba(248, 81, 73, 0.1);
+            color: #f85149;
+            border: 1px solid rgba(248, 81, 73, 0.4);
+        }
+        .connected {
+            background: rgba(46, 160, 67, 0.1);
+            color: #3fb950;
+            border: 1px solid rgba(46, 160, 67, 0.4);
+        }
+        #gamepad-info {
+            font-family: monospace;
+            color: #8b949e;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        .instruction {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            color: #8b949e;
+        }
+        .btn {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px;
+            border-radius: 50%;
+            background: #30363d;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            color: #c9d1d9;
+        }
+        .btn.active {
+            background: #58a6ff;
+            color: #fff;
+            box-shadow: 0 0 10px #58a6ff;
+        }
+        #buttons-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎮 Test de Mando Xbox</h1>
+    <div id="status-box" class="status disconnected">
+        Mando Desconectado
+    </div>
+    <div id="gamepad-info">Conecta un mando y presiona cualquier botón para detectarlo.</div>
+
+    <div id="buttons-container"></div>
+
+    <p class="instruction">
+        Si ya conectaste tu mando por Bluetooth o USB, presiona algún botón (A, B, X, Y) para que el navegador lo registre.
+    </p>
+</div>
+
+<script>
+    const statusBox = document.getElementById('status-box');
+    const infoBox = document.getElementById('gamepad-info');
+    const buttonsContainer = document.getElementById('buttons-container');
+    let loopId = null;
+
+    function createButtons(numButtons) {
+        buttonsContainer.innerHTML = '';
+        for (let i = 0; i < numButtons; i++) {
+            const btn = document.createElement('div');
+            btn.className = 'btn';
+            btn.id = 'btn-' + i;
+            btn.innerText = i;
+            buttonsContainer.appendChild(btn);
+        }
+    }
+
+    function updateLoop() {
+        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        let gamepad = null;
+
+        for (let i = 0; i < gamepads.length; i++) {
+            if (gamepads[i]) {
+                gamepad = gamepads[i];
+                break;
+            }
+        }
+
+        if (gamepad) {
+            statusBox.className = 'status connected';
+            statusBox.innerText = '✅ Mando Conectado';
+            infoBox.innerText = `ID: ${gamepad.id} \nBotones: ${gamepad.buttons.length} | Ejes: ${gamepad.axes.length}`;
+            
+            if (buttonsContainer.children.length !== gamepad.buttons.length) {
+                createButtons(gamepad.buttons.length);
+            }
+
+            for (let i = 0; i < gamepad.buttons.length; i++) {
+                const btnEl = document.getElementById('btn-' + i);
+                if (btnEl) {
+                    if (gamepad.buttons[i].pressed) {
+                        btnEl.classList.add('active');
+                    } else {
+                        btnEl.classList.remove('active');
+                    }
+                }
+            }
+        } else {
+            statusBox.className = 'status disconnected';
+            statusBox.innerText = 'Mando Desconectado';
+            infoBox.innerText = 'Conecta un mando y presiona cualquier botón para detectarlo.';
+            buttonsContainer.innerHTML = '';
+        }
+
+        loopId = requestAnimationFrame(updateLoop);
+    }
+
+    window.addEventListener("gamepadconnected", (e) => {
+        console.log("Gamepad connected:", e.gamepad);
+        if (!loopId) {
+            updateLoop();
+        }
+    });
+
+    window.addEventListener("gamepaddisconnected", (e) => {
+        console.log("Gamepad disconnected:", e.gamepad);
+    });
+
+    // Iniciar loop si ya hay un mando conectado al cargar la página
+    updateLoop();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,14 @@
+# Bloquear la ejecución de scripts en este directorio
+php_flag engine off
+
+# Denegar acceso directo a ciertos tipos de archivos peligrosos
+<FilesMatch "\.(php|php3|php4|php5|phtml|pl|py|jsp|asp|htm|shtml|sh|cgi)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Solo permitir el acceso directo a imágenes
+<FilesMatch "\.(jpg|jpeg|png|gif|webp)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
