@@ -1,6 +1,7 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { Routes, Route, Link, Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { MapPin, Phone, Mail } from 'lucide-react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Bounds, useGLTF } from '@react-three/drei';
 import logoUrl from './assets/isotipo.png';
@@ -76,7 +77,7 @@ function Home() {
             lineHeight: '1.6',
             textShadow: '0 2px 10px rgba(0,0,0,0.8)'
           }}>
-            Descubre los últimos avances en sistemas, inteligencia artificial y el desarrollo de software dentro de nuestra comunidad.
+            Dedicados a avanzar las tecnologías robóticas mediante experimentación práctica, diseño colaborativo e innovación interdisciplinaria. Construyendo soluciones escalables para la industria y academia.
           </p>
         </div>
       </section>
@@ -99,7 +100,7 @@ function Home() {
               <p style={{ color: 'var(--muted)', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '24px' }}>
                 Un análisis profundo sobre las nuevas normativas y arquitecturas de red.
               </p>
-              <button className="action-card" style={{ padding: '12px' }}>Leer Artículo</button>
+              <button className="action-card" style={{ padding: '12px' }}>About More</button>
             </div>
           </article>
 
@@ -111,7 +112,7 @@ function Home() {
               <p style={{ color: 'var(--muted)', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '24px' }}>
                 Conoce a los equipos ganadores y los proyectos que revolucionarán el campus.
               </p>
-              <button className="action-card" style={{ padding: '12px' }}>Leer Artículo</button>
+              <button className="action-card" style={{ padding: '12px' }}>About More</button>
             </div>
           </article>
 
@@ -182,10 +183,10 @@ const Explora = () => (
         <article className="dashboard-card" style={{ padding: 0, overflow: 'hidden', border: 'none', background: 'transparent' }}>
           <div style={{ height: '250px', backgroundImage: 'url("https://images.unsplash.com/photo-1614728263952-84ea256f9679?q=80&w=1000&auto=format&fit=crop")', backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)' }}></div>
           <div style={{ padding: '24px 0' }}>
-            <span style={{ color: 'var(--accent)', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: '8px', fontFamily: 'var(--font-ibm-mono)' }}>Misiones Análogas</span>
-            <h3 style={{ fontSize: '1.5rem', margin: '0 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>Simulando Marte en la Tierra</h3>
+            <span style={{ color: 'var(--accent)', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: '8px', fontFamily: 'var(--font-ibm-mono)' }}>Robótica de Servicio</span>
+            <h3 style={{ fontSize: '1.5rem', margin: '0 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>DELIVER-E</h3>
             <p style={{ color: 'var(--muted)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '24px' }}>
-              Nuestros equipos prueban rovers y sistemas de soporte vital en entornos extremos que replican las condiciones marcianas.
+              Robot autónomo que entrega snacks en la universidad. Solicita tu entrega desde la app móvil y recibe tus productos directo en tu salón de clases.
             </p>
             <button style={{ background: 'transparent', color: 'var(--text)', border: '1px solid var(--text)', padding: '8px 16px', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer' }}>Leer Más</button>
           </div>
@@ -195,10 +196,10 @@ const Explora = () => (
         <article className="dashboard-card" style={{ padding: 0, overflow: 'hidden', border: 'none', background: 'transparent' }}>
           <div style={{ height: '250px', backgroundImage: 'url("https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=1000&auto=format&fit=crop")', backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)' }}></div>
           <div style={{ padding: '24px 0' }}>
-            <span style={{ color: 'var(--accent)', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: '8px', fontFamily: 'var(--font-ibm-mono)' }}>Robótica Móvil</span>
-            <h3 style={{ fontSize: '1.5rem', margin: '0 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>Sistemas de Navegación Autónoma</h3>
+            <span style={{ color: 'var(--accent)', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: '8px', fontFamily: 'var(--font-ibm-mono)' }}>Inteligencia Artificial</span>
+            <h3 style={{ fontSize: '1.5rem', margin: '0 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>UMO AI & LUMOBOX</h3>
             <p style={{ color: 'var(--muted)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '24px' }}>
-              Desarrollo de algoritmos de evasión de obstáculos y mapeo 3D para vehículos no tripulados.
+              Proyectos conceptualizados y desarrollados por el talento de RUR para llevar IA, interacción y hardware de vanguardia a escenarios reales.
             </p>
             <button style={{ background: 'transparent', color: 'var(--text)', border: '1px solid var(--text)', padding: '8px 16px', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer' }}>Leer Más</button>
           </div>
@@ -429,6 +430,50 @@ const Conecta = () => (
   </div>
 );
 
+// --- FOOTER COMPONENT ---
+const Footer = () => (
+  <footer style={{
+    backgroundColor: 'var(--background)',
+    borderTop: '1px solid var(--accent)',
+    padding: '60px 40px 20px',
+    color: 'var(--muted)',
+    fontFamily: 'var(--font-ibm-sans)'
+  }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '40px', marginBottom: '40px' }}>
+      <div>
+        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', marginBottom: '20px', letterSpacing: '0.1em' }}>CONTACTO</h4>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0' }}>
+          <MapPin size={18} style={{ flexShrink: 0 }} /> <span style={{ fontSize: '0.9rem', lineHeight: '1.4' }}>México 45, Los Encinos, 34307 Dgo., México</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0' }}>
+          <Phone size={18} style={{ flexShrink: 0 }} /> 
+          <Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>+52 (---) --- ----</Link>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0' }}>
+          <Mail size={18} style={{ flexShrink: 0 }} /> <span style={{ fontSize: '0.9rem' }}>research.unit.robotics@gmail.com</span>
+        </div>
+      </div>
+      <div>
+        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', marginBottom: '20px', letterSpacing: '0.1em' }}>LEGAL</h4>
+        <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>Aviso de Privacidad</Link></p>
+        <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>Términos y Condiciones</Link></p>
+        <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>Política de Cookies</Link></p>
+      </div>
+      <div>
+        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', marginBottom: '20px', letterSpacing: '0.1em' }}>SOCIAL</h4>
+        <div style={{ display: 'flex', gap: '20px' }}>
+          <Link to="/coming-soon" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '1.2rem', fontWeight: 'bold' }}>𝕏</Link>
+          <Link to="/coming-soon" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '1.2rem', fontWeight: 'bold' }}>in</Link>
+          <a href="https://www.instagram.com/_ru.robotics?igsh=czd5bWg2dHpwNGJp" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '1.2rem', fontWeight: 'bold' }}>IG</a>
+        </div>
+      </div>
+    </div>
+    <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', textAlign: 'center', fontSize: '0.8rem' }}>
+      © {new Date().getFullYear()} Research Unit of Robotics - UNIPOLI Dgo. Todos los derechos reservados.
+    </div>
+  </footer>
+);
+
 // --- LAYOUT DEL LANDING ---
 const LandingLayout = () => (
     <div className="app-shell" style={{ position: 'relative' }}>
@@ -494,7 +539,41 @@ const LandingLayout = () => (
       </header>
 
       <Outlet />
+      
+      <Footer />
     </div>
+);
+
+// --- COMPONENTE COMING SOON ---
+const ComingSoon = () => (
+  <div style={{ 
+    height: '60vh', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    textAlign: 'center',
+    padding: '40px'
+  }}>
+    <h1 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '3rem', color: 'var(--accent)', marginBottom: '20px' }}>PROXIMAMENTE</h1>
+    <p style={{ color: 'var(--muted)', fontSize: '1.2rem', maxWidth: '600px', lineHeight: '1.6' }}>
+      Esta sección aún está en desarrollo. ¡Mantente atento a nuestras redes para futuras actualizaciones!
+    </p>
+    <Link to="/" style={{ marginTop: '40px' }}>
+      <button style={{ 
+        background: 'transparent', 
+        color: 'var(--accent)', 
+        border: '1px solid var(--accent)', 
+        padding: '12px 24px', 
+        fontFamily: 'var(--font-ibm-mono)', 
+        fontWeight: 'bold', 
+        cursor: 'pointer',
+        transition: 'all 0.3s ease'
+      }}>
+        VOLVER AL INICIO
+      </button>
+    </Link>
+  </div>
 );
 
 // --- APP PRINCIPAL ---
@@ -509,6 +588,7 @@ function App() {
           <Route path="/explora" element={<PageTransition><Explora /></PageTransition>} />
           <Route path="/descubre" element={<PageTransition><Descubre /></PageTransition>} />
           <Route path="/conecta" element={<PageTransition><Conecta /></PageTransition>} />
+          <Route path="/coming-soon" element={<PageTransition><ComingSoon /></PageTransition>} />
         </Route>
         <Route path="/login/*" element={<PageTransition><LoginApp /></PageTransition>} />
       </Routes>
