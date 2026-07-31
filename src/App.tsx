@@ -14,6 +14,7 @@ import imgRassor from './assets/real_images/rassor1.jpeg';
 import imgLine from './assets/real_images/line.jpeg';
 import LoginApp from './LoginApp';
 import './App.css';
+import { Landing, PublicationPage, ArchiveDashboard } from './Landing';
 
 // --- ANIMACIONES DE TRANSICIÓN ---
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
@@ -39,7 +40,7 @@ function Home() {
   const [apiMessage, setApiMessage] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/hello')
+    fetch('/api/hello')
       .then((response) => response.json())
       .then((data) => setApiMessage(data.message))
       .catch((error) => console.error('Error conectando al backend:', error));
@@ -98,47 +99,15 @@ function Home() {
       </section>
 
       {/* Grid de Artículos */}
-      <section className="main-content" style={{ padding: '60px', backgroundColor: 'var(--background)' }}>
+      <section className="main-content responsive-section" style={{ backgroundColor: 'var(--background)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
           <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.5rem', textTransform: 'uppercase' }}>
             <span style={{ color: 'var(--accent)' }}>/</span> Últimas Publicaciones
           </h2>
-          <Link to="/explora" className="eyebrow" style={{ textDecoration: 'none' }}>Ver todo →</Link>
+          <Link to="/archivo" style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', textDecoration: 'none', letterSpacing: '0.1em' }}>VER TODO →</Link>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
-          <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ height: '220px', backgroundColor: 'var(--surface-strong)', backgroundImage: `url(${imgRassor})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
-            <div style={{ padding: '32px' }}>
-              <span className="panel-label">Investigación</span>
-              <h3 style={{ fontSize: '1.25rem', margin: '0 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>Seguridad en Entornos Cloud</h3>
-              <p style={{ color: 'var(--muted)', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '24px' }}>
-                Un análisis profundo sobre las nuevas normativas y arquitecturas de red.
-              </p>
-              <button className="action-card" style={{ padding: '12px' }}>About More</button>
-            </div>
-          </motion.article>
-
-          <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ height: '220px', backgroundColor: 'var(--surface-strong)', backgroundImage: `url(${imgLine})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
-            <div style={{ padding: '32px' }}>
-              <span className="panel-label">Comunidad</span>
-              <h3 style={{ fontSize: '1.25rem', margin: '0 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>Hackathon 2026: Resultados</h3>
-              <p style={{ color: 'var(--muted)', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '24px' }}>
-                Conoce a los equipos ganadores y los proyectos que revolucionarán el campus.
-              </p>
-              <button className="action-card" style={{ padding: '12px' }}>About More</button>
-            </div>
-          </motion.article>
-
-          <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'center', border: '1px solid var(--accent)' }}>
-            <span className="panel-label">Estado del Sistema</span>
-            <h3 style={{ fontSize: '1.5rem', margin: '0 0 16px 0' }}>Conexión API</h3>
-            <div className={`message ${apiMessage ? 'success' : 'error'}`} style={{ marginTop: 'auto' }}>
-              {apiMessage ? '● CONECTADO: ' + apiMessage : '○ ESPERANDO CONEXIÓN...'}
-            </div>
-          </motion.article>
-        </div>
+        <Landing />
       </section>
     </>
   );
@@ -191,8 +160,8 @@ const Explora = () => (
     </section>
 
     {/* Contenido de Explora */}
-    <section style={{ padding: '60px', backgroundColor: 'var(--background)' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '40px' }}>
+    <section className="responsive-section" style={{ backgroundColor: 'var(--background)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '40px' }}>
         
         {/* Tarjeta 1 */}
         <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', border: 'none', background: 'transparent' }}>
@@ -495,11 +464,25 @@ const Footer = () => (
 // --- LAYOUT DEL LANDING ---
 const LandingLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeSpecial, setActiveSpecial] = useState<'aviso' | 'evento' | null>(null);
+  const location = useLocation();
+  const isPublication = location.pathname.startsWith('/publicacion/');
+
+  useEffect(() => {
+    fetch('/api/posts')
+      .then(res => res.json())
+      .then(data => {
+        const special = data.find((p: any) => p.type === 'aviso' || p.type === 'evento');
+        setActiveSpecial(special ? special.type : null);
+      })
+      .catch(console.error);
+  }, []);
 
   return (
     <div className="app-shell" style={{ position: 'relative' }}>
       
       {/* Navegación Superior */}
+      {!isPublication && (
       <header className="topbar" style={{ 
         borderBottom: '1px solid var(--border)', 
         padding: '20px 40px',
@@ -569,15 +552,27 @@ const LandingLayout = () => {
           <span className="nav-separator" style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
           <Link to="/conecta" className="nav-link" data-text="CONECTA" onClick={() => setIsMobileMenuOpen(false)}>CONECTA</Link>
           
-          {/* El botón de acceder también va en el menú móvil para que no se amontone arriba */}
-          <Link to="/login" className="mobile-only-btn" style={{ textDecoration: 'none', marginTop: '20px' }} onClick={() => setIsMobileMenuOpen(false)}>
+          {/* El botón de acceder y el aviso van en el menú móvil para que no se amontone arriba */}
+          {activeSpecial && (
+            <div className="mobile-only-btn" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: activeSpecial === 'aviso' ? '#cc3333' : 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '20px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: activeSpecial === 'aviso' ? '#cc3333' : 'var(--accent)', animation: 'pulse 1.5s infinite' }}></div>
+              {activeSpecial === 'aviso' ? 'AVISO ACTIVO' : 'EVENTO ACTIVO'}
+            </div>
+          )}
+          <Link to="/login" className="mobile-only-btn" style={{ textDecoration: 'none', marginTop: activeSpecial ? '10px' : '20px' }} onClick={() => setIsMobileMenuOpen(false)}>
             <button className="logout-btn-small" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}>
               ACCEDER
             </button>
           </Link>
         </nav>
         
-        <div className="topbar-right desktop-only-btn" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div className="topbar-right desktop-only-btn" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '20px' }}>
+          {activeSpecial && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: activeSpecial === 'aviso' ? '#cc3333' : 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', fontWeight: 'bold' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: activeSpecial === 'aviso' ? '#cc3333' : 'var(--accent)', animation: 'pulse 1.5s infinite' }}></div>
+              {activeSpecial === 'aviso' ? 'AVISO ACTIVO' : 'EVENTO ACTIVO'}
+            </div>
+          )}
           <Link to="/login" style={{ textDecoration: 'none' }}>
             <button 
               className="logout-btn-small" 
@@ -588,6 +583,7 @@ const LandingLayout = () => {
           </Link>
         </div>
       </header>
+      )}
 
       <Outlet />
       
@@ -650,7 +646,9 @@ function App() {
           <Route path="/explora" element={<PageTransition><Explora /></PageTransition>} />
           <Route path="/descubre" element={<PageTransition><Descubre /></PageTransition>} />
           <Route path="/conecta" element={<PageTransition><Conecta /></PageTransition>} />
+          <Route path="/archivo" element={<PageTransition><ArchiveDashboard /></PageTransition>} />
           <Route path="/coming-soon" element={<PageTransition><ComingSoon /></PageTransition>} />
+          <Route path="/publicacion/:id" element={<PageTransition><PublicationPage /></PageTransition>} />
         </Route>
         <Route path="/login/*" element={<PageTransition><LoginApp /></PageTransition>} />
       </Routes>
