@@ -631,6 +631,16 @@ const ComingSoon = () => (
 // --- APP PRINCIPAL ---
 function App() {
   const location = useLocation();
+
+  useEffect(() => {
+    if (!location.pathname.startsWith('/login')) {
+      sessionStorage.removeItem('loginApp_view');
+      sessionStorage.removeItem('loginApp_user');
+      sessionStorage.removeItem('loginApp_mainContext');
+      sessionStorage.removeItem('loginApp_activeModule');
+      sessionStorage.removeItem('loginApp_livekitToken');
+    }
+  }, [location.pathname]);
   
   return (
     <AnimatePresence mode="wait">
