@@ -81,19 +81,10 @@ const RoboGreetingIcon = ({ size = 56, color = "currentColor" }) => (
 );
 // -----------------------------
 
-const adminActions = [
-  { title: "Gestión de Publicaciones", view: "admin_content" },
-  { title: "Gestión de Usuarios", view: "admin_users" },
-  { title: "Logs Generales", view: "admin_logs" },
-  { title: "Consola del Operador", view: "controles" }
-];
-
-const operadorActions = [
-  { title: "Consola del Operador", view: "controles" }
-];
+// Actions now generated dynamically inside component
 
 
-const AdminContent = ({ onBack }: { onBack: () => void }) => {
+const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   const [viewMode, setViewMode] = useState<'list'|'create'|'edit'>('list');
   const [postsList, setPostsList] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -104,6 +95,8 @@ const AdminContent = ({ onBack }: { onBack: () => void }) => {
   const [image, setImage] = useState('');
   const [pages, setPages] = useState([{ content: '', image: '' }]);
   const [countdownDate, setCountdownDate] = useState('');
+  const [category, setCategory] = useState('landing');
+  const [modelUrl, setModelUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -133,14 +126,29 @@ const AdminContent = ({ onBack }: { onBack: () => void }) => {
     } catch(err) { alert('Error al eliminar'); }
   };
 
+  const toggleVisibility = async (post: any) => {
+    try {
+      const res = await fetch(`/api/posts/${post.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isHidden: !post.isHidden })
+      });
+      if (res.ok) fetchPosts();
+    } catch(err) { alert('Error al actualizar visibilidad'); }
+  };
+
   const openEdit = (post: any) => {
     setEditingId(post.id);
+    if (post.type === 'simple' || post.type === 'aviso' || post.type === 'evento' || post.type === '3d_model') {
+      setContent(post.content || '');
+    } else {
+      setPages(post.pages && post.pages.length > 0 ? post.pages : [{ content: '', image: '' }]);
+    }
     setType(post.type || 'simple');
     setTitle(post.title || '');
-    setContent(post.content || '');
     setImage(post.image || '');
     setCountdownDate(post.countdownDate || '');
-    setPages(post.pages && post.pages.length > 0 ? post.pages : [{ content: '', image: '' }]);
+    setModelUrl(post.modelUrl || '');
     setViewMode('edit');
   };
 
@@ -152,6 +160,7 @@ const AdminContent = ({ onBack }: { onBack: () => void }) => {
     setImage('');
     setCountdownDate('');
     setPages([{ content: '', image: '' }]);
+    setModelUrl('');
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
@@ -174,8 +183,8 @@ const AdminContent = ({ onBack }: { onBack: () => void }) => {
     e.preventDefault();
     setIsSubmitting(true);
     const postData = {
-      title, type, image,
-      content: (type === 'simple' || type === 'aviso' || type === 'evento') ? content : 'Contenido Multi-página',
+      title, type, image, category, modelUrl,
+      content: (type === 'simple' || type === 'aviso' || type === 'evento' || type === '3d_model') ? content : 'Contenido Multi-página',
       pages: type === 'magazine' ? pages : [],
       countdownDate: (type === 'aviso' || type === 'evento') ? countdownDate : undefined
     };
@@ -235,7 +244,7 @@ const AdminContent = ({ onBack }: { onBack: () => void }) => {
             const titleColor = isAviso ? '#cc3333' : isEvento ? 'var(--accent)' : 'var(--text)';
             const badgeBg = isAviso ? '#cc3333' : isEvento ? 'var(--accent)' : 'rgba(5,7,15,0.8)';
             const badgeColor = (isAviso || isEvento) ? 'black' : 'var(--accent)';
-            const badgeText = post.type === 'magazine' ? 'REVISTA' : isAviso ? '⚠️ AVISO' : isEvento ? '⭐ EVENTO' : 'SIMPLE';
+            const badgeText = post.type === 'magazine' ? 'REVISTA' : isAviso ? '⚠️ AVISO' : isEvento ? '⭐ EVENTO' : post.type === '3d_model' ? 'MODELO 3D' : 'SIMPLE';
 
             return (
             <div key={post.id} style={{ 
@@ -256,12 +265,21 @@ const AdminContent = ({ onBack }: { onBack: () => void }) => {
               <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
                   <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', fontFamily: 'var(--font-ibm-sans)', color: titleColor }}>{post.title}</h3>
+                  <div style={{ display: 'inline-block', background: 'var(--surface-strong)', color: 'var(--muted)', fontSize: '0.7rem', fontFamily: 'var(--font-ibm-mono)', padding: '2px 6px', borderRadius: '4px', marginBottom: '8px', border: '1px solid var(--border)' }}>
+                    DESTINO: {(post.category || 'landing').toUpperCase()}
+                  </div>
                   <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.85rem' }}>
-                    {post.type === 'magazine' ? 'Revista interactiva de varias páginas.' : isAviso ? 'Anuncio destacado.' : isEvento ? 'Evento especial con fecha límite.' : 'Artículo de una sola página.'}
+                    {post.type === 'magazine' ? 'Revista interactiva de varias páginas.' : isAviso ? 'Anuncio destacado.' : isEvento ? 'Evento especial con fecha límite.' : post.type === '3d_model' ? 'Modelo 3D interactivo.' : 'Artículo de una sola página.'}
                   </p>
                 </div>
                 
                 <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
+                  <button onClick={() => toggleVisibility(post)} style={{ flex: 1, background: 'transparent', border: '1px solid var(--muted)', color: 'var(--muted)', padding: '8px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', transition: 'all 0.2s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--muted)'; e.currentTarget.style.color = 'var(--surface-strong)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--muted)'; }}
+                  >
+                    {post.isHidden ? '👁 MOSTRAR' : '🚫 OCULTAR'}
+                  </button>
                   <button onClick={() => openEdit(post)} style={{ flex: 1, background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', padding: '8px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', transition: 'all 0.2s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'black'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--accent)'; }}
@@ -290,14 +308,29 @@ const AdminContent = ({ onBack }: { onBack: () => void }) => {
         <button className="back-link" onClick={() => setViewMode('list')} style={{ marginBottom: '16px', alignSelf: 'flex-start' }}>← Cancelar / Volver</button>
         <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>{viewMode === 'edit' ? 'Modificar' : 'Crear'}</h2>
         
-        <div className="input-group">
-          <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Tipo</label>
-          <select value={type} onChange={(e) => setType(e.target.value)} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-sans)' }}>
-            <option value="simple">Artículo Simple</option>
-            <option value="magazine">Revista (Páginas Completas)</option>
-            <option value="aviso">Aviso (Rojo)</option>
-            <option value="evento">Evento (Dorado)</option>
-          </select>
+        <div className="input-group" style={{ display: 'flex', gap: '20px' }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Tipo de Publicación</label>
+            <select value={type} onChange={(e) => setType(e.target.value)} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-sans)' }}>
+              <option value="simple">Artículo Simple</option>
+              <option value="magazine">Revista (Páginas Completas)</option>
+              <option value="aviso">Aviso (Rojo)</option>
+              <option value="evento">Evento (Dorado)</option>
+              {user?.roles?.includes('admin') && <option value="3d_model">Modelo 3D (Descubre)</option>}
+            </select>
+          </div>
+          
+          {user?.roles?.includes('admin') && (
+            <div style={{ flex: 1 }}>
+              <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Destino / Página</label>
+              <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-sans)' }}>
+                <option value="landing">Revista Principal (Inicio)</option>
+                <option value="explora">Página: Explora</option>
+                <option value="descubre">Página: Descubre</option>
+                <option value="conecta">Página: Conecta</option>
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="input-group">
@@ -332,7 +365,14 @@ const AdminContent = ({ onBack }: { onBack: () => void }) => {
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '32px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto' }}>
         <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>Contenido HTML (100% Personalizable)</h2>
         
-        {(type === 'simple' || type === 'aviso' || type === 'evento') ? (
+        {type === '3d_model' && (
+          <div className="input-group">
+            <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Ruta del Modelo 3D (.glb)</label>
+            <input type="text" value={modelUrl} onChange={(e) => setModelUrl(e.target.value)} placeholder="Ej. /models/BMO.glb" style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+          </div>
+        )}
+
+        {(type === 'simple' || type === 'aviso' || type === 'evento' || type === '3d_model') ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', marginBottom: '16px' }}>
                <button type="button" onClick={() => setShowPreview(false)} style={{ flex: 1, padding: '12px', background: !showPreview ? 'var(--surface-strong)' : 'transparent', color: !showPreview ? 'white' : 'var(--muted)', border: '1px solid var(--border)', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer', borderRadius: '4px 0 0 4px', fontWeight: 'bold' }}>CÓDIGO HTML</button>
@@ -792,7 +832,24 @@ export default function App() {
                       <p>Matrícula: <br/><strong style={{fontSize: '1rem', color: 'var(--text)'}}>{user.matricula}</strong></p>
                       <p>Grupo: <br/><strong style={{fontSize: '1rem', color: 'var(--text)'}}>{user.grupo}</strong></p>
                       <p>Teléfono: <br/><strong style={{fontSize: '1rem', color: 'var(--text)'}}>{user.telefono}</strong></p>
-                      <p>Rol: <br/><strong style={{fontSize: '1rem', color: 'var(--accent)'}}>{user.rol.toUpperCase()}</strong></p>
+                      <div>Roles: <br/>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                          {(() => {
+                            const userRoles = user.roles || (user.rol ? [user.rol] : []);
+                            return userRoles.map((r: string) => {
+                              let color = 'var(--text)';
+                              let bg = 'var(--surface-strong)';
+                              if (r === 'admin') { color = 'black'; bg = 'var(--accent)'; }
+                              else if (r === 'redactor' || r === 'editor') { color = 'white'; bg = '#9b59b6'; }
+                              else if (r === 'operador') { color = 'white'; bg = '#3498db'; }
+                              else if (r === 'hardware') { color = 'white'; bg = '#2c3e50'; }
+                              else if (r === 'software') { color = 'white'; bg = '#e67e22'; }
+                              else if (r === 'miembro') { color = 'white'; bg = '#444'; }
+                              return <span key={r} style={{ padding: '4px 8px', background: bg, color: color, borderRadius: '4px', fontSize: '0.8rem', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', textTransform: 'uppercase' }}>{r}</span>
+                            });
+                          })()}
+                        </div>
+                      </div>
                       <p>Estado: <strong style={{ color: "var(--success)" }}>Online</strong></p>
                       {(user.github || user.instagram || user.reddit || user.facebook) && (
                         <div style={{ display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
@@ -863,12 +920,35 @@ export default function App() {
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.3 }}
                       >
-                        Módulos del Sistema (Vista General de Administrador):
+                        Módulos del Sistema (Vista de Panel):
                       </motion.p>
                       
                       <motion.div className="action-grid" layout style={{ alignItems: 'start' }}>
-                        {user.rol === "operador" ? (
-                          operadorActions.map((action, idx) => {
+                        {(() => {
+                          let actions: any[] = [];
+                          const userRoles = user.roles || (user.rol ? [user.rol] : []);
+                          if (userRoles.includes('admin')) {
+                            actions = [
+                              { title: "Gestión de Publicaciones", view: "admin_content" },
+                              { title: "Gestión de Usuarios", view: "admin_users" },
+                              { title: "Logs Generales", view: "admin_logs" },
+                              { title: "Consola del Operador", view: "controles" }
+                            ];
+                          } else {
+                            if (userRoles.includes('redactor') || userRoles.includes('editor')) {
+                              actions.push({ title: "Gestión de Publicaciones", view: "admin_content" });
+                            }
+                            if (userRoles.includes('operador')) {
+                              actions.push({ title: "Consola del Operador", view: "controles" });
+                            }
+                          }
+                          
+                          if (actions.length === 0) {
+                            return <p style={{ color: 'var(--muted)', fontSize: '0.9rem', fontStyle: 'italic' }}>No hay herramientas disponibles para tu rol.</p>;
+                          }
+
+                          return actions.map((action, idx) => {
+                            const isActivating = loadingAction === action.view;
                             return (
                               <motion.div 
                                 layout
@@ -880,59 +960,35 @@ export default function App() {
                                 onClick={() => {
                                   if (action.view === "controles") {
                                     setView("robot_selection");
-                                  } else {
-                                    setView(action.view);
+                                  } else if (!isActivating) {
+                                    setLoadingAction(action.view);
+                                    setTimeout(() => {
+                                      setLoadingAction(null);
+                                      setView(action.view);
+                                    }, 1200);
                                   }
                                 }}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--accent)', color: 'black' }}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', ...(action.view === "controles" ? { background: 'var(--accent)', color: 'black' } : {}) }}
                               >
-                                <motion.span layout style={{ fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <ConsoleIcon /> {action.title}
+                                {isActivating && (
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: "100%" }}
+                                    transition={{ duration: 0.8, ease: "linear" }}
+                                    style={{ position: 'absolute', top: 0, left: 0, bottom: 0, background: 'var(--accent)', opacity: 0.2, zIndex: 0 }}
+                                  />
+                                )}
+                                <motion.span layout style={{ fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 1 }}>
+                                  {isActivating ? (
+                                    <>Conectando <span className="loading-dots">...</span></>
+                                  ) : (
+                                    <>{action.view === 'controles' ? <><ConsoleIcon /> {action.title}</> : action.title}</>
+                                  )}
                                 </motion.span>
                               </motion.div>
                             );
-                          })
-                        ) : (
-                        adminActions.map((action, idx) => {
-                          const isActivating = loadingAction === action.view;
-                          return (
-                            <motion.div 
-                              layout
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: 0.3 + (idx * 0.1) }}
-                              key={idx} 
-                              className="action-card"
-                              onClick={() => {
-                                if (action.view === "controles") {
-                                  setView("robot_selection");
-                                } else if (!isActivating) {
-                                  setLoadingAction(action.view);
-                                  setTimeout(() => {
-                                    setLoadingAction(null);
-                                    setView(action.view);
-                                  }, 1200);
-                                }
-                              }}
-                              style={{ 
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                                ...(action.view === "controles" ? { background: 'var(--accent)', color: 'black' } : {})
-                              }}
-                            >
-                              {isActivating ? (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                  <Loader2 className="animate-spin" size={24} style={{ color: 'var(--accent)', marginBottom: '8px' }} />
-                                  <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>Cargando...</span>
-                                </motion.div>
-                              ) : (
-                                <motion.span layout style={action.view === "controles" ? { fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' } : { fontSize: '1.1rem' }}>
-                                  {action.view === "controles" ? <><ConsoleIcon /> {action.title}</> : action.title}
-                                </motion.span>
-                              )}
-                            </motion.div>
-                          );
-                        })
-                        )}
+                          });
+                        })()}
                       </motion.div>
                     </motion.div>
                   )}
@@ -1075,8 +1131,10 @@ export default function App() {
               </main>
             </motion.section>
           )}
-          {view === "robot_selection" && user && (user.rol === "operador" || user.rol === "admin") && (
-            <motion.section key="robot_selection" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
+          {(() => {
+            const userRoles = user?.roles || (user?.rol ? [user.rol] : []);
+            return view === "robot_selection" && user && (userRoles.includes("operador") || userRoles.includes("admin")) && (
+              <motion.section key="robot_selection" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
                 <RobotSelection 
                   robots={robots}
                   onBack={() => setView("dashboard")}
@@ -1110,7 +1168,8 @@ export default function App() {
                   }}
                 />
             </motion.section>
-          )}
+            );
+          })()}
 
           {view === "controles" && livekitToken && (
             <motion.section key="controller" className="controller-view" {...pageTransition}>
@@ -1132,7 +1191,7 @@ export default function App() {
           {view === "admin_content" && (
             <motion.section key="admin_content" className="full-container" {...pageTransition} style={{ maxWidth: '1400px', margin: '40px auto', display: 'flex', flexDirection: 'column' }}>
               
-              <AdminContent onBack={() => setView("dashboard")} />
+              <AdminContent onBack={() => setView("dashboard")} user={user} />
             </motion.section>
           )}
 
@@ -1147,19 +1206,19 @@ export default function App() {
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--muted)' }}>
                       <th style={{ padding: '8px', textAlign: 'left' }}>Nombre</th>
-                      <th style={{ padding: '8px', textAlign: 'left' }}>Rol</th>
+                      <th style={{ padding: '8px', textAlign: 'left' }}>Roles</th>
                       <th style={{ padding: '8px', textAlign: 'right' }}>Acción</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr style={{ borderBottom: '1px dashed var(--border)' }}>
                       <td style={{ padding: '12px 8px', color: 'var(--text)' }}>Alice Vega</td>
-                      <td style={{ padding: '12px 8px', color: 'var(--muted)' }}>Operador</td>
+                      <td style={{ padding: '8px', borderTop: '1px solid var(--border)' }}>Operador</td>
                       <td style={{ padding: '12px 8px', textAlign: 'right' }}><button className="logout-btn-small" style={{borderColor: 'var(--error)', color: 'var(--error)'}} onClick={() => console.log('Revocando usuario...')}>Revocar</button></td>
                     </tr>
                     <tr style={{ borderBottom: '1px dashed var(--border)' }}>
                       <td style={{ padding: '12px 8px', color: 'var(--text)' }}>Bob Torres</td>
-                      <td style={{ padding: '12px 8px', color: 'var(--muted)' }}>Hardware</td>
+                      <td style={{ padding: '8px', borderTop: '1px solid var(--border)' }}>Hardware</td>
                       <td style={{ padding: '12px 8px', textAlign: 'right' }}><button className="logout-btn-small" style={{borderColor: 'var(--error)', color: 'var(--error)'}} onClick={() => console.log('Revocando usuario...')}>Revocar</button></td>
                     </tr>
                   </tbody>

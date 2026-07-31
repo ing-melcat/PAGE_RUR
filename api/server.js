@@ -52,25 +52,31 @@ app.get('/api/hello', (req, res) => {
 app.post('/api/login.php', (req, res) => {
   const { matricula, password } = req.body;
   
-  // Usuario de prueba creado por petición del usuario
-  if (matricula === 'admin' && password === '1234') {
+  const testUsers = {
+    'admin': { nombre: "Administrador RUR", roles: ["admin"] },
+    'bloguero': { nombre: "Redactor de Contenido", roles: ["redactor"] },
+    'operador': { nombre: "Piloto del Robot", roles: ["operador"] },
+    'hibrido': { nombre: "Operador y Bloguero", roles: ["operador", "redactor", "hardware"] }
+  };
+
+  if (testUsers[matricula] && password === '1234') {
     return res.json({
       success: true,
       user: {
         id: "1",
-        matricula: "admin",
-        nombre: "Administrador RUR",
-        rol: "admin",
+        matricula: matricula,
+        nombre: testUsers[matricula].nombre,
+        roles: testUsers[matricula].roles,
         grupo: "DEV",
         telefono: "555-0000",
-        alias: "Root",
+        alias: "Test",
         foto: "",
         control_mappings: {}
       }
     });
   }
 
-  res.status(401).json({ success: false, message: 'Matrícula o código incorrecto (Prueba con admin / 1234)' });
+  res.status(401).json({ success: false, message: 'Matrícula o código incorrecto (Prueba con admin, bloguero, operador o hibrido / 1234)' });
 });
 
 // GET: Leer todas las publicaciones
