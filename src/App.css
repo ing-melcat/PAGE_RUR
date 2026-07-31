@@ -182,3 +182,120 @@
     border-right-color: var(--border);
   }
 }
+
+
+.canvas-container {
+  cursor: grab;
+}
+.canvas-container:active {
+  cursor: grabbing;
+}
+
+/* Animacion de barrido para el logo/inicio */
+.logo-text-container {
+  position: relative;
+  height: 2.4em;
+  overflow: hidden;
+  width: 140px;
+}
+
+.logo-text-default, .logo-text-hover {
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+  width: 100%;
+}
+
+.logo-text-hover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  transform: translateY(100%);
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  color: white;
+  font-weight: 900;
+  font-size: 1.2rem;
+  letter-spacing: 0.2em;
+}
+
+.logo-img-container {
+  position: relative;
+  width: 32px;
+  height: 32px;
+}
+
+.logo-img-default, .logo-img-hover {
+  transition: opacity 0.4s ease;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+}
+
+.logo-img-hover {
+  opacity: 0;
+}
+
+.logo-card:hover .logo-text-default {
+  transform: translateY(-100%) !important;
+  opacity: 0 !important;
+}
+
+.logo-card:hover .logo-text-hover {
+  transform: translateY(0) !important;
+  opacity: 1 !important;
+  color: var(--background) !important;
+}
+
+.logo-card:hover .logo-img-default {
+  opacity: 0 !important;
+}
+
+.logo-card:hover .logo-img-hover {
+  opacity: 1 !important;
+}
+
+/* Auto animacion cada 19.1 segundos */
+.logo-card .logo-text-default { animation: sweepOut 19.1s infinite; }
+.logo-card .logo-text-hover { animation: sweepIn 19.1s infinite; }
+.logo-card .logo-img-default { animation: fadeOutAnim 19.1s infinite; }
+.logo-card .logo-img-hover { animation: fadeInAnim 19.1s infinite; }
+
+.logo-card:hover .logo-text-default,
+.logo-card:hover .logo-text-hover,
+.logo-card:hover .logo-img-default,
+.logo-card:hover .logo-img-hover,
+.logo-card:hover::after {
+  animation: none !important;
+}
+
+.logo-card::after {
+  display: none !important;
+}
+
+@keyframes sweepOut {
+  0%, 78.53% { transform: translateY(0); opacity: 1; }
+  82.72%, 95.81% { transform: translateY(-100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes sweepIn {
+  0%, 78.53% { transform: translateY(100%); opacity: 0; }
+  82.72%, 95.81% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+@keyframes fadeOutAnim {
+  0%, 78.53% { opacity: 1; }
+  82.72%, 95.81% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes fadeInAnim {
+  0%, 78.53% { opacity: 0; }
+  82.72%, 95.81% { opacity: 1; }
+  100% { opacity: 0; }
+}

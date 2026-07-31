@@ -27,6 +27,74 @@ body.large-text input, body.large-text button { font-size: 1.1rem; }
 body.large-text .topbar-title { font-size: 1.2rem; }
 body.large-text .user-meta p { font-size: 0.95rem; }
 
+@keyframes fadeInAnim {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================
+   NUEVAS ANIMACIONES PREMIUM (DEMO)
+   ========================================= */
+
+/* 1. Ken Burns (Zoom Lento Infinito) */
+@keyframes kenBurns {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.15); }
+}
+
+/* 2. Revelado de Texto (Cortina hacia arriba) */
+.text-reveal-mask {
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: top;
+}
+.text-reveal-mask > span {
+  display: inline-block;
+  transform: translateY(110%);
+  animation: revealUp 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+@keyframes revealUp {
+  to { transform: translateY(0); }
+}
+
+/* 3. Botón de Relleno Líquido (Liquid Fill) */
+.logout-btn-small {
+  background: transparent;
+  color: var(--accent) !important;
+  border: 1px solid var(--accent) !important;
+  padding: 8px 16px;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+  transition: color 0.8s ease;
+  z-index: 1;
+}
+.logout-btn-small::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--accent);
+  transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: -1;
+  transform-origin: bottom center;
+}
+
+.logout-btn-small:hover,
+.logout-btn-small:active {
+  color: var(--background) !important;
+}
+
+.logout-btn-small:hover::before,
+.logout-btn-small:active::before {
+  transform: translateY(-100%);
+}
+
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -280,7 +348,6 @@ button[type="submit"], .action-card {
   font-weight: 600;
   cursor: pointer;
   border-radius: 2px;
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -328,6 +395,23 @@ button[type="submit"]:disabled {
   max-width: 100%;
   padding: 0 40px;
   margin: 0 auto;
+}
+.controller-main {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  padding: 0;
+  margin: 0;
+}
+.controller-view {
+  width: 100vw;
+  height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 .dashboard-card {
   max-width: 520px;
@@ -404,7 +488,6 @@ button[type="submit"]:disabled {
   text-transform: uppercase;
   text-decoration: none;
   display: flex;
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .action-card::after, .menu-card::after {
@@ -531,6 +614,67 @@ button[type="submit"]:disabled {
   background: var(--surface);
 }
 
+.nav-link {
+  text-decoration: none;
+  color: var(--text); /* Typography is now completely solid and normal */
+  font-family: var(--font-ibm-sans);
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  position: relative;
+  padding-bottom: 4px;
+}
+
+.nav-link::before {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  
+  /* Fill effect applied to overlay text */
+  color: transparent;
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-clip: text;
+  -webkit-background-clip: text;
+  background-repeat: no-repeat;
+  
+  /* Directional Trick */
+  background-position: right center;
+  background-size: 0% 100%;
+  transition: background-size 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.nav-link:hover::before,
+.nav-link:active::before,
+.nav-link:focus::before {
+  background-position: left center;
+  background-size: 100% 100%;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  bottom: -4px;
+  left: 0;
+  background-color: var(--accent);
+  
+  /* Directional Trick: Default anchored right */
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.nav-link:hover::after,
+.nav-link:active::after,
+.nav-link:focus::after {
+  transform: scaleX(1);
+  /* On hover, anchor left */
+  transform-origin: left;
+}
 
 /* Animaciones y Botones Mejorados */
 button, .action-card, .logout-btn-small {
@@ -582,4 +726,138 @@ button:active::after {
 .dashboard-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* ==========================================================================
+   MOBILE RESPONSIVE & HAMBURGER MENU
+   ========================================================================== */
+
+/* Desktop defaults */
+.mobile-menu-btn {
+  display: none !important;
+}
+.mobile-only-btn {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  /* Show hamburger */
+  .mobile-menu-btn {
+    display: flex !important;
+    z-index: 1000;
+  }
+  
+  /* Hide desktop items */
+  .desktop-only-btn {
+    display: none !important;
+  }
+  .nav-separator {
+    display: none !important;
+  }
+  .mobile-only-btn {
+    display: flex !important;
+  }
+
+  /* Full screen mobile menu */
+  .main-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--background);
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center;
+    z-index: 999;
+    
+    /* Animation defaults */
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-20px);
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  /* Open state */
+  .main-nav.mobile-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  
+  /* Make links bigger on mobile menu */
+  .main-nav .nav-link {
+    font-size: 2rem !important;
+    margin: 15px 0;
+  }
+}
+
+/* ==========================================================================
+   LOGIN MICRO-ANIMATIONS
+   ========================================================================== */
+
+/* Floating Labels */
+.input-group.floating {
+  position: relative;
+  margin-top: 16px;
+  background: transparent;
+}
+.input-group.floating input {
+  padding: 24px 16px 8px 16px; /* Extra top padding for the label */
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 1rem;
+  transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  width: 100%;
+}
+.input-group.floating input:focus {
+  outline: none;
+  border-color: transparent; /* Handled by border-draw */
+  background: rgba(0, 0, 0, 0.4);
+}
+.input-group.floating label {
+  position: absolute;
+  top: 18px;
+  left: 16px;
+  font-size: 1rem;
+  color: var(--muted);
+  pointer-events: none;
+  transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  transform-origin: left top;
+}
+.input-group.floating input:focus ~ label,
+.input-group.floating input:not(:placeholder-shown) ~ label {
+  transform: translateY(-12px) scale(0.75);
+  color: var(--accent);
+}
+
+/* Border Draw */
+.border-draw {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background-color: var(--accent);
+  transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.input-group.floating input:focus ~ .border-draw {
+  width: 100%;
+}
+
+/* Shake Animation */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+.shake-error {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+.shake-error input {
+  border-color: var(--error) !important;
 }
