@@ -1,16 +1,126 @@
 import express from 'express';
 import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const DATA_FILE = path.join(__dirname, 'data', 'posts.json');
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
-// Middlewares
+import multer from 'multer';
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    if (!fs.existsSync(UPLOADS_DIR)) {
+      fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+    }
+    cb(null, UPLOADS_DIR);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname.replace(/\s+/g, '_'));
+  }
+});
+const upload = multer({ storage });
+
 app.use(cors());
 app.use(express.json());
+app.use('/api/uploads', express.static(UPLOADS_DIR));
 
-// Basic Route
+// Asegurar que exista el directorio y el archivo de datos
+if (!fs.existsSync(path.join(__dirname, 'data'))) {
+  fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
+}
+if (!fs.existsSync(DATA_FILE)) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify([]));
+}
+
+const getPosts = () => JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+const savePosts = (posts) => fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2));
+
+// Endpoints
 app.get('/api/hello', (req, res) => {
   res.json({ message: '¡Hola desde tu nuevo servidor Node en MAIN!' });
+});
+
+// SIMULACIÓN DE LOGIN PARA MODO LOCAL SIN DOCKER/PHP
+app.post('/api/login.php', (req, res) => {
+  const { matricula, password } = req.body;
+  
+  // Usuario de prueba creado por petición del usuario
+  if (matricula === 'admin' && password === '1234') {
+    return res.json({
+      success: true,
+      user: {
+        id: "1",
+        matricula: "admin",
+        nombre: "Administrador RUR",
+        rol: "admin",
+        grupo: "DEV",
+        telefono: "555-0000",
+        alias: "Root",
+        foto: "",
+        control_mappings: {}
+      }
+    });
+  }
+
+  res.status(401).json({ success: false, message: 'Matrícula o código incorrecto (Prueba con admin / 1234)' });
+});
+
+// GET: Leer todas las publicaciones
+app.get('/api/posts', (req, res) => res.json(getPosts()));
+
+// POST: Subir archivo/imagen local
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo.' });
+  const fileUrl = `/api/uploads/${req.file.filename}`;
+  res.json({ url: fileUrl });
+});
+
+// POST: Crear una nueva publicación (simple o revista)
+app.post('/api/posts', (req, res) => {
+  const posts = getPosts();
+  const newPost = { 
+    id: Date.now().toString(), 
+    ...req.body, 
+    // Si es modo revista, inicializar array de páginas
+    pages: req.body.type === 'magazine' ? (req.body.pages || []) : undefined 
+  };
+  posts.push(newPost);
+  savePosts(posts);
+  res.status(201).json(newPost);
+});
+
+// PUT: Actualizar una publicación (ej. añadir/editar páginas)
+app.put('/api/posts/:id', (req, res) => {
+  const posts = getPosts();
+  const index = posts.findIndex(p => p.id === req.params.id);
+  if (index !== -1) {
+    posts[index] = { ...posts[index], ...req.body };
+    savePosts(posts);
+    res.json(posts[index]);
+  } else {
+    res.status(404).json({ message: "Publicación no encontrada" });
+  }
+});
+
+// DELETE: Eliminar una publicación
+app.delete('/api/posts/:id', (req, res) => {
+  let posts = getPosts();
+  const initialLength = posts.length;
+  posts = posts.filter(p => p.id !== req.params.id);
+  if (posts.length < initialLength) {
+    savePosts(posts);
+    res.json({ success: true });
+  } else {
+    res.status(404).json({ message: "Publicación no encontrada" });
+  }
 });
 
 app.listen(PORT, () => {

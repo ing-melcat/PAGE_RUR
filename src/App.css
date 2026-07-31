@@ -239,6 +239,20 @@
   opacity: 0;
 }
 
+.social-icon:hover {
+  background: var(--surface-strong);
+  transform: translateY(-2px);
+}
+
+.responsive-section {
+  padding: 60px;
+}
+@media (max-width: 768px) {
+  .responsive-section {
+    padding: 24px 16px;
+  }
+}
+
 .logo-card:hover .logo-text-default {
   transform: translateY(-100%) !important;
   opacity: 0 !important;

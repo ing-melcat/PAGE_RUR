@@ -82,6 +82,7 @@ const RoboGreetingIcon = ({ size = 56, color = "currentColor" }) => (
 // -----------------------------
 
 const adminActions = [
+  { title: "Gestión de Publicaciones", view: "admin_content" },
   { title: "Gestión de Usuarios", view: "admin_users" },
   { title: "Logs Generales", view: "admin_logs" },
   { title: "Consola del Operador", view: "controles" }
@@ -90,6 +91,307 @@ const adminActions = [
 const operadorActions = [
   { title: "Consola del Operador", view: "controles" }
 ];
+
+
+const AdminContent = ({ onBack }: { onBack: () => void }) => {
+  const [viewMode, setViewMode] = useState<'list'|'create'|'edit'>('list');
+  const [postsList, setPostsList] = useState<any[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [type, setType] = useState('simple');
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [image, setImage] = useState('');
+  const [pages, setPages] = useState([{ content: '', image: '' }]);
+  const [countdownDate, setCountdownDate] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  const fetchPosts = async () => {
+    try {
+      const res = await fetch('/api/posts');
+      const data = await res.json();
+      const sorted = data.sort((a: any, b: any) => {
+        if (a.type === 'aviso' && b.type !== 'aviso') return -1;
+        if (a.type !== 'aviso' && b.type === 'aviso') return 1;
+        return 0;
+      });
+      setPostsList(sorted);
+    } catch(err) { console.error(err); }
+  };
+
+  useEffect(() => {
+    if (viewMode === 'list') fetchPosts();
+  }, [viewMode]);
+
+  const handleDelete = async (id: string) => {
+    if(!window.confirm('¿Estás seguro de que deseas eliminar esta publicación?')) return;
+    try {
+      const res = await fetch(`/api/posts/${id}`, { method: 'DELETE' });
+      if (res.ok) fetchPosts();
+    } catch(err) { alert('Error al eliminar'); }
+  };
+
+  const openEdit = (post: any) => {
+    setEditingId(post.id);
+    setType(post.type || 'simple');
+    setTitle(post.title || '');
+    setContent(post.content || '');
+    setImage(post.image || '');
+    setCountdownDate(post.countdownDate || '');
+    setPages(post.pages && post.pages.length > 0 ? post.pages : [{ content: '', image: '' }]);
+    setViewMode('edit');
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setType('simple');
+    setTitle('');
+    setContent('');
+    setImage('');
+    setCountdownDate('');
+    setPages([{ content: '', image: '' }]);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    setUploadingImage(true);
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.url) callback(data.url);
+      else alert("Error al subir la imagen");
+    } catch(err) { alert("Error de conexión al subir imagen"); }
+    setUploadingImage(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const postData = {
+      title, type, image,
+      content: (type === 'simple' || type === 'aviso' || type === 'evento') ? content : 'Contenido Multi-página',
+      pages: type === 'magazine' ? pages : [],
+      countdownDate: (type === 'aviso' || type === 'evento') ? countdownDate : undefined
+    };
+
+    try {
+      const url = viewMode === 'edit' ? `/api/posts/${editingId}` : '/api/posts';
+      const method = viewMode === 'edit' ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+      });
+      if (res.ok) {
+        alert(viewMode === 'edit' ? "Publicación actualizada" : "Publicación creada con éxito");
+        setViewMode('list');
+      } else {
+        alert("Hubo un problema al guardar la publicación.");
+      }
+    } catch(err) { alert("Error al conectar con el servidor."); }
+    setIsSubmitting(false);
+  };
+
+  if (viewMode === 'list') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minHeight: '60vh' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <button className="back-link" onClick={onBack}>← Volver al Menú Principal</button>
+          <h2 style={{ margin: 0, fontFamily: 'var(--font-ibm-mono)', color: 'var(--text)' }}>GESTIÓN DE PUBLICACIONES</h2>
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+          {/* Tarjeta de Crear Nueva */}
+          <div 
+            onClick={() => { resetForm(); setViewMode('create'); }}
+            style={{ 
+              border: '2px dashed var(--border)', borderRadius: '8px', padding: '24px', display: 'flex', 
+              flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--surface)',
+              minHeight: '280px', transition: 'all 0.3s ease', color: 'var(--muted)', textAlign: 'center'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)'; }}
+          >
+            <div style={{ fontSize: '3rem', fontWeight: '100', marginBottom: '16px', lineHeight: 1 }}>+</div>
+            <div>
+              <div style={{ fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', letterSpacing: '1px' }}>CREAR NUEVA</div>
+              <div style={{ fontSize: '0.85rem', marginTop: '8px', opacity: 0.8 }}>Sube tu propio HTML completo o crea un artículo simple.</div>
+            </div>
+          </div>
+
+          {/* Lista de Publicaciones */}
+          {postsList.map(post => {
+            const isAviso = post.type === 'aviso';
+            const isEvento = post.type === 'evento';
+            
+            const borderColor = isAviso ? '#cc3333' : isEvento ? 'var(--accent)' : 'var(--border)';
+            const bgColor = isAviso ? 'rgba(255,68,68,0.03)' : isEvento ? 'rgba(251,202,1,0.05)' : 'var(--surface)';
+            const titleColor = isAviso ? '#cc3333' : isEvento ? 'var(--accent)' : 'var(--text)';
+            const badgeBg = isAviso ? '#cc3333' : isEvento ? 'var(--accent)' : 'rgba(5,7,15,0.8)';
+            const badgeColor = (isAviso || isEvento) ? 'black' : 'var(--accent)';
+            const badgeText = post.type === 'magazine' ? 'REVISTA' : isAviso ? '⚠️ AVISO' : isEvento ? '⭐ EVENTO' : 'SIMPLE';
+
+            return (
+            <div key={post.id} style={{ 
+              border: `2px solid ${borderColor}`, 
+              borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+              background: bgColor, 
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease', 
+              minHeight: '280px'
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              <div style={{ height: '140px', width: '100%', background: 'var(--surface-strong)', backgroundImage: post.image ? `url(${post.image})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: 12, right: 12, background: badgeBg, padding: '4px 10px', borderRadius: '4px', border: (isAviso || isEvento) ? 'none' : '1px solid var(--accent)', color: badgeColor, fontSize: '0.7rem', fontFamily: 'var(--font-ibm-mono)', fontWeight: (isAviso || isEvento) ? 'bold' : 'normal' }}>
+                  {badgeText}
+                </div>
+              </div>
+              <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', fontFamily: 'var(--font-ibm-sans)', color: titleColor }}>{post.title}</h3>
+                  <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.85rem' }}>
+                    {post.type === 'magazine' ? 'Revista interactiva de varias páginas.' : isAviso ? 'Anuncio destacado.' : isEvento ? 'Evento especial con fecha límite.' : 'Artículo de una sola página.'}
+                  </p>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
+                  <button onClick={() => openEdit(post)} style={{ flex: 1, background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', padding: '8px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', transition: 'all 0.2s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'black'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--accent)'; }}
+                  >
+                    MODIFICAR
+                  </button>
+                  <button onClick={() => handleDelete(post.id)} style={{ flex: 1, background: 'transparent', border: '1px solid #cc3333', color: '#cc3333', padding: '8px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', transition: 'all 0.2s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#cc3333'; e.currentTarget.style.color = 'white'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#cc3333'; }}
+                  >
+                    ELIMINAR
+                  </button>
+                </div>
+              </div>
+            </div>
+          )})}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '32px', height: '100%', minHeight: '80vh' }}>
+      {/* Sidebar de Configuración */}
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <button className="back-link" onClick={() => setViewMode('list')} style={{ marginBottom: '16px', alignSelf: 'flex-start' }}>← Cancelar / Volver</button>
+        <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>{viewMode === 'edit' ? 'Modificar' : 'Crear'}</h2>
+        
+        <div className="input-group">
+          <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Tipo</label>
+          <select value={type} onChange={(e) => setType(e.target.value)} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-sans)' }}>
+            <option value="simple">Artículo Simple</option>
+            <option value="magazine">Revista (Páginas Completas)</option>
+            <option value="aviso">Aviso (Rojo)</option>
+            <option value="evento">Evento (Dorado)</option>
+          </select>
+        </div>
+
+        <div className="input-group">
+          <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Título</label>
+          <input required type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título..." style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+        </div>
+
+        {(type === 'aviso' || type === 'evento') && (
+          <div className="input-group">
+            <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: type === 'aviso' ? '#cc3333' : 'var(--accent)', display: 'block', marginBottom: '8px' }}>Fecha de Expiración (Opcional)</label>
+            <input type="datetime-local" value={countdownDate} onChange={(e) => setCountdownDate(e.target.value)} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: `1px solid ${type === 'aviso' ? '#cc3333' : 'var(--accent)'}`, borderRadius: '4px' }} />
+          </div>
+        )}
+
+        <div className="input-group">
+          <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Portada</label>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+            <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setImage)} style={{ display: 'none' }} id="upload-cover" />
+            <label htmlFor="upload-cover" style={{ flex: 1, padding: '12px', background: 'var(--surface-strong)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>
+              {uploadingImage ? 'SUBIENDO...' : '📁 SUBIR LOCAL'}
+            </label>
+          </div>
+          <input type="text" value={image} onChange={(e) => setImage(e.target.value)} placeholder="O pega URL..." style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+        </div>
+
+        <button onClick={handleSubmit} disabled={isSubmitting} className="action-card" style={{ background: 'var(--accent)', color: 'black', padding: '16px', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', marginTop: 'auto', fontSize: '1rem' }}>
+          {isSubmitting ? 'Guardando...' : (viewMode === 'edit' ? 'GUARDAR CAMBIOS' : 'PUBLICAR AHORA')}
+        </button>
+      </div>
+
+      {/* Editor Principal */}
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '32px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto' }}>
+        <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>Contenido HTML (100% Personalizable)</h2>
+        
+        {(type === 'simple' || type === 'aviso' || type === 'evento') ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', marginBottom: '16px' }}>
+               <button type="button" onClick={() => setShowPreview(false)} style={{ flex: 1, padding: '12px', background: !showPreview ? 'var(--surface-strong)' : 'transparent', color: !showPreview ? 'white' : 'var(--muted)', border: '1px solid var(--border)', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer', borderRadius: '4px 0 0 4px', fontWeight: 'bold' }}>CÓDIGO HTML</button>
+               <button type="button" onClick={() => setShowPreview(true)} style={{ flex: 1, padding: '12px', background: showPreview ? 'var(--surface-strong)' : 'transparent', color: showPreview ? 'var(--accent)' : 'var(--muted)', border: '1px solid var(--border)', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer', borderRadius: '0 4px 4px 0', borderLeft: 'none', fontWeight: 'bold' }}>VISTA PREVIA EN VIVO</button>
+            </div>
+            
+            {!showPreview ? (
+              <textarea required value={content} onChange={(e) => setContent(e.target.value)} placeholder="<h1>Mi Artículo</h1><p>Escribe HTML aquí...</p>" style={{ flex: 1, padding: '20px', background: 'var(--background)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', width: '100%', minHeight: '400px', resize: 'vertical', fontFamily: 'var(--font-ibm-mono)' }}></textarea>
+            ) : (
+              <div style={{ flex: 1, padding: (type === 'evento' || type === 'aviso') ? '0px' : '40px', background: 'var(--background)', color: 'var(--text)', border: '1px solid var(--accent)', borderRadius: '4px', width: '100%', minHeight: '400px', overflowY: 'auto' }}>
+                <div dangerouslySetInnerHTML={{ __html: content }} style={{ lineHeight: '1.8' }} />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+            {pages.map((page, idx) => (
+              <div key={idx} style={{ background: 'var(--background)', border: '1px dashed var(--accent)', padding: '24px', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
+                  <strong style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '1.1rem' }}>Página {idx + 1}</strong>
+                  {pages.length > 1 && (
+                    <button type="button" onClick={() => setPages(pages.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: '1px solid #cc3333', color: '#cc3333', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>ELIMINAR PÁGINA</button>
+                  )}
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Fondo/Imagen de Página (Opcional)</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (url) => {
+                      const newPages = [...pages];
+                      newPages[idx].image = url;
+                      setPages(newPages);
+                    })} style={{ display: 'none' }} id={`upload-page-${idx}`} />
+                    <label htmlFor={`upload-page-${idx}`} style={{ padding: '12px', background: 'var(--surface-strong)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                      📁 SUBIR LOCAL
+                    </label>
+                    <input type="text" value={page.image || ''} onChange={(e) => {
+                      const newPages = [...pages];
+                      newPages[idx].image = e.target.value;
+                      setPages(newPages);
+                    }} placeholder="O pega URL..." style={{ flex: 1, padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                  </div>
+                </div>
+                <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Estructura HTML Completa</label>
+                <textarea required value={page.content} onChange={(e) => {
+                  const newPages = [...pages];
+                  newPages[idx].content = e.target.value;
+                  setPages(newPages);
+                }} placeholder={`<div style="padding: 40px;">\n  <h1>Página ${idx + 1}</h1>\n</div>`} style={{ padding: '20px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', width: '100%', minHeight: '300px', resize: 'vertical', fontFamily: 'var(--font-ibm-mono)' }}></textarea>
+              </div>
+            ))}
+            <button type="button" onClick={() => setPages([...pages, { content: '', image: '' }])} style={{ padding: '16px', background: 'transparent', color: 'var(--accent)', border: '1px dashed var(--accent)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '1rem', width: '100%' }}>
+              + AÑADIR NUEVA PÁGINA
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 
 export default function App() {
@@ -116,6 +418,7 @@ export default function App() {
       return saved ? JSON.parse(saved) : null;
     } catch(e) { return null; }
   });
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   useEffect(() => {
     try { sessionStorage.setItem('loginApp_view', view); } catch(e) {}
@@ -591,7 +894,7 @@ export default function App() {
                           })
                         ) : (
                         adminActions.map((action, idx) => {
-                          const isActive = activeModule?.view === action.view;
+                          const isActivating = loadingAction === action.view;
                           return (
                             <motion.div 
                               layout
@@ -599,54 +902,27 @@ export default function App() {
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: 0.3 + (idx * 0.1) }}
                               key={idx} 
-                              className={isActive ? "" : "action-card"}
+                              className="action-card"
                               onClick={() => {
                                 if (action.view === "controles") {
                                   setView("robot_selection");
-                                } else if (!isActive) {
-                                  setActiveModule(action);
+                                } else if (!isActivating) {
+                                  setLoadingAction(action.view);
+                                  setTimeout(() => {
+                                    setLoadingAction(null);
+                                    setView(action.view);
+                                  }, 1200);
                                 }
                               }}
-                              style={isActive ? {
-                                background: 'var(--surface)', 
-                                border: '1px solid var(--accent)',
-                                borderRadius: '8px',
-                                padding: '32px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                minHeight: '360px',
-                                gridColumn: '1 / -1',
-                                boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                                cursor: 'default'
-                              } : { 
+                              style={{ 
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                                 ...(action.view === "controles" ? { background: 'var(--accent)', color: 'black' } : {})
                               }}
                             >
-                              {isActive ? (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                                  <div className="panel-header" style={{ marginBottom: '24px' }}>
-                                    <span className="panel-label">MÓDULO ACTIVO</span>
-                                    <h2 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--accent)' }}>
-                                      {action.title}
-                                    </h2>
-                                  </div>
-                                  <div style={{ flex: 1, overflowY: 'auto' }}>
-                                    <p style={{ color: 'var(--muted)', fontFamily: 'var(--font-ibm-mono)' }}>
-                                      &gt; Conectando al módulo seguro: {action.view}...<br/><br/>
-                                      Panel interactivo de {action.title}.
-                                    </p>
-                                  </div>
-                                  <button 
-                                    className="back-link" 
-                                    style={{ marginTop: '24px', alignSelf: 'flex-start' }} 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveModule(null);
-                                    }}
-                                  >
-                                    ← Minimizar Panel
-                                  </button>
+                              {isActivating ? (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Loader2 className="animate-spin" size={24} style={{ color: 'var(--accent)', marginBottom: '8px' }} />
+                                  <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>Cargando...</span>
                                 </motion.div>
                               ) : (
                                 <motion.span layout style={action.view === "controles" ? { fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' } : { fontSize: '1.1rem' }}>
@@ -853,6 +1129,13 @@ export default function App() {
             </motion.section>
           )}
 
+          {view === "admin_content" && (
+            <motion.section key="admin_content" className="full-container" {...pageTransition} style={{ maxWidth: '1400px', margin: '40px auto', display: 'flex', flexDirection: 'column' }}>
+              
+              <AdminContent onBack={() => setView("dashboard")} />
+            </motion.section>
+          )}
+
           {view === "admin_users" && (
             <motion.section key="admin_users" className="dashboard-card" {...pageTransition}>
               <div className="panel-header">
@@ -945,8 +1228,8 @@ export default function App() {
                                 <tr key={r.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }}>
                                     <td style={{ padding: '16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: r.status === 'online' ? '#00ffaa' : '#ff4444', boxShadow: `0 0 8px ${r.status === 'online' ? '#00ffaa' : '#ff4444'}` }} />
-                                            <span style={{ color: r.status === 'online' ? '#00ffaa' : '#ff4444' }}>{r.status.toUpperCase()}</span>
+                                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: r.status === 'online' ? '#00ffaa' : '#cc3333', boxShadow: `0 0 8px ${r.status === 'online' ? '#00ffaa' : '#cc3333'}` }} />
+                                            <span style={{ color: r.status === 'online' ? '#00ffaa' : '#cc3333' }}>{r.status.toUpperCase()}</span>
                                         </div>
                                     </td>
                                     <td style={{ padding: '16px', fontWeight: 500, fontFamily: 'var(--font-ibm-mono)', fontSize: '0.95rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{r.name}</td>
@@ -955,7 +1238,7 @@ export default function App() {
                                     <td style={{ padding: '16px', color: 'var(--muted)' }}>{r.modelUrl || 'Modelo por defecto'}</td>
                                     <td style={{ padding: '16px', textAlign: 'right' }}>
                                         <button onClick={() => setEditingRobot(r)} style={{ background: 'transparent', color: 'white', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', marginRight: '8px' }}>Editar</button>
-                                        <button onClick={() => setRobots(robots.filter(robot => robot.id !== r.id))} style={{ background: 'transparent', color: '#ff4444', border: '1px solid #ff4444', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}>Eliminar</button>
+                                        <button onClick={() => setRobots(robots.filter(robot => robot.id !== r.id))} style={{ background: 'transparent', color: '#cc3333', border: '1px solid #cc3333', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}>Eliminar</button>
                                     </td>
                                 </tr>
                             ))}
