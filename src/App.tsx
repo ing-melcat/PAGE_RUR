@@ -159,37 +159,14 @@ const Explora = () => (
       </div>
     </section>
 
-    {/* Contenido de Explora */}
-    <section className="responsive-section" style={{ backgroundColor: 'var(--background)' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '40px' }}>
-        
-        {/* Tarjeta 1 */}
-        <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', border: 'none', background: 'transparent' }}>
-          <div style={{ height: '250px', backgroundImage: `url(${imgDelivery})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)' }}></div>
-          <div style={{ padding: '24px 0' }}>
-            <span style={{ color: 'var(--accent)', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: '8px', fontFamily: 'var(--font-ibm-mono)' }}>Robótica de Servicio</span>
-            <h3 style={{ fontSize: '1.5rem', margin: '0 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>DELIVER-E</h3>
-            <p style={{ color: 'var(--muted)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '24px' }}>
-              Robot autónomo que entrega snacks en la universidad. Solicita tu entrega desde la app móvil y recibe tus productos directo en tu salón de clases.
-            </p>
-            <button style={{ background: 'transparent', color: 'var(--text)', border: '1px solid var(--text)', padding: '8px 16px', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer' }}>Leer Más</button>
-          </div>
-        </motion.article>
-
-        {/* Tarjeta 2 */}
-        <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', border: 'none', background: 'transparent' }}>
-          <div style={{ height: '250px', backgroundImage: `url(${imgLumobox})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)' }}></div>
-          <div style={{ padding: '24px 0' }}>
-            <span style={{ color: 'var(--accent)', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: '8px', fontFamily: 'var(--font-ibm-mono)' }}>Inteligencia Artificial</span>
-            <h3 style={{ fontSize: '1.5rem', margin: '0 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>UMO AI & LUMOBOX</h3>
-            <p style={{ color: 'var(--muted)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '24px' }}>
-              Proyectos conceptualizados y desarrollados por el talento de RUR para llevar IA, interacción y hardware de vanguardia a escenarios reales.
-            </p>
-            <button style={{ background: 'transparent', color: 'var(--text)', border: '1px solid var(--text)', padding: '8px 16px', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer' }}>Leer Más</button>
-          </div>
-        </motion.article>
-
+    {/* Contenido de Explora ahora es puramente dinámico a través de CMS */}
+    <section className="responsive-section" style={{ backgroundColor: 'var(--background)', padding: '0 60px 60px 60px' }}>
+      <div style={{ marginBottom: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.5rem', textTransform: 'uppercase' }}>
+          <span style={{ color: 'var(--accent)' }}>/</span> Más Novedades de Exploración
+        </h2>
       </div>
+      <Landing category="explora" />
     </section>
   </div>
 );
@@ -244,94 +221,14 @@ const Descubre = () => (
       </div>
     </section>
 
-    <section style={{ padding: '60px', backgroundColor: 'var(--background)' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '40px' }}>
-        
-        {/* BMO */}
-        <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div className="canvas-container" style={{ height: '350px', backgroundColor: '#101525' }}>
-            <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{ position: [0, 0, 4], fov: 50 }}>
-              <ambientLight intensity={0.7} />
-              <directionalLight position={[5, 10, 5]} intensity={1.5} />
-              <Suspense fallback={null}>
-                <Bounds fit clip observe margin={1.5}>
-                  <PrototypeModel url="/models/BMO.glb" />
-                </Bounds>
-              </Suspense>
-              <OrbitControls makeDefault enableZoom={true} enablePan={false} />
-            </Canvas>
-          </div>
-          <div style={{ padding: '24px' }}>
-            <span style={{ color: 'var(--accent)', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>ASISTENTE</span>
-            <h3 style={{ fontSize: '1.5rem', margin: '8px 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>BMO</h3>
-            <p style={{ color: 'var(--muted)', fontSize: '0.95rem' }}>Prototipo de robot asistente inspirado en diseño retro.</p>
-          </div>
-        </motion.article>
-
-        {/* Delivery Bot */}
-        <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div className="canvas-container" style={{ height: '350px', backgroundColor: '#101525' }}>
-            <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{ position: [0, 0, 4], fov: 50 }}>
-              <ambientLight intensity={0.7} />
-              <directionalLight position={[5, 10, 5]} intensity={1.5} />
-              <Suspense fallback={null}>
-                <Bounds fit clip observe margin={1.5}>
-                  <PrototypeModel url="/models/DeliveryBotv1.glb" />
-                </Bounds>
-              </Suspense>
-              <OrbitControls makeDefault enableZoom={true} enablePan={false} />
-            </Canvas>
-          </div>
-          <div style={{ padding: '24px' }}>
-            <span style={{ color: 'var(--accent)', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>LOGÍSTICA</span>
-            <h3 style={{ fontSize: '1.5rem', margin: '8px 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>Delivery Bot v1</h3>
-            <p style={{ color: 'var(--muted)', fontSize: '0.95rem' }}>Vehículo autónomo para entrega de suministros dentro del campus.</p>
-          </div>
-        </motion.article>
-
-        {/* Leo Rover */}
-        <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div className="canvas-container" style={{ height: '350px', backgroundColor: '#101525' }}>
-            <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{ position: [0, 0, 4], fov: 50 }}>
-              <ambientLight intensity={0.7} />
-              <directionalLight position={[5, 10, 5]} intensity={1.5} />
-              <Suspense fallback={null}>
-                <Bounds fit clip observe margin={1.5}>
-                  <PrototypeModel url="/models/leo_rover.glb" />
-                </Bounds>
-              </Suspense>
-              <OrbitControls makeDefault enableZoom={true} enablePan={false} />
-            </Canvas>
-          </div>
-          <div style={{ padding: '24px' }}>
-            <span style={{ color: 'var(--accent)', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>EXPLORACIÓN</span>
-            <h3 style={{ fontSize: '1.5rem', margin: '8px 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>Leo Rover</h3>
-            <p style={{ color: 'var(--muted)', fontSize: '0.95rem' }}>Plataforma robótica robusta para terrenos difíciles e investigación.</p>
-          </div>
-        </motion.article>
-
-        {/* Unipolito */}
-        <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div className="canvas-container" style={{ height: '350px', backgroundColor: '#101525' }}>
-            <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{ position: [0, 0, 4], fov: 50 }}>
-              <ambientLight intensity={0.7} />
-              <directionalLight position={[5, 10, 5]} intensity={1.5} />
-              <Suspense fallback={null}>
-                <Bounds fit clip observe margin={1.5}>
-                  <PrototypeModel url="/models/unipolitov4.glb" />
-                </Bounds>
-              </Suspense>
-              <OrbitControls makeDefault enableZoom={true} enablePan={false} />
-            </Canvas>
-          </div>
-          <div style={{ padding: '24px' }}>
-            <span style={{ color: 'var(--accent)', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>MASCOTA INSTITUCIONAL</span>
-            <h3 style={{ fontSize: '1.5rem', margin: '8px 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>Unipolito v4</h3>
-            <p style={{ color: 'var(--muted)', fontSize: '0.95rem' }}>Cuarta iteración del modelo oficial de nuestra unidad de robótica.</p>
-          </div>
-        </motion.article>
-
+    {/* Contenido de Descubre ahora es dinámico a través de CMS */}
+    <section className="responsive-section" style={{ backgroundColor: 'var(--background)', padding: '0 60px 60px 60px' }}>
+      <div style={{ marginBottom: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.5rem', textTransform: 'uppercase' }}>
+          <span style={{ color: 'var(--accent)' }}>/</span> Bitácora del Laboratorio
+        </h2>
       </div>
+      <Landing category="descubre" />
     </section>
   </div>
 );
@@ -383,36 +280,14 @@ const Conecta = () => (
       </div>
     </section>
 
-    <section style={{ padding: '80px 40px', backgroundColor: 'var(--background)' }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '60px' }}>
-        
-        {/* UCF Collab */}
-        <div style={{ display: 'flex', gap: '40px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 400px', height: '300px', backgroundImage: `url(${imgProjects})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)' }}></div>
-          <div style={{ flex: '1 1 400px' }}>
-            <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '2rem', color: 'var(--accent)', marginBottom: '16px' }}>UCF</h2>
-            <h3 style={{ fontSize: '1.5rem', marginBottom: '16px' }}>University of Central Florida</h3>
-            <p style={{ color: 'var(--muted)', lineHeight: '1.7', marginBottom: '24px' }}>
-              Nuestra colaboración estratégica con la UCF permite el intercambio de investigadores y el desarrollo conjunto de programas de inteligencia artificial. Juntos, estamos creando el futuro de la educación tecnológica.
-            </p>
-            <button style={{ background: 'var(--accent)', color: 'var(--background)', border: 'none', padding: '10px 20px', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', cursor: 'pointer' }}>VER PROYECTOS</button>
-          </div>
-        </div>
-
-        {/* Florida Space Institute Collab */}
-        <div style={{ display: 'flex', gap: '40px', alignItems: 'center', flexWrap: 'wrap', flexDirection: 'row-reverse' }}>
-          <div style={{ flex: '1 1 400px', height: '300px', backgroundImage: `url(${imgLine})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)' }}></div>
-          <div style={{ flex: '1 1 400px' }}>
-            <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '2rem', color: 'var(--accent)', marginBottom: '16px' }}>FSI</h2>
-            <h3 style={{ fontSize: '1.5rem', marginBottom: '16px' }}>Florida Space Institute</h3>
-            <p style={{ color: 'var(--muted)', lineHeight: '1.7', marginBottom: '24px' }}>
-              Trabajamos de la mano con la Universidad Espacial de Florida para simular entornos marcianos y desarrollar tecnología de punta en sensores robóticos espaciales.
-            </p>
-            <button style={{ background: 'var(--accent)', color: 'var(--background)', border: 'none', padding: '10px 20px', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', cursor: 'pointer' }}>LEER REPORTAJE</button>
-          </div>
-        </div>
-
+    {/* Contenido de Conecta ahora es dinámico a través de CMS */}
+    <section className="responsive-section" style={{ backgroundColor: 'var(--background)', padding: '0 60px 60px 60px' }}>
+      <div style={{ marginBottom: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.5rem', textTransform: 'uppercase' }}>
+          <span style={{ color: 'var(--accent)' }}>/</span> Actualizaciones de la Red
+        </h2>
       </div>
+      <Landing category="conecta" />
     </section>
   </div>
 );

@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
     nombre VARCHAR(100) NOT NULL,
     grupo VARCHAR(50),
     telefono VARCHAR(20),
-    rol VARCHAR(50) NOT NULL,
+    roles JSONB DEFAULT '["miembro"]',
     alias VARCHAR(100),
     bio TEXT,
     foto VARCHAR(255),
@@ -37,6 +37,6 @@ ADD COLUMN IF NOT EXISTS push_notifications BOOLEAN DEFAULT false,
 ADD COLUMN IF NOT EXISTS control_mappings JSONB;
 
 -- La contraseña es '123456' encriptada con bcrypt
-INSERT INTO users (matricula, password_hash, nombre, grupo, telefono, rol)
-VALUES ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrador General', 'Sistemas', '555-0000', 'admin')
+INSERT INTO users (matricula, password_hash, nombre, grupo, telefono, roles)
+VALUES ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrador General', 'Sistemas', '555-0000', '["admin"]')
 ON CONFLICT (matricula) DO NOTHING;

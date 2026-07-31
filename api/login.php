@@ -42,7 +42,7 @@ $_SESSION['last_attempt_time'] = time();
 try {
     if ($pdo) {
         // 5. Uso de prepared statements para prevenir Inyección SQL
-        $stmt = $pdo->prepare("SELECT id, matricula, password_hash, nombre, grupo, telefono, rol, show_alias, push_notifications, alias, bio, foto, github, instagram, reddit, facebook, control_mappings FROM users WHERE matricula = :matricula LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id, matricula, password_hash, nombre, grupo, telefono, roles, show_alias, push_notifications, alias, bio, foto, github, instagram, reddit, facebook, control_mappings FROM users WHERE matricula = :matricula LIMIT 1");
         $stmt->execute(['matricula' => $matricula]);
         $user = $stmt->fetch();
 
@@ -57,7 +57,9 @@ try {
             $_SESSION['nombre'] = $user['nombre'];
             $_SESSION['grupo'] = $user['grupo'];
             $_SESSION['telefono'] = $user['telefono'];
-            $_SESSION['rol'] = $user['rol'];
+            
+            // roles is JSONB, decode it to array for session
+            $_SESSION['roles'] = json_decode($user['roles'] ?? '["miembro"]', true) ?: ["miembro"];
             
             // Save all to session
             $_SESSION['show_alias'] = $user['show_alias'];
@@ -79,7 +81,7 @@ try {
                     "nombre" => $user['nombre'],
                     "grupo" => $user['grupo'],
                     "telefono" => $user['telefono'],
-                    "rol" => $user['rol'],
+                    "roles" => $_SESSION['roles'],
                     "show_alias" => $user['show_alias'],
                     "push_notifications" => $user['push_notifications'],
                     "alias" => $user['alias'],

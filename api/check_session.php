@@ -9,7 +9,7 @@ if (isset($_SESSION['user_id'])) {
             "nombre" => $_SESSION['nombre'] ?? '',
             "grupo" => $_SESSION['grupo'] ?? '',
             "telefono" => $_SESSION['telefono'] ?? '',
-            "rol" => $_SESSION['rol'] ?? '',
+            "roles" => $_SESSION['roles'] ?? ["miembro"],
             "show_alias" => $_SESSION['show_alias'] ?? true,
             "push_notifications" => $_SESSION['push_notifications'] ?? false,
             "alias" => $_SESSION['alias'] ?? '',

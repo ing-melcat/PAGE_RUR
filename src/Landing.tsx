@@ -1,9 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Bounds, useGLTF } from '@react-three/drei';
 import logoUrl from './assets/isotipo.png';
 import logoBlancoUrl from './assets/real_images/isotipo_blanco.png';
+
+function PrototypeModel({ url }: { url: string }) {
+  const { scene } = useGLTF(url);
+  return <primitive object={scene} />;
+}
 
 export const Countdown = ({ targetDate }: { targetDate?: string }) => {
   const [timeLeft, setTimeLeft] = useState('');
@@ -41,7 +48,7 @@ export const Countdown = ({ targetDate }: { targetDate?: string }) => {
   );
 };
 
-export const Landing = () => {
+export const Landing = ({ category = 'landing' }: { category?: string }) => {
   const [posts, setPosts] = useState<any[]>([]);
   const navigate = useNavigate();
 
@@ -49,7 +56,8 @@ export const Landing = () => {
     fetch('/api/posts')
       .then(res => res.json())
       .then(data => {
-        const sorted = data.sort((a: any, b: any) => {
+        const filtered = data.filter((p: any) => (p.category || 'landing') === category && !p.isHidden);
+        const sorted = filtered.sort((a: any, b: any) => {
           const aIsSpecial = a.type === 'aviso' || a.type === 'evento';
           const bIsSpecial = b.type === 'aviso' || b.type === 'evento';
           if (aIsSpecial && !bIsSpecial) return -1;
@@ -59,7 +67,7 @@ export const Landing = () => {
         setPosts(sorted);
       })
       .catch(console.error);
-  }, []);
+  }, [category]);
 
   const handlePostClick = (post: any) => {
     navigate(`/publicacion/${post.id}`);
@@ -102,11 +110,26 @@ export const Landing = () => {
               onClick={() => handlePostClick(post)}
             >
               <div style={{ flex: isSpecial ? '1 1 300px' : 'none', minWidth: isSpecial ? '280px' : '100%', height: isSpecial ? '100%' : '300px', minHeight: '300px', backgroundColor: isAviso ? '#2a0a0a' : isEvento ? '#251b03' : 'var(--surface-strong)', position: 'relative', overflow: 'hidden' }}>
-                <motion.div
-                  style={{ width: '100%', height: '100%', backgroundImage: `url(${post.image || ''})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: isSpecial ? 0.7 : 1 }}
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ duration: 0.4 }}
-                />
+                {post.type === '3d_model' && post.modelUrl ? (
+                  <div style={{ width: '100%', height: '100%', backgroundColor: '#101525', cursor: 'grab' }} onClick={(e) => e.stopPropagation()}>
+                    <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{ position: [0, 0, 4], fov: 50 }}>
+                      <ambientLight intensity={0.7} />
+                      <directionalLight position={[5, 10, 5]} intensity={1.5} />
+                      <Suspense fallback={null}>
+                        <Bounds fit clip observe margin={1.5}>
+                          <PrototypeModel url={post.modelUrl} />
+                        </Bounds>
+                      </Suspense>
+                      <OrbitControls makeDefault enableZoom={true} enablePan={false} />
+                    </Canvas>
+                  </div>
+                ) : (
+                  <motion.div
+                    style={{ width: '100%', height: '100%', backgroundImage: `url(${post.image || ''})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: isSpecial ? 0.7 : 1 }}
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.4 }}
+                  />
+                )}
                 {post.type === 'magazine' && (
                   <div style={{ position: 'absolute', top: 12, right: 12, background: 'var(--surface-strong)', padding: '6px 12px', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: '0.8rem', fontFamily: 'var(--font-ibm-mono)' }}>
                     REVISTA MULTI-PÁGINA
@@ -154,7 +177,7 @@ export const PublicationPage = () => {
       .then(data => {
         const found = data.find((p: any) => p.id.toString() === id?.toString());
         if (found) {
-          if (found.type === 'simple' || found.type === 'aviso' || found.type === 'evento') {
+          if (found.type === 'simple' || found.type === 'aviso' || found.type === 'evento' || found.type === '3d_model') {
             setPost({ ...found, pages: [{ content: found.content || 'Sin contenido adicional.', image: found.image }] });
           } else {
             setPost(found);
@@ -180,13 +203,28 @@ export const PublicationPage = () => {
     <div style={{ 
       width: '100%', 
       color: 'var(--text)',
-      backgroundImage: post.pages?.[currentPage]?.image ? `linear-gradient(rgba(5,7,15,0.8), rgba(5,7,15,0.95)), url(${post.pages?.[currentPage]?.image})` : 'none',
+      backgroundImage: (post.type !== '3d_model' && post.pages?.[currentPage]?.image) ? `linear-gradient(rgba(5,7,15,0.8), rgba(5,7,15,0.95)), url(${post.pages?.[currentPage]?.image})` : 'none',
       backgroundColor: 'var(--background)',
       backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed',
       minHeight: '100vh',
       display: 'flex', flexDirection: 'column',
       position: 'relative'
     }}>
+      {post.type === '3d_model' && post.modelUrl && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, backgroundColor: '#05070f' }}>
+          <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{ position: [0, 0, 5], fov: 45 }}>
+            <ambientLight intensity={0.5} />
+            <directionalLight position={[10, 10, 10]} intensity={1.2} />
+            <Suspense fallback={null}>
+              <Bounds fit clip observe margin={1.2}>
+                <PrototypeModel url={post.modelUrl} />
+              </Bounds>
+            </Suspense>
+            <OrbitControls autoRotate autoRotateSpeed={2} enableZoom={true} makeDefault />
+          </Canvas>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to right, rgba(5,7,15,0.95) 0%, rgba(5,7,15,0.2) 50%, rgba(5,7,15,0.95) 100%)', pointerEvents: 'none' }} />
+        </div>
+      )}
       {isSpecial && !post.pages?.[currentPage]?.image && (
         <motion.div 
           animate={{ opacity: [0.5, 0.8, 0.5], scale: [1, 1.05, 1] }}
@@ -274,7 +312,9 @@ export const ArchiveDashboard = () => {
     fetch('/api/posts')
       .then(res => res.json())
       .then(data => {
-        const sorted = data.sort((a: any, b: any) => b.id - a.id);
+        const sorted = data
+          .filter((p: any) => !p.isHidden)
+          .sort((a: any, b: any) => b.id - a.id);
         setPosts(sorted);
       })
       .catch(console.error);

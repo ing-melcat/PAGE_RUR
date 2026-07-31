@@ -1,1 +1,75 @@
-[]
+[
+  {
+    "id": "seed-deliver-e",
+    "title": "DELIVER-E",
+    "type": "simple",
+    "image": "/api/uploads/delivery.jpg",
+    "category": "explora",
+    "content": "<h2>Robótica de Servicio</h2><p>Robot autónomo que entrega snacks en la universidad. Solicita tu entrega desde la app móvil y recibe tus productos directo en tu salón de clases.</p>",
+    "isHidden": true
+  },
+  {
+    "id": "seed-umo-ai",
+    "title": "UMO AI & LUMOBOX",
+    "type": "simple",
+    "image": "/api/uploads/lumobox.jpg",
+    "category": "explora",
+    "content": "<h2>Inteligencia Artificial</h2><p>Proyectos conceptualizados y desarrollados por el talento de RUR para llevar IA, interacción y hardware de vanguardia a escenarios reales.</p>",
+    "isHidden": true
+  },
+  {
+    "id": "seed-bmo",
+    "title": "BMO",
+    "type": "3d_model",
+    "modelUrl": "/models/BMO.glb",
+    "category": "descubre",
+    "content": "<h2>ASISTENTE</h2><p>Prototipo de robot asistente inspirado en diseño retro.</p>",
+    "isHidden": true
+  },
+  {
+    "id": "seed-deliveryv1",
+    "title": "Delivery Bot v1",
+    "type": "3d_model",
+    "modelUrl": "/models/DeliveryBotv1.glb",
+    "category": "descubre",
+    "content": "<h2>LOGÍSTICA</h2><p>Vehículo autónomo para entrega de suministros dentro del campus.</p>",
+    "isHidden": true
+  },
+  {
+    "id": "seed-leorover",
+    "title": "Leo Rover",
+    "type": "3d_model",
+    "modelUrl": "/models/leo_rover.glb",
+    "category": "descubre",
+    "content": "<h2>EXPLORACIÓN</h2><p>Plataforma robótica robusta para terrenos difíciles e investigación.</p>",
+    "isHidden": true
+  },
+  {
+    "id": "seed-unipolito",
+    "title": "Unipolito v4",
+    "type": "3d_model",
+    "modelUrl": "/models/unipolitov4.glb",
+    "category": "descubre",
+    "content": "<h2>MASCOTA INSTITUCIONAL</h2><p>Cuarta iteración del modelo oficial de nuestra unidad de robótica.</p>",
+    "isHidden": true
+  },
+  {
+    "id": "seed-ucf",
+    "title": "University of Central Florida",
+    "type": "simple",
+    "image": "/api/uploads/1785541690167-977695431-images.jpg",
+    "category": "conecta",
+    "content": "<h2>UCF</h2><p>Nuestra colaboración estratégica con la UCF permite el intercambio de investigadores y el desarrollo conjunto de programas de inteligencia artificial. Juntos, estamos creando el futuro de la educación tecnológica.</p>",
+    "isHidden": false,
+    "modelUrl": "",
+    "pages": []
+  },
+  {
+    "id": "seed-fsi",
+    "title": "Florida Space Institute",
+    "type": "simple",
+    "image": "/api/uploads/line.jpeg",
+    "category": "conecta",
+    "content": "<h2>FSI</h2><p>Trabajamos de la mano con la Universidad Espacial de Florida para simular entornos marcianos y desarrollar tecnología de punta en sensores robóticos espaciales.</p>"
+  }
+]
