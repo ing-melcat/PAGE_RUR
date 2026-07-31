@@ -1,10 +1,17 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { Routes, Route, Link, Outlet, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
-import { MapPin, Phone, Mail } from 'lucide-react';
+import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion';
+import { MapPin, Phone, Mail, Menu, X } from 'lucide-react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Bounds, useGLTF } from '@react-three/drei';
 import logoUrl from './assets/isotipo.png';
+import logoBlancoUrl from './assets/real_images/isotipo_blanco.png';
+import imgMembers from './assets/real_images/rur-members1.jpeg';
+import imgProjects from './assets/real_images/projects1.jpeg';
+import imgDelivery from './assets/real_images/delivery.jpg';
+import imgLumobox from './assets/real_images/lumobox.jpg';
+import imgRassor from './assets/real_images/rassor1.jpeg';
+import imgLine from './assets/real_images/line.jpeg';
 import LoginApp from './LoginApp';
 import './App.css';
 
@@ -22,6 +29,13 @@ const PageTransition = ({ children }: { children: React.ReactNode }) => (
 
 // --- COMPONENTE HOME (Página Principal) ---
 function Home() {
+  const { scrollY } = useScroll();
+  
+  // Efectos Scrollytelling
+  const bgScale = useTransform(scrollY, [0, 500], [1, 1.15]); // Fondo hace zoom al bajar
+  const textY = useTransform(scrollY, [0, 400], [0, 150]);    // Texto baja a menor velocidad (parallax)
+  const textOpacity = useTransform(scrollY, [0, 300], [1, 0]); // Texto se desvanece
+  
   const [apiMessage, setApiMessage] = useState('');
 
   useEffect(() => {
@@ -43,22 +57,23 @@ function Home() {
         padding: '60px',
         overflow: 'hidden'
       }}>
-        <div style={{
+        <motion.div style={{
           position: 'absolute',
           top: 0, left: 0, right: 0, bottom: 0,
-          backgroundImage: 'url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop")',
+          backgroundImage: `url(${imgMembers})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           filter: 'brightness(0.5) contrast(1.2)',
-          zIndex: -1
-        }}></div>
+          zIndex: -1,
+          scale: bgScale
+        }}></motion.div>
 
-        <div style={{ maxWidth: '800px' }}>
+        <motion.div style={{ maxWidth: '800px', y: textY, opacity: textOpacity }}>
           <span className="eyebrow" style={{ color: 'var(--accent)', fontSize: '1rem', marginBottom: '16px', display: 'block' }}>
-            EDICIÓN PRINCIPAL
+            
           </span>
           <h1 style={{ 
-            fontSize: '4.5rem', 
+            fontSize: 'clamp(2.5rem, 8vw, 4.5rem)', 
             lineHeight: '1.1', 
             marginBottom: '24px', 
             textShadow: '0 4px 20px rgba(0,0,0,0.8)',
@@ -70,7 +85,7 @@ function Home() {
             El Futuro de la Tecnología
           </h1>
           <p style={{ 
-            fontSize: '1.25rem', 
+            fontSize: 'clamp(1rem, 3vw, 1.25rem)', 
             color: 'var(--bone)', 
             opacity: 0.9, 
             maxWidth: '600px',
@@ -79,7 +94,7 @@ function Home() {
           }}>
             Dedicados a avanzar las tecnologías robóticas mediante experimentación práctica, diseño colaborativo e innovación interdisciplinaria. Construyendo soluciones escalables para la industria y academia.
           </p>
-        </div>
+        </motion.div>
       </section>
 
       {/* Grid de Artículos */}
@@ -92,8 +107,8 @@ function Home() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
-          <article className="dashboard-card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ height: '220px', backgroundColor: 'var(--surface-strong)', backgroundImage: 'url("https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1000&auto=format&fit=crop")', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+          <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ height: '220px', backgroundColor: 'var(--surface-strong)', backgroundImage: `url(${imgRassor})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
             <div style={{ padding: '32px' }}>
               <span className="panel-label">Investigación</span>
               <h3 style={{ fontSize: '1.25rem', margin: '0 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>Seguridad en Entornos Cloud</h3>
@@ -102,10 +117,10 @@ function Home() {
               </p>
               <button className="action-card" style={{ padding: '12px' }}>About More</button>
             </div>
-          </article>
+          </motion.article>
 
-          <article className="dashboard-card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ height: '220px', backgroundColor: 'var(--surface-strong)', backgroundImage: 'url("https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1000&auto=format&fit=crop")', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+          <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ height: '220px', backgroundColor: 'var(--surface-strong)', backgroundImage: `url(${imgLine})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
             <div style={{ padding: '32px' }}>
               <span className="panel-label">Comunidad</span>
               <h3 style={{ fontSize: '1.25rem', margin: '0 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>Hackathon 2026: Resultados</h3>
@@ -114,15 +129,15 @@ function Home() {
               </p>
               <button className="action-card" style={{ padding: '12px' }}>About More</button>
             </div>
-          </article>
+          </motion.article>
 
-          <article className="dashboard-card" style={{ padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'center', border: '1px solid var(--accent)' }}>
+          <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'center', border: '1px solid var(--accent)' }}>
             <span className="panel-label">Estado del Sistema</span>
             <h3 style={{ fontSize: '1.5rem', margin: '0 0 16px 0' }}>Conexión API</h3>
             <div className={`message ${apiMessage ? 'success' : 'error'}`} style={{ marginTop: 'auto' }}>
               {apiMessage ? '● CONECTADO: ' + apiMessage : '○ ESPERANDO CONEXIÓN...'}
             </div>
-          </article>
+          </motion.article>
         </div>
       </section>
     </>
@@ -146,7 +161,7 @@ const Explora = () => (
       <div style={{
         position: 'absolute',
         top: 0, left: 0, right: 0, bottom: 0,
-        backgroundImage: 'url("https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=2072&auto=format&fit=crop")',
+        backgroundImage: `url(${imgProjects})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         filter: 'brightness(0.3) grayscale(0.5)',
@@ -180,8 +195,8 @@ const Explora = () => (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '40px' }}>
         
         {/* Tarjeta 1 */}
-        <article className="dashboard-card" style={{ padding: 0, overflow: 'hidden', border: 'none', background: 'transparent' }}>
-          <div style={{ height: '250px', backgroundImage: 'url("https://images.unsplash.com/photo-1614728263952-84ea256f9679?q=80&w=1000&auto=format&fit=crop")', backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)' }}></div>
+        <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', border: 'none', background: 'transparent' }}>
+          <div style={{ height: '250px', backgroundImage: `url(${imgDelivery})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)' }}></div>
           <div style={{ padding: '24px 0' }}>
             <span style={{ color: 'var(--accent)', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: '8px', fontFamily: 'var(--font-ibm-mono)' }}>Robótica de Servicio</span>
             <h3 style={{ fontSize: '1.5rem', margin: '0 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>DELIVER-E</h3>
@@ -190,11 +205,11 @@ const Explora = () => (
             </p>
             <button style={{ background: 'transparent', color: 'var(--text)', border: '1px solid var(--text)', padding: '8px 16px', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer' }}>Leer Más</button>
           </div>
-        </article>
+        </motion.article>
 
         {/* Tarjeta 2 */}
-        <article className="dashboard-card" style={{ padding: 0, overflow: 'hidden', border: 'none', background: 'transparent' }}>
-          <div style={{ height: '250px', backgroundImage: 'url("https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=1000&auto=format&fit=crop")', backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)' }}></div>
+        <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', border: 'none', background: 'transparent' }}>
+          <div style={{ height: '250px', backgroundImage: `url(${imgLumobox})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)' }}></div>
           <div style={{ padding: '24px 0' }}>
             <span style={{ color: 'var(--accent)', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: '8px', fontFamily: 'var(--font-ibm-mono)' }}>Inteligencia Artificial</span>
             <h3 style={{ fontSize: '1.5rem', margin: '0 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>UMO AI & LUMOBOX</h3>
@@ -203,7 +218,7 @@ const Explora = () => (
             </p>
             <button style={{ background: 'transparent', color: 'var(--text)', border: '1px solid var(--text)', padding: '8px 16px', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer' }}>Leer Más</button>
           </div>
-        </article>
+        </motion.article>
 
       </div>
     </section>
@@ -231,7 +246,7 @@ const Descubre = () => (
       <div style={{
         position: 'absolute',
         top: 0, left: 0, right: 0, bottom: 0,
-        backgroundImage: 'url("https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=2070&auto=format&fit=crop")',
+        backgroundImage: `url(${imgProjects})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         filter: 'brightness(0.3) grayscale(0.5)',
@@ -264,8 +279,8 @@ const Descubre = () => (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '40px' }}>
         
         {/* BMO */}
-        <article className="dashboard-card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ height: '350px', backgroundColor: '#101525', cursor: 'grab' }}>
+        <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div className="canvas-container" style={{ height: '350px', backgroundColor: '#101525' }}>
             <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{ position: [0, 0, 4], fov: 50 }}>
               <ambientLight intensity={0.7} />
               <directionalLight position={[5, 10, 5]} intensity={1.5} />
@@ -282,11 +297,11 @@ const Descubre = () => (
             <h3 style={{ fontSize: '1.5rem', margin: '8px 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>BMO</h3>
             <p style={{ color: 'var(--muted)', fontSize: '0.95rem' }}>Prototipo de robot asistente inspirado en diseño retro.</p>
           </div>
-        </article>
+        </motion.article>
 
         {/* Delivery Bot */}
-        <article className="dashboard-card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ height: '350px', backgroundColor: '#101525', cursor: 'grab' }}>
+        <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div className="canvas-container" style={{ height: '350px', backgroundColor: '#101525' }}>
             <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{ position: [0, 0, 4], fov: 50 }}>
               <ambientLight intensity={0.7} />
               <directionalLight position={[5, 10, 5]} intensity={1.5} />
@@ -303,11 +318,11 @@ const Descubre = () => (
             <h3 style={{ fontSize: '1.5rem', margin: '8px 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>Delivery Bot v1</h3>
             <p style={{ color: 'var(--muted)', fontSize: '0.95rem' }}>Vehículo autónomo para entrega de suministros dentro del campus.</p>
           </div>
-        </article>
+        </motion.article>
 
         {/* Leo Rover */}
-        <article className="dashboard-card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ height: '350px', backgroundColor: '#101525', cursor: 'grab' }}>
+        <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div className="canvas-container" style={{ height: '350px', backgroundColor: '#101525' }}>
             <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{ position: [0, 0, 4], fov: 50 }}>
               <ambientLight intensity={0.7} />
               <directionalLight position={[5, 10, 5]} intensity={1.5} />
@@ -324,11 +339,11 @@ const Descubre = () => (
             <h3 style={{ fontSize: '1.5rem', margin: '8px 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>Leo Rover</h3>
             <p style={{ color: 'var(--muted)', fontSize: '0.95rem' }}>Plataforma robótica robusta para terrenos difíciles e investigación.</p>
           </div>
-        </article>
+        </motion.article>
 
         {/* Unipolito */}
-        <article className="dashboard-card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ height: '350px', backgroundColor: '#101525', cursor: 'grab' }}>
+        <motion.article className="dashboard-card" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.6, ease: "easeOut" }} whileHover={{ y: -10 }} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div className="canvas-container" style={{ height: '350px', backgroundColor: '#101525' }}>
             <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{ position: [0, 0, 4], fov: 50 }}>
               <ambientLight intensity={0.7} />
               <directionalLight position={[5, 10, 5]} intensity={1.5} />
@@ -345,7 +360,7 @@ const Descubre = () => (
             <h3 style={{ fontSize: '1.5rem', margin: '8px 0 16px 0', fontFamily: 'var(--font-ibm-sans)' }}>Unipolito v4</h3>
             <p style={{ color: 'var(--muted)', fontSize: '0.95rem' }}>Cuarta iteración del modelo oficial de nuestra unidad de robótica.</p>
           </div>
-        </article>
+        </motion.article>
 
       </div>
     </section>
@@ -367,11 +382,12 @@ const Conecta = () => (
       <div style={{
         position: 'absolute',
         top: 0, left: 0, right: 0, bottom: 0,
-        backgroundImage: 'url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop")',
+        backgroundImage: `url(${imgMembers})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         filter: 'brightness(0.3) grayscale(0.5)',
-        zIndex: -1
+        zIndex: -1,
+        animation: 'kenBurns 20s infinite alternate ease-in-out'
       }}></div>
       <div style={{ maxWidth: '800px', borderLeft: '4px solid var(--accent)', paddingLeft: '24px' }}>
         <span className="eyebrow" style={{ color: 'var(--accent)', fontSize: '1rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>ALIANZAS GLOBALES</span>
@@ -382,7 +398,9 @@ const Conecta = () => (
           margin: '8px 0 16px 0',
           textShadow: '0 4px 20px rgba(0,0,0,0.8)'
         }}>
-          Conecta con el Mundo
+          <span className="text-reveal-mask">
+            <span>Conecta con el Mundo</span>
+          </span>
         </h1>
         <p style={{ 
           fontSize: '1.2rem', 
@@ -401,7 +419,7 @@ const Conecta = () => (
         
         {/* UCF Collab */}
         <div style={{ display: 'flex', gap: '40px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 400px', height: '300px', backgroundImage: 'url("https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1000&auto=format&fit=crop")', backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)' }}></div>
+          <div style={{ flex: '1 1 400px', height: '300px', backgroundImage: `url(${imgProjects})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)' }}></div>
           <div style={{ flex: '1 1 400px' }}>
             <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '2rem', color: 'var(--accent)', marginBottom: '16px' }}>UCF</h2>
             <h3 style={{ fontSize: '1.5rem', marginBottom: '16px' }}>University of Central Florida</h3>
@@ -414,7 +432,7 @@ const Conecta = () => (
 
         {/* Florida Space Institute Collab */}
         <div style={{ display: 'flex', gap: '40px', alignItems: 'center', flexWrap: 'wrap', flexDirection: 'row-reverse' }}>
-          <div style={{ flex: '1 1 400px', height: '300px', backgroundImage: 'url("https://images.unsplash.com/photo-1517976487492-5750f3195933?q=80&w=1000&auto=format&fit=crop")', backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)' }}></div>
+          <div style={{ flex: '1 1 400px', height: '300px', backgroundImage: `url(${imgLine})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)' }}></div>
           <div style={{ flex: '1 1 400px' }}>
             <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '2rem', color: 'var(--accent)', marginBottom: '16px' }}>FSI</h2>
             <h3 style={{ fontSize: '1.5rem', marginBottom: '16px' }}>Florida Space Institute</h3>
@@ -475,34 +493,46 @@ const Footer = () => (
 );
 
 // --- LAYOUT DEL LANDING ---
-const LandingLayout = () => (
+const LandingLayout = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  return (
     <div className="app-shell" style={{ position: 'relative' }}>
       
       {/* Navegación Superior */}
       <header className="topbar" style={{ 
         borderBottom: '1px solid var(--border)', 
-        padding: '20px 40px', 
-        display: 'grid',
-        gridTemplateColumns: '1fr auto 1fr',
-        alignItems: 'center'
+        padding: '20px 40px',
+        display: 'flex',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: '20px'
       }}>
         
         <div className="topbar-left" style={{ display: 'flex', justifyContent: 'flex-start' }}>
           <Link to="/" style={{ textDecoration: 'none' }}>
-            <div style={{
+            <div className="action-card logo-card" style={{
               display: 'flex',
               alignItems: 'center',
-              border: '2px solid var(--accent)',
+              border: '0.6px solid var(--accent)',
               padding: '8px 16px',
               gap: '12px',
               transition: 'all 0.3s ease'
-            }} className="action-card">
-              <img 
-                src={logoUrl} 
-                alt="Logo UNIPOLI" 
-                style={{ height: '32px', width: 'auto', objectFit: 'contain' }} 
-              />
-              <div style={{
+            }}>
+              <div className="logo-img-container">
+                <img 
+                  src={logoUrl} 
+                  alt="Logo UNIPOLI" 
+                  className="logo-img-default"
+                />
+                <img 
+                  src={logoBlancoUrl} 
+                  alt="Logo UNIPOLI Blanco" 
+                  className="logo-img-hover"
+                />
+              </div>
+              <div className="logo-text-container" style={{
                 color: 'white',
                 fontFamily: 'var(--font-ibm-sans)',
                 fontWeight: 'bold',
@@ -511,22 +541,43 @@ const LandingLayout = () => (
                 lineHeight: 1.2,
                 textAlign: 'left'
               }}>
-                RESEARCH UNIT<br />OF ROBOTICS
+                <div className="logo-text-default">
+                  RESEARCH UNIT<br />OF ROBOTICS
+                </div>
+                <div className="logo-text-hover" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <span style={{ display: 'flex', alignItems: 'center' }}>INICIO</span>
+                  <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: '1.5rem', transform: 'translateY(-3px)' }}>→</span>
+                </div>
               </div>
             </div>
           </Link>
         </div>
         
+        <button 
+          className="mobile-menu-btn"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: '8px' }}
+        >
+          {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+        </button>
+
         {/* Enlaces de Navegación (Las palabras del centro) */}
-        <nav style={{ textAlign: 'center', display: 'flex', gap: '30px', justifyContent: 'center', alignItems: 'center' }}>
-          <Link to="/explora" style={{ color: 'var(--muted)', fontSize: '0.9rem', letterSpacing: '0.3em', textDecoration: 'none', fontWeight: 'bold' }}>EXPLORA</Link>
-          <span style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
-          <Link to="/descubre" style={{ color: 'var(--muted)', fontSize: '0.9rem', letterSpacing: '0.3em', textDecoration: 'none', fontWeight: 'bold' }}>DESCUBRE</Link>
-          <span style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
-          <Link to="/conecta" style={{ color: 'var(--muted)', fontSize: '0.9rem', letterSpacing: '0.3em', textDecoration: 'none', fontWeight: 'bold' }}>CONECTA</Link>
+        <nav className={`main-nav ${isMobileMenuOpen ? 'mobile-open' : ''}`} style={{ textAlign: 'center', display: 'flex', gap: '20px', justifyContent: 'center', alignItems: 'center' }}>
+          <Link to="/explora" className="nav-link" data-text="EXPLORA" onClick={() => setIsMobileMenuOpen(false)}>EXPLORA</Link>
+          <span className="nav-separator" style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
+          <Link to="/descubre" className="nav-link" data-text="DESCUBRE" onClick={() => setIsMobileMenuOpen(false)}>DESCUBRE</Link>
+          <span className="nav-separator" style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
+          <Link to="/conecta" className="nav-link" data-text="CONECTA" onClick={() => setIsMobileMenuOpen(false)}>CONECTA</Link>
+          
+          {/* El botón de acceder también va en el menú móvil para que no se amontone arriba */}
+          <Link to="/login" className="mobile-only-btn" style={{ textDecoration: 'none', marginTop: '20px' }} onClick={() => setIsMobileMenuOpen(false)}>
+            <button className="logout-btn-small" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}>
+              ACCEDER
+            </button>
+          </Link>
         </nav>
         
-        <div className="topbar-right" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div className="topbar-right desktop-only-btn" style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Link to="/login" style={{ textDecoration: 'none' }}>
             <button 
               className="logout-btn-small" 
@@ -542,7 +593,8 @@ const LandingLayout = () => (
       
       <Footer />
     </div>
-);
+  );
+};
 
 // --- COMPONENTE COMING SOON ---
 const ComingSoon = () => (

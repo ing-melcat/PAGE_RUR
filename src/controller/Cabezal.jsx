@@ -30,20 +30,10 @@ export function Cabezal({ onCambio, onConfigApply, onBack }) {
                 <div className="topbar-title" style={{ margin: 0, flex: 1, textAlign: 'center', color: 'var(--text-main)' }}>RASSOR-UI</div>
                 
                 {/* ConfigPanel placed inside the header on the right */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', width: '40px' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', width: 'auto', minWidth: '40px' }}>
                     <ConfigPanel onApply={onConfigApply} />
                 </div>
 
-                <div className="Sets">
-                    <label>
-                        <input type="radio" name="opciones" value="Set1" onChange={(e) => onCambio(e.target.value)} />
-                        1st Set
-                    </label>
-                    <label>
-                        <input type="radio" name="opciones" value="Set2" onChange={(e) => onCambio(e.target.value)} />
-                        2nd Set
-                    </label>
-                </div>
             </nav>
         </header>
     );

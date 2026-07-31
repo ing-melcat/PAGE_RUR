@@ -93,16 +93,80 @@ const operadorActions = [
 
 
 export default function App() {
-  const [view, setView] = useState("login");
-  const [user, setUser] = useState<any>(null);
+  const [view, setView] = useState(() => {
+    try { return sessionStorage.getItem('loginApp_view') || "login"; } catch(e) { return "login"; }
+  });
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('loginApp_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch(e) { return null; }
+  });
   const [matricula, setMatricula] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isShaking, setIsShaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [mainContext, setMainContext] = useState("modules");
-  const [activeModule, setActiveModule] = useState<any>(null);
-  const [livekitToken, setLivekitToken] = useState<string>("");
+  const [mainContext, setMainContext] = useState(() => {
+    try { return sessionStorage.getItem('loginApp_mainContext') || "modules"; } catch(e) { return "modules"; }
+  });
+  const [activeModule, setActiveModule] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('loginApp_activeModule');
+      return saved ? JSON.parse(saved) : null;
+    } catch(e) { return null; }
+  });
+
+  useEffect(() => {
+    try { sessionStorage.setItem('loginApp_view', view); } catch(e) {}
+  }, [view]);
+
+  useEffect(() => {
+    try {
+      if (user) {
+        sessionStorage.setItem('loginApp_user', JSON.stringify(user));
+      } else {
+        sessionStorage.removeItem('loginApp_user');
+      }
+    } catch(e) {}
+  }, [user]);
+
+  useEffect(() => {
+    try { sessionStorage.setItem('loginApp_mainContext', mainContext); } catch(e) {}
+  }, [mainContext]);
+
+  useEffect(() => {
+    try {
+      if (activeModule) {
+        sessionStorage.setItem('loginApp_activeModule', JSON.stringify(activeModule));
+      } else {
+        sessionStorage.removeItem('loginApp_activeModule');
+      }
+    } catch(e) {}
+  }, [activeModule]);
+  useEffect(() => {
+    if (!user && view !== "login") {
+      setView("login");
+    }
+  }, [user, view]);
+
+  const [livekitToken, setLivekitToken] = useState<any>(() => {
+    try {
+      const saved = sessionStorage.getItem('loginApp_livekitToken');
+      return saved ? JSON.parse(saved) : "";
+    } catch(e) { return ""; }
+  });
   const [profileForm, setProfileForm] = useState({ alias: '', bio: '', foto: '', github: '', instagram: '', reddit: '', facebook: '' });
+  
+  useEffect(() => {
+    try {
+      if (livekitToken) {
+        sessionStorage.setItem('loginApp_livekitToken', JSON.stringify(livekitToken));
+      } else {
+        sessionStorage.removeItem('loginApp_livekitToken');
+      }
+    } catch(e) {}
+  }, [livekitToken]);
   
   const [showAlias, setShowAlias] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(false);
@@ -154,34 +218,6 @@ export default function App() {
     setIsLoading(true);
     setError("");
 
-    // --- BYPASS DE LOGIN TEMPORAL PARA PRUEBAS ---
-    setTimeout(() => {
-      setUser({
-        matricula: matricula || "admin",
-        nombre: "Usuario de Pruebas",
-        grupo: "Sistemas",
-        telefono: "555-0000",
-        rol: "admin",
-        show_alias: false,
-        push_notifications: false,
-        alias: "",
-        bio: "",
-        foto: "",
-        github: "",
-        instagram: "",
-        reddit: "",
-        facebook: "",
-        control_mappings: {}
-      });
-      setView("welcome");
-      setTimeout(() => {
-        setView((currentView) => currentView === "welcome" ? "dashboard" : currentView);
-      }, 2200);
-      setIsLoading(false);
-    }, 500);
-    return;
-    // --- FIN DEL BYPASS ---
-
     try {
       const response = await fetch('/api/login.php', {
         method: 'POST',
@@ -199,9 +235,13 @@ export default function App() {
         }, 2200);
       } else {
         setError(data.message || "Credenciales incorrectas.");
+        setIsShaking(true);
+        setTimeout(() => setIsShaking(false), 500);
       }
     } catch (err) {
       setError("Error interno.");
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 500);
     } finally {
       setIsLoading(false);
     }
@@ -227,7 +267,9 @@ export default function App() {
       {view !== "controles" && (
       <header className="topbar">
         <div className="topbar-left">
-          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="RUR Logo" className="topbar-logo" />
+          <a href={import.meta.env.BASE_URL} style={{ display: 'flex', alignItems: 'center' }}>
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="RUR Logo" className="topbar-logo" style={{ cursor: 'pointer' }} title="Volver al Inicio" />
+          </a>
         </div>
         <div className="topbar-title">RESEARCH UNIT OF ROBOTICS</div>
         <div className="topbar-right" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -259,7 +301,7 @@ export default function App() {
       </header>
       )}
 
-      <main className={view === "login" ? "container" : "full-container"} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <main className={view === "login" ? "container" : view === "controles" ? "controller-main" : "full-container"} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <AnimatePresence mode="wait">
           {view === "login" && (
             <motion.section key="login" className="login-panel" {...pageTransition}>
@@ -268,34 +310,82 @@ export default function App() {
                 <h1>Acceso al Sistema</h1>
               </div>
               <form onSubmit={handleLogin} autoComplete="off">
-                <div className="input-group">
-                  <label htmlFor="matricula">Matrícula</label>
+                <div className={`input-group floating ${isShaking ? 'shake-error' : ''}`}>
                   <input 
                     type="text" 
                     id="matricula" 
                     value={matricula}
                     onChange={(e) => setMatricula(e.target.value)}
-                    placeholder="INGRESAR MATRÍCULA" 
-                    required 
+                    placeholder=" " 
                   />
+                  <label htmlFor="matricula">Matrícula</label>
+                  <span className="border-draw"></span>
                 </div>
 
-                <div className="input-group">
-                  <label htmlFor="password">Código de Acceso</label>
+                <div className={`input-group floating ${isShaking ? 'shake-error' : ''}`}>
                   <input 
                     type="password" 
                     id="password" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="********" 
-                    required 
+                    placeholder=" " 
                   />
+                  <label htmlFor="password">Código de Acceso</label>
+                  <span className="border-draw"></span>
                 </div>
 
-                <button type="submit" disabled={isLoading}>
-                  {isLoading ? <Loader2 className="animate-spin" size={20} /> : "Iniciar Sesión"}
-                </button>
-                {error && <p className="message error">{error}</p>}
+                <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: '16px' }}>
+                  <motion.button 
+                    type="submit" 
+                    disabled={isLoading}
+                    whileTap={{ scale: 0.95 }}
+                    initial={{ width: "100%", borderRadius: "4px" }}
+                    animate={isLoading ? { 
+                      backgroundColor: "transparent", 
+                      color: "var(--accent)", 
+                      border: "1px solid var(--accent)", 
+                      width: "50px", 
+                      height: "50px", 
+                      borderRadius: "25px", 
+                      padding: 0 
+                    } : {
+                      backgroundColor: "var(--accent)", 
+                      color: "#000",
+                      border: "none",
+                      width: "100%",
+                      height: "auto",
+                      borderRadius: "4px",
+                      padding: "16px"
+                    }}
+                    transition={{ duration: 0.8, ease: "easeInOut" }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <AnimatePresence mode="wait">
+                      {isLoading ? (
+                        <motion.div key="loader" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                          <Loader2 className="animate-spin" size={20} />
+                        </motion.div>
+                      ) : (
+                        <motion.span key="text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: 'block', width: '100%', textAlign: 'center' }}>
+                          Iniciar Sesión
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
+                </div>
+                
+                <AnimatePresence>
+                  {error && (
+                    <motion.p 
+                      className="message error" 
+                      initial={{ opacity: 0, y: -10 }} 
+                      animate={{ opacity: 1, y: 0 }} 
+                      exit={{ opacity: 0 }}
+                    >
+                      {error}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
               </form>
             </motion.section>
           )}
@@ -747,7 +837,7 @@ export default function App() {
           )}
 
           {view === "controles" && livekitToken && (
-            <motion.section key="controller" className="full-container controller-view" {...pageTransition}>
+            <motion.section key="controller" className="controller-view" {...pageTransition}>
               <Suspense fallback={
                 <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
                   <Loader2 className="animate-spin" size={64} style={{ marginBottom: '24px' }} />

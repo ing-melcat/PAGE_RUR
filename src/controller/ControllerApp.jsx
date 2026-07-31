@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 import { RotateCcw, RotateCw } from 'lucide-react';
 import { Segment } from './Segment';
@@ -18,7 +18,7 @@ const SERVER_URL = import.meta.env.VITE_LIVEKIT_URL || "wss://rur-livekit-server
 export default function ControllerApp({ onBack, robot }) {
   const [isMobile] = useState(window.innerWidth <= 932);
   const [visible, setVisible] = useState(true);
-  const [visible1, setVisible1] = useState(true); // Joystick visible by default
+  const [visible1, setVisible1] = useState(true);
   const [visible2, setVisible2] = useState(false);
   const [error, setError] = useState(null);
   const [opcion, setOpcion] = useState('Set0');
@@ -38,45 +38,9 @@ export default function ControllerApp({ onBack, robot }) {
   const [gamepadStatus, setGamepadStatus] = useState("Iniciando Gamepad API...");
   const [forceMobileMode, setForceMobileMode] = useState(false);
   
-  useEffect(() => {
-    const handleGamepadConnected = (e) => {
-      console.log("Gamepad connected:", e.gamepad.id);
-      setHasGamepad(true);
-      setGamepadStatus(`Conectado: ${e.gamepad.id}`);
-    };
-    const handleGamepadDisconnected = (e) => {
-      console.log("Gamepad disconnected:", e.gamepad.id);
-      setHasGamepad(false);
-      setGamepadStatus("Desconectado. Esperando gamepad...");
-    };
+  const gamepadStateRef = useRef({ x: 0, y: 0, buttons: {} });
 
-    window.addEventListener("gamepadconnected", handleGamepadConnected);
-    window.addEventListener("gamepaddisconnected", handleGamepadDisconnected);
 
-    // Initial check
-    if (navigator.getGamepads) {
-      const gamepads = navigator.getGamepads();
-      let found = false;
-      for (let i = 0; i < gamepads.length; i++) {
-        if (gamepads[i]) {
-          setHasGamepad(true);
-          setGamepadStatus(`Conectado: ${gamepads[i].id}`);
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        setGamepadStatus("API Ready. Esperando gamepad...");
-      }
-    } else {
-      setGamepadStatus("Error: Gamepad API no soportada en este navegador.");
-    }
-
-    return () => {
-      window.removeEventListener("gamepadconnected", handleGamepadConnected);
-      window.removeEventListener("gamepaddisconnected", handleGamepadDisconnected);
-    };
-  }, []);
 
   const handleAction = useCallback((component, action, state) => {
     if (!room || !isConnected) return;
@@ -117,6 +81,96 @@ export default function ControllerApp({ onBack, robot }) {
   }, [sensitivity])
 
   useEffect(() => {
+    const handleGamepadConnected = (e) => {
+      console.log("Gamepad connected:", e.gamepad.id);
+      setHasGamepad(true);
+      setGamepadStatus(`Conectado: ${e.gamepad.id}`);
+    };
+    const handleGamepadDisconnected = (e) => {
+      console.log("Gamepad disconnected:", e.gamepad.id);
+      setHasGamepad(false);
+      setGamepadStatus("Desconectado. Esperando gamepad...");
+    };
+
+    window.addEventListener("gamepadconnected", handleGamepadConnected);
+    window.addEventListener("gamepaddisconnected", handleGamepadDisconnected);
+
+    let animationFrameId;
+    const pollGamepad = () => {
+      if (navigator.getGamepads) {
+        const gamepads = navigator.getGamepads();
+        for (let i = 0; i < gamepads.length; i++) {
+          const gp = gamepads[i];
+          if (gp) {
+            const deadZone = 0.15;
+            let lx = gp.axes[0] || 0;
+            let ly = gp.axes[1] || 0;
+            if (Math.abs(lx) < deadZone) lx = 0;
+            if (Math.abs(ly) < deadZone) ly = 0;
+
+            const x = lx * 100;
+            const y = -ly * 100;
+
+            if (x !== gamepadStateRef.current.x || y !== gamepadStateRef.current.y) {
+              if (!hasGamepad && (Math.abs(x) > 0 || Math.abs(y) > 0)) {
+                setHasGamepad(true);
+                setGamepadStatus("Mando detectado. Controles táctiles ocultos.");
+              }
+              handleMove(x, y);
+              gamepadStateRef.current.x = x;
+              gamepadStateRef.current.y = y;
+            }
+
+            const checkButton = (index, component, action, stateVal) => {
+              const pressed = gp.buttons[index]?.pressed;
+              const wasPressed = gamepadStateRef.current.buttons[index];
+              if (pressed && !wasPressed) {
+                if (!hasGamepad) {
+                  setHasGamepad(true);
+                  setGamepadStatus("Mando detectado. Controles táctiles ocultos.");
+                }
+                handleAction(component, action, stateVal);
+                gamepadStateRef.current.buttons[index] = true;
+              } else if (!pressed && wasPressed) {
+                handleAction(component, 'stop', 0);
+                gamepadStateRef.current.buttons[index] = false;
+              }
+            };
+
+            checkButton(12, 'arm', 'up', 1);
+            checkButton(13, 'arm', 'down', -1);
+            checkButton(14, 'drum', 'up', 1);
+            checkButton(15, 'drum', 'down', -1);
+            checkButton(4, 'drum', 'collect', 1);
+            checkButton(5, 'drum', 'dump', -1);
+          }
+        }
+      }
+      animationFrameId = requestAnimationFrame(pollGamepad);
+    };
+
+    animationFrameId = requestAnimationFrame(pollGamepad);
+
+    const handleAnyKeyDown = (e) => {
+      const activeKeys = ['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','q','e','o','p'];
+      if (activeKeys.includes(e.key.toLowerCase())) {
+        if (!hasGamepad) {
+          setHasGamepad(true);
+          setGamepadStatus("Teclado detectado. Controles táctiles ocultos.");
+        }
+      }
+    };
+    window.addEventListener("keydown", handleAnyKeyDown);
+
+    return () => {
+      window.removeEventListener("gamepadconnected", handleGamepadConnected);
+      window.removeEventListener("gamepaddisconnected", handleGamepadDisconnected);
+      window.removeEventListener("keydown", handleAnyKeyDown);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [hasGamepad, handleMove, handleAction]);
+
+  useEffect(() => {
     if (opcion === 'Set1') {
       setVisible1(false);
       setVisible(true);
@@ -129,15 +183,10 @@ export default function ControllerApp({ onBack, robot }) {
   useEffect(() => {
     if (token !== '') {
       setVisible2(false);
-      if (isMobile === true) {
-        setVisible1(false);
-        setVisible(true);
-      } else {
-        setVisible(true);
-        setVisible1(true);
-      }
+      setVisible1(true);
+      setVisible(true);
     }
-  }, [connect, token, isMobile]);
+  }, [connect, token]);
 
   const connectToLiveKit = useCallback(async (authToken) => {
     if (!authToken) {
@@ -260,8 +309,10 @@ export default function ControllerApp({ onBack, robot }) {
             <button 
               onClick={() => {
                 setHasGamepad(false);
-                setGamepadStatus("Reseteado. Esperando gamepad...");
+                setGamepadStatus("Reseteado. Modo manual activo.");
                 setForceMobileMode(false);
+                setVisible(true);
+                setVisible1(true);
               }}
               style={{
                 background: 'transparent',
