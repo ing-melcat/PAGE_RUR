@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "start": "cd api && node server.js",
+    "prod": "npm run build && cross-env NODE_ENV=production npm start",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -29,6 +31,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
+    "cross-env": "^10.1.0",
     "oxlint": "^1.71.0",
     "typescript": "~6.0.2",
     "vite": "^8.1.1"

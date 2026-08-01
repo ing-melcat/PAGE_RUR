@@ -40,7 +40,9 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({ storage, fileFilter });
-const JWT_SECRET = 'rur_super_secret_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'rur_super_secret_key_2026';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const DIST_DIR = path.join(__dirname, '..', 'dist');
 
 
 const verifyToken = (req, res, next) => {
@@ -53,9 +55,19 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-app.use(cors());
+// CORS: en producción solo permitir el mismo origen; en desarrollo todo abierto
+if (IS_PRODUCTION) {
+  app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
+} else {
+  app.use(cors());
+}
 app.use(express.json());
 app.use('/api/uploads', express.static(UPLOADS_DIR));
+
+// En producción, servir los archivos estáticos del build de Vite
+if (IS_PRODUCTION) {
+  app.use(express.static(DIST_DIR));
+}
 
 // Asegurar que exista el directorio y el archivo de datos
 if (!fs.existsSync(path.join(__dirname, 'data'))) {
@@ -321,8 +333,15 @@ app.get('/api/crowdsec/metrics', verifyToken, async (req, res) => {
   res.json(mockMetrics);
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor Node corriendo en http://localhost:${PORT}`);
+// SPA catch-all: en producción, cualquier ruta no-API devuelve index.html
+if (IS_PRODUCTION) {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(DIST_DIR, 'index.html'));
+  });
+}
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor RUR corriendo en puerto ${PORT} [${IS_PRODUCTION ? 'PRODUCCIÓN' : 'DESARROLLO'}]`);
 });
 
 // ROBOTS MANAGEMENT

@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  dummy-robot:
+    build: .
+    # El archivo .env debe estar en esta misma carpeta (robot_receiver)
+    # y contener LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET y LIVEKIT_ROOM
+    env_file:
+      - .env
+    restart: unless-stopped

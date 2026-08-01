@@ -1,47 +1,22 @@
 version: '3.8'
 
 services:
-  web:
+  rur-web:
     build: .
     ports:
-      - "80:80"
+      - "80:3001" # Mapea el puerto 80 del host al 3001 del contenedor
     environment:
-      - DB_HOST=db
-      - DB_NAME=login_system
-      - DB_USER=postgres
-      - DB_PASS=SecretPass123!
-      - LIVEKIT_HOST=ws://livekit:7880
-      - LIVEKIT_API_KEY=dev_key
-      - LIVEKIT_API_SECRET=dev_secret
-    depends_on:
-      - db
+      - NODE_ENV=production
+      - PORT=3001
+      - JWT_SECRET=tu_secreto_seguro_para_produccion_2026
+      # - CORS_ORIGIN=https://tudominio.com # Descomentar para restringir CORS
     volumes:
-      - uploads_data:/var/www/html/api/uploads
-    restart: always
+      - ./api/data:/app/api/data       # Persistencia de base de datos JSON
+      - ./uploads:/app/api/uploads     # Persistencia de archivos subidos
+    restart: unless-stopped
     networks:
-      - empresa_network
-
-  db:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=SecretPass123!
-      - POSTGRES_DB=login_system
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      # Opcional: Montar un archivo de inicialización SQL si se tiene uno.
-      # - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    restart: always
-    # No exponemos los puertos al host, solo dentro de rur_network
-    expose:
-      - 5432
-    networks:
-      - empresa_network
-
-volumes:
-  pgdata:
-  uploads_data:
+      - rur_network
 
 networks:
-  empresa_network:
-    external: true
+  rur_network:
+    driver: bridge
