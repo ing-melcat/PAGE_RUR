@@ -3,6 +3,7 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import jwt from 'jsonwebtoken';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,7 +27,27 @@ const storage = multer.diskStorage({
     cb(null, uniqueSuffix + '-' + file.originalname.replace(/\s+/g, '_'));
   }
 });
-const upload = multer({ storage });
+
+const fileFilter = (req, file, cb) => {
+  const allowedExtensions = /\.(jpg|jpeg|png|gif|webp|glb|gltf|mp4)$/i;
+  if (!file.originalname.match(allowedExtensions)) {
+    return cb(new Error('Formato de archivo no permitido. Solo se permiten imágenes, videos y modelos 3D.'));
+  }
+  cb(null, true);
+};
+
+const upload = multer({ storage, fileFilter });
+const JWT_SECRET = 'rur_super_secret_key_2026';
+
+const verifyToken = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(403).json({ success: false, message: 'Se requiere token de autenticación' });
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) return res.status(401).json({ success: false, message: 'Token inválido o expirado' });
+    req.user = decoded;
+    next();
+  });
+};
 
 app.use(cors());
 app.use(express.json());
@@ -60,37 +81,56 @@ app.post('/api/login.php', (req, res) => {
   };
 
   if (testUsers[matricula] && password === '1234') {
+    const user = {
+      id: "1",
+      matricula: matricula,
+      nombre: testUsers[matricula].nombre,
+      roles: testUsers[matricula].roles,
+      grupo: "DEV",
+      telefono: "555-0000",
+      alias: "Test",
+      foto: "",
+      control_mappings: {}
+    };
+    const token = jwt.sign(user, JWT_SECRET, { expiresIn: '24h' });
+    
     return res.json({
       success: true,
-      user: {
-        id: "1",
-        matricula: matricula,
-        nombre: testUsers[matricula].nombre,
-        roles: testUsers[matricula].roles,
-        grupo: "DEV",
-        telefono: "555-0000",
-        alias: "Test",
-        foto: "",
-        control_mappings: {}
-      }
+      token,
+      user
     });
   }
 
   res.status(401).json({ success: false, message: 'Matrícula o código incorrecto (Prueba con admin, bloguero, operador o hibrido / 1234)' });
 });
 
+// GET: Leer el usuario actual desde el token (Validación Backend)
+app.get('/api/me', verifyToken, (req, res) => {
+  res.json({ success: true, user: req.user });
+});
+
 // GET: Leer todas las publicaciones
 app.get('/api/posts', (req, res) => res.json(getPosts()));
 
 // POST: Subir archivo/imagen local
-app.post('/api/upload', upload.single('file'), (req, res) => {
+app.post('/api/upload', verifyToken, upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo.' });
   const fileUrl = `/api/uploads/${req.file.filename}`;
   res.json({ url: fileUrl });
 });
 
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError || err.message.includes('Formato')) {
+    return res.status(400).json({ error: err.message });
+  }
+  next();
+});
+
 // POST: Crear una nueva publicación (simple o revista)
-app.post('/api/posts', (req, res) => {
+app.post('/api/posts', verifyToken, (req, res) => {
+  if (!req.user.roles.includes('admin') && !req.user.roles.includes('redactor')) {
+    return res.status(403).json({ message: 'No tienes permisos para crear publicaciones' });
+  }
   const posts = getPosts();
   const newPost = { 
     id: Date.now().toString(), 
@@ -104,11 +144,16 @@ app.post('/api/posts', (req, res) => {
 });
 
 // PUT: Actualizar una publicación (ej. añadir/editar páginas)
-app.put('/api/posts/:id', (req, res) => {
+app.put('/api/posts/:id', verifyToken, (req, res) => {
+  if (!req.user.roles.includes('admin') && !req.user.roles.includes('redactor')) {
+    return res.status(403).json({ message: 'No tienes permisos para editar publicaciones' });
+  }
   const posts = getPosts();
   const index = posts.findIndex(p => p.id === req.params.id);
   if (index !== -1) {
-    posts[index] = { ...posts[index], ...req.body };
+    // Prevent overriding sensitive fields like id
+    const { id, ...updateData } = req.body;
+    posts[index] = { ...posts[index], ...updateData };
     savePosts(posts);
     res.json(posts[index]);
   } else {
@@ -117,7 +162,10 @@ app.put('/api/posts/:id', (req, res) => {
 });
 
 // DELETE: Eliminar una publicación
-app.delete('/api/posts/:id', (req, res) => {
+app.delete('/api/posts/:id', verifyToken, (req, res) => {
+  if (!req.user.roles.includes('admin')) {
+    return res.status(403).json({ message: 'Solo los administradores pueden eliminar' });
+  }
   let posts = getPosts();
   const initialLength = posts.length;
   posts = posts.filter(p => p.id !== req.params.id);

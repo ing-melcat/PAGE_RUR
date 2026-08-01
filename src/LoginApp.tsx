@@ -121,19 +121,29 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   const handleDelete = async (id: string) => {
     if(!window.confirm('¿Estás seguro de que deseas eliminar esta publicación?')) return;
     try {
-      const res = await fetch(`/api/posts/${id}`, { method: 'DELETE' });
+      const token = localStorage.getItem('authToken');
+      const res = await fetch(`/api/posts/${id}`, { 
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (res.ok) fetchPosts();
+      else alert('No tienes permisos');
     } catch(err) { alert('Error al eliminar'); }
   };
 
   const toggleVisibility = async (post: any) => {
     try {
+      const token = localStorage.getItem('authToken');
       const res = await fetch(`/api/posts/${post.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ isHidden: !post.isHidden })
       });
       if (res.ok) fetchPosts();
+      else alert('No tienes permisos');
     } catch(err) { alert('Error al actualizar visibilidad'); }
   };
 
@@ -171,8 +181,13 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
     
     setUploadingImage(true);
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await res.json();
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await response.json();
       if (data.url) callback(data.url);
       else alert("Error al subir la imagen");
     } catch(err) { alert("Error de conexión al subir imagen"); }
@@ -192,16 +207,20 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
     try {
       const url = viewMode === 'edit' ? `/api/posts/${editingId}` : '/api/posts';
       const method = viewMode === 'edit' ? 'PUT' : 'POST';
+      const token = localStorage.getItem('authToken');
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(postData)
       });
       if (res.ok) {
         alert(viewMode === 'edit' ? "Publicación actualizada" : "Publicación creada con éxito");
         setViewMode('list');
       } else {
-        alert("Hubo un problema al guardar la publicación.");
+        alert("No tienes permisos para guardar esta publicación.");
       }
     } catch(err) { alert("Error al conectar con el servidor."); }
     setIsSubmitting(false);
@@ -440,10 +459,35 @@ export default function App() {
   });
   const [user, setUser] = useState(() => {
     try {
-      const saved = sessionStorage.getItem('loginApp_user');
+      const saved = localStorage.getItem('currentUser');
       return saved ? JSON.parse(saved) : null;
     } catch(e) { return null; }
   });
+
+  useEffect(() => {
+    const checkToken = async () => {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        try {
+          const res = await fetch('/api/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (data.success) {
+            setUser(data.user);
+            setView("dashboard");
+          } else {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+          }
+        } catch(e) {
+          console.error(e);
+        }
+      }
+    };
+    checkToken();
+  }, []);
+
   const [matricula, setMatricula] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -467,9 +511,9 @@ export default function App() {
   useEffect(() => {
     try {
       if (user) {
-        sessionStorage.setItem('loginApp_user', JSON.stringify(user));
+        localStorage.setItem('currentUser', JSON.stringify(user));
       } else {
-        sessionStorage.removeItem('loginApp_user');
+        localStorage.removeItem('currentUser');
       }
     } catch(e) {}
   }, [user]);
@@ -570,7 +614,9 @@ export default function App() {
 
       const data = await response.json();
       
-      if (response.ok && data.success) {
+      if (data.success && data.user && data.token) {
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('currentUser', JSON.stringify(data.user));
         setUser(data.user);
         setView("welcome");
         setTimeout(() => {
@@ -590,11 +636,13 @@ export default function App() {
     }
   };
 
-  const logout = () => {
+  const handleLogout = () => {
     setUser(null);
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('authToken');
+    setView("login");
     setMatricula("");
     setPassword("");
-    setView("login");
   };
 
   const pageTransition = {
@@ -634,7 +682,7 @@ export default function App() {
             <motion.button 
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              onClick={logout} 
+              onClick={handleLogout} 
               className="logout-btn-small"
             >
               Salir
