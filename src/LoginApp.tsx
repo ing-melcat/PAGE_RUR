@@ -573,6 +573,74 @@ export default function App() {
   ]);
   const [editingRobot, setEditingRobot] = useState<any>(null);
 
+  // Users State
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const res = await fetch('/api/users', { headers: { 'Authorization': `Bearer ${token}` }});
+      if (res.ok) {
+        const data = await res.json();
+        setUsersList(data);
+      }
+    } catch(e) {}
+  };
+
+  useEffect(() => {
+    const roles = user?.roles || (user?.rol ? [user.rol] : []);
+    if (view === 'admin_users' && roles.includes('admin')) {
+      fetchUsers();
+    }
+  }, [view, user]);
+
+  const handleCreateUser = async (e: any) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const rolesStr = formData.get('roles') as string;
+    const userData = {
+      matricula: formData.get('matricula'),
+      password: formData.get('password'),
+      nombre: formData.get('nombre'),
+      roles: rolesStr.split(',').map(s => s.trim()).filter(s => s),
+      grupo: formData.get('grupo'),
+      alias: formData.get('alias')
+    };
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(userData)
+      });
+      if (res.ok) {
+        setIsCreatingUser(false);
+        fetchUsers();
+      } else {
+        const d = await res.json();
+        alert(d.message);
+      }
+    } catch(e) {}
+  };
+
+  const handleDeleteUser = async (matricula: string) => {
+    if (!window.confirm('¿Seguro que deseas eliminar este usuario?')) return;
+    try {
+      const token = localStorage.getItem('authToken');
+      const res = await fetch(`/api/users/${matricula}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) fetchUsers();
+      else {
+        const d = await res.json();
+        alert(d.message);
+      }
+    } catch(e) {}
+  };
+
   const handleSaveRobot = (e: any) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -1244,35 +1312,83 @@ export default function App() {
           )}
 
           {view === "admin_users" && (
-            <motion.section key="admin_users" className="dashboard-card" {...pageTransition}>
-              <div className="panel-header">
-                <span className="panel-label">ADMINISTRADOR</span>
-                <h2 style={{margin: '0', fontSize: '1.25rem'}}>Gestión de Usuarios</h2>
+            <motion.section key="admin_users" className="dashboard-card" {...pageTransition} style={{ marginTop: '120px', marginBottom: '60px' }}>
+              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <span className="panel-label">ADMINISTRADOR</span>
+                  <h2 style={{margin: '0', fontSize: '1.25rem'}}>Gestión de Usuarios</h2>
+                </div>
+                {!isCreatingUser && (
+                  <button onClick={() => setIsCreatingUser(true)} style={{ background: 'var(--accent)', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>+ Crear Usuario</button>
+                )}
               </div>
-              <div style={{ textAlign: 'left', marginBottom: '16px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--muted)' }}>
-                      <th style={{ padding: '8px', textAlign: 'left' }}>Nombre</th>
-                      <th style={{ padding: '8px', textAlign: 'left' }}>Roles</th>
-                      <th style={{ padding: '8px', textAlign: 'right' }}>Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr style={{ borderBottom: '1px dashed var(--border)' }}>
-                      <td style={{ padding: '12px 8px', color: 'var(--text)' }}>Alice Vega</td>
-                      <td style={{ padding: '8px', borderTop: '1px solid var(--border)' }}>Operador</td>
-                      <td style={{ padding: '12px 8px', textAlign: 'right' }}><button className="logout-btn-small" style={{borderColor: 'var(--error)', color: 'var(--error)'}} onClick={() => console.log('Revocando usuario...')}>Revocar</button></td>
-                    </tr>
-                    <tr style={{ borderBottom: '1px dashed var(--border)' }}>
-                      <td style={{ padding: '12px 8px', color: 'var(--text)' }}>Bob Torres</td>
-                      <td style={{ padding: '8px', borderTop: '1px solid var(--border)' }}>Hardware</td>
-                      <td style={{ padding: '12px 8px', textAlign: 'right' }}><button className="logout-btn-small" style={{borderColor: 'var(--error)', color: 'var(--error)'}} onClick={() => console.log('Revocando usuario...')}>Revocar</button></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <button className="back-link" onClick={() => setView("dashboard")}>← Volver</button>
+              
+              {isCreatingUser ? (
+                <div style={{ textAlign: 'left', marginBottom: '16px', padding: '20px', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                  <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem' }}>
+                        Matrícula / ID
+                        <input name="matricula" required style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem' }}>
+                        Contraseña
+                        <input name="password" type="password" required style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem' }}>
+                        Nombre Completo
+                        <input name="nombre" required style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem' }}>
+                        Alias / Nickname
+                        <input name="alias" style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem', gridColumn: '1 / -1' }}>
+                        Roles (separados por coma: admin, redactor, operador, hardware)
+                        <input name="roles" defaultValue="operador" required style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                      </label>
+                    </div>
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
+                      <button type="submit" style={{ flex: 1, background: 'var(--accent)', color: 'black', border: 'none', padding: '12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Guardar Usuario</button>
+                      <button type="button" onClick={() => setIsCreatingUser(false)} style={{ flex: 1, background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)', padding: '12px', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'left', marginBottom: '16px', overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>
+                    <thead style={{ background: 'var(--background)' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--muted)' }}>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>Matrícula</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>Nombre</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>Roles</th>
+                        <th style={{ padding: '12px', textAlign: 'right' }}>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usersList.map(u => (
+                        <tr key={u.matricula} style={{ borderBottom: '1px dashed var(--border)' }}>
+                          <td style={{ padding: '12px', color: 'var(--text)' }}>{u.matricula}</td>
+                          <td style={{ padding: '12px', color: 'var(--text)' }}>{u.nombre}</td>
+                          <td style={{ padding: '12px', color: 'var(--accent)' }}>{u.roles?.join(', ')}</td>
+                          <td style={{ padding: '12px', textAlign: 'right' }}>
+                            {u.matricula !== user?.matricula && (
+                              <button className="logout-btn-small" style={{borderColor: 'var(--error)', color: 'var(--error)'}} onClick={() => handleDeleteUser(u.matricula)}>Revocar</button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <button className="back-link" onClick={() => {
+                if (isCreatingUser) {
+                  setIsCreatingUser(false);
+                } else {
+                  setView("dashboard");
+                }
+              }}>« Volver</button>
             </motion.section>
           )}
 

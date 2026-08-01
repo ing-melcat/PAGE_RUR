@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 const DATA_FILE = path.join(__dirname, 'data', 'posts.json');
+const USERS_FILE = path.join(__dirname, 'data', 'users.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 import multer from 'multer';
@@ -60,36 +61,34 @@ if (!fs.existsSync(path.join(__dirname, 'data'))) {
 if (!fs.existsSync(DATA_FILE)) {
   fs.writeFileSync(DATA_FILE, JSON.stringify([]));
 }
+if (!fs.existsSync(USERS_FILE)) {
+  const initialUsers = [
+    { matricula: 'admin', password: '123', nombre: 'Administrador RUR', roles: ['admin'], grupo: 'DEV', alias: 'Admin' }
+  ];
+  fs.writeFileSync(USERS_FILE, JSON.stringify(initialUsers));
+}
 
 const getPosts = () => JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
 const savePosts = (posts) => fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2));
+
+const getUsers = () => JSON.parse(fs.readFileSync(USERS_FILE, 'utf-8'));
+const saveUsers = (users) => fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 
 // Endpoints
 app.get('/api/hello', (req, res) => {
   res.json({ message: '¡Hola desde tu nuevo servidor Node en MAIN!' });
 });
 
-// SIMULACIÓN DE LOGIN PARA MODO LOCAL SIN DOCKER/PHP
 app.post('/api/login.php', (req, res) => {
   const { matricula, password } = req.body;
-  
-  const testUsers = {
-    'admin': { nombre: "Administrador RUR", roles: ["admin"] },
-    'bloguero': { nombre: "Redactor de Contenido", roles: ["redactor"] },
-    'operador': { nombre: "Piloto del Robot", roles: ["operador"] },
-    'hibrido': { nombre: "Operador y Bloguero", roles: ["operador", "redactor", "hardware"] }
-  };
+  const users = getUsers();
+  const userRecord = users.find(u => u.matricula === matricula && u.password === password);
 
-  if (testUsers[matricula] && password === '1234') {
+  if (userRecord) {
+    const { password, ...safeUser } = userRecord;
     const user = {
-      id: "1",
-      matricula: matricula,
-      nombre: testUsers[matricula].nombre,
-      roles: testUsers[matricula].roles,
-      grupo: "DEV",
-      telefono: "555-0000",
-      alias: "Test",
-      foto: "",
+      id: safeUser.matricula,
+      ...safeUser,
       control_mappings: {}
     };
     const token = jwt.sign(user, JWT_SECRET, { expiresIn: '24h' });
@@ -101,7 +100,7 @@ app.post('/api/login.php', (req, res) => {
     });
   }
 
-  res.status(401).json({ success: false, message: 'Matrícula o código incorrecto (Prueba con admin, bloguero, operador o hibrido / 1234)' });
+  res.status(401).json({ success: false, message: 'Matrícula o código incorrecto' });
 });
 
 // GET: Leer el usuario actual desde el token (Validación Backend)
@@ -175,6 +174,43 @@ app.delete('/api/posts/:id', verifyToken, (req, res) => {
   } else {
     res.status(404).json({ message: "Publicación no encontrada" });
   }
+});
+
+// USERS MANAGEMENT
+app.get('/api/users', verifyToken, (req, res) => {
+  if (!req.user.roles.includes('admin')) return res.status(403).json({ message: 'Sin permisos' });
+  const users = getUsers().map(({ password, ...u }) => u);
+  res.json(users);
+});
+
+app.post('/api/users', verifyToken, (req, res) => {
+  if (!req.user.roles.includes('admin')) return res.status(403).json({ message: 'Sin permisos' });
+  const users = getUsers();
+  if (users.find(u => u.matricula === req.body.matricula)) {
+    return res.status(400).json({ message: 'La matrícula ya existe' });
+  }
+  const newUser = {
+    matricula: req.body.matricula,
+    password: req.body.password,
+    nombre: req.body.nombre,
+    roles: req.body.roles || [],
+    grupo: req.body.grupo || 'GENERAL',
+    alias: req.body.alias || ''
+  };
+  users.push(newUser);
+  saveUsers(users);
+  res.json({ success: true, message: 'Usuario creado' });
+});
+
+app.delete('/api/users/:matricula', verifyToken, (req, res) => {
+  if (!req.user.roles.includes('admin')) return res.status(403).json({ message: 'Sin permisos' });
+  let users = getUsers();
+  if (req.params.matricula === req.user.matricula) {
+    return res.status(400).json({ message: 'No puedes eliminarte a ti mismo' });
+  }
+  users = users.filter(u => u.matricula !== req.params.matricula);
+  saveUsers(users);
+  res.json({ success: true, message: 'Usuario eliminado' });
 });
 
 app.listen(PORT, () => {
