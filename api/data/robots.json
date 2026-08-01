@@ -1,0 +1,15 @@
+[
+  {
+    "id": "rassor-1",
+    "name": "unipolito",
+    "status": "offline",
+    "room": "room-1",
+    "modelUrl": "",
+    "livekitUrl": "wss://prueba-n0lwieh3.livekit.cloud",
+    "livekitApiKey": "API8JbcfwFxYUWu",
+    "livekitApiSecret": "Weu0mLXf2GaP48uSPc21skDYi7j5zLWeIWfDguj4Uj1A",
+    "maxSpeed": 75,
+    "steeringSensitivity": 50,
+    "digForce": 90
+  }
+]

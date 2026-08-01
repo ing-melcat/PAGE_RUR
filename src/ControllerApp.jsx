@@ -29,6 +29,7 @@ export default function ControllerApp({ onBack, robot }) {
 
   const [room, setRoom] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isRobotConnected, setIsRobotConnected] = useState(false);
   const [binPacket, setBinPacket] = useState(null);
 
   const [joystickSize, setJystickSize] = useState(136)
@@ -125,31 +126,41 @@ export default function ControllerApp({ onBack, robot }) {
     }
   }, [connect, token, isMobile]);
 
-  const connectToLiveKit = useCallback(async (authToken) => {
-    if (!authToken) {
-      setError('Please provide a token');
-      return;
-    }
-
+  const connectToLiveKit = useCallback(async (authToken, customUrl) => {
     try {
-      const { Room } = await import('livekit-client');
+      const { Room, RoomEvent } = await import('livekit-client');
       const roomInstance = new Room();
-
-      await roomInstance.connect(SERVER_URL, authToken, {
-        autoSubscribe: false,
+      
+      const serverUrl = customUrl || robot?.livekitUrl || import.meta.env.VITE_LIVEKIT_URL || "wss://rur-livekit-server-8b010r3b.livekit.cloud";
+      
+      await roomInstance.connect(serverUrl, authToken, {
+        autoSubscribe: true
       });
 
       setIsConnected(true);
       setRoom(roomInstance);
-      console.log("Connection established");
+      
+      console.log("Connection established to", serverUrl);
+      console.log("Current participants in room:", Array.from(roomInstance.participants.values()).map(p => p.identity));
+      setIsRobotConnected(roomInstance.participants.size > 0);
+      
+      roomInstance.on(RoomEvent.ParticipantConnected, (participant) => {
+        console.log("NUEVO PARTICIPANTE CONECTADO:", participant.identity);
+        setIsRobotConnected(roomInstance.participants.size > 0);
+      });
+      roomInstance.on(RoomEvent.ParticipantDisconnected, (participant) => {
+        console.log("PARTICIPANTE DESCONECTADO:", participant.identity);
+        setIsRobotConnected(roomInstance.participants.size > 0);
+      });
       setError(null);
     } catch (err) {
       setError(err.message);
       console.error('LiveKit connection error:', err);
+      alert("Error crítico conectando al servidor LiveKit:\n" + err.message);
     }
-  }, []);
+  }, [robot]);
 
-  // Fetch API token basado en la room del robot
+  // Fetch API token basado en el robot
   useEffect(() => {
     if (robot && !connect && !hasFetched) {
       setHasFetched(true);
@@ -157,31 +168,33 @@ export default function ControllerApp({ onBack, robot }) {
       
       const fetchToken = async () => {
         try {
-          // Aquí haríamos la petición real a /api/livekit-token.php
-          /*
-          const res = await fetch('/api/livekit-token.php', {
+          const userToken = localStorage.getItem('authToken');
+          const res = await fetch('/api/livekit-token', {
             method: 'POST',
-            body: JSON.stringify({ robot_id: robot.id, room: robot.room })
+            headers: {
+               'Content-Type': 'application/json',
+               'Authorization': `Bearer ${userToken}`
+            },
+            body: JSON.stringify({ robotId: robot.id })
           });
+          
           const data = await res.json();
-          if(data.token) {
+          if (data.success && data.token) {
              setToken(data.token);
-             connectToLiveKit(data.token);
+             setConnect(true);
+             connectToLiveKit(data.token, data.livekitUrl);
+          } else {
+             setError(data.message || 'Error al obtener token de LiveKit');
+             alert("Error de LiveKit: " + (data.message || 'Error al obtener token'));
+             setVisible(true);
+             setVisible1(true);
           }
-          */
-          
-          // Como no hay backend local, simulamos la respuesta de red:
-          await new Promise(r => setTimeout(r, 1200)); 
-          const fetchedToken = `simulated-token-for-${robot.room}`;
-          setToken(fetchedToken);
-          setConnect(true);
-          
-          // Por defecto mockeamos un error en local porque no hay servidor livekit real 
-          // funcionando con "simulated-token-for-room". Pero llamamos la función igual.
-          connectToLiveKit(fetchedToken);
-          
         } catch (err) {
           console.error(err);
+          setError("Error de red contactando al servidor");
+          alert("Error crítico del servidor: " + err.message);
+          setVisible(true);
+          setVisible1(true);
         } finally {
           setIsFetchingToken(false);
         }
@@ -201,12 +214,20 @@ export default function ControllerApp({ onBack, robot }) {
   }, [room]);
 
   useEffect(() => {
-    if (room && isConnected && binPacket) {
-      room.localParticipant.publishData(binPacket, {
-        topic: TOPIC,
-        kind: DataPacket_Kind.Lossy,
-      });
-      console.log(`Sent: ${binPacket} to rassor`);
+    if (binPacket) {
+      // Create a readable representation of the binary packet (Uint8Array)
+      const packetArray = Array.from(binPacket);
+      
+      if (room && isConnected) {
+        room.localParticipant.publishData(binPacket, {
+          topic: TOPIC,
+          kind: DataPacket_Kind.Lossy,
+        });
+        console.log(`[LIVEKIT] Sent data to robot:`, packetArray);
+      } else {
+        // En desarrollo local o sin conexión, simulamos el envío para probar controles
+        console.log(`[LOCAL DEV MOCK] Simulando envío al robot:`, packetArray);
+      }
     }
   }, [binPacket, room, isConnected]);
 
@@ -264,6 +285,14 @@ export default function ControllerApp({ onBack, robot }) {
           >
             {forceMobileMode ? 'Volver a modo mando' : 'Forzar controles táctiles'}
           </button>
+        )}
+        
+        {/* HUD DEBUG LOCAL */}
+        <div style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid var(--accent)', padding: '8px', borderRadius: '4px', marginTop: '16px', color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem', width: '300px', wordWrap: 'break-word', pointerEvents: 'none' }}>
+          <strong style={{ color: '#fff' }}>📡 PAQUETE A ENVIAR (DEV):</strong><br/>
+          {binPacket ? `[${Array.from(binPacket).join(', ')}]` : "Esperando control..."}
+        </div>
+      </div>
         {/* TOP NAVBAR (Cabezal) */}
         {robot && <Cabezal robot={robot} onBack={onBack} battery={100} latency={45} />}
 
@@ -327,7 +356,7 @@ export default function ControllerApp({ onBack, robot }) {
             </Segment>
           </div>
 
-          <StatusHUD isConnected={isConnected} visible={visible1} height={Math.max(230, joystickSize + 80)} />
+          <StatusHUD isConnected={isRobotConnected} visible={visible1} height={Math.max(230, joystickSize + 80)} />
         </div>
 
         <div id="video-container">
