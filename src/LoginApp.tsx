@@ -464,6 +464,26 @@ export default function App() {
     } catch(e) { return null; }
   });
 
+  const [logsList, setLogsList] = useState<any[]>([]);
+  const [crowdsecMetrics, setCrowdsecMetrics] = useState<any>(null);
+
+  useEffect(() => {
+    if (view === 'admin_logs') {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        fetch('/api/logs', { headers: { 'Authorization': `Bearer ${token}` } })
+          .then(r => r.json())
+          .then(data => setLogsList(data))
+          .catch(err => console.error(err));
+          
+        fetch('/api/crowdsec/metrics', { headers: { 'Authorization': `Bearer ${token}` } })
+          .then(r => r.json())
+          .then(data => setCrowdsecMetrics(data))
+          .catch(err => console.error(err));
+      }
+    }
+  }, [view]);
+
   useEffect(() => {
     const checkToken = async () => {
       const token = localStorage.getItem('authToken');
@@ -475,7 +495,13 @@ export default function App() {
           const data = await res.json();
           if (data.success) {
             setUser(data.user);
-            setView("dashboard");
+            // Respetar la vista guardada en sessionStorage en vez de forzar dashboard
+            const savedView = sessionStorage.getItem('loginApp_view');
+            if (savedView && savedView !== "login") {
+              setView(savedView);
+            } else {
+              setView("dashboard");
+            }
           } else {
             localStorage.removeItem('authToken');
             localStorage.removeItem('currentUser');
@@ -566,16 +592,32 @@ export default function App() {
   }, [user]);
 
   // Robots State para LiveKit
-  const [robots, setRobots] = useState([
-    { id: "rassor-1", name: "RASSOR Alpha", status: "online", room: "room-rassor-1", modelUrl: "" },
-    { id: "rassor-2", name: "RASSOR Beta", status: "online", room: "room-rassor-2", modelUrl: "" },
-    { id: "rassor-3", name: "RASSOR Gamma", status: "offline", room: "room-rassor-3", modelUrl: "" }
-  ]);
+  const [robots, setRobots] = useState<any[]>([]);
+  const fetchRobots = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const res = await fetch('/api/robots', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setRobots(await res.json());
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchRobots();
+    }
+  }, [user]);
   const [editingRobot, setEditingRobot] = useState<any>(null);
 
   // Users State
   const [usersList, setUsersList] = useState<any[]>([]);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
 
   const fetchUsers = async () => {
     try {
@@ -598,12 +640,12 @@ export default function App() {
   const handleCreateUser = async (e: any) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const rolesStr = formData.get('roles') as string;
+    const rolesArr = formData.getAll('roles') as string[];
     const userData = {
       matricula: formData.get('matricula'),
       password: formData.get('password'),
       nombre: formData.get('nombre'),
-      roles: rolesStr.split(',').map(s => s.trim()).filter(s => s),
+      roles: rolesArr.length > 0 ? rolesArr : ['operador'],
       grupo: formData.get('grupo'),
       alias: formData.get('alias')
     };
@@ -625,6 +667,36 @@ export default function App() {
     } catch(e) {}
   };
 
+  const handleUpdateUser = async (e: any) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const rolesArr = formData.getAll('roles') as string[];
+    const userData = {
+      password: formData.get('password'),
+      nombre: formData.get('nombre'),
+      roles: rolesArr.length > 0 ? rolesArr : ['operador'],
+      alias: formData.get('alias')
+    };
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const res = await fetch(`/api/users/${editingUser.matricula}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(userData)
+      });
+      if (res.ok) {
+        setEditingUser(null);
+        fetchUsers();
+      } else {
+        const d = await res.json();
+        alert(d.message);
+      }
+    } catch(e) {
+      alert("Error de conexión");
+    }
+  };
+
   const handleDeleteUser = async (matricula: string) => {
     if (!window.confirm('¿Seguro que deseas eliminar este usuario?')) return;
     try {
@@ -641,7 +713,7 @@ export default function App() {
     } catch(e) {}
   };
 
-  const handleSaveRobot = (e: any) => {
+  const handleSaveRobot = async (e: any) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const updatedRobot = {
@@ -650,14 +722,78 @@ export default function App() {
         room: formData.get('room'),
         status: formData.get('status'),
         modelUrl: formData.get('modelUrl') || "",
+        livekitUrl: formData.get('livekitUrl') || "",
+        livekitApiKey: formData.get('livekitApiKey') || "",
+        livekitApiSecret: formData.get('livekitApiSecret') || "",
     };
 
-    if (editingRobot.isNew) {
-        setRobots([...robots, updatedRobot]);
-    } else {
-        setRobots(robots.map(r => r.id === editingRobot.id ? updatedRobot : r));
+    // Ping check para el servidor LiveKit
+    if (updatedRobot.livekitUrl) {
+      try {
+        let pingUrl = updatedRobot.livekitUrl.toString();
+        // Convertir wss:// a https:// para el ping HTTP
+        pingUrl = pingUrl.replace(/^ws(s?):\/\//i, 'http$1://');
+        
+        // Simple fetch timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const pingRes = await fetch(pingUrl, { method: 'GET', signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!pingRes.ok && pingRes.status !== 404) {
+          if (!window.confirm(`Advertencia: El servidor LiveKit respondió con estado ${pingRes.status}. ¿Deseas guardarlo de todos modos?`)) return;
+        }
+      } catch (err) {
+        if (!window.confirm('Advertencia: No se pudo establecer conexión con el servidor LiveKit Cloud (Ping fallido). ¿Deseas guardarlo de todos modos?')) {
+          return;
+        }
+      }
     }
-    setEditingRobot(null);
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const method = editingRobot.isNew ? 'POST' : 'PUT';
+      const url = editingRobot.isNew ? '/api/robots' : `/api/robots/${updatedRobot.id}`;
+      
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updatedRobot)
+      });
+      
+      if (res.ok) {
+        fetchRobots();
+        setEditingRobot(null);
+      } else {
+        const d = await res.json();
+        alert(d.message || "Error al guardar el robot");
+      }
+    } catch(e) {
+      alert("Error de conexión");
+    }
+  };
+
+  const handleDeleteRobot = async (id: string) => {
+    if (!window.confirm('¿Seguro que deseas eliminar este robot?')) return;
+    try {
+      const token = localStorage.getItem('authToken');
+      const res = await fetch(`/api/robots/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchRobots();
+      } else {
+        const d = await res.json();
+        alert(d.message);
+      }
+    } catch(e) {
+      console.error(e);
+    }
   };
 
   // Accessibility State
@@ -1261,8 +1397,21 @@ export default function App() {
                   onAddRobot={(newRobot) => {
                     setRobots(prev => [...prev, newRobot]);
                   }}
-                  onUpdateRobot={(updatedRobot) => {
+                  onUpdateRobot={async (updatedRobot) => {
                     setRobots(prev => prev.map(r => r.id === updatedRobot.id ? updatedRobot : r));
+                    try {
+                      const token = localStorage.getItem('authToken');
+                      await fetch(`/api/robots/${updatedRobot.id}`, {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(updatedRobot)
+                      });
+                    } catch (e) {
+                      console.error("Error al guardar robot en backend:", e);
+                    }
                   }}
                   controlMappings={user.control_mappings}
                   onUpdateMappings={async (newMappings) => {
@@ -1296,7 +1445,7 @@ export default function App() {
                 </div>
               }>
                 <ControllerApp 
-                  onBack={() => setView("dashboard")} 
+                  onBack={() => setView("robot_selection")} 
                   robot={livekitToken}
                   controlMappings={user.control_mappings}
                 />
@@ -1323,34 +1472,47 @@ export default function App() {
                 )}
               </div>
               
-              {isCreatingUser ? (
+              {(isCreatingUser || editingUser) ? (
                 <div style={{ textAlign: 'left', marginBottom: '16px', padding: '20px', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px' }}>
-                  <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <form onSubmit={editingUser ? handleUpdateUser : handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem' }}>
                         Matrícula / ID
-                        <input name="matricula" required style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                        <input name="matricula" defaultValue={editingUser?.matricula} readOnly={!!editingUser} required style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', opacity: editingUser ? 0.5 : 1 }} />
                       </label>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem' }}>
-                        Contraseña
-                        <input name="password" type="password" required style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                        Contraseña {editingUser && "(En blanco para mantenerla)"}
+                        <input name="password" type="password" required={!editingUser} style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
                       </label>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem' }}>
                         Nombre Completo
-                        <input name="nombre" required style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                        <input name="nombre" defaultValue={editingUser?.nombre} required style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
                       </label>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem' }}>
                         Alias / Nickname
-                        <input name="alias" style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                        <input name="alias" defaultValue={editingUser?.alias} style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
                       </label>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem', gridColumn: '1 / -1' }}>
-                        Roles (separados por coma: admin, redactor, operador, hardware)
-                        <input name="roles" defaultValue="operador" required style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                        Roles Asignados
+                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', padding: '12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px' }}>
+                          {['admin', 'redactor', 'operador', 'hardware'].map(role => (
+                            <label key={role} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'white', cursor: 'pointer', flexDirection: 'row' }}>
+                              <input 
+                                type="checkbox" 
+                                name="roles" 
+                                value={role} 
+                                defaultChecked={editingUser ? editingUser.roles?.includes(role) : role === 'operador'} 
+                                style={{ width: 'auto', margin: 0, cursor: 'pointer' }}
+                              />
+                              <span style={{ textTransform: 'capitalize' }}>{role}</span>
+                            </label>
+                          ))}
+                        </div>
                       </label>
                     </div>
                     <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
-                      <button type="submit" style={{ flex: 1, background: 'var(--accent)', color: 'black', border: 'none', padding: '12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Guardar Usuario</button>
-                      <button type="button" onClick={() => setIsCreatingUser(false)} style={{ flex: 1, background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)', padding: '12px', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
+                      <button type="submit" style={{ flex: 1, background: 'var(--accent)', color: 'black', border: 'none', padding: '12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>{editingUser ? 'Actualizar Usuario' : 'Guardar Usuario'}</button>
+                      <button type="button" onClick={() => { setIsCreatingUser(false); setEditingUser(null); }} style={{ flex: 1, background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)', padding: '12px', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
                     </div>
                   </form>
                 </div>
@@ -1373,7 +1535,10 @@ export default function App() {
                           <td style={{ padding: '12px', color: 'var(--accent)' }}>{u.roles?.join(', ')}</td>
                           <td style={{ padding: '12px', textAlign: 'right' }}>
                             {u.matricula !== user?.matricula && (
-                              <button className="logout-btn-small" style={{borderColor: 'var(--error)', color: 'var(--error)'}} onClick={() => handleDeleteUser(u.matricula)}>Revocar</button>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => setEditingUser(u)}>Editar</button>
+                                <button className="logout-btn-small" style={{borderColor: 'var(--error)', color: 'var(--error)'}} onClick={() => handleDeleteUser(u.matricula)}>Revocar</button>
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -1383,8 +1548,9 @@ export default function App() {
                 </div>
               )}
               <button className="back-link" onClick={() => {
-                if (isCreatingUser) {
+                if (isCreatingUser || editingUser) {
                   setIsCreatingUser(false);
+                  setEditingUser(null);
                 } else {
                   setView("dashboard");
                 }
@@ -1393,19 +1559,61 @@ export default function App() {
           )}
 
           {view === "admin_logs" && (
-            <motion.section key="admin_logs" className="dashboard-card" {...pageTransition}>
-              <div className="panel-header">
-                <span className="panel-label">ADMINISTRADOR</span>
-                <h2 style={{margin: '0', fontSize: '1.25rem'}}>Logs Generales</h2>
+            <motion.section key="admin_logs" className="full-container" style={{ maxWidth: '1200px', padding: '0 20px' }} {...pageTransition}>
+              <div className="panel-header" style={{ marginBottom: '24px' }}>
+              
+                <h2 style={{margin: '0', fontSize: '1.5rem'}}>Centro de Seguridad (CrowdSec) & Logs</h2>
               </div>
-              <div style={{ background: 'var(--background)', border: '1px solid var(--border)', padding: '16px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem', height: '200px', overflowY: 'auto', marginBottom: '24px', textAlign: 'left' }}>
-                <div style={{ color: 'var(--success)', marginBottom: '8px' }}>[16:01:23] [OK] Sistema iniciado correctamente.</div>
-                <div style={{ color: 'var(--muted)', marginBottom: '8px' }}>[16:05:11] [INFO] Usuario admin logueado (IP: 10.0.0.45).</div>
-                <div style={{ color: 'var(--error)', marginBottom: '8px' }}>[16:08:44] [WARN] Intento de acceso fallido (IP: 192.168.1.5).</div>
-                <div style={{ color: 'var(--muted)', marginBottom: '8px' }}>[16:15:00] [INFO] Sincronización DB completada.</div>
-                <div style={{ color: 'var(--accent)', marginBottom: '8px' }}>[16:28:10] [SYS] Modo diagnóstico activo.</div>
+
+              {crowdsecMetrics ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+                  <div className="action-card" style={{ padding: '20px', background: 'var(--surface)' }}>
+                    <div style={{ color: 'var(--accent)', fontSize: '2rem', fontWeight: 'bold' }}>{crowdsecMetrics.active_decisions}</div>
+                    <div style={{ color: 'var(--muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>Amenazas Activas Bloqueadas</div>
+                  </div>
+                  <div className="action-card" style={{ padding: '20px', background: 'var(--surface)' }}>
+                    <div style={{ color: 'var(--error)', fontSize: '2rem', fontWeight: 'bold' }}>{crowdsecMetrics.banned_ips}</div>
+                    <div style={{ color: 'var(--muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>IPs Baneadas (Histórico)</div>
+                  </div>
+                  <div className="action-card" style={{ padding: '20px', background: 'var(--surface)', gridColumn: 'span 2' }}>
+                    <h3 style={{ marginTop: 0, fontSize: '1rem', color: 'var(--text)' }}>Top Escenarios de Ataque</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+                      {crowdsecMetrics.top_scenarios?.map((s: any, i: number) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>
+                          <span style={{ fontFamily: 'var(--font-ibm-mono)', color: 'var(--muted)', fontSize: '0.8rem' }}>{s.name}</span>
+                          <span style={{ color: 'var(--error)', fontWeight: 'bold' }}>{s.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)' }}>Cargando métricas de CrowdSec...</div>
+              )}
+
+              <h3 style={{ fontSize: '1.1rem', color: 'var(--text)', marginBottom: '12px', textAlign: 'left' }}>Registro del Sistema (API Logs)</h3>
+              <div style={{ background: '#0a0a0a', border: '1px solid var(--border)', padding: '16px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', height: '350px', overflowY: 'auto', marginBottom: '24px', textAlign: 'left', borderRadius: '4px', boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)' }}>
+                {logsList.length === 0 ? (
+                  <div style={{ color: 'var(--muted)' }}>No hay logs registrados todavía.</div>
+                ) : (
+                  logsList.map((log, i) => {
+                    let color = 'var(--muted)';
+                    if (log.type === 'success') color = 'var(--success)';
+                    if (log.type === 'error') color = 'var(--error)';
+                    if (log.type === 'warning') color = '#fbbf24';
+                    if (log.type === 'info') color = 'var(--accent)';
+                    
+                    const time = new Date(log.timestamp).toLocaleTimeString();
+                    
+                    return (
+                      <div key={i} style={{ color, marginBottom: '8px', wordBreak: 'break-word', borderBottom: '1px dashed #222', paddingBottom: '4px' }}>
+                        <span style={{ color: '#555' }}>[{time}]</span> <strong style={{ color }}>[{log.type.toUpperCase()}]</strong> <span style={{ color: '#ddd' }}>{log.message}</span>
+                      </div>
+                    );
+                  })
+                )}
               </div>
-              <button className="back-link" onClick={() => setView("dashboard")}>← Volver</button>
+              <button className="back-link" onClick={() => setView("dashboard")}>« Volver al Panel</button>
             </motion.section>
           )}
 
@@ -1431,7 +1639,7 @@ export default function App() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left', flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '8px' }}>
                     <h3 style={{ margin: 0, color: 'var(--accent)' }}>Administración de Robots (Base de Datos)</h3>
-                    <button onClick={() => setEditingRobot({ isNew: true, id: `rassor-${Date.now().toString().slice(-4)}`, name: '', room: '', status: 'online', modelUrl: '' })} style={{ background: 'var(--accent)', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>+ Registrar Nueva Unidad</button>
+                    <button onClick={() => setEditingRobot({ isNew: true, id: `rassor-${Date.now().toString().slice(-4)}`, name: '', room: '', status: 'online', modelUrl: '', livekitUrl: '' })} style={{ background: 'var(--accent)', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>+ Registrar Nueva Unidad</button>
                 </div>
 
                 <div style={{ overflowX: 'auto', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px' }}>
@@ -1461,7 +1669,7 @@ export default function App() {
                                     <td style={{ padding: '16px', color: 'var(--muted)' }}>{r.modelUrl || 'Modelo por defecto'}</td>
                                     <td style={{ padding: '16px', textAlign: 'right' }}>
                                         <button onClick={() => setEditingRobot(r)} style={{ background: 'transparent', color: 'white', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', marginRight: '8px' }}>Editar</button>
-                                        <button onClick={() => setRobots(robots.filter(robot => robot.id !== r.id))} style={{ background: 'transparent', color: '#cc3333', border: '1px solid #cc3333', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}>Eliminar</button>
+                                        <button onClick={() => handleDeleteRobot(r.id)} style={{ background: 'rgba(235,87,87,0.1)', color: '#eb5757', border: '1px solid #eb5757', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>Eliminar</button>
                                     </td>
                                 </tr>
                             ))}
@@ -1501,6 +1709,18 @@ export default function App() {
                                             <option value="online">Online (Verde)</option>
                                             <option value="offline">Offline (Rojo)</option>
                                         </select>
+                                    </label>
+                                    <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 2' }}>
+                                        URL de LiveKit Cloud (Opcional, sobrescribe VITE_LIVEKIT_URL)
+                                        <input name="livekitUrl" defaultValue={editingRobot.livekitUrl} placeholder="wss://rur-livekit-server-8b010r3b.livekit.cloud" style={{ padding: '12px', background: 'var(--surface)', color: '#fff', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                                    </label>
+                                    <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 1' }}>
+                                        LiveKit API Key
+                                        <input type="password" name="livekitApiKey" defaultValue={editingRobot.livekitApiKey} placeholder="API Key" style={{ padding: '12px', background: 'var(--surface)', color: '#fff', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                                    </label>
+                                    <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 1' }}>
+                                        LiveKit API Secret
+                                        <input type="password" name="livekitApiSecret" defaultValue={editingRobot.livekitApiSecret} placeholder="API Secret" style={{ padding: '12px', background: 'var(--surface)', color: '#fff', border: '1px solid var(--border)', borderRadius: '4px' }} />
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 2' }}>
                                         Ruta del Modelo 3D (.glb) - Opcional

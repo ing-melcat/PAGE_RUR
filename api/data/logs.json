@@ -1,0 +1,32 @@
+[
+  {
+    "timestamp": "2026-08-01T04:46:18.908Z",
+    "type": "success",
+    "message": "Usuario Admin User (2403150025) inició sesión exitosamente."
+  },
+  {
+    "timestamp": "2026-08-01T04:47:10.605Z",
+    "type": "success",
+    "message": "Usuario a (a) inició sesión exitosamente."
+  },
+  {
+    "timestamp": "2026-08-01T04:54:45.635Z",
+    "type": "success",
+    "message": "Usuario Admin User (2403150025) inició sesión exitosamente."
+  },
+  {
+    "timestamp": "2026-08-01T04:56:02.885Z",
+    "type": "warning",
+    "message": "Administrador 2403150025 eliminó el usuario a."
+  },
+  {
+    "timestamp": "2026-08-01T04:56:51.041Z",
+    "type": "success",
+    "message": "Usuario Admin User (2403150025) inició sesión exitosamente."
+  },
+  {
+    "timestamp": "2026-08-01T05:13:32.117Z",
+    "type": "success",
+    "message": "Usuario Admin User (2403150025) inició sesión exitosamente."
+  }
+]

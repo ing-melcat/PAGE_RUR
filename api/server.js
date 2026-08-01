@@ -4,6 +4,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +42,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 const JWT_SECRET = 'rur_super_secret_key_2026';
 
+
 const verifyToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
   if (!token) return res.status(403).json({ success: false, message: 'Se requiere token de autenticación' });
@@ -58,6 +61,7 @@ app.use('/api/uploads', express.static(UPLOADS_DIR));
 if (!fs.existsSync(path.join(__dirname, 'data'))) {
   fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
 }
+
 if (!fs.existsSync(DATA_FILE)) {
   fs.writeFileSync(DATA_FILE, JSON.stringify([]));
 }
@@ -68,23 +72,59 @@ if (!fs.existsSync(USERS_FILE)) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(initialUsers));
 }
 
+const LOGS_FILE = path.join(__dirname, 'data', 'logs.json');
+if (!fs.existsSync(LOGS_FILE)) {
+  fs.writeFileSync(LOGS_FILE, JSON.stringify([]));
+}
+
+const ROBOTS_FILE = path.join(__dirname, 'data', 'robots.json');
+if (!fs.existsSync(ROBOTS_FILE)) {
+  const initialRobots = [
+    { id: "rassor-1", name: "RASSOR Alpha", status: "online", room: "room-rassor-1", modelUrl: "", livekitUrl: "", livekitApiKey: "", livekitApiSecret: "" }
+  ];
+  fs.writeFileSync(ROBOTS_FILE, JSON.stringify(initialRobots));
+}
+
 const getPosts = () => JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
 const savePosts = (posts) => fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2));
 
 const getUsers = () => JSON.parse(fs.readFileSync(USERS_FILE, 'utf-8'));
 const saveUsers = (users) => fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 
+const getRobots = () => JSON.parse(fs.readFileSync(ROBOTS_FILE, 'utf-8'));
+const saveRobots = (robots) => fs.writeFileSync(ROBOTS_FILE, JSON.stringify(robots, null, 2));
+
+const getLogs = () => JSON.parse(fs.readFileSync(LOGS_FILE, 'utf-8'));
+const saveLog = (type, message) => {
+  const logs = getLogs();
+  const timestamp = new Date().toISOString();
+  logs.push({ timestamp, type, message });
+  // Keep only the last 100 logs to prevent file bloat
+  if (logs.length > 100) logs.shift();
+  fs.writeFileSync(LOGS_FILE, JSON.stringify(logs, null, 2));
+};
+
 // Endpoints
 app.get('/api/hello', (req, res) => {
   res.json({ message: '¡Hola desde tu nuevo servidor Node en MAIN!' });
 });
 
-app.post('/api/login.php', (req, res) => {
+app.post(['/api/login', '/api/login.php'], (req, res) => {
   const { matricula, password } = req.body;
   const users = getUsers();
-  const userRecord = users.find(u => u.matricula === matricula && u.password === password);
+  const userRecord = users.find(u => u.matricula === matricula);
 
+  let isMatch = false;
   if (userRecord) {
+    if (userRecord.password.startsWith('$2')) {
+      isMatch = bcrypt.compareSync(password, userRecord.password);
+    } else {
+      isMatch = userRecord.password === password;
+      // Optionally rehash plain text password on login here, but let's keep it simple
+    }
+  }
+
+  if (userRecord && isMatch) {
     const { password, ...safeUser } = userRecord;
     const user = {
       id: safeUser.matricula,
@@ -93,11 +133,19 @@ app.post('/api/login.php', (req, res) => {
     };
     const token = jwt.sign(user, JWT_SECRET, { expiresIn: '24h' });
     
+    saveLog('success', `Usuario ${safeUser.nombre} (${matricula}) inició sesión exitosamente.`);
+    
     return res.json({
       success: true,
       token,
       user
     });
+  }
+
+  if (userRecord) {
+    saveLog('error', `Intento de acceso fallido para ${matricula} (Contraseña incorrecta).`);
+  } else {
+    saveLog('warning', `Intento de acceso fallido para usuario inexistente: ${matricula}`);
   }
 
   res.status(401).json({ success: false, message: 'Matrícula o código incorrecto' });
@@ -191,7 +239,7 @@ app.post('/api/users', verifyToken, (req, res) => {
   }
   const newUser = {
     matricula: req.body.matricula,
-    password: req.body.password,
+    password: bcrypt.hashSync(req.body.password, 10),
     nombre: req.body.nombre,
     roles: req.body.roles || [],
     grupo: req.body.grupo || 'GENERAL',
@@ -199,7 +247,36 @@ app.post('/api/users', verifyToken, (req, res) => {
   };
   users.push(newUser);
   saveUsers(users);
+  saveLog('info', `Administrador ${req.user.matricula} creó el usuario ${newUser.matricula}.`);
   res.json({ success: true, message: 'Usuario creado' });
+});
+
+app.put('/api/users/:matricula', verifyToken, (req, res) => {
+  if (!req.user.roles.includes('admin')) return res.status(403).json({ message: 'Sin permisos' });
+  const users = getUsers();
+  const userIndex = users.findIndex(u => u.matricula === req.params.matricula);
+  
+  if (userIndex === -1) {
+    return res.status(404).json({ message: 'Usuario no encontrado' });
+  }
+
+  const existingUser = users[userIndex];
+  
+  // Update fields
+  if (req.body.nombre) existingUser.nombre = req.body.nombre;
+  if (req.body.roles) existingUser.roles = req.body.roles;
+  if (req.body.grupo) existingUser.grupo = req.body.grupo;
+  if (req.body.alias !== undefined) existingUser.alias = req.body.alias;
+  
+  // Update password if provided
+  if (req.body.password && req.body.password.trim() !== '') {
+    existingUser.password = bcrypt.hashSync(req.body.password, 10);
+  }
+
+  users[userIndex] = existingUser;
+  saveUsers(users);
+  saveLog('info', `Administrador ${req.user.matricula} modificó el usuario ${req.params.matricula}.`);
+  res.json({ success: true, message: 'Usuario actualizado correctamente' });
 });
 
 app.delete('/api/users/:matricula', verifyToken, (req, res) => {
@@ -210,9 +287,154 @@ app.delete('/api/users/:matricula', verifyToken, (req, res) => {
   }
   users = users.filter(u => u.matricula !== req.params.matricula);
   saveUsers(users);
+  saveLog('warning', `Administrador ${req.user.matricula} eliminó el usuario ${req.params.matricula}.`);
   res.json({ success: true, message: 'Usuario eliminado' });
+});
+
+// LOGS MANAGEMENT
+app.get('/api/logs', verifyToken, (req, res) => {
+  if (!req.user.roles.includes('admin')) return res.status(403).json({ message: 'Sin permisos' });
+  res.json(getLogs().reverse()); // Envía los logs más recientes primero
+});
+
+// CROWDSEC METRICS (Mocked for dev, ready for production proxy)
+app.get('/api/crowdsec/metrics', verifyToken, async (req, res) => {
+  if (!req.user.roles.includes('admin')) return res.status(403).json({ message: 'Sin permisos' });
+  
+  // En producción, aquí harías una petición real a la LAPI de CrowdSec o a Prometheus
+  // ej: fetch('http://crowdsec:8080/v1/alerts?active=true', { headers: { 'X-Api-Key': 'tu-key' } })
+  
+  const mockMetrics = {
+    active_decisions: 142,
+    banned_ips: 135,
+    top_scenarios: [
+      { name: "crowdsecurity/ssh-bf", count: 45 },
+      { name: "crowdsecurity/http-bad-user-agent", count: 32 },
+      { name: "crowdsecurity/http-probing", count: 28 }
+    ],
+    recent_alerts: [
+      { ip: "192.168.1.105", scenario: "crowdsecurity/ssh-bf", time: new Date(Date.now() - 5000).toISOString() },
+      { ip: "203.0.113.42", scenario: "crowdsecurity/http-probing", time: new Date(Date.now() - 150000).toISOString() }
+    ]
+  };
+  
+  res.json(mockMetrics);
 });
 
 app.listen(PORT, () => {
   console.log(`Servidor Node corriendo en http://localhost:${PORT}`);
+});
+
+// ROBOTS MANAGEMENT
+app.get('/api/robots', verifyToken, async (req, res) => {
+  const robots = getRobots();
+  
+  const augmentedRobots = await Promise.all(robots.map(async (robot) => {
+    let realStatus = 'offline'; // Default
+    if (robot.livekitUrl && robot.livekitApiKey && robot.livekitApiSecret) {
+      try {
+        const roomService = new RoomServiceClient(robot.livekitUrl, robot.livekitApiKey, robot.livekitApiSecret);
+        const participants = await roomService.listParticipants(robot.room);
+        
+        if (participants && participants.length > 0) {
+          realStatus = 'online';
+        }
+      } catch (error) {
+        // Sala vacía o inexistente
+      }
+    }
+    return { ...robot, status: realStatus };
+  }));
+
+  if (!req.user.roles.includes('admin')) {
+    const safeRobots = augmentedRobots.map(({ livekitApiKey, livekitApiSecret, ...r }) => r);
+    return res.json(safeRobots);
+  }
+  res.json(augmentedRobots);
+});
+
+app.post('/api/robots', verifyToken, (req, res) => {
+  if (!req.user.roles.includes('admin')) return res.status(403).json({ message: 'Sin permisos' });
+  const robots = getRobots();
+  if (robots.find(r => r.id === req.body.id)) {
+    return res.status(400).json({ message: 'El ID de robot ya existe' });
+  }
+  robots.push(req.body);
+  saveRobots(robots);
+  res.json({ success: true, message: 'Robot creado', robot: req.body });
+});
+
+app.put('/api/robots/:id', verifyToken, (req, res) => {
+  if (!req.user.roles.includes('admin')) return res.status(403).json({ message: 'Sin permisos' });
+  const robots = getRobots();
+  const index = robots.findIndex(r => r.id === req.params.id);
+  if (index === -1) return res.status(404).json({ message: 'Robot no encontrado' });
+  
+  robots[index] = { ...robots[index], ...req.body };
+  saveRobots(robots);
+  res.json({ success: true, message: 'Robot actualizado', robot: robots[index] });
+});
+
+app.delete('/api/robots/:id', verifyToken, (req, res) => {
+  if (!req.user.roles.includes('admin')) return res.status(403).json({ message: 'Sin permisos' });
+  let robots = getRobots();
+  robots = robots.filter(r => r.id !== req.params.id);
+  saveRobots(robots);
+  res.json({ success: true, message: 'Robot eliminado' });
+});
+
+// LIVEKIT VERIFICATION ENDPOINT
+app.post('/api/livekit-verify', verifyToken, async (req, res) => {
+  const { livekitUrl, livekitApiKey, livekitApiSecret } = req.body;
+  if (!livekitUrl || !livekitApiKey || !livekitApiSecret) {
+    return res.status(400).json({ success: false, message: 'Faltan parámetros de conexión.' });
+  }
+
+  try {
+    const httpUrl = livekitUrl.replace('wss://', 'https://').replace('ws://', 'http://');
+    const roomService = new RoomServiceClient(httpUrl, livekitApiKey, livekitApiSecret);
+    // Intentar listar las salas sirve como prueba de conexión real y autenticación
+    await roomService.listRooms();
+    res.json({ success: true, message: 'Conexión a LiveKit Cloud establecida correctamente.' });
+  } catch (error) {
+    console.error("LiveKit verification error:", error);
+    res.status(401).json({ success: false, message: error.message || 'Credenciales inválidas o servidor inalcanzable.' });
+  }
+});
+
+// LIVEKIT TOKEN GENERATOR
+app.post('/api/livekit-token', verifyToken, async (req, res) => {
+  const { robotId } = req.body;
+  const robots = getRobots();
+  const robot = robots.find(r => r.id === robotId);
+
+  if (!robot) {
+    return res.status(404).json({ success: false, message: 'Robot no encontrado' });
+  }
+  if (!robot.livekitApiKey || !robot.livekitApiSecret) {
+    return res.status(400).json({ success: false, message: 'El robot no tiene configuradas sus credenciales (API Key/Secret) de LiveKit.' });
+  }
+
+  try {
+    const participantName = `operator-${req.user.matricula}`;
+    const at = new AccessToken(robot.livekitApiKey, robot.livekitApiSecret, {
+      identity: participantName,
+      ttl: '4h', // Validez del token
+    });
+    
+    // Asignar permisos: unirse a la room específica, publicar y suscribirse
+    at.addGrant({
+      roomJoin: true,
+      room: robot.room,
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true,
+    });
+    
+    const token = await at.toJwt();
+    res.json({ success: true, token, livekitUrl: robot.livekitUrl, room: robot.room });
+  } catch (error) {
+    console.error("Error generando token:", error);
+    res.status(500).json({ success: false, message: 'Error interno al generar el token' });
+  }
 });

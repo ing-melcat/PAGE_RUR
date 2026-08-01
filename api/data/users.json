@@ -8,15 +8,5 @@
     ],
     "grupo": "DEV",
     "alias": "Anna"
-  },
-  {
-    "matricula": "a",
-    "password": "a",
-    "nombre": "a",
-    "roles": [
-      "operadora"
-    ],
-    "grupo": "GENERAL",
-    "alias": "a"
   }
 ]

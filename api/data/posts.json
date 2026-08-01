@@ -72,16 +72,5 @@
     "category": "conecta",
     "content": "<h2>FSI</h2><p>Trabajamos de la mano con la Universidad Espacial de Florida para simular entornos marcianos y desarrollar tecnología de punta en sensores robóticos espaciales.</p>",
     "isHidden": false
-  },
-  {
-    "id": "1785542132795",
-    "title": "NUEVO DESCUBRIMINETO",
-    "type": "evento",
-    "image": "/api/uploads/1785542122534-480478754-selva-tropical-en-monster-hunter-wilds_3840x2160_xtrafondos.com.jpg",
-    "category": "explora",
-    "modelUrl": "",
-    "content": "<div style=\"width: 100%; min-height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 40px; box-sizing: border-box;\">\n\n  <span style=\"display: inline-block; background: #cc3333; color: white; padding: 6px 16px; font-size: 0.9rem; font-family: monospace; font-weight: bold; margin-bottom: 25px; border-radius: 4px;\">\n    RECLUTAMIENTO ABIERTO\n  </span>\n\n  <h1 style=\"font-size: 3.5rem; color: #cc3333; margin-bottom: 20px; font-family: monospace; text-transform: uppercase;\">\n    Se buscan operadores\n  </h1>\n\n  <p style=\"font-size: 1.3rem; max-width: 800px; margin: 0 auto 40px; color: #a0a0a0; line-height: 1.6;\">\n    Únete al equipo de desarrollo y prueba de sistemas autónomos. No se necesita experiencia previa, solo ganas de aprender y disponibilidad para pruebas periódicas.\n  </p>\n\n  <div style=\"width: 100%; max-width: 700px; background: #111; border: 1px solid #cc3333; border-radius: 12px; padding: 35px; box-shadow: 0 10px 40px rgba(204,51,51,0.2); margin-bottom: 40px;\">\n    <p style=\"color: #cc3333; font-family: monospace; font-weight: bold; font-size: 1rem; margin-bottom: 20px; text-transform: uppercase;\">\n      Requisitos\n    </p>\n    <p style=\"color: #a0a0a0; font-size: 1.1rem; line-height: 2;\">\n      Disponibilidad los fines de semana<br>\n      Interés en electrónica o programación<br>\n      Compromiso mínimo de 3 meses\n    </p>\n  </div>\n\n  <p style=\"font-size: 1.15rem; max-width: 700px; color: #a0a0a0; line-height: 1.8; margin-bottom: 40px;\">\n    Los próximos miembros serán anunciados a través de nuestro Instagram y también recibirán un correo electrónico de confirmación. En los próximos días nos pondremos en contacto por Discord para brindarles toda la información.\n  </p>\n\n  <a href=\"#\" style=\"padding: 15px 40px; background: #cc3333; color: white; font-size: 1.2rem; font-weight: bold; text-decoration: none; border-radius: 8px; font-family: monospace;\">\n    APLICAR AHORA\n  </a>\n\n</div>",
-    "pages": [],
-    "countdownDate": "2026-12-10T12:00"
   }
 ]

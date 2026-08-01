@@ -74,6 +74,9 @@ export function RobotSelection({ robots, onSelectRobot, onBack, onAddRobot, onUp
                 maxSpeed: configRobot.maxSpeed ?? 75,
                 steeringSensitivity: configRobot.steeringSensitivity ?? 50,
                 digForce: configRobot.digForce ?? 90,
+                livekitUrl: configRobot.livekitUrl || '',
+                livekitApiKey: configRobot.livekitApiKey || '',
+                livekitApiSecret: configRobot.livekitApiSecret || '',
             });
             setShowAdvanced(false);
         }
@@ -111,13 +114,48 @@ export function RobotSelection({ robots, onSelectRobot, onBack, onAddRobot, onUp
         }
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (onUpdateRobot && configRobot) {
             const updated = { ...configRobot, ...formData };
+            
+            // Verificación completa con el backend de LiveKit
+            if (updated.livekitUrl && updated.livekitApiKey && updated.livekitApiSecret) {
+              try {
+                const token = localStorage.getItem('authToken');
+                const verifyRes = await fetch('/api/livekit-verify', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify({
+                    livekitUrl: updated.livekitUrl,
+                    livekitApiKey: updated.livekitApiKey,
+                    livekitApiSecret: updated.livekitApiSecret
+                  })
+                });
+                
+                const verifyData = await verifyRes.json();
+                if (!verifyData.success) {
+                  window.alert(`❌ ERROR DE LIVEKIT:\n${verifyData.message}\n\nRevisa que tus llaves sean las correctas (no copies puntos "......"). No se guardaron los cambios.`);
+                  return false;
+                }
+              } catch (err) {
+                window.alert('❌ ERROR: No se pudo contactar al servidor LiveKit. Revisa la URL o enciende tu servidor si es local. No se guardaron los cambios.');
+                return false;
+              }
+            } else if (updated.livekitUrl || updated.livekitApiKey || updated.livekitApiSecret) {
+                if (!window.confirm('Aviso: Has llenado algunos campos de LiveKit pero no todos. La conexión fallará. ¿Guardar de todos modos?')) {
+                    return false;
+                }
+            }
+            
             onUpdateRobot(updated);
             // Also update the local configRobot reference
             setConfigRobot(updated);
+            return true;
         }
+        return false;
     };
 
     const handleFormChange = (field, value) => {
@@ -459,44 +497,49 @@ export function RobotSelection({ robots, onSelectRobot, onBack, onAddRobot, onUp
                                         ← VOLVER
                                     </button>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                        {/* TRANSMISIÓN */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
+                                        {/* TRANSMISIÓN Y CREDENCIALES LIVEKIT */}
                                         <div style={{ ...S.panel, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            <h4 style={{ ...S.sectionTitle }}>TRANSMISIÓN (PORTAINER)</h4>
+                                            <h4 style={{ ...S.sectionTitle }}>CREDENCIALES DE LIVEKIT</h4>
                                             <p style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem', color: 'var(--muted)', margin: 0, padding: '8px 12px', background: 'var(--background)', borderRadius: '4px', border: '1px solid var(--border)' }}>
-                                                Estos valores se configuran como variables de entorno en Docker/Portainer al montar el sistema. Se muestran aquí como referencia.
+                                                Ingresa las llaves de tu proyecto en LiveKit Cloud. Esta información es necesaria para generar los tokens seguros de conexión.
                                             </p>
-                                            {[
-                                                { label: 'Servidor LiveKit', value: 'wss://livekit.cloud/' },
-                                                { label: 'Resolución', value: '720p' },
-                                                { label: 'Tasa telemetría', value: '30 Hz' },
-                                                { label: 'Codec', value: 'H.264' },
-                                            ].map(({ label, value }) => (
-                                                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--background)', borderRadius: '4px', border: '1px solid var(--border)' }}>
-                                                    <span style={S.label}>{label}</span>
-                                                    <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--text)' }}>{value}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        {/* PAYLOAD DEBUG */}
-                                        <div style={{ ...S.panel, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                            <h4 style={{ ...S.sectionTitle }}>PAYLOAD DE CONEXIÓN (DEBUG)</h4>
-                                            <div style={{ padding: '12px', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '4px', flex: 1, overflowY: 'auto', maxHeight: '300px' }}>
-                                                <pre style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem', color: 'var(--muted)', margin: 0, whiteSpace: 'pre-wrap' }}>
-{JSON.stringify({
-  action: "REQUEST_TOKEN",
-  room_name: formData.room || `room-${configRobot.id}`,
-  participant_name: "admin_controller",
-  robot_id: configRobot.id,
-  permissions: { canPublish: true, canSubscribe: true, canPublishData: true },
-  limits: {
-    max_speed: formData.maxSpeed,
-    steering: formData.steeringSensitivity,
-    dig_force: formData.digForce,
-  }
-}, null, 2)}
-                                                </pre>
+                                            
+                                            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                <span style={S.label}>Servidor LiveKit (URL)</span>
+                                                <input 
+                                                    type="text" 
+                                                    value={formData.livekitUrl || ''} 
+                                                    onChange={e => handleFormChange('livekitUrl', e.target.value)}
+                                                    placeholder="wss://..."
+                                                    style={S.input}
+                                                    {...inputFocusHandlers}
+                                                />
+                                            </label>
+                                            
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                    <span style={S.label}>API Key</span>
+                                                    <input 
+                                                        type="password" 
+                                                        value={formData.livekitApiKey || ''} 
+                                                        onChange={e => handleFormChange('livekitApiKey', e.target.value)}
+                                                        placeholder="API Key"
+                                                        style={S.input}
+                                                        {...inputFocusHandlers}
+                                                    />
+                                                </label>
+                                                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                    <span style={S.label}>API Secret</span>
+                                                    <input 
+                                                        type="password" 
+                                                        value={formData.livekitApiSecret || ''} 
+                                                        onChange={e => handleFormChange('livekitApiSecret', e.target.value)}
+                                                        placeholder="API Secret"
+                                                        style={S.input}
+                                                        {...inputFocusHandlers}
+                                                    />
+                                                </label>
                                             </div>
                                         </div>
                                     </div>
@@ -514,7 +557,10 @@ export function RobotSelection({ robots, onSelectRobot, onBack, onAddRobot, onUp
                                 onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
                             >CANCELAR</button>
                             <button 
-                                onClick={() => { handleSave(); setConfigRobot(null); }}
+                                onClick={async () => { 
+                                    const success = await handleSave(); 
+                                    if(success) setConfigRobot(null); 
+                                }}
                                 style={{ ...S.btn, background: 'var(--accent)', color: 'var(--background)', borderColor: 'var(--accent)', fontWeight: 600 }}
                                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text)'; }}
                                 onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}

@@ -29,7 +29,12 @@ export default function ControllerApp({ onBack, robot }) {
 
   const [room, setRoom] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isRobotConnected, setIsRobotConnected] = useState(false);
   const [binPacket, setBinPacket] = useState(null);
+
+  // Refs para el envío continuo del joystick (dead-man's switch)
+  const joystickPosRef = useRef({ x: 0, y: 0 });
+  const sendIntervalRef = useRef(null);
 
   const [joystickSize, setJystickSize] = useState(136)
   const [sensitivity, setSensitivity] = useState(1.0)
@@ -39,22 +44,97 @@ export default function ControllerApp({ onBack, robot }) {
   const [forceMobileMode, setForceMobileMode] = useState(false);
   
   const gamepadStateRef = useRef({ x: 0, y: 0, buttons: {} });
+  const roomRef = useRef(null);
+  const isConnectedRef = useRef(false);
 
 
+
+  // Ref para intervalos de botones mantenidos presionados
+  const buttonIntervalsRef = useRef({});
 
   const handleAction = useCallback((component, action, state) => {
-    if (!room || !isConnected) return;
+    if (!roomRef.current || !isConnectedRef.current) return;
     const commandObj = { component, action, state };
     const commandStr = JSON.stringify(commandObj);
     const encoder = new TextEncoder();
     const data = encoder.encode(commandStr);
-    try {
-      room.localParticipant.publishData(data, DataPacket_Kind.RELIABLE);
-      console.log('Sent command:', commandStr);
-    } catch (err) {
-      console.error('Error sending command:', err);
+
+    const sendCommand = () => {
+      try {
+        roomRef.current.localParticipant.publishData(data, {
+          topic: TOPIC,
+          kind: DataPacket_Kind.RELIABLE,
+        });
+      } catch (err) {
+        console.error('Error sending command:', err);
+      }
+    };
+
+    const key = `${component}-${action}`;
+
+    if (state) {
+      // Enviar inmediatamente + iniciar envío continuo cada 100ms
+      sendCommand();
+      console.log('Sent command (START):', commandStr);
+      if (!buttonIntervalsRef.current[key]) {
+        buttonIntervalsRef.current[key] = setInterval(sendCommand, 100);
+      }
+    } else {
+      // Detener envío continuo + enviar comando de stop
+      if (buttonIntervalsRef.current[key]) {
+        clearInterval(buttonIntervalsRef.current[key]);
+        delete buttonIntervalsRef.current[key];
+      }
+      sendCommand();
+      console.log('Sent command (STOP):', commandStr);
     }
-  }, [room, isConnected]);
+  }, []);
+
+  // Construye un paquete binario con la posición actual
+  const buildPacket = useCallback((deadX, deadY) => {
+    const packet = new ArrayBuffer(12)
+    const view = new DataView(packet)
+    const timestamp = Math.floor(Date.now() / 1000)
+    view.setUint32(0, timestamp, true)
+    view.setFloat32(4, deadX, true)
+    view.setFloat32(8, deadY, true)
+    return new Uint8Array(packet)
+  }, [])
+
+  // Envía un paquete directamente por LiveKit
+  const sendPacketNow = useCallback((pkt) => {
+    if (roomRef.current && isConnectedRef.current && pkt) {
+      try {
+        roomRef.current.localParticipant.publishData(pkt, {
+          topic: TOPIC,
+          kind: DataPacket_Kind.Lossy,
+        });
+      } catch (err) {
+        console.error('Error sending joystick data:', err);
+      }
+    }
+  }, [])
+
+  // Inicia el loop continuo de envío (10 Hz = cada 100ms)
+  const startContinuousSend = useCallback(() => {
+    if (sendIntervalRef.current) return; // ya está corriendo
+    sendIntervalRef.current = setInterval(() => {
+      const { x, y } = joystickPosRef.current;
+      const pkt = buildPacket(x, y);
+      sendPacketNow(pkt);
+    }, 100); // 10 paquetes por segundo
+  }, [buildPacket, sendPacketNow])
+
+  // Detiene el loop y envía un último paquete de stop (0,0)
+  const stopContinuousSend = useCallback(() => {
+    if (sendIntervalRef.current) {
+      clearInterval(sendIntervalRef.current);
+      sendIntervalRef.current = null;
+    }
+    // Enviar paquete final de frenado
+    const stopPkt = buildPacket(0, 0);
+    sendPacketNow(stopPkt);
+  }, [buildPacket, sendPacketNow])
 
   const handleMove = useCallback((x, y) => {
     const deadZone = 0.05
@@ -69,16 +149,19 @@ export default function ControllerApp({ onBack, robot }) {
     const deadX = applySensivity(applyDeadZone(x))
     const deadY = applySensivity(applyDeadZone(y))
 
-    const packet = new ArrayBuffer(12)
-    const view = new DataView(packet)
-    const timestamp = Math.floor(Date.now() / 1000)
+    // Guardar posición actual en el ref
+    joystickPosRef.current = { x: deadX, y: deadY };
 
-    view.setUint32(0, timestamp, true)
-    view.setFloat32(4, deadX, true)
-    view.setFloat32(8, deadY, true)
+    // Si hay movimiento, iniciar envío continuo; si es (0,0), frenar
+    if (Math.abs(deadX) > 0 || Math.abs(deadY) > 0) {
+      startContinuousSend();
+    } else {
+      stopContinuousSend();
+    }
 
-    return new Uint8Array(packet)
-  }, [sensitivity])
+    // También devolver el paquete para el setBinPack del Joystick component
+    return buildPacket(deadX, deadY)
+  }, [sensitivity, buildPacket, startContinuousSend, stopContinuousSend])
 
   useEffect(() => {
     const handleGamepadConnected = (e) => {
@@ -188,23 +271,38 @@ export default function ControllerApp({ onBack, robot }) {
     }
   }, [connect, token]);
 
-  const connectToLiveKit = useCallback(async (authToken) => {
+  const connectToLiveKit = useCallback(async (authToken, customUrl) => {
     if (!authToken) {
       setError('Please provide a token');
       return;
     }
 
     try {
-      const { Room } = await import('livekit-client');
+      const { Room, RoomEvent } = await import('livekit-client');
       const roomInstance = new Room();
+      const finalUrl = customUrl || SERVER_URL;
 
-      await roomInstance.connect(SERVER_URL, authToken, {
-        autoSubscribe: false,
+      await roomInstance.connect(finalUrl, authToken, {
+        autoSubscribe: true
       });
 
       setIsConnected(true);
+      isConnectedRef.current = true;
       setRoom(roomInstance);
-      console.log("Connection established");
+      roomRef.current = roomInstance;
+      
+      console.log("Connection established to", finalUrl);
+      console.log("Current remote participants in room:", Array.from(roomInstance.remoteParticipants.values()).map(p => p.identity));
+      setIsRobotConnected(roomInstance.remoteParticipants.size > 0);
+      
+      roomInstance.on(RoomEvent.ParticipantConnected, (participant) => {
+        console.log("NUEVO PARTICIPANTE CONECTADO:", participant.identity);
+        setIsRobotConnected(roomInstance.remoteParticipants.size > 0);
+      });
+      roomInstance.on(RoomEvent.ParticipantDisconnected, (participant) => {
+        console.log("PARTICIPANTE DESCONECTADO:", participant.identity);
+        setIsRobotConnected(roomInstance.remoteParticipants.size > 0);
+      });
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -220,29 +318,24 @@ export default function ControllerApp({ onBack, robot }) {
       
       const fetchToken = async () => {
         try {
-          // Aquí haríamos la petición real a /api/livekit-token.php
-          /*
-          const res = await fetch('/api/livekit-token.php', {
+          const userToken = localStorage.getItem('authToken');
+          const res = await fetch('/api/livekit-token', {
             method: 'POST',
-            body: JSON.stringify({ robot_id: robot.id, room: robot.room })
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${userToken}`
+            },
+            body: JSON.stringify({ robotId: robot.id })
           });
+          
           const data = await res.json();
-          if(data.token) {
+          if (data.success && data.token) {
              setToken(data.token);
-             connectToLiveKit(data.token);
+             setConnect(true);
+             connectToLiveKit(data.token, data.livekitUrl);
+          } else {
+             setError(data.message || 'Error generating LiveKit token');
           }
-          */
-          
-          // Como no hay backend local, simulamos la respuesta de red:
-          await new Promise(r => setTimeout(r, 1200)); 
-          const fetchedToken = `simulated-token-for-${robot.room}`;
-          setToken(fetchedToken);
-          setConnect(true);
-          
-          // Por defecto mockeamos un error en local porque no hay servidor livekit real 
-          // funcionando con "simulated-token-for-room". Pero llamamos la función igual.
-          connectToLiveKit(fetchedToken);
-          
         } catch (err) {
           console.error(err);
         } finally {
@@ -256,22 +349,25 @@ export default function ControllerApp({ onBack, robot }) {
 
   const disconnect = useCallback(() => {
     if (room) {
+      stopContinuousSend();
       room.disconnect();
       setRoom(null);
+      roomRef.current = null;
       setIsConnected(false);
+      isConnectedRef.current = false;
       setConnect(false);
     }
-  }, [room]);
+  }, [room, stopContinuousSend]);
 
+  // Limpiar el intervalo al desmontar el componente
   useEffect(() => {
-    if (room && isConnected && binPacket) {
-      room.localParticipant.publishData(binPacket, {
-        topic: TOPIC,
-        kind: DataPacket_Kind.Lossy,
-      });
-      console.log(`Sent: ${binPacket} to rassor`);
-    }
-  }, [binPacket, room, isConnected]);
+    return () => {
+      if (sendIntervalRef.current) {
+        clearInterval(sendIntervalRef.current);
+        sendIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="App App-header">
@@ -408,7 +504,7 @@ export default function ControllerApp({ onBack, robot }) {
             </Segment>
           </div>
 
-          <StatusHUD isConnected={isConnected} visible={visible1} height={Math.max(230, joystickSize + 80)} />
+          <StatusHUD isConnected={isRobotConnected} visible={visible1} height={Math.max(230, joystickSize + 80)} />
         </div>
 
 
