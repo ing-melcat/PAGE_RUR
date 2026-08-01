@@ -309,9 +309,56 @@ app.get('/api/logs', verifyToken, (req, res) => {
   res.json(getLogs().reverse()); // Envía los logs más recientes primero
 });
 
-// CROWDSEC METRICS (Mocked for dev, ready for production proxy)
+// CROWDSEC METRICS (Real data from LAPI)
 app.get('/api/crowdsec/metrics', verifyToken, async (req, res) => {
   if (!req.user.roles.includes('admin')) return res.status(403).json({ message: 'Sin permisos' });
+  
+  try {
+    const fetch = (await import('node-fetch')).default || globalThis.fetch;
+    const response = await fetch('http://crowdsec:8080/v1/decisions/stream?startup=true', {
+      headers: { 'X-Api-Key': 'QSevcggUppHliORS3dY/x9PhNgAq2ss3KGTE9FTkjAI' }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Crowdsec HTTP ' + response.status);
+    }
+    
+    const data = await response.json();
+    const decisions = data.new || [];
+    
+    const scenarios = {};
+    const recent = [];
+    let bannedIps = 0;
+    
+    decisions.forEach(d => {
+      if (d.type === 'ban') bannedIps++;
+      scenarios[d.scenario] = (scenarios[d.scenario] || 0) + 1;
+      
+      if (recent.length < 10) {
+        recent.push({
+          ip: d.value,
+          scenario: d.scenario,
+          time: new Date().toISOString()
+        });
+      }
+    });
+    
+    const topScenarios = Object.entries(scenarios)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+      
+    res.json({
+      active_decisions: decisions.length,
+      banned_ips: bannedIps,
+      top_scenarios: topScenarios,
+      recent_alerts: recent
+    });
+  } catch (error) {
+    console.error("Error fetching crowdsec metrics:", error);
+    res.status(500).json({ message: 'Error obteniendo metricas de CrowdSec' });
+  }
+});
   
   // En producción, aquí harías una petición real a la LAPI de CrowdSec o a Prometheus
   // ej: fetch('http://crowdsec:8080/v1/alerts?active=true', { headers: { 'X-Api-Key': 'tu-key' } })
