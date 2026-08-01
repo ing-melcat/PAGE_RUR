@@ -333,16 +333,6 @@ app.get('/api/crowdsec/metrics', verifyToken, async (req, res) => {
   res.json(mockMetrics);
 });
 
-// SPA catch-all: en producción, cualquier ruta no-API devuelve index.html
-if (IS_PRODUCTION) {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(DIST_DIR, 'index.html'));
-  });
-}
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor RUR corriendo en puerto ${PORT} [${IS_PRODUCTION ? 'PRODUCCIÓN' : 'DESARROLLO'}]`);
-});
 
 // ROBOTS MANAGEMENT
 app.get('/api/robots', verifyToken, async (req, res) => {
@@ -456,4 +446,15 @@ app.post('/api/livekit-token', verifyToken, async (req, res) => {
     console.error("Error generando token:", error);
     res.status(500).json({ success: false, message: 'Error interno al generar el token' });
   }
+});
+
+// SPA catch-all: en producción, cualquier ruta no-API devuelve index.html
+if (IS_PRODUCTION) {
+  app.get(/(.*)/, (req, res) => {
+    res.sendFile(path.join(DIST_DIR, 'index.html'));
+  });
+}
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor RUR corriendo en puerto ${PORT} [${IS_PRODUCTION ? 'PRODUCCIÓN' : 'DESARROLLO'}]`);
 });
