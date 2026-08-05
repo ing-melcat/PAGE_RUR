@@ -1,0 +1,18 @@
+# ============================================
+# Dockerfile.frontend — build del SPA (Vite/React)
+# Produce solo /app/dist. No es un servicio de larga duración: se usa con
+# `docker run --rm -v ...:/out` (ver scripts/deploy-frontend.sh) para copiar
+# el build a dist-releases/<timestamp>/, que Caddy sirve directo.
+# Esto saca a Node del camino para servir el sitio estático: un despliegue o
+# caída del backend ya no afecta la carga de la página.
+# ============================================
+FROM node:20-alpine AS build
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+CMD ["true"]

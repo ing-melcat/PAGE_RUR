@@ -370,26 +370,6 @@ app.get('/api/crowdsec/metrics', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Error obteniendo metricas de CrowdSec' });
   }
 });
-  
-  // En producción, aquí harías una petición real a la LAPI de CrowdSec o a Prometheus
-  // ej: fetch('http://crowdsec:8080/v1/alerts?active=true', { headers: { 'X-Api-Key': 'tu-key' } })
-  
-  const mockMetrics = {
-    active_decisions: 142,
-    banned_ips: 135,
-    top_scenarios: [
-      { name: "crowdsecurity/ssh-bf", count: 45 },
-      { name: "crowdsecurity/http-bad-user-agent", count: 32 },
-      { name: "crowdsecurity/http-probing", count: 28 }
-    ],
-    recent_alerts: [
-      { ip: "192.168.1.105", scenario: "crowdsecurity/ssh-bf", time: new Date(Date.now() - 5000).toISOString() },
-      { ip: "203.0.113.42", scenario: "crowdsecurity/http-probing", time: new Date(Date.now() - 150000).toISOString() }
-    ]
-  };
-  
-  res.json(mockMetrics);
-});
 
 
 // ROBOTS MANAGEMENT

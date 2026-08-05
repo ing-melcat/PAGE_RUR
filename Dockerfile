@@ -31,12 +31,12 @@ WORKDIR /app
 
 # Variables de entorno por defecto
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV PORT=80
 
-EXPOSE 3001
+EXPOSE 80
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/robots || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:80/api/hello || exit 1
 
 CMD ["node", "api/server.js"]

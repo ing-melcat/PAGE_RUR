@@ -6,6 +6,7 @@ import { Cabezal } from './Cabezal';
 import { VideoViewer } from './VideoViewer';
 import { DataPacket_Kind } from 'livekit-client';
 import { Login } from './Login';
+import { apiFetch } from '../lib/apiClient';
 
 import { ControlButton } from './components/ControlButton';
 import { ControlGroup } from './components/ControlGroup';
@@ -318,13 +319,9 @@ export default function ControllerApp({ onBack, robot }) {
       
       const fetchToken = async () => {
         try {
-          const userToken = localStorage.getItem('authToken');
-          const res = await fetch('/api/livekit-token', {
+          const res = await apiFetch('/api/livekit-token', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${userToken}`
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ robotId: robot.id })
           });
           
