@@ -8,7 +8,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - JWT_SECRET=tu_secreto_seguro_para_produccion_2026
+      - JWT_SECRET=${JWT_SECRET}
       # - CORS_ORIGIN=https://tudominio.com # Descomentar para restringir CORS
     volumes:
       - ./api/data:/app/api/data       # Persistencia de base de datos JSON

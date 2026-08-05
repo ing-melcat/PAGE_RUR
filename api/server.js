@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import rateLimit from 'express-rate-limit';
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,6 +16,7 @@ const PORT = process.env.PORT || 3001;
 const DATA_FILE = path.join(__dirname, 'data', 'posts.json');
 const USERS_FILE = path.join(__dirname, 'data', 'users.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const TOKEN_TTL = '4h';
 
 import multer from 'multer';
 
@@ -40,7 +42,16 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({ storage, fileFilter });
-const JWT_SECRET = process.env.JWT_SECRET || 'rur_super_secret_key_2026';
+const livekitTokenLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => req.user?.matricula || req.ip,
+  handler: (req, res) => res.status(429).json({ success: false, message: 'Demasiadas solicitudes: espera un minuto antes de reintentar.' }),
+});
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('Missing JWT_SECRET environment variable. Set JWT_SECRET before starting the server.');
+}
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 
@@ -316,7 +327,7 @@ app.get('/api/crowdsec/metrics', verifyToken, async (req, res) => {
   try {
     const fetch = (await import('node-fetch')).default || globalThis.fetch;
     const response = await fetch('http://crowdsec:8080/v1/decisions/stream?startup=true', {
-      headers: { 'X-Api-Key': 'QSevcggUppHliORS3dY/x9PhNgAq2ss3KGTE9FTkjAI' }
+      headers: { 'X-Api-Key': process.env.CROWDSEC_API_KEY }
     });
     
     if (!response.ok) {
@@ -459,7 +470,7 @@ app.post('/api/livekit-verify', verifyToken, async (req, res) => {
 });
 
 // LIVEKIT TOKEN GENERATOR
-app.post('/api/livekit-token', verifyToken, async (req, res) => {
+app.post('/api/livekit-token', verifyToken, livekitTokenLimiter, async (req, res) => {
   const { robotId } = req.body;
   const robots = getRobots();
   const robot = robots.find(r => r.id === robotId);
@@ -467,6 +478,11 @@ app.post('/api/livekit-token', verifyToken, async (req, res) => {
   if (!robot) {
     return res.status(404).json({ success: false, message: 'Robot no encontrado' });
   }
+
+  if (!req.user.roles || (!req.user.roles.includes('admin') && !req.user.roles.includes('operador'))) {
+    return res.status(403).json({ success: false, message: 'No tienes permisos para obtener un token con publicación' });
+  }
+
   if (!robot.livekitApiKey || !robot.livekitApiSecret) {
     return res.status(400).json({ success: false, message: 'El robot no tiene configuradas sus credenciales (API Key/Secret) de LiveKit.' });
   }
@@ -475,7 +491,7 @@ app.post('/api/livekit-token', verifyToken, async (req, res) => {
     const participantName = `operator-${req.user.matricula}`;
     const at = new AccessToken(robot.livekitApiKey, robot.livekitApiSecret, {
       identity: participantName,
-      ttl: '4h', // Validez del token
+      ttl: TOKEN_TTL,
     });
     
     // Asignar permisos: unirse a la room específica, publicar y suscribirse
@@ -488,6 +504,7 @@ app.post('/api/livekit-token', verifyToken, async (req, res) => {
     });
     
     const token = await at.toJwt();
+    await saveLog('info', `Usuario ${req.user.matricula} generó token para robot ${robotId} a las ${new Date().toISOString()}`);
     res.json({ success: true, token, livekitUrl: robot.livekitUrl, room: robot.room });
   } catch (error) {
     console.error("Error generando token:", error);
