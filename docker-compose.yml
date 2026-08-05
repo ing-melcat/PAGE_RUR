@@ -9,7 +9,7 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - JWT_SECRET=${JWT_SECRET}
-      # - CORS_ORIGIN=https://tudominio.com # Descomentar para restringir CORS
+      - CORS_ORIGIN=https://rur.unipolidgo.edu.mx # Descomentar para restringir CORS
     volumes:
       - ./api/data:/app/api/data       # Persistencia de base de datos JSON
       - ./uploads:/app/api/uploads     # Persistencia de archivos subidos

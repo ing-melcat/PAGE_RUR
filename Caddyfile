@@ -1,0 +1,3 @@
+rur.unipolidgo.edu.mx {
+    reverse_proxy web:80
+}
