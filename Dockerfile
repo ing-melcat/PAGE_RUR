@@ -25,7 +25,7 @@ COPY --from=build-stage /app/uploads ./uploads
 # Instalar dependencias del backend
 WORKDIR /app/api
 COPY api/package*.json ./
-RUN npm ci --omit=dev
+RUN npm install 
 
 WORKDIR /app
 
