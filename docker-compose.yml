@@ -1,22 +1,183 @@
-version: '3.8'
-
 services:
+  caddy:
+    # Build custom (Dockerfile.caddy) en vez de la imagen oficial: incluye
+    # el bouncer de CrowdSec (ver Caddyfile). Necesita alcanzar el LAPI de
+    # CrowdSec -> también conectado a crowdsec_net.
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - CROWDSEC_BOUNCER_API_KEY=${CROWDSEC_BOUNCER_API_KEY}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./dist-releases:/srv/releases:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - rur_network
+      - crowdsec_net
+
+  # Monolito legado: se mantiene desplegado (sin recibir tráfico de Caddy,
+  # que ya enruta a los 3 servicios de abajo) únicamente como red de
+  # seguridad para rollback rápido durante el corte a producción. Se
+  # decomisiona en la fase 7-9 una vez confirmada la estabilidad del split.
   rur-web:
     build: .
-    ports:
-      - "80:3001" # Mapea el puerto 80 del host al 3001 del contenedor
     environment:
       - NODE_ENV=production
-      - PORT=3001
+      - PORT=80
       - JWT_SECRET=${JWT_SECRET}
-      - CORS_ORIGIN=https://rur.unipolidgo.edu.mx # Descomentar para restringir CORS
+      - CORS_ORIGIN=https://rur.unipolidgo.edu.mx
     volumes:
-      - ./api/data:/app/api/data       # Persistencia de base de datos JSON
-      - ./uploads:/app/api/uploads     # Persistencia de archivos subidos
+      - ./api/data:/app/api/data
+      - ./uploads:/app/api/uploads
     restart: unless-stopped
     networks:
       - rur_network
 
+  svc-identity:
+    build:
+      context: .
+      dockerfile: services/identity/Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGIN=https://rur.unipolidgo.edu.mx
+      - PGHOST=db
+      - PGPORT=5432
+      - PGUSER=svc_identity_role
+      - PGPASSWORD=${IDENTITY_DB_PASSWORD}
+      - PGDATABASE=${POSTGRES_DB}
+    networks:
+      - rur_network
+      - rur_db_net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  svc-content:
+    build:
+      context: .
+      dockerfile: services/content/Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGIN=https://rur.unipolidgo.edu.mx
+      - PGHOST=db
+      - PGPORT=5432
+      - PGUSER=svc_content_role
+      - PGPASSWORD=${CONTENT_DB_PASSWORD}
+      - PGDATABASE=${POSTGRES_DB}
+    volumes:
+      - ./uploads:/app/services/content/uploads
+    networks:
+      - rur_network
+      - rur_db_net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  svc-robots:
+    build:
+      context: .
+      dockerfile: services/robots/Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGIN=https://rur.unipolidgo.edu.mx
+      - ROBOTS_SECRET_KEY=${ROBOTS_SECRET_KEY}
+      - CROWDSEC_API_KEY=${CROWDSEC_API_KEY}
+      - PGHOST=db
+      - PGPORT=5432
+      - PGUSER=svc_robots_role
+      - PGPASSWORD=${ROBOTS_DB_PASSWORD}
+      - PGDATABASE=${POSTGRES_DB}
+    networks:
+      - rur_network
+      - rur_db_net
+      - crowdsec_net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Postgres — reemplaza el almacenamiento en api/data/*.json. Instancia
+  # propia de este proyecto (no se reutiliza el postgres-core de otro stack
+  # del mismo VPS). Nunca expone 5432 al host: solo `expose`, alcanzable
+  # exclusivamente desde rur_db_net.
+  db:
+    image: postgres:16-alpine
+    container_name: page_rur_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_SUPERUSER_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - IDENTITY_DB_PASSWORD=${IDENTITY_DB_PASSWORD}
+      - CONTENT_DB_PASSWORD=${CONTENT_DB_PASSWORD}
+      - ROBOTS_DB_PASSWORD=${ROBOTS_DB_PASSWORD}
+    expose:
+      - "5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - rur_db_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pg_dump diario a un directorio fuera de cualquier ruta servida por la
+  # web. Dataset pequeño -> retención de 14 días es prácticamente gratis.
+  db-backup:
+    build:
+      context: .
+      dockerfile: db/backup/Dockerfile
+    restart: unless-stopped
+    environment:
+      - PGHOST=db
+      - PGUSER=postgres
+      - PGPASSWORD=${POSTGRES_SUPERUSER_PASSWORD}
+      - PGDATABASE=${POSTGRES_DB}
+      - RETAIN_DAYS=14
+    volumes:
+      - /home/rur/backups/pg:/backups
+    networks:
+      - rur_db_net
+    depends_on:
+      db:
+        condition: service_healthy
+
 networks:
   rur_network:
     driver: bridge
+  # Red interna: sin ruta de salida, solo alcanzable por los contenedores
+  # que estén explícitamente conectados a ella (db + servicios backend).
+  rur_db_net:
+    driver: bridge
+    internal: true
+  # Red del stack de CrowdSec ya existente en este VPS (contenedor
+  # `crowdsec`, definido fuera de este proyecto). Se referencia como
+  # externa -- no la crea ni la gestiona este compose. Nombre real
+  # confirmado en el host: crowdsec_crowdsec_net.
+  crowdsec_net:
+    external: true
+    name: crowdsec_crowdsec_net
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pg_data:

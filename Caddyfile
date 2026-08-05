@@ -1,3 +1,39 @@
+{
+	order crowdsec first
+	crowdsec {
+		api_url http://crowdsec:8080
+		api_key {$CROWDSEC_BOUNCER_API_KEY}
+	}
+}
+
 rur.unipolidgo.edu.mx {
-    reverse_proxy web:80
+	# Bloquea en el borde cualquier IP que CrowdSec ya haya marcado (fuerza
+	# bruta, escaneo, etc), antes de que la petición llegue a un servicio.
+	crowdsec
+
+	@identity path /api/login /api/logout /api/me /api/users*
+	@content path /api/posts* /api/upload /api/uploads/*
+	@robots path /api/robots* /api/livekit* /api/crowdsec/* /api/logs
+
+	# route{} fuerza el orden literal en que aparecen los directivas abajo.
+	# Sin esto, el orden de prioridad interno de Caddy ejecuta try_files
+	# ANTES que reverse_proxy, así que /api/posts (que no es un archivo real
+	# en disco) terminaba reescrito a /index.html antes de que el matcher de
+	# reverse_proxy lo viera -- toda la API caía silenciosamente al SPA.
+	route {
+		# Identidad: login, sesión, gestión de usuarios.
+		reverse_proxy @identity svc-identity:3001
+
+		# Contenido: CMS público y subida de archivos.
+		reverse_proxy @content svc-content:3001
+
+		# Robots: CRUD, tokens de LiveKit (incluye el espectador público),
+		# logs, métricas de CrowdSec.
+		reverse_proxy @robots svc-robots:3001
+
+		# SPA: cualquier ruta que no sea un archivo real cae a index.html.
+		root * /srv/releases/current
+		try_files {path} /index.html
+		file_server
+	}
 }

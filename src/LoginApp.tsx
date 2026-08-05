@@ -3,6 +3,7 @@ import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { Loader2, CheckCircle } from "lucide-react";
 import "./index.css";
 import { RobotSelection } from "./controller/RobotSelection";
+import { apiFetch } from "./lib/apiClient";
 
 const ControllerApp = lazy(() => import("./controller/ControllerApp"));
 
@@ -121,11 +122,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   const handleDelete = async (id: string) => {
     if(!window.confirm('¿Estás seguro de que deseas eliminar esta publicación?')) return;
     try {
-      const token = localStorage.getItem('authToken');
-      const res = await fetch(`/api/posts/${id}`, { 
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await apiFetch(`/api/posts/${id}`, { method: 'DELETE' });
       if (res.ok) fetchPosts();
       else alert('No tienes permisos');
     } catch(err) { alert('Error al eliminar'); }
@@ -133,13 +130,9 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
 
   const toggleVisibility = async (post: any) => {
     try {
-      const token = localStorage.getItem('authToken');
-      const res = await fetch(`/api/posts/${post.id}`, {
+      const res = await apiFetch(`/api/posts/${post.id}`, {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isHidden: !post.isHidden })
       });
       if (res.ok) fetchPosts();
@@ -181,10 +174,8 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
     
     setUploadingImage(true);
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('/api/upload', {
+      const response = await apiFetch('/api/upload', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
         body: formData,
       });
       const data = await response.json();
@@ -207,13 +198,9 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
     try {
       const url = viewMode === 'edit' ? `/api/posts/${editingId}` : '/api/posts';
       const method = viewMode === 'edit' ? 'PUT' : 'POST';
-      const token = localStorage.getItem('authToken');
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(postData)
       });
       if (res.ok) {
@@ -469,49 +456,42 @@ export default function App() {
 
   useEffect(() => {
     if (view === 'admin_logs') {
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        fetch('/api/logs', { headers: { 'Authorization': `Bearer ${token}` } })
-          .then(r => r.json())
-          .then(data => setLogsList(data))
-          .catch(err => console.error(err));
-          
-        fetch('/api/crowdsec/metrics', { headers: { 'Authorization': `Bearer ${token}` } })
-          .then(r => r.json())
-          .then(data => setCrowdsecMetrics(data))
-          .catch(err => console.error(err));
-      }
+      apiFetch('/api/logs')
+        .then(r => r.json())
+        .then(data => setLogsList(data))
+        .catch(err => console.error(err));
+
+      apiFetch('/api/crowdsec/metrics')
+        .then(r => r.json())
+        .then(data => setCrowdsecMetrics(data))
+        .catch(err => console.error(err));
     }
   }, [view]);
 
   useEffect(() => {
-    const checkToken = async () => {
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        try {
-          const res = await fetch('/api/me', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const data = await res.json();
-          if (data.success) {
-            setUser(data.user);
-            // Respetar la vista guardada en sessionStorage en vez de forzar dashboard
-            const savedView = sessionStorage.getItem('loginApp_view');
-            if (savedView && savedView !== "login") {
-              setView(savedView);
-            } else {
-              setView("dashboard");
-            }
+    // Ya no hay token en localStorage que revisar: la sesión vive en una
+    // cookie httpOnly que el navegador manda solo. Preguntamos al backend
+    // si hay una sesión válida en vez de decidirlo desde el cliente.
+    const checkSession = async () => {
+      try {
+        const res = await apiFetch('/api/me');
+        const data = await res.json();
+        if (data.success) {
+          setUser(data.user);
+          const savedView = sessionStorage.getItem('loginApp_view');
+          if (savedView && savedView !== "login") {
+            setView(savedView);
           } else {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('currentUser');
+            setView("dashboard");
           }
-        } catch(e) {
-          console.error(e);
+        } else {
+          localStorage.removeItem('currentUser');
         }
+      } catch(e) {
+        console.error(e);
       }
     };
-    checkToken();
+    checkSession();
   }, []);
 
   const [matricula, setMatricula] = useState("");
@@ -595,10 +575,7 @@ export default function App() {
   const [robots, setRobots] = useState<any[]>([]);
   const fetchRobots = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      const res = await fetch('/api/robots', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await apiFetch('/api/robots');
       if (res.ok) {
         setRobots(await res.json());
       }
@@ -621,8 +598,7 @@ export default function App() {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      const res = await fetch('/api/users', { headers: { 'Authorization': `Bearer ${token}` }});
+      const res = await apiFetch('/api/users');
       if (res.ok) {
         const data = await res.json();
         setUsersList(data);
@@ -651,10 +627,9 @@ export default function App() {
     };
 
     try {
-      const token = localStorage.getItem('authToken');
-      const res = await fetch('/api/users', {
+      const res = await apiFetch('/api/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
       });
       if (res.ok) {
@@ -679,10 +654,9 @@ export default function App() {
     };
 
     try {
-      const token = localStorage.getItem('authToken');
-      const res = await fetch(`/api/users/${editingUser.matricula}`, {
+      const res = await apiFetch(`/api/users/${editingUser.matricula}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
       });
       if (res.ok) {
@@ -700,11 +674,7 @@ export default function App() {
   const handleDeleteUser = async (matricula: string) => {
     if (!window.confirm('¿Seguro que deseas eliminar este usuario?')) return;
     try {
-      const token = localStorage.getItem('authToken');
-      const res = await fetch(`/api/users/${matricula}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await apiFetch(`/api/users/${matricula}`, { method: 'DELETE' });
       if (res.ok) fetchUsers();
       else {
         const d = await res.json();
@@ -752,16 +722,12 @@ export default function App() {
     }
 
     try {
-      const token = localStorage.getItem('authToken');
       const method = editingRobot.isNew ? 'POST' : 'PUT';
       const url = editingRobot.isNew ? '/api/robots' : `/api/robots/${updatedRobot.id}`;
-      
-      const res = await fetch(url, {
+
+      const res = await apiFetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedRobot)
       });
       
@@ -780,11 +746,7 @@ export default function App() {
   const handleDeleteRobot = async (id: string) => {
     if (!window.confirm('¿Seguro que deseas eliminar este robot?')) return;
     try {
-      const token = localStorage.getItem('authToken');
-      const res = await fetch(`/api/robots/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await apiFetch(`/api/robots/${id}`, { method: 'DELETE' });
       if (res.ok) {
         fetchRobots();
       } else {
@@ -810,16 +772,15 @@ export default function App() {
     setError("");
 
     try {
-      const response = await fetch('/api/login.php', {
+      const response = await apiFetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ matricula, password })
       });
 
       const data = await response.json();
-      
-      if (data.success && data.user && data.token) {
-        localStorage.setItem('authToken', data.token);
+
+      if (data.success && data.user) {
         localStorage.setItem('currentUser', JSON.stringify(data.user));
         setUser(data.user);
         setView("welcome");
@@ -841,9 +802,11 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    // Best-effort: limpia las cookies de sesión en el servidor. El estado
+    // local se limpia de inmediato sin esperar la respuesta.
+    apiFetch('/api/logout', { method: 'POST' }).catch(() => {});
     setUser(null);
     localStorage.removeItem('currentUser');
-    localStorage.removeItem('authToken');
     setView("login");
     setMatricula("");
     setPassword("");
@@ -1400,13 +1363,9 @@ export default function App() {
                   onUpdateRobot={async (updatedRobot) => {
                     setRobots(prev => prev.map(r => r.id === updatedRobot.id ? updatedRobot : r));
                     try {
-                      const token = localStorage.getItem('authToken');
-                      await fetch(`/api/robots/${updatedRobot.id}`, {
+                      await apiFetch(`/api/robots/${updatedRobot.id}`, {
                         method: 'PUT',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${token}`
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(updatedRobot)
                       });
                     } catch (e) {

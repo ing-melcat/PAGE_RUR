@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Robot3DPreview } from './components/Robot3DPreview';
 import { Gamepad2 } from 'lucide-react';
+import { apiFetch } from '../lib/apiClient';
 
 const TechPencilIcon = ({ size = 24, color = "currentColor" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
@@ -121,13 +122,9 @@ export function RobotSelection({ robots, onSelectRobot, onBack, onAddRobot, onUp
             // Verificación completa con el backend de LiveKit
             if (updated.livekitUrl && updated.livekitApiKey && updated.livekitApiSecret) {
               try {
-                const token = localStorage.getItem('authToken');
-                const verifyRes = await fetch('/api/livekit-verify', {
+                const verifyRes = await apiFetch('/api/livekit-verify', {
                   method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                  },
+                  headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     livekitUrl: updated.livekitUrl,
                     livekitApiKey: updated.livekitApiKey,
