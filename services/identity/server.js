@@ -84,8 +84,73 @@ app.post('/api/logout', csrfProtection, (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/api/me', verifyToken, noStore, (req, res) => {
-  res.json({ success: true, user: req.user });
+function toPublicUser(row) {
+  return {
+    id: row.matricula,
+    matricula: row.matricula,
+    nombre: row.nombre,
+    roles: row.roles ?? [],
+    grupo: row.grupo,
+    telefono: row.telefono,
+    alias: row.alias,
+    bio: row.bio,
+    foto: row.foto,
+    github: row.github,
+    instagram: row.instagram,
+    reddit: row.reddit,
+    facebook: row.facebook,
+    show_alias: row.show_alias,
+    push_notifications: row.push_notifications,
+    control_mappings: row.control_mappings ?? {},
+  };
+}
+
+// Recarga desde la BD en vez de confiar en el payload del JWT (que solo se
+// firma de nuevo en el próximo login) -- así un cambio de perfil se refleja
+// de inmediato aunque la sesión de 24h siga viva con el JWT viejo.
+app.get('/api/me', verifyToken, noStore, async (req, res) => {
+  const { rows } = await pool.query('SELECT * FROM users WHERE matricula = $1', [req.user.matricula]);
+  const row = rows[0];
+  if (!row) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+  res.json({ success: true, user: toPublicUser(row) });
+});
+
+const PROFILE_FIELDS = ['alias', 'bio', 'foto', 'github', 'instagram', 'reddit', 'facebook', 'show_alias', 'push_notifications'];
+
+// Auto-servicio: el usuario logueado edita su propio perfil (distinto de
+// PUT /api/users/:matricula, que es solo para el admin gestionando a otros).
+app.put('/api/profile', verifyToken, csrfProtection, async (req, res) => {
+  const updates = {};
+  for (const field of PROFILE_FIELDS) {
+    if (req.body?.[field] !== undefined) updates[field] = req.body[field];
+  }
+  const fields = Object.keys(updates);
+  if (fields.length === 0) {
+    return res.status(400).json({ success: false, message: 'Nada que actualizar' });
+  }
+  const setClauses = fields.map((field, i) => `${field} = $${i + 1}`);
+  const values = fields.map((field) => updates[field]);
+  values.push(req.user.matricula);
+
+  const { rows } = await pool.query(
+    `UPDATE users SET ${setClauses.join(', ')} WHERE matricula = $${values.length} RETURNING *`,
+    values
+  );
+  const row = rows[0];
+  if (!row) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+  res.json({ success: true, user: toPublicUser(row) });
+});
+
+app.put('/api/profile/mappings', verifyToken, csrfProtection, async (req, res) => {
+  const { control_mappings } = req.body ?? {};
+  if (control_mappings === undefined) {
+    return res.status(400).json({ success: false, message: 'control_mappings es requerido' });
+  }
+  await pool.query('UPDATE users SET control_mappings = $1::jsonb WHERE matricula = $2', [
+    JSON.stringify(control_mappings),
+    req.user.matricula,
+  ]);
+  res.json({ success: true });
 });
 
 app.get('/api/users', verifyToken, noStore, async (req, res) => {
