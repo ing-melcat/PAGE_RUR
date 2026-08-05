@@ -32,7 +32,6 @@ WORKDIR /app
 # Variables de entorno por defecto
 ENV NODE_ENV=production
 ENV PORT=3001
-ENV JWT_SECRET=cambiar_en_produccion
 
 EXPOSE 3001
 
