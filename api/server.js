@@ -479,32 +479,30 @@ app.post('/api/livekit-token', verifyToken, livekitTokenLimiter, async (req, res
     return res.status(404).json({ success: false, message: 'Robot no encontrado' });
   }
 
-  if (!req.user.roles || (!req.user.roles.includes('admin') && !req.user.roles.includes('operador'))) {
-    return res.status(403).json({ success: false, message: 'No tienes permisos para obtener un token con publicación' });
-  }
-
   if (!robot.livekitApiKey || !robot.livekitApiSecret) {
     return res.status(400).json({ success: false, message: 'El robot no tiene configuradas sus credenciales (API Key/Secret) de LiveKit.' });
   }
 
+  const isOperator = req.user.roles && (req.user.roles.includes('admin') || req.user.roles.includes('operador'));
+  const grantedRole = isOperator ? 'operador' : 'espectador';
+  const participantName = `${isOperator ? 'operator' : 'viewer'}-${req.user.matricula}`;
+
   try {
-    const participantName = `operator-${req.user.matricula}`;
     const at = new AccessToken(robot.livekitApiKey, robot.livekitApiSecret, {
       identity: participantName,
       ttl: TOKEN_TTL,
     });
     
-    // Asignar permisos: unirse a la room específica, publicar y suscribirse
     at.addGrant({
       roomJoin: true,
       room: robot.room,
-      canPublish: true,
+      canPublish: isOperator,
       canSubscribe: true,
-      canPublishData: true,
+      canPublishData: isOperator,
     });
     
     const token = await at.toJwt();
-    await saveLog('info', `Usuario ${req.user.matricula} generó token para robot ${robotId} a las ${new Date().toISOString()}`);
+    await saveLog('info', `Usuario ${req.user.matricula} generó token de ${grantedRole} para robot ${robotId} a las ${new Date().toISOString()}`);
     res.json({ success: true, token, livekitUrl: robot.livekitUrl, room: robot.room });
   } catch (error) {
     console.error("Error generando token:", error);
