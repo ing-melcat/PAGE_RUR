@@ -566,7 +566,10 @@ export default function App() {
 
   useEffect(() => {
     if (user) {
-      setShowAlias(user.show_alias ?? true);
+      // El default sigue al del schema (show_alias BOOLEAN DEFAULT false); con
+      // `?? true` un usuario sin el campo veía el switch encendido y al guardar
+      // activaba algo que nunca pidió.
+      setShowAlias(user.show_alias ?? false);
       setPushNotifications(user.push_notifications ?? false);
     }
   }, [user]);
@@ -1262,20 +1265,24 @@ export default function App() {
                                   return;
                                 }
 
+                                // Reutiliza el /api/upload de svc-content (el
+                                // mismo que usan las publicaciones) en vez de
+                                // duplicar la subida de archivos: el campo se
+                                // llama 'file' porque así lo espera su multer.
                                 const formData = new FormData();
-                                formData.append('avatar', file);
-                                
+                                formData.append('file', file);
+
                                 try {
-                                  const res = await fetch('/api/upload_avatar.php', {
+                                  const res = await apiFetch('/api/upload', {
                                     method: 'POST',
                                     body: formData
                                   });
                                   const data = await res.json();
-                                  if (data.success) {
+                                  if (res.ok && data.url) {
                                     setProfileForm({...profileForm, foto: data.url});
                                     alert("Foto subida temporalmente. Dale a 'Guardar Cambios' para confirmar.");
                                   } else {
-                                    alert(data.message || "Error al subir foto");
+                                    alert(data.error || data.message || "Error al subir foto");
                                   }
                                 } catch (err) {
                                   alert("Error de conexión al subir la foto");
@@ -1318,17 +1325,22 @@ export default function App() {
                           </div>
                           <button className="primary-btn" style={{ marginTop: 'auto' }} onClick={async () => {
                             try {
-                              const res = await fetch('/api/update_profile.php', {
-                                method: 'POST',
+                              const res = await apiFetch('/api/me', {
+                                method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify(profileForm)
                               });
-                              if (res.ok) {
-                                setUser({ ...user, ...profileForm });
+                              const data = await res.json();
+                              if (res.ok && data.success) {
+                                // Se adopta el usuario que devuelve el servidor,
+                                // no el formulario local: así el estado refleja
+                                // lo que realmente quedó guardado.
+                                setUser(data.user);
+                                localStorage.setItem('currentUser', JSON.stringify(data.user));
                                 alert("Perfil actualizado con éxito.");
                                 setMainContext("modules");
                               } else {
-                                alert("Error al guardar perfil.");
+                                alert(data.message || "Error al guardar perfil.");
                               }
                             } catch (e) {
                               alert("Error de conexión.");
@@ -1375,16 +1387,18 @@ export default function App() {
                   controlMappings={user.control_mappings}
                   onUpdateMappings={async (newMappings) => {
                     try {
-                      const res = await fetch('/api/update_mappings.php', {
-                        method: 'POST',
+                      const res = await apiFetch('/api/me/mappings', {
+                        method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ control_mappings: newMappings })
                       });
-                      if (res.ok) {
-                        setUser({ ...user, control_mappings: newMappings });
+                      const data = await res.json();
+                      if (res.ok && data.success) {
+                        setUser(data.user);
+                        localStorage.setItem('currentUser', JSON.stringify(data.user));
                         alert("Controles mapeados con éxito.");
                       } else {
-                        alert("Error al guardar controles.");
+                        alert(data.message || "Error al guardar controles.");
                       }
                     } catch (e) {
                       alert("Error de conexión.");
@@ -1781,16 +1795,18 @@ export default function App() {
                 style={{ marginBottom: '16px', width: '100%', padding: '12px', background: 'var(--accent)', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
                 onClick={async () => {
                   try {
-                    const res = await fetch('/api/update_profile.php', {
-                      method: 'POST',
+                    const res = await apiFetch('/api/me', {
+                      method: 'PUT',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ show_alias: showAlias, push_notifications: pushNotifications })
                     });
-                    if (res.ok) {
-                      setUser({ ...user, show_alias: showAlias, push_notifications: pushNotifications });
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                      setUser(data.user);
+                      localStorage.setItem('currentUser', JSON.stringify(data.user));
                       alert("Cambios guardados con éxito.");
                     } else {
-                      alert("Error al guardar cambios.");
+                      alert(data.message || "Error al guardar cambios.");
                     }
                   } catch (e) {
                     alert("Error de conexión.");

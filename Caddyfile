@@ -11,7 +11,10 @@ rur.unipolidgo.edu.mx {
 	# bruta, escaneo, etc), antes de que la petición llegue a un servicio.
 	crowdsec
 
-	@identity path /api/login /api/logout /api/me /api/users*
+	# /api/me* cubre también /api/me/mappings. Con solo /api/me (match exacto)
+	# las subrutas caían al try_files del SPA y devolvían index.html con 200,
+	# así que el frontend veía "éxito" ante un guardado que nunca ocurrió.
+	@identity path /api/login /api/logout /api/me /api/me/* /api/users*
 	@content path /api/posts* /api/upload /api/uploads/*
 	@robots path /api/robots* /api/livekit* /api/crowdsec/* /api/logs
 
