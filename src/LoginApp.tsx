@@ -1263,19 +1263,19 @@ export default function App() {
                                 }
 
                                 const formData = new FormData();
-                                formData.append('avatar', file);
-                                
+                                formData.append('file', file);
+
                                 try {
-                                  const res = await fetch('/api/upload_avatar.php', {
+                                  const res = await apiFetch('/api/upload', {
                                     method: 'POST',
                                     body: formData
                                   });
                                   const data = await res.json();
-                                  if (data.success) {
+                                  if (res.ok && data.url) {
                                     setProfileForm({...profileForm, foto: data.url});
                                     alert("Foto subida temporalmente. Dale a 'Guardar Cambios' para confirmar.");
                                   } else {
-                                    alert(data.message || "Error al subir foto");
+                                    alert(data.error || data.message || "Error al subir foto");
                                   }
                                 } catch (err) {
                                   alert("Error de conexión al subir la foto");
@@ -1318,17 +1318,18 @@ export default function App() {
                           </div>
                           <button className="primary-btn" style={{ marginTop: 'auto' }} onClick={async () => {
                             try {
-                              const res = await fetch('/api/update_profile.php', {
-                                method: 'POST',
+                              const res = await apiFetch('/api/profile', {
+                                method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify(profileForm)
                               });
-                              if (res.ok) {
-                                setUser({ ...user, ...profileForm });
+                              const data = await res.json().catch(() => null);
+                              if (res.ok && data?.success) {
+                                setUser(data.user);
                                 alert("Perfil actualizado con éxito.");
                                 setMainContext("modules");
                               } else {
-                                alert("Error al guardar perfil.");
+                                alert(data?.message || "Error al guardar perfil.");
                               }
                             } catch (e) {
                               alert("Error de conexión.");
@@ -1375,8 +1376,8 @@ export default function App() {
                   controlMappings={user.control_mappings}
                   onUpdateMappings={async (newMappings) => {
                     try {
-                      const res = await fetch('/api/update_mappings.php', {
-                        method: 'POST',
+                      const res = await apiFetch('/api/profile/mappings', {
+                        method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ control_mappings: newMappings })
                       });
@@ -1781,16 +1782,17 @@ export default function App() {
                 style={{ marginBottom: '16px', width: '100%', padding: '12px', background: 'var(--accent)', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
                 onClick={async () => {
                   try {
-                    const res = await fetch('/api/update_profile.php', {
-                      method: 'POST',
+                    const res = await apiFetch('/api/profile', {
+                      method: 'PUT',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ show_alias: showAlias, push_notifications: pushNotifications })
                     });
-                    if (res.ok) {
-                      setUser({ ...user, show_alias: showAlias, push_notifications: pushNotifications });
+                    const data = await res.json().catch(() => null);
+                    if (res.ok && data?.success) {
+                      setUser(data.user);
                       alert("Cambios guardados con éxito.");
                     } else {
-                      alert("Error al guardar cambios.");
+                      alert(data?.message || "Error al guardar cambios.");
                     }
                   } catch (e) {
                     alert("Error de conexión.");
