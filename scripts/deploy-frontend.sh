@@ -19,7 +19,11 @@ echo "==> Construyendo imagen de build del frontend..."
 docker build -f Dockerfile.frontend -t "$IMAGE_TAG" .
 
 echo "==> Extrayendo dist/ a ${RELEASE_DIR}..."
-docker run --rm -v "$(pwd)/${RELEASE_DIR}:/out" "$IMAGE_TAG" sh -c "cp -r /app/dist/. /out/"
+# --user: sin esto el contenedor escribe como root en el bind mount, y la
+# release queda con archivos de root. El propio script no puede borrarla luego
+# al rotar (Permission denied), así que cada despliegue terminaba en error pese
+# a haber publicado bien, y hacía falta un sudo rm a mano.
+docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd)/${RELEASE_DIR}:/out" "$IMAGE_TAG" sh -c "cp -r /app/dist/. /out/"
 
 if [ ! -f "${RELEASE_DIR}/index.html" ]; then
   echo "ERROR: el build no generó index.html, no se actualiza 'current'." >&2
@@ -31,7 +35,13 @@ echo "==> Swap atómico de dist-releases/current -> ${RELEASE_ID}"
 ln -sfn "$RELEASE_ID" dist-releases/current.tmp
 mv -Tf dist-releases/current.tmp dist-releases/current
 
+# Best-effort: para cuando se llega aquí el swap atómico ya publicó la release
+# nueva, así que un fallo borrando las viejas no debe abortar por el set -e ni
+# hacer que el script salga con error. Solo se avisa.
 echo "==> Limpiando releases viejas (conservando las últimas 5)..."
-(cd dist-releases && ls -1dt */ 2>/dev/null | grep -v '^current' | tail -n +6 | xargs -r rm -rf)
+if ! (cd dist-releases && ls -1dt */ 2>/dev/null | grep -v '^current' | tail -n +6 | xargs -r rm -rf); then
+  echo "AVISO: quedaron releases viejas sin borrar (probablemente archivos de otro usuario)." >&2
+  echo "       La release nueva SÍ se publicó correctamente." >&2
+fi
 
 echo "Desplegado: ${RELEASE_DIR} (dist-releases/current -> $(readlink dist-releases/current))"
