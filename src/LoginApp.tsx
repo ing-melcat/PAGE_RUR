@@ -675,6 +675,8 @@ export default function App() {
         livekitUrl: formData.get('livekitUrl') || "",
         livekitApiKey: formData.get('livekitApiKey') || "",
         livekitApiSecret: formData.get('livekitApiSecret') || "",
+        // Un checkbox desmarcado no aparece en el FormData: ausente = privado.
+        isPublicEvent: formData.get('isPublicEvent') === 'on',
     };
 
     // Ping check para el servidor LiveKit
@@ -720,6 +722,19 @@ export default function App() {
       }
     } catch(e) {
       alert("Error de conexión");
+    }
+  };
+
+  // El enlace que se le pasa al público durante un evento. No requiere sesión,
+  // por eso solo tiene sentido copiarlo si el robot está marcado como público.
+  const copiarEnlacePublico = async (robotId: string) => {
+    const enlace = `${window.location.origin}/espectador/${robotId}`;
+    try {
+      await navigator.clipboard.writeText(enlace);
+      alert(`Enlace de espectador copiado:\n${enlace}`);
+    } catch {
+      // clipboard solo existe en contexto seguro (https/localhost).
+      window.prompt('Copia el enlace de espectador:', enlace);
     }
   };
 
@@ -1590,7 +1605,7 @@ export default function App() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left', flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '8px' }}>
                     <h3 style={{ margin: 0, color: 'var(--accent)' }}>Administración de Robots (Base de Datos)</h3>
-                    <button onClick={() => setEditingRobot({ isNew: true, id: `rassor-${Date.now().toString().slice(-4)}`, name: '', room: '', status: 'online', modelUrl: '', livekitUrl: '' })} style={{ background: 'var(--accent)', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>+ Registrar Nueva Unidad</button>
+                    <button onClick={() => setEditingRobot({ isNew: true, id: `rassor-${Date.now().toString().slice(-4)}`, name: '', room: '', status: 'online', modelUrl: '', livekitUrl: '', isPublicEvent: false })} style={{ background: 'var(--accent)', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>+ Registrar Nueva Unidad</button>
                 </div>
 
                 <div style={{ overflowX: 'auto', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px' }}>
@@ -1601,6 +1616,7 @@ export default function App() {
                                 <th style={{ padding: '16px' }}>UNIDAD (NOMBRE)</th>
                                 <th style={{ padding: '16px' }}>ID INTERNO</th>
                                 <th style={{ padding: '16px' }}>LIVEKIT ROOM</th>
+                                <th style={{ padding: '16px' }}>TRANSMISIÓN</th>
                                 <th style={{ padding: '16px' }}>MODELO 3D (.glb)</th>
                                 <th style={{ padding: '16px', textAlign: 'right' }}>ACCIONES</th>
                             </tr>
@@ -1617,6 +1633,16 @@ export default function App() {
                                     <td style={{ padding: '16px', fontWeight: 500, fontFamily: 'var(--font-ibm-mono)', fontSize: '0.95rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{r.name}</td>
                                     <td style={{ padding: '16px', color: 'var(--muted)' }}>{r.id}</td>
                                     <td style={{ padding: '16px', color: 'var(--accent)' }}>{r.room}</td>
+                                    <td style={{ padding: '16px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
+                                            <span style={{ padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem', letterSpacing: '0.05em', border: `1px solid ${r.isPublicEvent ? 'var(--accent)' : 'var(--border)'}`, color: r.isPublicEvent ? 'var(--accent)' : 'var(--muted)', background: r.isPublicEvent ? 'rgba(251,202,1,0.08)' : 'transparent' }}>
+                                                {r.isPublicEvent ? '◉ PÚBLICA' : '🔒 PRIVADA'}
+                                            </span>
+                                            {r.isPublicEvent && (
+                                                <button onClick={() => copiarEnlacePublico(r.id)} style={{ background: 'transparent', border: 'none', color: 'var(--muted)', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', textDecoration: 'underline' }}>copiar enlace</button>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td style={{ padding: '16px', color: 'var(--muted)' }}>{r.modelUrl || 'Modelo por defecto'}</td>
                                     <td style={{ padding: '16px', textAlign: 'right' }}>
                                         <button onClick={() => setEditingRobot(r)} style={{ background: 'transparent', color: 'white', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', marginRight: '8px' }}>Editar</button>
@@ -1626,7 +1652,7 @@ export default function App() {
                             ))}
                             {robots.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>No hay unidades registradas.</td>
+                                    <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>No hay unidades registradas.</td>
                                 </tr>
                             )}
                         </tbody>
@@ -1671,11 +1697,22 @@ export default function App() {
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 1' }}>
                                         LiveKit API Secret
-                                        <input type="password" name="livekitApiSecret" defaultValue={editingRobot.livekitApiSecret} placeholder="API Secret" style={{ padding: '12px', background: 'var(--surface)', color: '#fff', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                                        {/* Se deja vacío a propósito: el backend solo re-cifra si mandas
+                                            un valor nuevo, así que vacío = conservar el ya guardado. */}
+                                        <input type="password" name="livekitApiSecret" placeholder={editingRobot.livekitApiSecretMasked ? `Guardado (${editingRobot.livekitApiSecretMasked}) — escribe uno nuevo para reemplazarlo` : 'API Secret'} style={{ padding: '12px', background: 'var(--surface)', color: '#fff', border: '1px solid var(--border)', borderRadius: '4px' }} />
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 2' }}>
                                         Ruta del Modelo 3D (.glb) - Opcional
                                         <input name="modelUrl" defaultValue={editingRobot.modelUrl} placeholder="/models/mi-robot.glb" style={{ padding: '12px', background: 'var(--surface)', color: '#fff', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', gridColumn: 'span 2', padding: '16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)' }}>
+                                        <input type="checkbox" name="isPublicEvent" defaultChecked={Boolean(editingRobot.isPublicEvent)} style={{ width: 'auto', marginTop: '3px', cursor: 'pointer' }} />
+                                        <span style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            <span style={{ color: 'var(--text)', letterSpacing: '0.05em' }}>TRANSMISIÓN PÚBLICA (MODO EVENTO)</span>
+                                            <span style={{ fontSize: '0.75rem', lineHeight: 1.6 }}>
+                                                Activada, cualquier persona sin cuenta puede ver el video en <span style={{ color: 'var(--accent)' }}>/espectador/{editingRobot.id}</span>. El espectador es de solo lectura y nunca puede controlar la unidad, pero la transmisión queda abierta a todo internet: déjala apagada mientras no haya un evento en curso.
+                                            </span>
+                                        </span>
                                     </label>
                                 </div>
                                 <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '16px' }}>
