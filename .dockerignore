@@ -1,0 +1,57 @@
+# Contexto de build de Docker.
+#
+# Sin este archivo, `docker build` mandaba el directorio entero (~681 MB) y
+# Dockerfile.frontend, que hace `COPY . .`, metía dentro de la imagen el .env
+# con los secretos reales y el .git completo — incluido el historial anterior
+# a que los .env se sacaran del control de versiones. La imagen no se publica,
+# pero un secreto no tiene por qué estar ahí, y de paso cada build arrastraba
+# cientos de megas por nada.
+#
+# Ojo al editar: services/*/Dockerfile copian services/ y package*.json desde
+# este mismo contexto. No excluir esas rutas.
+
+# Secretos. Lo más importante de esta lista.
+.env
+.env.*
+!.env.example
+
+# Historial del repositorio: pesa 55 MB y contiene los commits en los que los
+# .env todavía estaban trackeados.
+.git
+.gitignore
+
+# Worktrees y estado de las sesiones de trabajo.
+.claude
+
+# Se reinstalan dentro de la imagen con `npm ci`; copiarlos además rompe el
+# aislamiento (arquitectura del host vs la del contenedor).
+node_modules
+*/node_modules
+
+# Salidas de build y releases ya publicadas (~204 MB).
+dist
+dist-releases
+
+# Datos en runtime: no son entrada del build.
+# `uploads/` NO se excluye aunque sea dato en runtime: el Dockerfile del
+# monolito legacy hace `COPY --from=build-stage /app/uploads ./uploads` y sin
+# el directorio el build falla. Pesa ~1 MB y su contenido ya se sirve público
+# en /api/uploads, así que no aporta riesgo. Se podrá excluir cuando se
+# decomisione rur-web.
+# api/data y api/uploads sí se excluyen: el `COPY api/` copia lo que exista y
+# en runtime llegan montados como volumen desde docker-compose.
+api/data
+api/uploads
+db/backup/*.sql
+db/backup/*.dump
+
+# El monolito PHP que ya no recibe tráfico.
+_legacy_php_apache
+
+# Firmware del robot: no interviene ni en el SPA ni en los microservicios.
+robot_receiver
+
+# Ruido suelto.
+*.log
+.DS_Store
+Thumbs.db
