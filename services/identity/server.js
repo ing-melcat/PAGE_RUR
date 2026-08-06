@@ -50,16 +50,21 @@ app.post('/api/login', loginIpLimiter, async (req, res) => {
 
   if (userRecord && isMatch) {
     recordSuccess(matricula);
-    const user = {
-      id: userRecord.matricula,
-      matricula: userRecord.matricula,
-      nombre: userRecord.nombre,
-      roles: userRecord.roles ?? [],
-      grupo: userRecord.grupo,
-      alias: userRecord.alias,
-      control_mappings: userRecord.control_mappings ?? {},
-    };
-    const token = signSessionToken(user);
+    // Misma forma exacta que /api/me. Antes /api/login armaba su propio objeto
+    // recortado (sin bio, foto, redes ni preferencias) y eso perdía datos: al
+    // entrar a "Personalizar Perfil" sin recargar, el formulario se rellenaba
+    // con esos campos en blanco y el primer guardado los sobrescribía vacíos.
+    const user = toPublicUser(userRecord);
+    // El token solo lleva identidad y autorización. Los datos de perfil se
+    // leen de la base en /api/me: si viajaran en el JWT, editarlos no surtiría
+    // efecto hasta el siguiente login, y engordarían la cookie sin motivo.
+    const token = signSessionToken({
+      id: user.id,
+      matricula: user.matricula,
+      nombre: user.nombre,
+      roles: user.roles,
+      grupo: user.grupo,
+    });
     const csrfToken = generateCsrfToken();
 
     res.cookie(SESSION_COOKIE, token, { ...baseCookieOptions(), httpOnly: true });
@@ -84,23 +89,30 @@ app.post('/api/logout', csrfProtection, (req, res) => {
   res.json({ success: true });
 });
 
+// Las columnas de texto son nullables, pero hacia afuera nunca se emite null:
+// un campo vacío se representa siempre como "". Sin esto la API rechazaba su
+// propia salida — un cliente que reenviara el usuario tal cual lo recibió (que
+// es justo lo que hace el editor de perfil) mandaba reddit:null y se llevaba un
+// 400 "Se esperaba texto". El contrato tiene que poder ir y volver.
 function toPublicUser(row) {
   return {
     id: row.matricula,
     matricula: row.matricula,
     nombre: row.nombre,
     roles: row.roles ?? [],
-    grupo: row.grupo,
-    telefono: row.telefono,
-    alias: row.alias,
-    bio: row.bio,
-    foto: row.foto,
-    github: row.github,
-    instagram: row.instagram,
-    reddit: row.reddit,
-    facebook: row.facebook,
-    show_alias: row.show_alias,
-    push_notifications: row.push_notifications,
+    grupo: row.grupo ?? '',
+    telefono: row.telefono ?? '',
+    alias: row.alias ?? '',
+    bio: row.bio ?? '',
+    foto: row.foto ?? '',
+    github: row.github ?? '',
+    instagram: row.instagram ?? '',
+    reddit: row.reddit ?? '',
+    facebook: row.facebook ?? '',
+    show_alias: row.show_alias ?? false,
+    push_notifications: row.push_notifications ?? false,
+    large_text: row.large_text ?? false,
+    reduce_animations: row.reduce_animations ?? false,
     control_mappings: row.control_mappings ?? {},
   };
 }
@@ -135,6 +147,8 @@ const PROFILE_FIELDS = {
   facebook: { kind: 'link', maxLength: 255 },
   show_alias: { kind: 'boolean' },
   push_notifications: { kind: 'boolean' },
+  large_text: { kind: 'boolean' },
+  reduce_animations: { kind: 'boolean' },
 };
 
 // Los mapeos son JSON libre (su forma la decide el frontend), así que el

@@ -505,11 +505,18 @@ function App() {
 
   useEffect(() => {
     if (!location.pathname.startsWith('/login')) {
+      // Solo posición de navegación del panel. `loginApp_user` y
+      // `loginApp_livekitToken` ya no se escriben — el usuario se pide a
+      // /api/me y el token de LiveKit vive únicamente en memoria — pero se
+      // siguen borrando aquí para limpiar los que quedaron en navegadores
+      // que cargaron una versión anterior.
       sessionStorage.removeItem('loginApp_view');
-      sessionStorage.removeItem('loginApp_user');
       sessionStorage.removeItem('loginApp_mainContext');
       sessionStorage.removeItem('loginApp_activeModule');
+      sessionStorage.removeItem('loginApp_user');
       sessionStorage.removeItem('loginApp_livekitToken');
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
     }
   }, [location.pathname]);
   
