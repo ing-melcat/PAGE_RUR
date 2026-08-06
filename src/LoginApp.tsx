@@ -99,6 +99,14 @@ function hasRole(user: any, ...roles: string[]): boolean {
   return roles.some((role) => owned.includes(role));
 }
 
+// Vistas que el router de este archivo sabe renderizar. Sirve para descartar
+// un valor viejo guardado en sessionStorage cuando una pantalla se retira.
+const KNOWN_VIEWS = new Set([
+  'login', 'welcome', 'dashboard', 'placeholder', 'settings_menu', 'accessibility',
+  'admin_content', 'admin_users', 'admin_logs', 'admin_config',
+  'robot_selection', 'controles',
+]);
+
 const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   const [viewMode, setViewMode] = useState<'list'|'create'|'edit'>('list');
   const [postsList, setPostsList] = useState<any[]>([]);
@@ -493,7 +501,11 @@ export default function App() {
         if (data.success) {
           setUser(data.user);
           const savedView = sessionStorage.getItem('loginApp_view');
-          if (savedView && savedView !== "login") {
+          // Se valida contra las vistas que existen hoy: una sesión guardada
+          // apuntando a una pantalla ya retirada (p. ej. "profile_settings",
+          // fusionada con el editor de perfil) dejaría la página en blanco,
+          // porque ningún bloque coincidiría al renderizar.
+          if (savedView && savedView !== "login" && KNOWN_VIEWS.has(savedView)) {
             setView(savedView);
           } else {
             setView("dashboard");
@@ -828,6 +840,26 @@ export default function App() {
     setPassword("");
   };
 
+  // Único punto de entrada al editor de perfil. Antes había dos pantallas
+  // distintas ("Personalizar Perfil" en la barra lateral y "Perfil de Usuario"
+  // en el menú de Ajustes) que editaban campos diferentes del mismo usuario
+  // contra el mismo endpoint; ahora las dos llegan aquí.
+  const openProfileEditor = () => {
+    setProfileForm({
+      alias: user?.alias || '',
+      bio: user?.bio || '',
+      foto: user?.foto || '',
+      github: user?.github || '',
+      instagram: user?.instagram || '',
+      reddit: user?.reddit || '',
+      facebook: user?.facebook || ''
+    });
+    // El editor vive dentro del dashboard, así que hay que aterrizar ahí
+    // primero cuando se entra desde el menú suelto de Ajustes.
+    setView("dashboard");
+    setMainContext("edit_profile");
+  };
+
   const pageTransition = {
     initial: { opacity: 0, y: 12 },
     animate: { opacity: 1, y: 0 },
@@ -850,13 +882,10 @@ export default function App() {
           <div 
             className="topbar-icon" 
             aria-hidden="true"
-            onClick={() => {
-              if (user && view === "dashboard") {
-                setMainContext("settings");
-              } else {
-                setView("settings_menu");
-              }
-            }}
+            // Un solo destino desde cualquier punto. Antes el engrane abría una
+            // pantalla distinta según si estabas en el dashboard o no, con los
+            // mismos switches duplicados en las dos.
+            onClick={() => setView("settings_menu")}
             title="Ajustes"
           >
             <TechGearIcon />
@@ -1111,18 +1140,7 @@ export default function App() {
                   <button 
                     className="logout-btn-small" 
                     style={{ width: '100%', marginTop: 'auto' }}
-                    onClick={() => {
-                      setProfileForm({
-                        alias: user.alias || '',
-                        bio: user.bio || '',
-                        foto: user.foto || '',
-                        github: user.github || '',
-                        instagram: user.instagram || '',
-                        reddit: user.reddit || '',
-                        facebook: user.facebook || ''
-                      });
-                      setMainContext("edit_profile");
-                    }}
+                    onClick={openProfileEditor}
                   >
                     Personalizar Perfil
                   </button>
@@ -1161,6 +1179,7 @@ export default function App() {
                               { title: "Gestión de Publicaciones", view: "admin_content" },
                               { title: "Gestión de Usuarios", view: "admin_users" },
                               { title: "Logs Generales", view: "admin_logs" },
+                              { title: "Administración de Robots", view: "admin_config" },
                               { title: "Consola del Operador", view: "controles" }
                             ];
                           } else {
@@ -1219,28 +1238,6 @@ export default function App() {
                           });
                         })()}
                       </motion.div>
-                    </motion.div>
-                  )}
-
-                  {mainContext === "settings" && (
-                    <motion.div key="settings" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                      <div className="panel-header" style={{ marginBottom: '32px' }}>
-                        <span className="panel-label">CONFIGURACIÓN GENERAL</span>
-                        <h2 style={{ margin: 0, fontSize: '2rem', color: 'var(--accent)' }}>Ajustes del Sistema</h2>
-                      </div>
-                      
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}>
-                        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--border)', background: 'var(--surface-strong)', cursor: 'pointer' }}>
-                          <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.9rem', color: 'var(--text)' }}>TEXTO GRANDE</span>
-                          <input type="checkbox" style={{width: 'auto', cursor: 'pointer'}} checked={largeText} onChange={(e) => setLargeText(e.target.checked)} />
-                        </label>
-                        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--border)', background: 'var(--surface-strong)', cursor: 'pointer' }}>
-                          <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.9rem', color: 'var(--text)' }}>REDUCIR ANIMACIONES</span>
-                          <input type="checkbox" style={{width: 'auto', cursor: 'pointer'}} checked={reduceAnimations} onChange={(e) => setReduceAnimations(e.target.checked)} />
-                        </label>
-                      </div>
-
-                      <button className="back-link" style={{ marginTop: '32px' }} onClick={() => setMainContext("modules")}>← Volver a los Módulos</button>
                     </motion.div>
                   )}
 
@@ -1330,16 +1327,35 @@ export default function App() {
                             <label>Facebook (URL)</label>
                             <input type="text" placeholder="https://facebook.com/..." value={profileForm.facebook} onChange={e => setProfileForm({...profileForm, facebook: e.target.value})} />
                           </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', border: '1px solid var(--border)', background: 'var(--background)', cursor: 'pointer' }}>
+                              <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>MOSTRAR ALIAS EN TABLERO</span>
+                              <input type="checkbox" checked={showAlias} onChange={(e) => setShowAlias(e.target.checked)} style={{width: 'auto', cursor: 'pointer'}} />
+                            </label>
+                            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', border: '1px solid var(--border)', background: 'var(--background)', cursor: 'pointer' }}>
+                              <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>RECIBIR NOTIFICACIONES PUSH</span>
+                              <input type="checkbox" checked={pushNotifications} onChange={(e) => setPushNotifications(e.target.checked)} style={{width: 'auto', cursor: 'pointer'}} />
+                            </label>
+                          </div>
+
                           <button className="primary-btn" style={{ marginTop: 'auto' }} onClick={async () => {
                             try {
+                              // Un solo guardado para todo el perfil: los datos
+                              // públicos del formulario y las dos preferencias,
+                              // que antes vivían en una pantalla aparte.
                               const res = await apiFetch('/api/profile', {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(profileForm)
+                                body: JSON.stringify({
+                                  ...profileForm,
+                                  show_alias: showAlias,
+                                  push_notifications: pushNotifications
+                                })
                               });
                               const data = await res.json().catch(() => null);
                               if (res.ok && data?.success) {
                                 setUser(data.user);
+                                localStorage.setItem('currentUser', JSON.stringify(data.user));
                                 alert("Perfil actualizado con éxito.");
                                 setMainContext("modules");
                               } else {
@@ -1597,18 +1613,6 @@ export default function App() {
                 <h2 style={{margin: '0', fontSize: '1.25rem'}}>Configuración y Unidades</h2>
               </div>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px', textAlign: 'left' }}>
-                <h3 style={{ borderBottom: '1px solid var(--border)', paddingBottom: '8px', color: 'var(--accent)' }}>Ajustes del Sistema</h3>
-                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--border)', background: 'var(--background)' }}>
-                  <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>MODO MANTENIMIENTO</span>
-                  <input type="checkbox" style={{width: 'auto'}} />
-                </label>
-                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--border)', background: 'var(--background)' }}>
-                  <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>BLOQUEO GLOBAL RED</span>
-                  <input type="checkbox" style={{width: 'auto'}} />
-                </label>
-              </div>
-
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left', flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '8px' }}>
                     <h3 style={{ margin: 0, color: 'var(--accent)' }}>Administración de Robots (Base de Datos)</h3>
@@ -1732,7 +1736,7 @@ export default function App() {
                   Accesibilidad
                 </button>
                 {user && (
-                  <button className="action-card" onClick={() => setView("profile_settings")}>
+                  <button className="action-card" onClick={openProfileEditor}>
                     Perfil de Usuario
                   </button>
                 )}
@@ -1771,52 +1775,6 @@ export default function App() {
             </motion.section>
           )}
 
-          {view === "profile_settings" && user && (
-            <motion.section key="profile_settings" className="dashboard-card" {...pageTransition}>
-              <div className="panel-header">
-                <span className="panel-label">AJUSTES</span>
-                <h2 style={{margin: '0', fontSize: '1.25rem'}}>Perfil de Usuario</h2>
-              </div>
-              <p style={{fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', marginBottom: '24px'}}>
-                Detalles menores del usuario. Opciones avanzadas bloqueadas por el administrador.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left' }}>
-                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--border)', background: 'var(--background)' }}>
-                  <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>MOSTRAR ALIAS EN TABLERO</span>
-                  <input type="checkbox" checked={showAlias} onChange={(e) => setShowAlias(e.target.checked)} style={{width: 'auto', cursor: 'pointer'}} />
-                </label>
-                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--border)', background: 'var(--background)' }}>
-                  <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>RECIBIR NOTIFICACIONES PUSH</span>
-                  <input type="checkbox" checked={pushNotifications} onChange={(e) => setPushNotifications(e.target.checked)} style={{width: 'auto', cursor: 'pointer'}} />
-                </label>
-              </div>
-              <button 
-                className="primary-btn" 
-                style={{ marginBottom: '16px', width: '100%', padding: '12px', background: 'var(--accent)', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                onClick={async () => {
-                  try {
-                    const res = await apiFetch('/api/profile', {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ show_alias: showAlias, push_notifications: pushNotifications })
-                    });
-                    const data = await res.json().catch(() => null);
-                    if (res.ok && data?.success) {
-                      setUser(data.user);
-                      alert("Cambios guardados con éxito.");
-                    } else {
-                      alert(data?.message || "Error al guardar cambios.");
-                    }
-                  } catch (e) {
-                    alert("Error de conexión.");
-                  }
-                }}
-              >
-                Guardar Cambios
-              </button>
-              <button className="back-link" onClick={() => setView("settings_menu")}>← Atrás</button>
-            </motion.section>
-          )}
         </AnimatePresence>
       </main>
     </div>
