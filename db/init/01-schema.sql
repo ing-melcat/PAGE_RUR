@@ -27,6 +27,11 @@ CREATE TABLE IF NOT EXISTS users (
     facebook VARCHAR(255),
     show_alias BOOLEAN NOT NULL DEFAULT false,
     push_notifications BOOLEAN NOT NULL DEFAULT false,
+    -- Preferencias de accesibilidad. Viven en la base y no en el navegador
+    -- porque son del usuario, no del dispositivo: quien necesita texto grande
+    -- lo necesita también desde otra máquina, y no debe perderlo al recargar.
+    large_text BOOLEAN NOT NULL DEFAULT false,
+    reduce_animations BOOLEAN NOT NULL DEFAULT false,
     control_mappings JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
