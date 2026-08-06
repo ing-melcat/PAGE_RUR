@@ -84,6 +84,20 @@ const RoboGreetingIcon = ({ size = 56, color = "currentColor" }) => (
 
 // Actions now generated dynamically inside component
 
+// Único lugar donde se decide si un usuario tiene un rol. Antes cada sitio lo
+// resolvía por su cuenta y no todos contemplaban `rol` (singular, el campo de
+// la época de PHP que todavía puede venir en un localStorage viejo): el mismo
+// usuario veía unos módulos del menú y no otros según qué chequeo lo evaluara.
+function getRoles(user: any): string[] {
+  if (Array.isArray(user?.roles)) return user.roles;
+  return user?.rol ? [user.rol] : [];
+}
+
+// Devuelve true si el usuario tiene AL MENOS uno de los roles pedidos.
+function hasRole(user: any, ...roles: string[]): boolean {
+  const owned = getRoles(user);
+  return roles.some((role) => owned.includes(role));
+}
 
 const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   const [viewMode, setViewMode] = useState<'list'|'create'|'edit'>('list');
@@ -322,11 +336,11 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
               <option value="magazine">Revista (Páginas Completas)</option>
               <option value="aviso">Aviso (Rojo)</option>
               <option value="evento">Evento (Dorado)</option>
-              {user?.roles?.includes('admin') && <option value="3d_model">Modelo 3D (Descubre)</option>}
+              {hasRole(user, 'admin') && <option value="3d_model">Modelo 3D (Descubre)</option>}
             </select>
           </div>
           
-          {user?.roles?.includes('admin') && (
+          {hasRole(user, 'admin') && (
             <div style={{ flex: 1 }}>
               <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Destino / Página</label>
               <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-sans)' }}>
@@ -610,8 +624,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    const roles = user?.roles || (user?.rol ? [user.rol] : []);
-    if (view === 'admin_users' && roles.includes('admin')) {
+    if (view === 'admin_users' && hasRole(user, 'admin')) {
       fetchUsers();
     }
   }, [view, user]);
@@ -1053,8 +1066,7 @@ export default function App() {
                       <div>Roles: <br/>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
                           {(() => {
-                            const userRoles = user.roles || (user.rol ? [user.rol] : []);
-                            return userRoles.map((r: string) => {
+                            return getRoles(user).map((r: string) => {
                               let color = 'var(--text)';
                               let bg = 'var(--surface-strong)';
                               if (r === 'admin') { color = 'black'; bg = 'var(--accent)'; }
@@ -1144,8 +1156,7 @@ export default function App() {
                       <motion.div className="action-grid" layout style={{ alignItems: 'start' }}>
                         {(() => {
                           let actions: any[] = [];
-                          const userRoles = user.roles || (user.rol ? [user.rol] : []);
-                          if (userRoles.includes('admin')) {
+                          if (hasRole(user, 'admin')) {
                             actions = [
                               { title: "Gestión de Publicaciones", view: "admin_content" },
                               { title: "Gestión de Usuarios", view: "admin_users" },
@@ -1153,10 +1164,10 @@ export default function App() {
                               { title: "Consola del Operador", view: "controles" }
                             ];
                           } else {
-                            if (userRoles.includes('redactor') || userRoles.includes('editor')) {
+                            if (hasRole(user, 'redactor', 'editor')) {
                               actions.push({ title: "Gestión de Publicaciones", view: "admin_content" });
                             }
-                            if (userRoles.includes('operador')) {
+                            if (hasRole(user, 'operador')) {
                               actions.push({ title: "Consola del Operador", view: "controles" });
                             }
                           }
@@ -1351,8 +1362,7 @@ export default function App() {
             </motion.section>
           )}
           {(() => {
-            const userRoles = user?.roles || (user?.rol ? [user.rol] : []);
-            return view === "robot_selection" && user && (userRoles.includes("operador") || userRoles.includes("admin")) && (
+            return view === "robot_selection" && user && hasRole(user, "operador", "admin") && (
               <motion.section key="robot_selection" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
                 <RobotSelection 
                   robots={robots}
