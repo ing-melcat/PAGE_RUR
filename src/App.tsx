@@ -13,6 +13,9 @@ import imgLumobox from './assets/real_images/lumobox.jpg';
 import imgRassor from './assets/real_images/rassor1.jpeg';
 import imgLine from './assets/real_images/line.jpeg';
 import LoginApp from './LoginApp';
+// Carga diferida: arrastra livekit-client, que no tiene por qué pesar en el
+// bundle de quien solo entra a la web pública.
+const SpectatorApp = React.lazy(() => import('./controller/SpectatorApp'));
 import './App.css';
 import { Landing, PublicationPage, ArchiveDashboard } from './Landing';
 
@@ -532,6 +535,17 @@ function App() {
           <Route path="/coming-soon" element={<PageTransition><ComingSoon /></PageTransition>} />
           <Route path="/publicacion/:id" element={<PageTransition><PublicationPage /></PageTransition>} />
         </Route>
+        {/* Fuera de LandingLayout: ocupa la pantalla completa, sin cabecera
+            ni pie. Es un enlace público que se le pasa a quien no tiene
+            cuenta, así que no debe parecer parte del panel. */}
+        <Route
+          path="/espectador/:robotId"
+          element={
+            <Suspense fallback={null}>
+              <PageTransition><SpectatorApp /></PageTransition>
+            </Suspense>
+          }
+        />
         <Route path="/login/*" element={<PageTransition><LoginApp /></PageTransition>} />
       </Routes>
     </AnimatePresence>
