@@ -505,11 +505,11 @@ function App() {
 
   useEffect(() => {
     if (!location.pathname.startsWith('/login')) {
-      // Solo posición de navegación del panel. `loginApp_user` y
-      // `loginApp_livekitToken` ya no se escriben — el usuario se pide a
-      // /api/me y el token de LiveKit vive únicamente en memoria — pero se
-      // siguen borrando aquí para limpiar los que quedaron en navegadores
-      // que cargaron una versión anterior.
+      // La app ya no escribe NINGUNA de estas claves: el usuario se pide a
+      // /api/me, el token de LiveKit vive solo en memoria y la navegación no
+      // se persiste. Se siguen borrando para barrer lo que quedó en los
+      // navegadores que cargaron una versión anterior; se puede quitar este
+      // bloque dentro de unas semanas, cuando ya nadie arrastre esos restos.
       sessionStorage.removeItem('loginApp_view');
       sessionStorage.removeItem('loginApp_mainContext');
       sessionStorage.removeItem('loginApp_activeModule');

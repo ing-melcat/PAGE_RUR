@@ -86,7 +86,8 @@ const RoboGreetingIcon = ({ size = 56, color = "currentColor" }) => (
 
 // Único lugar donde se decide si un usuario tiene un rol. Antes cada sitio lo
 // resolvía por su cuenta y no todos contemplaban `rol` (singular, el campo de
-// la época de PHP que todavía puede venir en un localStorage viejo): el mismo
+// la época de PHP; se mantiene como red defensiva por si algún día vuelve a
+// aparecer en una respuesta, aunque hoy el backend siempre manda `roles`): el mismo
 // usuario veía unos módulos del menú y no otros según qué chequeo lo evaluara.
 function getRoles(user: any): string[] {
   if (Array.isArray(user?.roles)) return user.roles;
@@ -99,13 +100,6 @@ function hasRole(user: any, ...roles: string[]): boolean {
   return roles.some((role) => owned.includes(role));
 }
 
-// Vistas que el router de este archivo sabe renderizar. Sirve para descartar
-// un valor viejo guardado en sessionStorage cuando una pantalla se retira.
-const KNOWN_VIEWS = new Set([
-  'login', 'welcome', 'dashboard', 'placeholder', 'settings_menu', 'accessibility',
-  'admin_content', 'admin_users', 'admin_logs', 'admin_config',
-  'robot_selection', 'controles',
-]);
 
 const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   const [viewMode, setViewMode] = useState<'list'|'create'|'edit'>('list');
@@ -463,9 +457,9 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
 
 
 export default function App() {
-  const [view, setView] = useState(() => {
-    try { return sessionStorage.getItem('loginApp_view') || "login"; } catch(e) { return "login"; }
-  });
+  // Nada de estado en el navegador, tampoco el de navegación: al recargar se
+  // arranca en login y /api/me decide a dónde se va, según la sesión real.
+  const [view, setView] = useState("login");
   // El usuario no se cachea en el navegador: la fuente de verdad es la base y
   // se pregunta por ella en /api/me. Antes se hidrataba desde localStorage
   // para evitar el parpadeo inicial, pero eso dejaba una copia del perfil y
@@ -503,16 +497,7 @@ export default function App() {
         const data = await res.json();
         if (data.success) {
           setUser(data.user);
-          const savedView = sessionStorage.getItem('loginApp_view');
-          // Se valida contra las vistas que existen hoy: una sesión guardada
-          // apuntando a una pantalla ya retirada (p. ej. "profile_settings",
-          // fusionada con el editor de perfil) dejaría la página en blanco,
-          // porque ningún bloque coincidiría al renderizar.
-          if (savedView && savedView !== "login" && KNOWN_VIEWS.has(savedView)) {
-            setView(savedView);
-          } else {
-            setView("dashboard");
-          }
+          setView("dashboard");
         } else {
           setView("login");
         }
@@ -531,34 +516,10 @@ export default function App() {
   const [error, setError] = useState("");
   const [isShaking, setIsShaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [mainContext, setMainContext] = useState(() => {
-    try { return sessionStorage.getItem('loginApp_mainContext') || "modules"; } catch(e) { return "modules"; }
-  });
-  const [activeModule, setActiveModule] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem('loginApp_activeModule');
-      return saved ? JSON.parse(saved) : null;
-    } catch(e) { return null; }
-  });
+  const [mainContext, setMainContext] = useState("modules");
+  const [activeModule, setActiveModule] = useState<any>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
-  useEffect(() => {
-    try { sessionStorage.setItem('loginApp_view', view); } catch(e) {}
-  }, [view]);
-
-  useEffect(() => {
-    try { sessionStorage.setItem('loginApp_mainContext', mainContext); } catch(e) {}
-  }, [mainContext]);
-
-  useEffect(() => {
-    try {
-      if (activeModule) {
-        sessionStorage.setItem('loginApp_activeModule', JSON.stringify(activeModule));
-      } else {
-        sessionStorage.removeItem('loginApp_activeModule');
-      }
-    } catch(e) {}
-  }, [activeModule]);
   useEffect(() => {
     // Solo después de haber preguntado a /api/me. Antes el estado inicial venía
     // de localStorage y este guardia era inofensivo; ahora `user` arranca en
