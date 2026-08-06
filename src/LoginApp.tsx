@@ -566,7 +566,10 @@ export default function App() {
 
   useEffect(() => {
     if (user) {
-      setShowAlias(user.show_alias ?? true);
+      // El default sigue al del schema (show_alias BOOLEAN DEFAULT false); con
+      // `?? true` un usuario sin el campo veía el switch encendido y al guardar
+      // activaba algo que nunca pidió.
+      setShowAlias(user.show_alias ?? false);
       setPushNotifications(user.push_notifications ?? false);
     }
   }, [user]);
