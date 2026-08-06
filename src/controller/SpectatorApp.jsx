@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Loader2, Eye, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { VideoViewer } from './VideoViewer';
+import { OperatorHUD } from './components/OperatorHUD';
 
 /**
  * Espectador público de una unidad. Ruta: /espectador/:robotId
@@ -130,6 +131,10 @@ export default function SpectatorApp() {
           </div>
         </div>
       </div>
+
+      {/* Lo que está haciendo el operador en este momento. Solo se pinta con la
+          sala ya conectada: antes de eso no hay canal de datos que escuchar. */}
+      {isConnected && <OperatorHUD room={room} />}
     </div>
   );
 }
