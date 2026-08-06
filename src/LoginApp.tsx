@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { Loader2, CheckCircle } from "lucide-react";
 import "./index.css";
@@ -209,6 +209,29 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
       else alert("Error al subir la imagen");
     } catch(err) { alert("Error de conexión al subir imagen"); }
     setUploadingImage(false);
+  };
+
+  const handleRobotModelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploadingRobotModel(true);
+    try {
+      const response = await apiFetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      if (data.url && robotModelInputRef.current) {
+        robotModelInputRef.current.value = data.url;
+      } else if (!data.url) {
+        alert("Error al subir el modelo 3D");
+      }
+    } catch(err) { alert("Error de conexión al subir el modelo 3D"); }
+    setUploadingRobotModel(false);
+    e.target.value = '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -592,6 +615,8 @@ export default function App() {
     }
   }, [user]);
   const [editingRobot, setEditingRobot] = useState<any>(null);
+  const [uploadingRobotModel, setUploadingRobotModel] = useState(false);
+  const robotModelInputRef = useRef<HTMLInputElement>(null);
 
   // Users State
   const [usersList, setUsersList] = useState<any[]>([]);
@@ -1726,7 +1751,13 @@ export default function App() {
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 2' }}>
                                         Ruta del Modelo 3D (.glb) - Opcional
-                                        <input name="modelUrl" defaultValue={editingRobot.modelUrl} placeholder="/models/mi-robot.glb" style={S.input} />
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <input ref={robotModelInputRef} name="modelUrl" defaultValue={editingRobot.modelUrl} placeholder="/models/mi-robot.glb" style={{ ...S.input, flex: 1 }} />
+                                            <input type="file" accept=".glb,.gltf" onChange={handleRobotModelUpload} style={{ display: 'none' }} id="upload-robot-model" />
+                                            <label htmlFor="upload-robot-model" style={{ padding: '12px 16px', background: 'var(--surface-strong)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                                                {uploadingRobotModel ? 'SUBIENDO...' : '📁 SUBIR'}
+                                            </label>
+                                        </div>
                                     </label>
                                     <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', gridColumn: 'span 2', padding: '16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)' }}>
                                         <input type="checkbox" name="isPublicEvent" defaultChecked={Boolean(editingRobot.isPublicEvent)} style={{ width: 'auto', marginTop: '3px', cursor: 'pointer' }} />
