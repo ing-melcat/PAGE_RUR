@@ -4,7 +4,6 @@ import { RotateCcw, RotateCw } from 'lucide-react';
 import { Segment } from './Segment';
 import { Cabezal } from './Cabezal';
 import { VideoViewer } from './VideoViewer';
-import { DataPacket_Kind } from 'livekit-client';
 import { Login } from './Login';
 import { apiFetch } from '../lib/apiClient';
 
@@ -12,9 +11,102 @@ import { ControlButton } from './components/ControlButton';
 import { ControlGroup } from './components/ControlGroup';
 import { Joystck } from './components/Joystck';
 import { StatusHUD } from './components/StatusHUD';
+import { TOPIC_TELEMETRIA } from './telemetria';
 
 const TOPIC = 'control';
 const SERVER_URL = import.meta.env.VITE_LIVEKIT_URL || "wss://rur-livekit-server-8b010r3b.livekit.cloud";
+
+// ---------------------------------------------------------------------------
+// Reparto de paquetes en la sala
+//
+// Los comandos de control se dirigen SOLO al robot. Antes se difundían a toda
+// la sala, así que un espectador público podía leer por F12 el protocolo
+// completo: el binario de 12 bytes, los nombres de componentes y las acciones.
+// Las identidades las firma el servidor (services/robots/server.js), nunca el
+// cliente, así que se puede filtrar por ellas con confianza:
+//
+//   operator-<matricula>       operador
+//   viewer-<matricula>         usuario logueado sin rol de operador
+//   public-viewer-<ts>-<rand>  espectador público
+//   robot-*                    el robot (token propio, robot_receiver_prod.py)
+//
+// Se usa lista blanca y no lista negra a propósito: una identidad desconocida
+// no recibe nada (falla cerrado). Con lista negra sí los recibiría.
+// ---------------------------------------------------------------------------
+const PREFIJO_ROBOT = 'robot-';
+
+function identidadesDeRobots(room) {
+  if (!room) return [];
+  return Array.from(room.remoteParticipants.values())
+    .map((p) => p.identity)
+    .filter((identity) => identity?.startsWith(PREFIJO_ROBOT));
+}
+
+// ---------------------------------------------------------------------------
+// Traducción a telemetría pública
+//
+// Es lo único que ve el espectador: nombres en español y un nivel de 0 a 10 en
+// lugar de los floats crudos. Estas tablas se quedan aquí a propósito — si
+// vivieran en src/controller/telemetria.js acabarían también en el chunk del
+// espectador y volverían a filtrar el vocabulario interno.
+// ---------------------------------------------------------------------------
+const COMPONENTE_PUBLICO = {
+  ArmFront: 'brazo_delantero',
+  ArmBack: 'brazo_trasero',
+  DrumFront: 'tambor_delantero',
+  DrumBack: 'tambor_trasero',
+  Wheel: 'ruedas',
+};
+
+const ACCION_PUBLICA = {
+  up: 'subiendo',
+  down: 'bajando',
+  cw: 'girando_horario',
+  ccw: 'girando_antihorario',
+  forward: 'avanzando',
+  backward: 'retrocediendo',
+  left: 'izquierda',
+  right: 'derecha',
+};
+
+// El joystick entrega -100..100, no -1..1 (ver Joystck.jsx y el bucle del
+// gamepad, que multiplican por 100).
+const RANGO_JOYSTICK = 100;
+const NIVEL_MAX = 10;
+const PERIODO_TELEMETRIA_MS = 100;
+
+function aNivel(valor) {
+  const magnitud = Math.min(Math.abs(valor), RANGO_JOYSTICK);
+  return Math.round((magnitud / RANGO_JOYSTICK) * NIVEL_MAX);
+}
+
+/**
+ * Instantánea COMPLETA del estado, nunca cambios incrementales: así el paquete
+ * puede ir sin retransmisión (Lossy) y una pérdida se corrige sola con el
+ * siguiente, 100 ms después, en vez de bloquear la cola esperando un reenvío.
+ * De paso, un espectador que entra a media sesión se sincroniza sin heartbeat.
+ *
+ * Ejes en el marco del OPERADOR, que es lo que el espectador quiere ver: en
+ * Joystck.jsx adelante es +y y la derecha es +x.
+ */
+function construirTelemetria({ x, y }, actuadoresInternos) {
+  const nivelAvance = aNivel(y);
+  const nivelGiro = aNivel(x);
+
+  const actuadores = {};
+  for (const [componente, accion] of Object.entries(actuadoresInternos)) {
+    const clave = COMPONENTE_PUBLICO[componente];
+    if (!clave || !accion) continue;
+    actuadores[clave] = ACCION_PUBLICA[String(accion).toLowerCase()] ?? 'activo';
+  }
+
+  return {
+    v: 1,
+    avance: nivelAvance > 0 ? { dir: y >= 0 ? 'adelante' : 'atras', nivel: nivelAvance } : null,
+    giro: nivelGiro > 0 ? { dir: x >= 0 ? 'derecha' : 'izquierda', nivel: nivelGiro } : null,
+    actuadores,
+  };
+}
 
 export default function ControllerApp({ onBack, robot }) {
   const [isMobile] = useState(window.innerWidth <= 932);
@@ -53,18 +145,44 @@ export default function ControllerApp({ onBack, robot }) {
   // Ref para intervalos de botones mantenidos presionados
   const buttonIntervalsRef = useRef({});
 
+  // Qué actuador está activo ahora mismo, para la telemetría. Se lleva aparte
+  // de buttonIntervalsRef porque aquel se indexa por `componente-accion` y el
+  // camino del gamepad lo suelta con la acción 'stop', que no coincide con la
+  // clave con la que se creó.
+  const estadoActuadoresRef = useRef({});
+  const telemetriaIntervalRef = useRef(null);
+
   const handleAction = useCallback((component, action, state) => {
     if (!roomRef.current || !isConnectedRef.current) return;
+
+    if (state) {
+      estadoActuadoresRef.current[component] = action;
+    } else {
+      delete estadoActuadoresRef.current[component];
+    }
+
     const commandObj = { component, action, state };
     const commandStr = JSON.stringify(commandObj);
     const encoder = new TextEncoder();
     const data = encoder.encode(commandStr);
 
     const sendCommand = () => {
+      // Un array vacío en destinationIdentities significa DIFUNDIR A TODOS en
+      // LiveKit, no "a nadie". Si el robot no está en la sala hay que omitir el
+      // envío por completo, o los comandos acabarían llegando a los
+      // espectadores justo cuando no hay robot que los reciba.
+      const destinos = identidadesDeRobots(roomRef.current);
+      if (destinos.length === 0) return;
       try {
         roomRef.current.localParticipant.publishData(data, {
           topic: TOPIC,
-          kind: DataPacket_Kind.RELIABLE,
+          // reliable, no `kind`: livekit-client v2 solo mira options.reliable y
+          // descarta `kind` en silencio, así que el `kind: RELIABLE` anterior
+          // dejaba estos comandos saliendo como lossy. Un paquete de soltar
+          // botón perdido deja el actuador funcionando, así que aquí sí hace
+          // falta garantía de entrega.
+          reliable: true,
+          destinationIdentities: destinos,
         });
       } catch (err) {
         console.error('Error sending command:', err);
@@ -105,16 +223,52 @@ export default function ControllerApp({ onBack, robot }) {
   // Envía un paquete directamente por LiveKit
   const sendPacketNow = useCallback((pkt) => {
     if (roomRef.current && isConnectedRef.current && pkt) {
+      // Misma guarda que en sendCommand: sin robot en la sala no se difunde.
+      const destinos = identidadesDeRobots(roomRef.current);
+      if (destinos.length === 0) return;
       try {
         roomRef.current.localParticipant.publishData(pkt, {
           topic: TOPIC,
-          kind: DataPacket_Kind.Lossy,
+          // El joystick manda su posición completa 10 veces por segundo: una
+          // pérdida se corrige sola 100 ms después. Retransmitir solo añadiría
+          // retraso.
+          reliable: false,
+          destinationIdentities: destinos,
         });
       } catch (err) {
         console.error('Error sending joystick data:', err);
       }
     }
   }, [])
+
+  // Telemetría pública para los espectadores: se DIFUNDE (sin
+  // destinationIdentities) porque va dirigida a ellos, y va en Lossy porque
+  // cada paquete lleva el estado completo y una pérdida se corrige sola 100 ms
+  // después. Retransmitir es justo lo que metería retraso.
+  useEffect(() => {
+    if (!isConnected) return;
+
+    telemetriaIntervalRef.current = setInterval(() => {
+      if (!roomRef.current || !isConnectedRef.current) return;
+      const resumen = construirTelemetria(joystickPosRef.current, estadoActuadoresRef.current);
+      try {
+        roomRef.current.localParticipant.publishData(
+          new TextEncoder().encode(JSON.stringify(resumen)),
+          // Sin destinationIdentities: esta sí va a toda la sala, es para los
+          // espectadores. Y sin fiabilidad: cada paquete trae el estado
+          // completo, así que una pérdida se corrige sola en 100 ms.
+          { topic: TOPIC_TELEMETRIA, reliable: false }
+        );
+      } catch (err) {
+        console.error('Error enviando telemetría:', err);
+      }
+    }, PERIODO_TELEMETRIA_MS);
+
+    return () => {
+      clearInterval(telemetriaIntervalRef.current);
+      telemetriaIntervalRef.current = null;
+    };
+  }, [isConnected]);
 
   // Inicia el loop continuo de envío (10 Hz = cada 100ms)
   const startContinuousSend = useCallback(() => {
@@ -294,15 +448,21 @@ export default function ControllerApp({ onBack, robot }) {
       
       console.log("Connection established to", finalUrl);
       console.log("Current remote participants in room:", Array.from(roomInstance.remoteParticipants.values()).map(p => p.identity));
-      setIsRobotConnected(roomInstance.remoteParticipants.size > 0);
-      
+
+      // Solo cuentan los participantes que SON el robot. Contar cualquier
+      // participante remoto valía cuando en la sala solo estaban operador y
+      // robot; con espectadores públicos entrando a la misma sala, uno de ellos
+      // encendía el "Link Status: ONLINE" con el robot apagado.
+      const refrescarEnlace = () => setIsRobotConnected(identidadesDeRobots(roomInstance).length > 0);
+      refrescarEnlace();
+
       roomInstance.on(RoomEvent.ParticipantConnected, (participant) => {
         console.log("NUEVO PARTICIPANTE CONECTADO:", participant.identity);
-        setIsRobotConnected(roomInstance.remoteParticipants.size > 0);
+        refrescarEnlace();
       });
       roomInstance.on(RoomEvent.ParticipantDisconnected, (participant) => {
         console.log("PARTICIPANTE DESCONECTADO:", participant.identity);
-        setIsRobotConnected(roomInstance.remoteParticipants.size > 0);
+        refrescarEnlace();
       });
       setError(null);
     } catch (err) {
