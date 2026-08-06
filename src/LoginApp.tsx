@@ -466,12 +466,15 @@ export default function App() {
   const [view, setView] = useState(() => {
     try { return sessionStorage.getItem('loginApp_view') || "login"; } catch(e) { return "login"; }
   });
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('currentUser');
-      return saved ? JSON.parse(saved) : null;
-    } catch(e) { return null; }
-  });
+  // El usuario no se cachea en el navegador: la fuente de verdad es la base y
+  // se pregunta por ella en /api/me. Antes se hidrataba desde localStorage
+  // para evitar el parpadeo inicial, pero eso dejaba una copia del perfil y
+  // los roles en texto plano, legible por cualquier script, y sobreviviendo
+  // entre sesiones aunque la cuenta hubiera cambiado.
+  const [user, setUser] = useState<any>(null);
+  // Mientras no sepamos si hay sesión, no se puede decidir nada: sin esto la
+  // app rebotaría al login en el primer render, antes de que /api/me conteste.
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   const [logsList, setLogsList] = useState<any[]>([]);
   const [crowdsecMetrics, setCrowdsecMetrics] = useState<any>(null);
@@ -511,10 +514,13 @@ export default function App() {
             setView("dashboard");
           }
         } else {
-          localStorage.removeItem('currentUser');
+          setView("login");
         }
       } catch(e) {
         console.error(e);
+        setView("login");
+      } finally {
+        setSessionChecked(true);
       }
     };
     checkSession();
@@ -541,16 +547,6 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
-    try {
-      if (user) {
-        localStorage.setItem('currentUser', JSON.stringify(user));
-      } else {
-        localStorage.removeItem('currentUser');
-      }
-    } catch(e) {}
-  }, [user]);
-
-  useEffect(() => {
     try { sessionStorage.setItem('loginApp_mainContext', mainContext); } catch(e) {}
   }, [mainContext]);
 
@@ -564,28 +560,21 @@ export default function App() {
     } catch(e) {}
   }, [activeModule]);
   useEffect(() => {
-    if (!user && view !== "login") {
+    // Solo después de haber preguntado a /api/me. Antes el estado inicial venía
+    // de localStorage y este guardia era inofensivo; ahora `user` arranca en
+    // null siempre, así que sin la condición expulsaría al login a todo el
+    // mundo en el primer render.
+    if (sessionChecked && !user && view !== "login") {
       setView("login");
     }
-  }, [user, view]);
+  }, [sessionChecked, user, view]);
 
-  const [livekitToken, setLivekitToken] = useState<any>(() => {
-    try {
-      const saved = sessionStorage.getItem('loginApp_livekitToken');
-      return saved ? JSON.parse(saved) : "";
-    } catch(e) { return ""; }
-  });
+  // Solo en memoria. Es una credencial de acceso a la sala de video: guardarla
+  // en sessionStorage la dejaba en texto plano al alcance de cualquier script,
+  // el mismo error del que ya se migró al pasar el JWT a una cookie httpOnly.
+  // Al recargar se vuelve a pedir al backend, que es barato y siempre correcto.
+  const [livekitToken, setLivekitToken] = useState<any>("");
   const [profileForm, setProfileForm] = useState({ alias: '', bio: '', foto: '', github: '', instagram: '', reddit: '', facebook: '' });
-  
-  useEffect(() => {
-    try {
-      if (livekitToken) {
-        sessionStorage.setItem('loginApp_livekitToken', JSON.stringify(livekitToken));
-      } else {
-        sessionStorage.removeItem('loginApp_livekitToken');
-      }
-    } catch(e) {}
-  }, [livekitToken]);
   
   const [showAlias, setShowAlias] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(false);
@@ -597,6 +586,8 @@ export default function App() {
       // activaba algo que nunca pidió.
       setShowAlias(user.show_alias ?? false);
       setPushNotifications(user.push_notifications ?? false);
+      setLargeText(user.large_text ?? false);
+      setReduceAnimations(user.reduce_animations ?? false);
     }
   }, [user]);
 
@@ -809,7 +800,6 @@ export default function App() {
       const data = await response.json();
 
       if (data.success && data.user) {
-        localStorage.setItem('currentUser', JSON.stringify(data.user));
         setUser(data.user);
         setView("welcome");
         setTimeout(() => {
@@ -834,7 +824,6 @@ export default function App() {
     // local se limpia de inmediato sin esperar la respuesta.
     apiFetch('/api/logout', { method: 'POST' }).catch(() => {});
     setUser(null);
-    localStorage.removeItem('currentUser');
     setView("login");
     setMatricula("");
     setPassword("");
@@ -858,6 +847,31 @@ export default function App() {
     // primero cuando se entra desde el menú suelto de Ajustes.
     setView("dashboard");
     setMainContext("edit_profile");
+  };
+
+  // Las preferencias se aplican al instante en la interfaz y se persisten en la
+  // base en segundo plano, sin botón de guardar: un switch que hay que
+  // confirmar aparte se siente roto. La respuesta del servidor manda, así que
+  // el estado local acaba reflejando lo que de verdad quedó grabado.
+  const persistPreferences = async (patch: Record<string, boolean>) => {
+    // La pantalla de accesibilidad también es accesible sin sesión (desde el
+    // login). Ahí no hay fila donde guardar: aplica solo a la vista actual.
+    if (!user) return;
+    try {
+      const res = await apiFetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch)
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success) {
+        setUser(data.user);
+      } else {
+        console.error('No se pudo guardar la preferencia:', data?.message);
+      }
+    } catch (e) {
+      console.error('No se pudo guardar la preferencia:', e);
+    }
   };
 
   const pageTransition = {
@@ -1355,7 +1369,6 @@ export default function App() {
                               const data = await res.json().catch(() => null);
                               if (res.ok && data?.success) {
                                 setUser(data.user);
-                                localStorage.setItem('currentUser', JSON.stringify(data.user));
                                 alert("Perfil actualizado con éxito.");
                                 setMainContext("modules");
                               } else {
@@ -1758,7 +1771,10 @@ export default function App() {
                     type="checkbox" 
                     style={{width: 'auto', cursor: 'pointer'}} 
                     checked={largeText}
-                    onChange={(e) => setLargeText(e.target.checked)}
+                    onChange={(e) => {
+                      setLargeText(e.target.checked);
+                      persistPreferences({ large_text: e.target.checked });
+                    }}
                   />
                 </label>
                 <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--border)', background: 'var(--background)', cursor: 'pointer' }}>
@@ -1767,7 +1783,10 @@ export default function App() {
                     type="checkbox" 
                     style={{width: 'auto', cursor: 'pointer'}} 
                     checked={reduceAnimations}
-                    onChange={(e) => setReduceAnimations(e.target.checked)}
+                    onChange={(e) => {
+                      setReduceAnimations(e.target.checked);
+                      persistPreferences({ reduce_animations: e.target.checked });
+                    }}
                   />
                 </label>
               </div>

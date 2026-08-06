@@ -14,6 +14,21 @@ alfabético **solo la primera vez** que el volumen de datos está vacío. Si
 cambias estos archivos después del primer arranque, no se vuelven a aplicar
 solos — hay que correrlos a mano o recrear el volumen.
 
+## `migrations/`
+
+Por lo anterior, `init/01-schema.sql` solo sirve para instalaciones nuevas.
+Todo cambio de esquema sobre una base que ya existe va además como un archivo
+numerado en `migrations/`, escrito para poder ejecutarse más de una vez sin
+efecto (`ADD COLUMN IF NOT EXISTS`, etc). Los dos sitios deben quedar
+equivalentes: `init/` es el estado final, `migrations/` el camino hasta él.
+
+Aplicar una migración a la base en marcha (no requiere reiniciar servicios):
+
+```sh
+docker exec -i page_rur_db psql -U postgres -d "$POSTGRES_DB" \
+  < db/migrations/001-preferencias-accesibilidad.sql
+```
+
 El servicio `db` en `docker-compose.yml` nunca debe publicar el puerto 5432
 al host (`expose`, no `ports`) — la base de datos solo debe ser alcanzable
 desde los servicios backend en la red interna de Docker.
