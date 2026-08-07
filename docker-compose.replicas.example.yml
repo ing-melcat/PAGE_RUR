@@ -1,5 +1,5 @@
 # Ejemplo de cómo añadir una segunda réplica por servicio para despliegues
-# sin caída (fase 9 del plan). Es aditivo y opcional: fusionar con
+# sin caída . Es aditivo y opcional: fusionar con
 # `docker compose -f docker-compose.yml -f docker-compose.replicas.example.yml up -d`
 # una vez que el split de 3 servicios lleve varios días estable en
 # producción. No cambia rutas ni comportamiento, solo agrega redundancia.
