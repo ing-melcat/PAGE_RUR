@@ -41,15 +41,6 @@ function Home() {
   const textY = useTransform(scrollY, [0, 400], [0, 150]);    // Texto baja a menor velocidad (parallax)
   const textOpacity = useTransform(scrollY, [0, 300], [1, 0]); // Texto se desvanece
   
-  const [apiMessage, setApiMessage] = useState('');
-
-  useEffect(() => {
-    fetch('/api/hello')
-      .then((response) => response.json())
-      .then((data) => setApiMessage(data.message))
-      .catch((error) => console.error('Error conectando al backend:', error));
-  }, []);
-
   return (
     <>
       {/* Hero Section */}
