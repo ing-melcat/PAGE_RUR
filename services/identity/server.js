@@ -7,6 +7,7 @@ import {
   SESSION_COOKIE,
   CSRF_COOKIE,
   verifyToken,
+  requireRole,
   signSessionToken,
   baseCookieOptions,
   noStore,
@@ -14,6 +15,7 @@ import {
 } from '../shared/auth.js';
 import { generateCsrfToken, csrfProtection } from '../shared/csrf.js';
 import { loginIpLimiter, isLocked, lockedRemainingMs, recordFailure, recordSuccess } from '../shared/loginProtection.js';
+import { saveLog } from '../shared/logs.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,10 +26,6 @@ app.use(express.json());
 app.use(cookieParser());
 // csrfProtection se aplica por ruta, no global: /api/login no tiene sesión
 // previa que proteger (nada que un CSRF pueda "montar" todavía).
-
-async function saveLog(type, message) {
-  await pool.query('INSERT INTO logs (type, message) VALUES ($1, $2)', [type, message]);
-}
 
 app.get('/api/hello', (req, res) => {
   res.json({ message: 'svc-identity ok' });
@@ -266,16 +264,14 @@ app.put('/api/profile/mappings', verifyToken, csrfProtection, noStore, async (re
   res.json({ success: true, user: toPublicUser(row) });
 });
 
-app.get('/api/users', verifyToken, noStore, async (req, res) => {
-  if (!req.user.roles.includes('admin')) return res.status(403).json({ message: 'Sin permisos' });
+app.get('/api/users', verifyToken, requireRole('admin'), noStore, async (req, res) => {
   const { rows } = await pool.query(
     'SELECT matricula, nombre, grupo, roles, alias FROM users ORDER BY matricula'
   );
   res.json(rows);
 });
 
-app.post('/api/users', verifyToken, csrfProtection, async (req, res) => {
-  if (!req.user.roles.includes('admin')) return res.status(403).json({ message: 'Sin permisos' });
+app.post('/api/users', verifyToken, requireRole('admin'), csrfProtection, async (req, res) => {
   const { matricula, password, nombre, roles, grupo, alias } = req.body ?? {};
   if (!matricula || !password || !nombre) {
     return res.status(400).json({ message: 'matricula, password y nombre son requeridos' });
@@ -296,8 +292,7 @@ app.post('/api/users', verifyToken, csrfProtection, async (req, res) => {
   res.json({ success: true, message: 'Usuario creado' });
 });
 
-app.put('/api/users/:matricula', verifyToken, csrfProtection, async (req, res) => {
-  if (!req.user.roles.includes('admin')) return res.status(403).json({ message: 'Sin permisos' });
+app.put('/api/users/:matricula', verifyToken, requireRole('admin'), csrfProtection, async (req, res) => {
   const { matricula } = req.params;
   const { rows } = await pool.query('SELECT * FROM users WHERE matricula = $1', [matricula]);
   const existingUser = rows[0];
@@ -321,8 +316,7 @@ app.put('/api/users/:matricula', verifyToken, csrfProtection, async (req, res) =
   res.json({ success: true, message: 'Usuario actualizado correctamente' });
 });
 
-app.delete('/api/users/:matricula', verifyToken, csrfProtection, async (req, res) => {
-  if (!req.user.roles.includes('admin')) return res.status(403).json({ message: 'Sin permisos' });
+app.delete('/api/users/:matricula', verifyToken, requireRole('admin'), csrfProtection, async (req, res) => {
   const { matricula } = req.params;
   if (matricula === req.user.matricula) {
     return res.status(400).json({ message: 'No puedes eliminarte a ti mismo' });

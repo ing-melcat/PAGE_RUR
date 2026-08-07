@@ -5,9 +5,23 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
+import rateLimit from 'express-rate-limit';
 import { getPool } from '../shared/db.js';
-import { verifyToken, IS_PRODUCTION } from '../shared/auth.js';
+import { verifyToken, requireRole, IS_PRODUCTION } from '../shared/auth.js';
 import { csrfProtection } from '../shared/csrf.js';
+import { saveLog } from '../shared/logs.js';
+
+// Es la ruta de mayor costo de I/O de los tres servicios (escribe archivos a
+// disco) y era la única de los tres sin ningún límite de frecuencia — ni
+// siquiera express-rate-limit estaba en su package.json. Mismo criterio que
+// el resto de límites del proyecto: por usuario autenticado, no por IP,
+// porque ya pasó por verifyToken.
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  keyGenerator: (req) => req.user?.matricula || req.ip,
+  handler: (req, res) => res.status(429).json({ message: 'Demasiadas subidas: espera un minuto antes de reintentar.' }),
+});
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
@@ -73,7 +87,7 @@ app.get('/api/posts', async (req, res) => {
   res.json(rows.map(rowToPost));
 });
 
-app.post('/api/upload', verifyToken, csrfProtection, upload.single('file'), (req, res) => {
+app.post('/api/upload', verifyToken, uploadLimiter, csrfProtection, upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo.' });
   res.json({ url: `/api/uploads/${req.file.filename}` });
 });
@@ -85,11 +99,11 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-app.post('/api/posts', verifyToken, csrfProtection, async (req, res) => {
-  if (!req.user.roles.includes('admin') && !req.user.roles.includes('redactor')) {
-    return res.status(403).json({ message: 'No tienes permisos para crear publicaciones' });
-  }
+app.post('/api/posts', verifyToken, requireRole('admin', 'redactor'), csrfProtection, async (req, res) => {
   const body = req.body ?? {};
+  if (!body.title) {
+    return res.status(400).json({ message: 'title es requerido' });
+  }
   const id = body.id || Date.now().toString();
   const extra = splitExtra(body);
 
@@ -110,14 +124,12 @@ app.post('/api/posts', verifyToken, csrfProtection, async (req, res) => {
       JSON.stringify(extra),
     ]
   );
+  await saveLog('info', `${req.user.matricula} creó la publicación ${id}.`);
   const { rows } = await pool.query('SELECT * FROM posts WHERE id = $1', [id]);
   res.status(201).json(rowToPost(rows[0]));
 });
 
-app.put('/api/posts/:id', verifyToken, csrfProtection, async (req, res) => {
-  if (!req.user.roles.includes('admin') && !req.user.roles.includes('redactor')) {
-    return res.status(403).json({ message: 'No tienes permisos para editar publicaciones' });
-  }
+app.put('/api/posts/:id', verifyToken, requireRole('admin', 'redactor'), csrfProtection, async (req, res) => {
   const { rows: existingRows } = await pool.query('SELECT * FROM posts WHERE id = $1', [req.params.id]);
   const existing = existingRows[0];
   if (!existing) return res.status(404).json({ message: 'Publicación no encontrada' });
@@ -143,17 +155,27 @@ app.put('/api/posts/:id', verifyToken, csrfProtection, async (req, res) => {
       req.params.id,
     ]
   );
+  await saveLog('info', `${req.user.matricula} modificó la publicación ${req.params.id}.`);
   const { rows } = await pool.query('SELECT * FROM posts WHERE id = $1', [req.params.id]);
   res.json(rowToPost(rows[0]));
 });
 
-app.delete('/api/posts/:id', verifyToken, csrfProtection, async (req, res) => {
-  if (!req.user.roles.includes('admin')) {
-    return res.status(403).json({ message: 'Solo los administradores pueden eliminar' });
-  }
+app.delete('/api/posts/:id', verifyToken, requireRole('admin'), csrfProtection, async (req, res) => {
   const { rowCount } = await pool.query('DELETE FROM posts WHERE id = $1', [req.params.id]);
-  if (rowCount > 0) res.json({ success: true });
-  else res.status(404).json({ message: 'Publicación no encontrada' });
+  if (rowCount === 0) return res.status(404).json({ message: 'Publicación no encontrada' });
+  await saveLog('warning', `${req.user.matricula} eliminó la publicación ${req.params.id}.`);
+  res.json({ success: true });
+});
+
+// Ver la nota equivalente en services/identity/server.js: sin este catch-all
+// al final, un fallo de base en /api/posts (POST/PUT/DELETE) caía en el
+// handler HTML por defecto de Express -- el frontend hace res.json() y
+// revienta con un error de parseo en vez de mostrar el mensaje real. El
+// middleware de arriba, específico de Multer, sigue intercambiando primero
+// los errores de subida de archivos y reenvía el resto aquí vía next(err).
+app.use((err, req, res, _next) => {
+  console.error('[svc-content]', err);
+  res.status(500).json({ success: false, message: 'Error interno del servidor' });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
