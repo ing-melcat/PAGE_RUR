@@ -149,7 +149,6 @@ const PROFILE_FIELDS = {
   push_notifications: { kind: 'boolean' },
   large_text: { kind: 'boolean' },
   reduce_animations: { kind: 'boolean' },
-  panel_hud: { kind: 'boolean' },
 };
 
 // Los mapeos son JSON libre (su forma la decide el frontend), así que el

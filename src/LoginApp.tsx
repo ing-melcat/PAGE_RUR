@@ -549,7 +549,6 @@ export default function App() {
       setPushNotifications(user.push_notifications ?? false);
       setLargeText(user.large_text ?? false);
       setReduceAnimations(user.reduce_animations ?? false);
-      setPanelHud(user.panel_hud ?? false);
     }
   }, [user]);
 
@@ -757,9 +756,6 @@ export default function App() {
   // Accessibility State
   const [largeText, setLargeText] = useState(false);
   const [reduceAnimations, setReduceAnimations] = useState(false);
-  // Estilo de las tarjetas de la consola del operador. Vive con el resto de
-  // preferencias del usuario, no en un botón dentro de la propia consola.
-  const [panelHud, setPanelHud] = useState(false);
 
   useEffect(() => {
     document.body.classList.toggle("large-text", largeText);
@@ -1430,7 +1426,6 @@ export default function App() {
                   onBack={() => setView("robot_selection")} 
                   robot={livekitToken}
                   controlMappings={user.control_mappings}
-                  estiloHud={panelHud}
                 />
               </Suspense>
             </motion.section>
@@ -1789,23 +1784,6 @@ export default function App() {
                     onChange={(e) => {
                       setReduceAnimations(e.target.checked);
                       persistPreferences({ reduce_animations: e.target.checked });
-                    }}
-                  />
-                </label>
-                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--border)', background: 'var(--background)', cursor: 'pointer' }}>
-                  <span style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>PANEL DEL OPERADOR EN ESTILO HUD</span>
-                    <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', color: 'var(--muted)' }}>
-                      Tarjetas translúcidas, como la barra de telemetría, en vez del estilo clásico.
-                    </span>
-                  </span>
-                  <input
-                    type="checkbox"
-                    style={{width: 'auto', cursor: 'pointer'}}
-                    checked={panelHud}
-                    onChange={(e) => {
-                      setPanelHud(e.target.checked);
-                      persistPreferences({ panel_hud: e.target.checked });
                     }}
                   />
                 </label>
