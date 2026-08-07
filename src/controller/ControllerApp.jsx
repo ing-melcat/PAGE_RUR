@@ -481,7 +481,11 @@ export default function ControllerApp({ onBack, robot }) {
     }
 
     try {
-      const { Room, RoomEvent } = await import('livekit-client');
+      const { Room, RoomEvent, setLogLevel } = await import('livekit-client');
+      // El propio SDK trae su nivel de log en 'info' por defecto, que en
+      // producción llena la consola con cada cambio de estado de la señal.
+      // 'warn' conserva lo que sí importa: advertencias y errores reales.
+      setLogLevel('warn');
       const roomInstance = new Room();
       const finalUrl = customUrl || SERVER_URL;
 
