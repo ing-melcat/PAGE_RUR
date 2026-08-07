@@ -1,6 +1,6 @@
 import React, { useRef, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment, ContactShadows, useGLTF } from '@react-three/drei';
+import { OrbitControls, ContactShadows, useGLTF } from '@react-three/drei';
 
 // Modelo 3D cargado desde un archivo .glb
 function RealRobotModel({ url, isOffline }) {
@@ -77,7 +77,10 @@ export function Robot3DPreview({ status, modelUrl }) {
       <Canvas camera={{ position: [0, 1.5, 3], fov: 45 }}>
         <ambientLight intensity={isOffline ? 0.2 : 0.7} />
         <spotLight position={[5, 5, 5]} angle={0.15} penumbra={1} intensity={isOffline ? 0.5 : 1} />
-        
+        {/* Relleno tenue desde el lado opuesto: sustituye el brillo que daba
+            Environment sin depender de una textura de red. */}
+        <pointLight position={[-4, 2, -4]} intensity={isOffline ? 0.3 : 0.6} />
+
         <Suspense fallback={<PlaceholderRobotModel isOffline={isOffline} />}>
           {useRealModel ? (
             <RealRobotModel url={modelUrl} isOffline={isOffline} />
@@ -85,9 +88,14 @@ export function Robot3DPreview({ status, modelUrl }) {
             <PlaceholderRobotModel isOffline={isOffline} />
           )}
         </Suspense>
-        
+
         <ContactShadows position={[0, -0.6, 0]} opacity={0.5} scale={5} blur={2} far={2} />
-        <Environment preset="city" />
+        {/* Sin <Environment preset="city" />: descargaba un mapa de iluminación
+            HDR desde un CDN externo en cada tarjeta que se dibujaba. Si esa
+            descarga fallaba, lanzaba un error real que Suspense no atrapa (solo
+            atrapa promesas, no errores) y que, sin ningún ErrorBoundary en todo
+            el proyecto, se llevaba la aplicación entera por delante: la pantalla
+            se veía un instante y luego desaparecía sin ningún rastro. */}
         <OrbitControls enableZoom={false} enablePan={false} autoRotate={false} />
       </Canvas>
     </div>
