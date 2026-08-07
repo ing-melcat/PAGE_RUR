@@ -2,15 +2,13 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Bounds, useGLTF } from '@react-three/drei';
 import logoUrl from './assets/isotipo.png';
 import logoBlancoUrl from './assets/real_images/isotipo_blanco.png';
 
-function PrototypeModel({ url }: { url: string }) {
-  const { scene } = useGLTF(url);
-  return <primitive object={scene} />;
-}
+// Carga diferida: three.js y @react-three pesan cerca de un megabyte y solo
+// hacen falta si la publicación trae modelo 3D. Antes viajaban en el paquete
+// de entrada de toda la web pública.
+const VisorModelo3D = React.lazy(() => import('./VisorModelo3D'));
 
 export const Countdown = ({ targetDate }: { targetDate?: string }) => {
   const [timeLeft, setTimeLeft] = useState('');
@@ -112,16 +110,9 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
               <div style={{ flex: isSpecial ? '1 1 300px' : 'none', minWidth: isSpecial ? '280px' : '100%', height: isSpecial ? '100%' : '300px', minHeight: '300px', backgroundColor: isAviso ? '#2a0a0a' : isEvento ? '#251b03' : 'var(--surface-strong)', position: 'relative', overflow: 'hidden' }}>
                 {post.type === '3d_model' && post.modelUrl ? (
                   <div style={{ width: '100%', height: '100%', backgroundColor: '#101525', cursor: 'grab' }} onClick={(e) => e.stopPropagation()}>
-                    <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{ position: [0, 0, 4], fov: 50 }}>
-                      <ambientLight intensity={0.7} />
-                      <directionalLight position={[5, 10, 5]} intensity={1.5} />
-                      <Suspense fallback={null}>
-                        <Bounds fit clip observe margin={1.5}>
-                          <PrototypeModel url={post.modelUrl} />
-                        </Bounds>
-                      </Suspense>
-                      <OrbitControls makeDefault enableZoom={true} enablePan={false} />
-                    </Canvas>
+                    <Suspense fallback={null}>
+                      <VisorModelo3D url={post.modelUrl} variante="tarjeta" />
+                    </Suspense>
                   </div>
                 ) : (
                   <motion.div
@@ -212,16 +203,9 @@ export const PublicationPage = () => {
     }}>
       {post.type === '3d_model' && post.modelUrl && (
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, backgroundColor: '#05070f' }}>
-          <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{ position: [0, 0, 5], fov: 45 }}>
-            <ambientLight intensity={0.5} />
-            <directionalLight position={[10, 10, 10]} intensity={1.2} />
-            <Suspense fallback={null}>
-              <Bounds fit clip observe margin={1.2}>
-                <PrototypeModel url={post.modelUrl} />
-              </Bounds>
-            </Suspense>
-            <OrbitControls autoRotate autoRotateSpeed={2} enableZoom={true} makeDefault />
-          </Canvas>
+          <Suspense fallback={null}>
+            <VisorModelo3D url={post.modelUrl} variante="publicacion" />
+          </Suspense>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to right, rgba(5,7,15,0.95) 0%, rgba(5,7,15,0.2) 50%, rgba(5,7,15,0.95) 100%)', pointerEvents: 'none' }} />
         </div>
       )}
