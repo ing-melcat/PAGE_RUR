@@ -5,9 +5,8 @@ export function VideoViewer({ room, isConnected }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
-    console.log("from video track "+isConnected+ " "+room)
     if (!room || !isConnected) return;
-    
+
 
     // Función para adjuntar un track de video al elemento <video>
     const attachTrack = (track) => {
@@ -18,7 +17,6 @@ export function VideoViewer({ room, isConnected }) {
 
     // Escucha nuevos tracks suscritos
     const handleTrackSubscribed = (track) => {
-      console.log("Remote participant connected a video track");
       attachTrack(track);
     };
 
