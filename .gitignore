@@ -28,3 +28,7 @@ dist-ssr
 api/data/
 uploads/
 dist-releases/
+
+# Herramientas locales, no se versionan
+CLAUDE.md
+.claude/
