@@ -137,7 +137,7 @@ function ModuloActuadores({ actuadores, transicion }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       <p style={S.etiqueta}>Actuadores</p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: '6px 16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, auto)', gap: '6px 16px' }}>
         {ACTUADORES.map(({ clave, abrev }) => {
           const encendido = Boolean(actuadores[clave]);
           return (

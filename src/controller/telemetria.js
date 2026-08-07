@@ -22,12 +22,14 @@ export const INACTIVIDAD_MS = 2000;
 // como el porcentaje ya dividido entre diez.
 export const NIVEL_MAX = 10;
 
+// Sin `ruedas`: su panel de botones lleva display:none en ControllerApp desde
+// antes de esta pantalla, así que esa casilla no podía encenderse nunca. Las
+// ruedas se manejan con el joystick, y eso ya se ve en AVANCE y GIRO.
 export const ACTUADORES = [
   { clave: 'brazo_delantero', abrev: 'BRZ-D' },
   { clave: 'brazo_trasero', abrev: 'BRZ-T' },
   { clave: 'tambor_delantero', abrev: 'TMB-D' },
   { clave: 'tambor_trasero', abrev: 'TMB-T' },
-  { clave: 'ruedas', abrev: 'RUEDAS' },
 ];
 
 // Texto que se muestra bajo el grupo de actuadores cuando uno está activo.
