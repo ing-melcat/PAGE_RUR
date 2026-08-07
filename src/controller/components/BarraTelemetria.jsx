@@ -243,16 +243,24 @@ export function BarraTelemetria({ room }) {
         <ModuloGiro giro={telemetria.giro} transicion={transicion} />
         <ModuloActuadores actuadores={telemetria.actuadores} transicion={transicion} />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', alignSelf: compacta ? 'flex-start' : 'flex-end' }}>
-          <div style={{
-            width: '8px', height: '8px', borderRadius: '50%',
-            background: enVivo ? 'var(--success)' : 'var(--error)',
-            boxShadow: `0 0 8px ${enVivo ? 'var(--success)' : 'var(--error)'}`,
-            transition: transicion,
-          }} />
-          <span style={{ ...S.pie, color: enVivo ? 'var(--success)' : 'var(--error)' }}>
-            {enVivo ? 'En vivo' : 'Sin señal'}
-          </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignSelf: compacta ? 'flex-start' : 'flex-end' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '8px', height: '8px', borderRadius: '50%',
+              background: enVivo ? 'var(--success)' : 'var(--error)',
+              boxShadow: `0 0 8px ${enVivo ? 'var(--success)' : 'var(--error)'}`,
+              transition: transicion,
+            }} />
+            <span style={{ ...S.pie, color: enVivo ? 'var(--success)' : 'var(--error)' }}>
+              {enVivo ? 'En vivo' : 'Sin señal'}
+            </span>
+          </div>
+          {/* Estos valores son las órdenes del operador. Si no hay robot
+              conectado no las está recibiendo nadie, y hay que decirlo o el
+              espectador creería que la unidad se está moviendo. */}
+          {enVivo && !telemetria.robot && (
+            <span style={{ ...S.pie, color: 'var(--accent)' }}>Sin robot conectado</span>
+          )}
         </div>
       </div>
     </div>

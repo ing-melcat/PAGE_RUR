@@ -45,7 +45,7 @@ export const ETIQUETAS_ACCION = {
 export const ETIQUETAS_AVANCE = { adelante: 'ADELANTE', atras: 'ATRÁS' };
 export const ETIQUETAS_GIRO = { izquierda: 'IZQUIERDA', derecha: 'DERECHA' };
 
-export const TELEMETRIA_VACIA = { avance: null, giro: null, actuadores: {} };
+export const TELEMETRIA_VACIA = { avance: null, giro: null, actuadores: {}, robot: false };
 
 /**
  * Decodifica un paquete de telemetría. Devuelve null si el paquete no es
@@ -59,6 +59,9 @@ export function decodificarTelemetria(payload) {
       avance: datos.avance ?? null,
       giro: datos.giro ?? null,
       actuadores: datos.actuadores ?? {},
+      // Si no hay robot escuchando, lo que se pinta son órdenes que no está
+      // recibiendo nadie. El espectador tiene que poder distinguirlo.
+      robot: Boolean(datos.robot),
     };
   } catch {
     return null;
