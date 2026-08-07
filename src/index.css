@@ -15,7 +15,13 @@
   --accent: #FBCA01; /* Amarillo institucional (Resaltados) */
   --accent-muted: rgba(251, 202, 1, 0.15); /* Amarillo transparente para fondos de botones */
   --error: #ef4444;
+  --error-muted: rgba(239, 68, 68, 0.15); /* Rojo transparente para fondos de botones destructivos */
   --success: #2ecc71;
+  /* Único matiz sin token que se usaba de verdad en el proyecto (avisos de
+     fecha límite, badges de warning); el resto de "rojos" y "verdes" sueltos
+     que había en el código eran variantes accidentales de --error/--success,
+     no colores nuevos con significado propio. */
+  --warning: #fbbf24;
 }
 
 body.large-text {
@@ -144,6 +150,15 @@ h1 {
   letter-spacing: 0.1em;
   color: var(--muted);
   margin-bottom: 4px;
+}
+
+/* Variante grande en ámbar para los eyebrows de sección de la landing
+   pública. Antes cada uso pisaba .eyebrow a mano con un style inline
+   idéntico repetido tres veces; ahora es una clase explícita. */
+.eyebrow--hero {
+  color: var(--accent);
+  font-size: 1rem;
+  letter-spacing: 0.2em;
 }
 
 .app-shell {

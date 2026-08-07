@@ -87,7 +87,7 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
           const isAviso = post.type === 'aviso';
           const isEvento = post.type === 'evento';
           const isSpecial = isAviso || isEvento;
-          const specialColor = isAviso ? '#cc3333' : 'var(--accent)';
+          const specialColor = isAviso ? 'var(--error)' : 'var(--accent)';
           const specialBg = isAviso ? 'rgba(255,68,68,0.3)' : 'rgba(251,202,1,0.3)';
           const badgeText = isAviso ? 'AVISO IMPORTANTE' : 'EVENTO ESPECIAL';
 
@@ -187,7 +187,7 @@ export const PublicationPage = () => {
   const isAviso = post.type === 'aviso';
   const isEvento = post.type === 'evento';
   const isSpecial = isAviso || isEvento;
-  const specialColor = isAviso ? '#cc3333' : 'var(--accent)';
+  const specialColor = isAviso ? 'var(--error)' : 'var(--accent)';
   const specialBg = isAviso ? 'rgba(255,68,68,0.1)' : 'rgba(251,202,1,0.1)';
 
   return (
@@ -216,7 +216,7 @@ export const PublicationPage = () => {
           style={{
             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
             background: isAviso 
-              ? 'radial-gradient(circle at center, rgba(204,51,51,0.15) 0%, transparent 60%)'
+              ? 'radial-gradient(circle at center, var(--error-muted) 0%, transparent 60%)'
               : 'radial-gradient(circle at center, rgba(251,202,1,0.12) 0%, transparent 60%)',
           }}
         />
@@ -396,7 +396,7 @@ export const ArchiveDashboard = () => {
               const isAviso = post.type === 'aviso';
               const isEvento = post.type === 'evento';
               const isSpecial = isAviso || isEvento;
-              const specialColor = isAviso ? '#cc3333' : 'var(--accent)';
+              const specialColor = isAviso ? 'var(--error)' : 'var(--accent)';
               const specialBg = isAviso ? 'rgba(255,68,68,0.05)' : 'rgba(251,202,1,0.05)';
               const badgeText = post.type === 'magazine' ? 'REVISTA' : isAviso ? '⚠️ AVISO' : isEvento ? '⭐ EVENTO' : 'ARTÍCULO';
 

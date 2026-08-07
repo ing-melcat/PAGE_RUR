@@ -74,7 +74,7 @@ function Home() {
         }}></motion.div>
 
         <motion.div style={{ maxWidth: '800px', y: textY, opacity: textOpacity }}>
-          <span className="eyebrow" style={{ color: 'var(--accent)', fontSize: '1rem', marginBottom: '16px', display: 'block' }}>
+          <span className="eyebrow eyebrow--hero" style={{ marginBottom: '16px', display: 'block' }}>
             
           </span>
           <h1 style={{ 
@@ -197,7 +197,7 @@ const Descubre = () => (
         zIndex: -1
       }}></div>
       <div style={{ maxWidth: '800px', borderLeft: '4px solid var(--accent)', paddingLeft: '24px' }}>
-        <span className="eyebrow" style={{ color: 'var(--accent)', fontSize: '1rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>LABORATORIO VIRTUAL</span>
+        <span className="eyebrow eyebrow--hero" style={{ textTransform: 'uppercase' }}>LABORATORIO VIRTUAL</span>
         <h1 style={{ 
           fontSize: '3.5rem', 
           fontFamily: 'var(--font-ibm-mono)',
@@ -254,7 +254,7 @@ const Conecta = () => (
         animation: 'kenBurns 20s infinite alternate ease-in-out'
       }}></div>
       <div style={{ maxWidth: '800px', borderLeft: '4px solid var(--accent)', paddingLeft: '24px' }}>
-        <span className="eyebrow" style={{ color: 'var(--accent)', fontSize: '1rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>ALIANZAS GLOBALES</span>
+        <span className="eyebrow eyebrow--hero" style={{ textTransform: 'uppercase' }}>ALIANZAS GLOBALES</span>
         <h1 style={{ 
           fontSize: '3.5rem', 
           fontFamily: 'var(--font-ibm-mono)',
@@ -427,8 +427,8 @@ const LandingLayout = () => {
           
           {/* El botón de acceder y el aviso van en el menú móvil para que no se amontone arriba */}
           {activeSpecial && (
-            <div className="mobile-only-btn" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: activeSpecial === 'aviso' ? '#cc3333' : 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '20px' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: activeSpecial === 'aviso' ? '#cc3333' : 'var(--accent)', animation: 'pulse 1.5s infinite' }}></div>
+            <div className="mobile-only-btn" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: activeSpecial === 'aviso' ? 'var(--error)' : 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '20px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: activeSpecial === 'aviso' ? 'var(--error)' : 'var(--accent)', animation: 'pulse 1.5s infinite' }}></div>
               {activeSpecial === 'aviso' ? 'AVISO ACTIVO' : 'EVENTO ACTIVO'}
             </div>
           )}
@@ -441,8 +441,8 @@ const LandingLayout = () => {
         
         <div className="topbar-right desktop-only-btn" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '20px' }}>
           {activeSpecial && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: activeSpecial === 'aviso' ? '#cc3333' : 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', fontWeight: 'bold' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: activeSpecial === 'aviso' ? '#cc3333' : 'var(--accent)', animation: 'pulse 1.5s infinite' }}></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: activeSpecial === 'aviso' ? 'var(--error)' : 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', fontWeight: 'bold' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: activeSpecial === 'aviso' ? 'var(--error)' : 'var(--accent)', animation: 'pulse 1.5s infinite' }}></div>
               {activeSpecial === 'aviso' ? 'AVISO ACTIVO' : 'EVENTO ACTIVO'}
             </div>
           )}

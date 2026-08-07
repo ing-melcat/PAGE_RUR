@@ -17,7 +17,7 @@ export function Cabezal({ onCambio, onConfigApply, onBack }) {
                 <div style={{ width: '40px', display: 'flex', justifyContent: 'flex-start' }}>
                     <button 
                         onClick={onBack}
-                        style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', cursor: 'pointer', padding: '8px' }}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '8px' }}
                         aria-label="Volver al Menú"
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -27,7 +27,7 @@ export function Cabezal({ onCambio, onConfigApply, onBack }) {
                     </button>
                 </div>
                 
-                <div className="topbar-title" style={{ margin: 0, flex: 1, textAlign: 'center', color: 'var(--text-main)' }}>RASSOR-UI</div>
+                <div className="topbar-title" style={{ margin: 0, flex: 1, textAlign: 'center', color: 'var(--text)' }}>RASSOR-UI</div>
                 
                 {/* ConfigPanel placed inside the header on the right */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', width: 'auto', minWidth: '40px' }}>
