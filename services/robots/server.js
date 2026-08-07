@@ -7,6 +7,7 @@ import { getPool } from '../shared/db.js';
 import { verifyToken, requireRole, IS_PRODUCTION } from '../shared/auth.js';
 import { csrfProtection } from '../shared/csrf.js';
 import { encryptSecret, decryptSecret, maskSecret } from '../shared/crypto.js';
+import { saveLog } from '../shared/logs.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -17,10 +18,6 @@ const PUBLIC_TOKEN_TTL = '30m';
 app.use(cors({ origin: IS_PRODUCTION ? (process.env.CORS_ORIGIN || false) : true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
-
-async function saveLog(type, message) {
-  await pool.query('INSERT INTO logs (type, message) VALUES ($1, $2)', [type, message]);
-}
 
 // Token de LiveKit: 10/min por usuario logueado (igual que antes).
 const livekitTokenLimiter = rateLimit({
@@ -287,6 +284,14 @@ app.get('/api/crowdsec/metrics', verifyToken, requireRole('admin'), async (req, 
   } catch (error) {
     res.status(500).json({ message: 'Error obteniendo metricas de CrowdSec' });
   }
+});
+
+// Ver la nota equivalente en services/identity/server.js: sin esto, un fallo
+// de base en una ruta async cae en el handler HTML por defecto de Express, y
+// el frontend revienta al hacer res.json() sobre algo que no es JSON.
+app.use((err, req, res, _next) => {
+  console.error('[svc-robots]', err);
+  res.status(500).json({ success: false, message: 'Error interno del servidor' });
 });
 
 app.listen(PORT, '0.0.0.0', () => {

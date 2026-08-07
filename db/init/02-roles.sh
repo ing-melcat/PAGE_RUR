@@ -28,10 +28,13 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     GRANT SELECT, INSERT, UPDATE, DELETE ON logs TO svc_robots_role;
     GRANT USAGE, SELECT ON SEQUENCE logs_id_seq TO svc_robots_role;
 
-    -- logs es una tabla de auditoría cruzada: identity también escribe ahí
-    -- (login exitoso/fallido, alta/baja de usuarios), pero solo puede
-    -- insertar -- la lectura de GET /api/logs vive en svc-robots, junto con
-    -- el resto del panel de administración.
+    -- logs es una tabla de auditoría cruzada: identity y content también
+    -- escriben ahí (login exitoso/fallido, alta/baja de usuarios, alta/edición/
+    -- baja de publicaciones), pero solo pueden insertar -- la lectura de
+    -- GET /api/logs vive en svc-robots, junto con el resto del panel de
+    -- administración.
     GRANT INSERT ON logs TO svc_identity_role;
     GRANT USAGE, SELECT ON SEQUENCE logs_id_seq TO svc_identity_role;
+    GRANT INSERT ON logs TO svc_content_role;
+    GRANT USAGE, SELECT ON SEQUENCE logs_id_seq TO svc_content_role;
 EOSQL
