@@ -11,6 +11,7 @@ import { ControlButton } from './components/ControlButton';
 import { ControlGroup } from './components/ControlGroup';
 import { Joystck } from './components/Joystck';
 import { StatusHUD } from './components/StatusHUD';
+import { BarraTelemetria } from './components/BarraTelemetria';
 import { TOPIC_TELEMETRIA } from './telemetria';
 
 const TOPIC = 'control';
@@ -165,6 +166,18 @@ export default function ControllerApp({ onBack, robot }) {
   // conserva los valores crudos que van al robot, y cada entrada usa su propia
   // escala y sus propios ejes.
   const ejesTelemetriaRef = useRef({ avance: 0, giro: 0 });
+
+  // Misma barra que ve el espectador, pero alimentada en local: el operador
+  // genera estos valores, no tiene por qué esperar a recibirlos de vuelta.
+  const [mostrarBarra, setMostrarBarra] = useState(false);
+  const telemetriaLocal = useCallback(
+    () => construirTelemetria(
+      ejesTelemetriaRef.current,
+      estadoActuadoresRef.current,
+      identidadesDeRobots(roomRef.current).length > 0
+    ),
+    []
+  );
 
   const handleAction = useCallback((component, action, state) => {
     if (!roomRef.current || !isConnectedRef.current) return;
@@ -619,7 +632,29 @@ export default function ControllerApp({ onBack, robot }) {
             </button>
           </div>
         </div>
-        
+
+        {/* Prueba de la barra de telemetría en la consola. Va arriba y no abajo
+            porque el joystick y los botones están fijos al borde inferior. */}
+        <button
+          onClick={() => setMostrarBarra((v) => !v)}
+          style={{
+            position: 'fixed', top: '12px', left: '50%', transform: 'translateX(-50%)',
+            zIndex: 1001, cursor: 'pointer',
+            background: 'rgba(2,7,19,0.7)', backdropFilter: 'blur(4px)',
+            border: `1px solid ${mostrarBarra ? 'var(--accent)' : 'var(--border)'}`,
+            color: mostrarBarra ? 'var(--accent)' : 'var(--muted)',
+            borderRadius: '4px', padding: '5px 12px',
+            fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem',
+            textTransform: 'uppercase', letterSpacing: '0.05em',
+          }}
+        >
+          {mostrarBarra ? '⊟ Ocultar telemetría' : '⊞ Telemetría'}
+        </button>
+
+        {mostrarBarra && (
+          <BarraTelemetria room={room} fuenteLocal={telemetriaLocal} posicion="arriba" />
+        )}
+
         {hasGamepad && (
           <button 
             onClick={() => setForceMobileMode(!forceMobileMode)}
