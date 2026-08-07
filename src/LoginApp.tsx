@@ -554,14 +554,25 @@ export default function App() {
 
   // Robots State para LiveKit
   const [robots, setRobots] = useState<any[]>([]);
+  // Un fallo aquí dejaba la pantalla de selección completamente vacía y sin
+  // explicación: la lista se quedaba a cero y no se avisaba por ningún lado, así
+  // que parecía que la pantalla no cargaba en vez de que la petición había
+  // fallado. Ahora el motivo llega hasta la interfaz.
+  const [errorRobots, setErrorRobots] = useState<string | null>(null);
+
   const fetchRobots = async () => {
     try {
       const res = await apiFetch('/api/robots');
       if (res.ok) {
         setRobots(await res.json());
+        setErrorRobots(null);
+        return;
       }
+      const detalle = await res.json().catch(() => null);
+      setErrorRobots(detalle?.message ?? `El servidor respondió ${res.status} al pedir las unidades.`);
     } catch (e) {
       console.error(e);
+      setErrorRobots('No se pudo contactar al servidor para pedir las unidades.');
     }
   };
 
@@ -1371,6 +1382,8 @@ export default function App() {
               <motion.section key="robot_selection" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
                 <RobotSelection 
                   robots={robots}
+                  errorRobots={errorRobots}
+                  onReintentar={fetchRobots}
                   onBack={() => setView("dashboard")}
                   onSelectRobot={(robot) => {
                     setLivekitToken(robot); // We repurpose this state to hold the entire robot object

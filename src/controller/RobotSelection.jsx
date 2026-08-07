@@ -13,7 +13,7 @@ const S = {
   btn: { background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s ease' },
 };
 
-export function RobotSelection({ robots, onSelectRobot, onBack, onAddRobot, onUpdateRobot, controlMappings, onUpdateMappings }) {
+export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobot, onBack, onAddRobot, onUpdateRobot, controlMappings, onUpdateMappings }) {
     const [loading, setLoading] = useState(false);
     const [columns, setColumns] = useState(3);
     const [configRobot, setConfigRobot] = useState(null);
@@ -198,6 +198,27 @@ export function RobotSelection({ robots, onSelectRobot, onBack, onAddRobot, onUp
                 animate="show"
                 style={{ display: 'grid', gap: '24px', gridTemplateColumns: `repeat(${columns}, 1fr)`, flex: 1 }}
             >
+                {/* Sin esto, un fallo al pedir la lista dejaba la rejilla
+                    vacía y muda: parecía que la pantalla no cargaba, cuando lo
+                    que fallaba era la petición. */}
+                {robotsOrdenados.length === 0 && (
+                    <div style={{ ...S.panel, gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'flex-start' }}>
+                        <h3 style={{ ...S.sectionTitle, borderBottom: 'none', paddingBottom: 0, color: errorRobots ? 'var(--error)' : 'var(--muted)' }}>
+                            {errorRobots ? 'No se pudieron cargar las unidades' : 'No hay unidades registradas'}
+                        </h3>
+                        <p style={{ ...S.label, textTransform: 'none', margin: 0, lineHeight: 1.6 }}>
+                            {errorRobots
+                                ? errorRobots
+                                : 'Registra una desde Administración de Robots para poder operarla.'}
+                        </p>
+                        {errorRobots && onReintentar && (
+                            <button onClick={onReintentar} style={{ ...S.btn, marginTop: '4px' }}>
+                                Reintentar
+                            </button>
+                        )}
+                    </div>
+                )}
+
                 {robotsOrdenados.map((robot) => {
                     const enLinea = robot.status === 'online';
                     return (
