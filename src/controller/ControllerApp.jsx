@@ -36,6 +36,21 @@ const SERVER_URL = import.meta.env.VITE_LIVEKIT_URL || "wss://rur-livekit-server
 // ---------------------------------------------------------------------------
 const PREFIJO_ROBOT = 'robot-';
 
+// Interruptores de prueba de la consola, con el mismo lenguaje que la barra.
+const estiloInterruptor = (activo) => ({
+  cursor: 'pointer',
+  background: 'rgba(2,7,19,0.7)',
+  backdropFilter: 'blur(4px)',
+  border: `1px solid ${activo ? 'var(--accent)' : 'var(--border)'}`,
+  color: activo ? 'var(--accent)' : 'var(--muted)',
+  borderRadius: '4px',
+  padding: '5px 12px',
+  fontFamily: 'var(--font-ibm-mono)',
+  fontSize: '0.7rem',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+});
+
 function identidadesDeRobots(room) {
   if (!room) return [];
   return Array.from(room.remoteParticipants.values())
@@ -163,6 +178,10 @@ export default function ControllerApp({ onBack, robot }) {
   // Misma barra que ve el espectador, pero alimentada en local: el operador
   // genera estos valores, no tiene por qué esperar a recibirlos de vuelta.
   const [mostrarBarra, setMostrarBarra] = useState(false);
+  // Cambia el aspecto de las tarjetas de control al de los widgets de la barra.
+  // Es una clase en la raíz y no un cambio por componente, para poder ver los
+  // dos estilos sin tocar cada panel.
+  const [estiloHud, setEstiloHud] = useState(false);
   const telemetriaLocal = useCallback(
     () => construirTelemetria(
       ejesTelemetriaRef.current,
@@ -561,7 +580,7 @@ export default function ControllerApp({ onBack, robot }) {
   }, []);
 
   return (
-    <div className="App App-header">
+    <div className={`App App-header${estiloHud ? ' hud' : ''}`}>
       {isFetchingToken && (
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', zIndex: 999999, background: 'var(--background)' }}>
           <div className="loading-spinner" style={{ width: '64px', height: '64px', border: '4px solid var(--surface)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '24px' }} />
@@ -623,26 +642,24 @@ export default function ControllerApp({ onBack, robot }) {
           </div>
         </div>
 
-        {/* Prueba de la barra de telemetría en la consola. Va arriba y no abajo
-            porque el joystick y los botones están fijos al borde inferior. */}
-        <button
-          onClick={() => setMostrarBarra((v) => !v)}
-          style={{
-            position: 'fixed', top: '12px', left: '50%', transform: 'translateX(-50%)',
-            zIndex: 1001, cursor: 'pointer',
-            background: 'rgba(2,7,19,0.7)', backdropFilter: 'blur(4px)',
-            border: `1px solid ${mostrarBarra ? 'var(--accent)' : 'var(--border)'}`,
-            color: mostrarBarra ? 'var(--accent)' : 'var(--muted)',
-            borderRadius: '4px', padding: '5px 12px',
-            fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem',
-            textTransform: 'uppercase', letterSpacing: '0.05em',
-          }}
-        >
-          {mostrarBarra ? '⊟ Ocultar telemetría' : '⊞ Telemetría'}
-        </button>
+        {/* Interruptores de prueba. Van bajo el cabezal y pegados a la derecha:
+            antes estaban centrados arriba, justo encima del título RASSOR-UI. */}
+        <div style={{
+          position: 'fixed', top: '70px', right: '16px', zIndex: 1001,
+          display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end',
+        }}>
+          <button onClick={() => setMostrarBarra((v) => !v)} style={estiloInterruptor(mostrarBarra)}>
+            {mostrarBarra ? '⊟ Ocultar telemetría' : '⊞ Telemetría'}
+          </button>
+          <button onClick={() => setEstiloHud((v) => !v)} style={estiloInterruptor(estiloHud)}>
+            {estiloHud ? '◧ Estilo clásico' : '◨ Estilo HUD'}
+          </button>
+        </div>
 
+        {/* El cabezal es fijo y mide unos 60 px, así que la barra arranca
+            debajo en vez de taparlo. */}
         {mostrarBarra && (
-          <BarraTelemetria room={room} fuenteLocal={telemetriaLocal} posicion="arriba" />
+          <BarraTelemetria room={room} fuenteLocal={telemetriaLocal} posicion="arriba" margen={62} />
         )}
 
         {hasGamepad && (
