@@ -69,15 +69,18 @@ const ACCION_PUBLICA = {
   right: 'derecha',
 };
 
-// El joystick entrega -100..100, no -1..1 (ver Joystck.jsx y el bucle del
-// gamepad, que multiplican por 100).
-const RANGO_JOYSTICK = 100;
 const NIVEL_MAX = 10;
 const PERIODO_TELEMETRIA_MS = 100;
 
+// Recibe un valor ya normalizado a -1..1. La normalización se hace en quien
+// llama a handleMove, porque cada entrada usa su propia escala y sus propios
+// ejes: el joystick táctil entrega -1..1 con x=avance, el atajo de teclado
+// -100..100 con x=avance, y el gamepad -100..100 pero con los ejes al revés.
+// Unificarlo en el origen cambiaría los números que recibe el robot, y eso no
+// se toca sin poder probarlo contra el hardware.
 function aNivel(valor) {
-  const magnitud = Math.min(Math.abs(valor), RANGO_JOYSTICK);
-  return Math.round((magnitud / RANGO_JOYSTICK) * NIVEL_MAX);
+  const magnitud = Math.min(Math.abs(valor), 1);
+  return Math.round(magnitud * NIVEL_MAX);
 }
 
 /**
@@ -86,12 +89,12 @@ function aNivel(valor) {
  * siguiente, 100 ms después, en vez de bloquear la cola esperando un reenvío.
  * De paso, un espectador que entra a media sesión se sincroniza sin heartbeat.
  *
- * Ejes en el marco del OPERADOR, que es lo que el espectador quiere ver: en
- * Joystck.jsx adelante es +y y la derecha es +x.
+ * Recibe {avance, giro} ya normalizados a -1..1 en el marco del OPERADOR, que
+ * es lo que el espectador quiere ver.
  */
-function construirTelemetria({ x, y }, actuadoresInternos) {
-  const nivelAvance = aNivel(y);
-  const nivelGiro = aNivel(x);
+function construirTelemetria({ avance: ejeAvance, giro: ejeGiro }, actuadoresInternos, hayRobot) {
+  const nivelAvance = aNivel(ejeAvance);
+  const nivelGiro = aNivel(ejeGiro);
 
   const actuadores = {};
   for (const [componente, accion] of Object.entries(actuadoresInternos)) {
@@ -102,9 +105,14 @@ function construirTelemetria({ x, y }, actuadoresInternos) {
 
   return {
     v: 1,
-    avance: nivelAvance > 0 ? { dir: y >= 0 ? 'adelante' : 'atras', nivel: nivelAvance } : null,
-    giro: nivelGiro > 0 ? { dir: x >= 0 ? 'derecha' : 'izquierda', nivel: nivelGiro } : null,
+    avance: nivelAvance > 0 ? { dir: ejeAvance >= 0 ? 'adelante' : 'atras', nivel: nivelAvance } : null,
+    giro: nivelGiro > 0 ? { dir: ejeGiro >= 0 ? 'derecha' : 'izquierda', nivel: nivelGiro } : null,
     actuadores,
+    // Esto es lo que el operador ORDENA, no lo que el robot hace. Sin esta
+    // bandera el espectador vería "avanzando 60%" con el robot apagado y sin
+    // nadie recibiendo los comandos, que es justo lo que no debe pasar en una
+    // transmisión pública.
+    robot: Boolean(hayRobot),
   };
 }
 
@@ -151,6 +159,12 @@ export default function ControllerApp({ onBack, robot }) {
   // clave con la que se creó.
   const estadoActuadoresRef = useRef({});
   const telemetriaIntervalRef = useRef(null);
+
+  // Los mismos mandos, normalizados a -1..1 y con avance/giro ya resueltos,
+  // solo para la telemetría. Se lleva aparte de joystickPosRef porque ese
+  // conserva los valores crudos que van al robot, y cada entrada usa su propia
+  // escala y sus propios ejes.
+  const ejesTelemetriaRef = useRef({ avance: 0, giro: 0 });
 
   const handleAction = useCallback((component, action, state) => {
     if (!roomRef.current || !isConnectedRef.current) return;
@@ -250,7 +264,11 @@ export default function ControllerApp({ onBack, robot }) {
 
     telemetriaIntervalRef.current = setInterval(() => {
       if (!roomRef.current || !isConnectedRef.current) return;
-      const resumen = construirTelemetria(joystickPosRef.current, estadoActuadoresRef.current);
+      const resumen = construirTelemetria(
+        ejesTelemetriaRef.current,
+        estadoActuadoresRef.current,
+        identidadesDeRobots(roomRef.current).length > 0
+      );
       try {
         roomRef.current.localParticipant.publishData(
           new TextEncoder().encode(JSON.stringify(resumen)),
@@ -291,7 +309,12 @@ export default function ControllerApp({ onBack, robot }) {
     sendPacketNow(stopPkt);
   }, [buildPacket, sendPacketNow])
 
-  const handleMove = useCallback((x, y) => {
+  // `escala`: cuánto vale "a fondo" en los valores recibidos (1 para el
+  // joystick táctil, 100 para el teclado y el gamepad).
+  // `ejesInvertidos`: el gamepad manda x=giro, y=avance, al revés que el
+  // componente del joystick. Ambos datos solo alimentan la telemetría; lo que
+  // se le envía al robot sigue saliendo igual que siempre.
+  const handleMove = useCallback((x, y, escala = 1, ejesInvertidos = false) => {
     const deadZone = 0.05
     const applyDeadZone = (v) => Math.abs(v) < deadZone ? 0 : v
 
@@ -306,6 +329,12 @@ export default function ControllerApp({ onBack, robot }) {
 
     // Guardar posición actual en el ref
     joystickPosRef.current = { x: deadX, y: deadY };
+
+    const normX = deadX / escala;
+    const normY = deadY / escala;
+    ejesTelemetriaRef.current = ejesInvertidos
+      ? { avance: normY, giro: normX }
+      : { avance: normX, giro: normY };
 
     // Si hay movimiento, iniciar envío continuo; si es (0,0), frenar
     if (Math.abs(deadX) > 0 || Math.abs(deadY) > 0) {
@@ -354,7 +383,9 @@ export default function ControllerApp({ onBack, robot }) {
                 setHasGamepad(true);
                 setGamepadStatus("Mando detectado. Controles táctiles ocultos.");
               }
-              handleMove(x, y);
+              // El gamepad trabaja en -100..100 y con los ejes al revés que el
+              // componente del joystick: aquí x es el giro e y el avance.
+              handleMove(x, y, 100, true);
               gamepadStateRef.current.x = x;
               gamepadStateRef.current.y = y;
             }

@@ -3,11 +3,16 @@ import { Joystick } from 'react-joystick-component';
 
 export function Joystck({ onMove, onStop, setBinPack, size }) {
 
-    const handleMoveEvent = useCallback((eje) => {
+    // `escala` es la magnitud que vale "a fondo" en los valores que se emiten:
+    // react-joystick-component entrega -1..1, mientras que el atajo de teclado
+    // de más abajo trabaja en -100..100. Se pasa tal cual en vez de unificarlo
+    // aquí para no cambiar los números que ya recibe el robot; solo lo usa la
+    // telemetría del espectador, que necesita saber qué es el tope.
+    const handleMoveEvent = useCallback((eje, escala = 1) => {
         const y = eje.x;
         const x = eje.y;
 
-        const result = onMove?.(x, y);
+        const result = onMove?.(x, y, escala);
         if (result) {
             setBinPack?.(result);
         }
@@ -37,7 +42,7 @@ export function Joystck({ onMove, onStop, setBinPack, size }) {
 
             if (x !== 0 || y !== 0) {
                 // Notifica el evento de teclado
-                handleMoveEvent({ x, y });
+                handleMoveEvent({ x, y }, 100);
             } else if (active && x === 0 && y === 0) {
                 // Detenerse
                 handleStopEvent();
