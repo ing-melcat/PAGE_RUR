@@ -211,29 +211,6 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
     setUploadingImage(false);
   };
 
-  const handleRobotModelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
-
-    setUploadingRobotModel(true);
-    try {
-      const response = await apiFetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await response.json();
-      if (data.url && robotModelInputRef.current) {
-        robotModelInputRef.current.value = data.url;
-      } else if (!data.url) {
-        alert("Error al subir el modelo 3D");
-      }
-    } catch(err) { alert("Error de conexión al subir el modelo 3D"); }
-    setUploadingRobotModel(false);
-    e.target.value = '';
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -617,6 +594,36 @@ export default function App() {
   const [editingRobot, setEditingRobot] = useState<any>(null);
   const [uploadingRobotModel, setUploadingRobotModel] = useState(false);
   const robotModelInputRef = useRef<HTMLInputElement>(null);
+
+  // El commit original ponía este handler dentro de AdminContent, un
+  // componente distinto que no comparte closure con App -- robotModelInputRef
+  // y editingRobot viven aquí. Referenciarlo desde el JSX del formulario de
+  // robots (dentro de App) habría sido un ReferenceError en tiempo de
+  // ejecución la primera vez que alguien le diera clic al botón, algo que
+  // tsc no detecta porque este archivo no corre con chequeo de tipos en el
+  // build (vite build no valida tipos por defecto).
+  const handleRobotModelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploadingRobotModel(true);
+    try {
+      const response = await apiFetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      if (data.url && robotModelInputRef.current) {
+        robotModelInputRef.current.value = data.url;
+      } else if (!data.url) {
+        alert("Error al subir el modelo 3D");
+      }
+    } catch(err) { alert("Error de conexión al subir el modelo 3D"); }
+    setUploadingRobotModel(false);
+    e.target.value = '';
+  };
 
   // Users State
   const [usersList, setUsersList] = useState<any[]>([]);
