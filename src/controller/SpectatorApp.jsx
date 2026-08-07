@@ -50,7 +50,10 @@ export default function SpectatorApp() {
 
         setRobotName(data.robotName || robotId);
 
-        const { Room, RoomEvent } = await import('livekit-client');
+        const { Room, RoomEvent, setLogLevel } = await import('livekit-client');
+        // Ver la nota en ControllerApp.jsx: 'info' es demasiado verboso para
+        // producción, 'warn' conserva lo que sí importa.
+        setLogLevel('warn');
         const instancia = new Room();
         await instancia.connect(data.livekitUrl, data.token, { autoSubscribe: true });
 
