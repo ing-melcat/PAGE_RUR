@@ -61,16 +61,49 @@ function rowToRobot(row, { includeAdminFields }) {
   return { ...base, livekitApiKey: row.livekit_api_key, livekitApiSecretMasked };
 }
 
+// El receptor del robot entra a la sala con una identidad que empieza por
+// `robot-` (robot_receiver/robot_receiver_prod.py). Es el mismo criterio que usa
+// el controlador para decidir a quién le manda los comandos: si aquí y allá no
+// coincidieran, el panel podría marcar un robot como apagado mientras el
+// operador le sigue enviando mandos.
+const PREFIJO_ROBOT = 'robot-';
+
+// El estado se consulta a LiveKit una vez por robot y por petición a
+// /api/robots. Una caché corta evita machacar a LiveKit cuando el panel se
+// refresca, sin que el estado se sienta desactualizado. Es por proceso: con
+// varias réplicas cada una tiene la suya, aceptable con esta ventana.
+const CACHE_ESTADO_MS = 5000;
+const cacheEstado = new Map();
+
+const TIMEOUT_LIVEKIT_MS = 2000;
+
 async function fetchRealStatus(row) {
+  const enCache = cacheEstado.get(row.id);
+  if (enCache && enCache.expira > Date.now()) return enCache.estado;
+
   const secret = decryptSecretSafe(row.livekit_api_secret_encrypted);
   if (!row.livekit_url || !row.livekit_api_key || !secret) return 'offline';
+
+  let estado = 'offline';
   try {
     const roomService = new RoomServiceClient(row.livekit_url, row.livekit_api_key, secret);
-    const participants = await roomService.listParticipants(row.room);
-    return participants && participants.length > 0 ? 'online' : 'offline';
+    // Un LiveKit que no responde no debe dejar colgado a /api/robots: la
+    // consulta se hace por cada robot, así que sin tope un solo host lento
+    // bloquea la lista entera.
+    const participants = await Promise.race([
+      roomService.listParticipants(row.room),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), TIMEOUT_LIVEKIT_MS)),
+    ]);
+    // Antes bastaba con participants.length > 0, así que un operador mirando —o
+    // cualquier desconocido abriendo el enlace público— hacía figurar el robot
+    // como encendido. Solo cuentan las identidades del robot.
+    estado = participants?.some((p) => p.identity?.startsWith(PREFIJO_ROBOT)) ? 'online' : 'offline';
   } catch {
-    return 'offline';
+    estado = 'offline';
   }
+
+  cacheEstado.set(row.id, { estado, expira: Date.now() + CACHE_ESTADO_MS });
+  return estado;
 }
 
 function decryptSecretSafe(encrypted) {
