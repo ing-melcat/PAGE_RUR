@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import './App.css';
+import './Consola.css';
 import { RotateCcw, RotateCw } from 'lucide-react';
 import { Segment } from './Segment';
 import { Cabezal } from './Cabezal';
@@ -695,11 +695,11 @@ export default function ControllerApp({ onBack, robot }) {
                 <button onClick={() => { connectToLiveKit(token); setConnect(true); }} className="boton">
                   Connect
                 </button>
-                {error && <p style={{ color: 'red' }}>{error}</p>}
+                {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
               </>
             ) : (
               <>
-                <p style={{ color: 'green' }}>Connected to TRINITY</p>
+                <p style={{ color: 'var(--success)' }}>Connected to TRINITY</p>
                 <button onClick={disconnect} className="boton">
                   Disconnect
                 </button>

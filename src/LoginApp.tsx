@@ -7,6 +7,15 @@ import { apiFetch } from "./lib/apiClient";
 
 const ControllerApp = lazy(() => import("./controller/ControllerApp"));
 
+// Mismo patrón que src/controller/RobotSelection.jsx: un objeto de estilos
+// compartidos para no repetir el mismo bloque a mano en cada campo de
+// formulario. Antes el estilo de "input" de este archivo estaba copiado
+// literalmente 7 veces en el formulario de robots, cada uno con `color: '#fff'`
+// suelto en vez de var(--text).
+const S = {
+  input: { padding: '12px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px' },
+};
+
 // --- SOCIAL ICONS ---
 const GithubIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -261,10 +270,10 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
             const isAviso = post.type === 'aviso';
             const isEvento = post.type === 'evento';
             
-            const borderColor = isAviso ? '#cc3333' : isEvento ? 'var(--accent)' : 'var(--border)';
+            const borderColor = isAviso ? 'var(--error)' : isEvento ? 'var(--accent)' : 'var(--border)';
             const bgColor = isAviso ? 'rgba(255,68,68,0.03)' : isEvento ? 'rgba(251,202,1,0.05)' : 'var(--surface)';
-            const titleColor = isAviso ? '#cc3333' : isEvento ? 'var(--accent)' : 'var(--text)';
-            const badgeBg = isAviso ? '#cc3333' : isEvento ? 'var(--accent)' : 'rgba(5,7,15,0.8)';
+            const titleColor = isAviso ? 'var(--error)' : isEvento ? 'var(--accent)' : 'var(--text)';
+            const badgeBg = isAviso ? 'var(--error)' : isEvento ? 'var(--accent)' : 'rgba(5,7,15,0.8)';
             const badgeColor = (isAviso || isEvento) ? 'black' : 'var(--accent)';
             const badgeText = post.type === 'magazine' ? 'REVISTA' : isAviso ? '⚠️ AVISO' : isEvento ? '⭐ EVENTO' : post.type === '3d_model' ? 'MODELO 3D' : 'SIMPLE';
 
@@ -308,9 +317,9 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
                   >
                     MODIFICAR
                   </button>
-                  <button onClick={() => handleDelete(post.id)} style={{ flex: 1, background: 'transparent', border: '1px solid #cc3333', color: '#cc3333', padding: '8px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', transition: 'all 0.2s' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = '#cc3333'; e.currentTarget.style.color = 'white'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#cc3333'; }}
+                  <button onClick={() => handleDelete(post.id)} style={{ flex: 1, background: 'transparent', border: '1px solid var(--error)', color: 'var(--error)', padding: '8px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', transition: 'all 0.2s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--error)'; e.currentTarget.style.color = 'white'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--error)'; }}
                   >
                     ELIMINAR
                   </button>
@@ -362,8 +371,8 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
 
         {(type === 'aviso' || type === 'evento') && (
           <div className="input-group">
-            <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: type === 'aviso' ? '#cc3333' : 'var(--accent)', display: 'block', marginBottom: '8px' }}>Fecha de Expiración (Opcional)</label>
-            <input type="datetime-local" value={countdownDate} onChange={(e) => setCountdownDate(e.target.value)} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: `1px solid ${type === 'aviso' ? '#cc3333' : 'var(--accent)'}`, borderRadius: '4px' }} />
+            <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: type === 'aviso' ? 'var(--error)' : 'var(--accent)', display: 'block', marginBottom: '8px' }}>Fecha de Expiración (Opcional)</label>
+            <input type="datetime-local" value={countdownDate} onChange={(e) => setCountdownDate(e.target.value)} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: `1px solid ${type === 'aviso' ? 'var(--error)' : 'var(--accent)'}`, borderRadius: '4px' }} />
           </div>
         )}
 
@@ -416,7 +425,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
                   <strong style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '1.1rem' }}>Página {idx + 1}</strong>
                   {pages.length > 1 && (
-                    <button type="button" onClick={() => setPages(pages.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: '1px solid #cc3333', color: '#cc3333', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>ELIMINAR PÁGINA</button>
+                    <button type="button" onClick={() => setPages(pages.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: '1px solid var(--error)', color: 'var(--error)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>ELIMINAR PÁGINA</button>
                   )}
                 </div>
                 <div style={{ marginBottom: '16px' }}>
@@ -1591,7 +1600,7 @@ export default function App() {
                     let color = 'var(--muted)';
                     if (log.type === 'success') color = 'var(--success)';
                     if (log.type === 'error') color = 'var(--error)';
-                    if (log.type === 'warning') color = '#fbbf24';
+                    if (log.type === 'warning') color = 'var(--warning)';
                     if (log.type === 'info') color = 'var(--accent)';
                     
                     const time = new Date(log.timestamp).toLocaleTimeString();
@@ -1639,8 +1648,8 @@ export default function App() {
                                 <tr key={r.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }}>
                                     <td style={{ padding: '16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: r.status === 'online' ? '#00ffaa' : '#cc3333', boxShadow: `0 0 8px ${r.status === 'online' ? '#00ffaa' : '#cc3333'}` }} />
-                                            <span style={{ color: r.status === 'online' ? '#00ffaa' : '#cc3333' }}>{r.status.toUpperCase()}</span>
+                                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: r.status === 'online' ? 'var(--success)' : 'var(--error)', boxShadow: `0 0 8px ${r.status === 'online' ? 'var(--success)' : 'var(--error)'}` }} />
+                                            <span style={{ color: r.status === 'online' ? 'var(--success)' : 'var(--error)' }}>{r.status.toUpperCase()}</span>
                                         </div>
                                     </td>
                                     <td style={{ padding: '16px', fontWeight: 500, fontFamily: 'var(--font-ibm-mono)', fontSize: '0.95rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{r.name}</td>
@@ -1659,7 +1668,7 @@ export default function App() {
                                     <td style={{ padding: '16px', color: 'var(--muted)' }}>{r.modelUrl || 'Modelo por defecto'}</td>
                                     <td style={{ padding: '16px', textAlign: 'right' }}>
                                         <button onClick={() => setEditingRobot(r)} style={{ background: 'transparent', color: 'white', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', marginRight: '8px' }}>Editar</button>
-                                        <button onClick={() => handleDeleteRobot(r.id)} style={{ background: 'rgba(235,87,87,0.1)', color: '#eb5757', border: '1px solid #eb5757', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>Eliminar</button>
+                                        <button onClick={() => handleDeleteRobot(r.id)} style={{ background: 'var(--error-muted)', color: 'var(--error)', border: '1px solid var(--error)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>Eliminar</button>
                                     </td>
                                 </tr>
                             ))}
@@ -1683,40 +1692,40 @@ export default function App() {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)' }}>
                                         ID Interno (Identificador único)
-                                        <input name="id" defaultValue={editingRobot.id} readOnly={!editingRobot.isNew} required style={{ padding: '12px', background: 'var(--surface)', color: '#fff', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                                        <input name="id" defaultValue={editingRobot.id} readOnly={!editingRobot.isNew} required style={S.input} />
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)' }}>
                                         Nombre Público (Display Name)
-                                        <input name="name" defaultValue={editingRobot.name} required style={{ padding: '12px', background: 'var(--surface)', color: '#fff', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                                        <input name="name" defaultValue={editingRobot.name} required style={S.input} />
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)' }}>
                                         LiveKit Room (Para la conexión)
-                                        <input name="room" defaultValue={editingRobot.room} required style={{ padding: '12px', background: 'var(--surface)', color: '#fff', border: '1px solid var(--accent)', borderRadius: '4px' }} />
+                                        <input name="room" defaultValue={editingRobot.room} required style={{ ...S.input, border: '1px solid var(--accent)' }} />
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)' }}>
                                         Estado (Simulación Local)
-                                        <select name="status" defaultValue={editingRobot.status} style={{ padding: '12px', background: 'var(--surface)', color: '#fff', border: '1px solid var(--border)', borderRadius: '4px' }}>
+                                        <select name="status" defaultValue={editingRobot.status} style={S.input}>
                                             <option value="online">Online (Verde)</option>
                                             <option value="offline">Offline (Rojo)</option>
                                         </select>
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 2' }}>
                                         URL de LiveKit Cloud (Opcional, sobrescribe VITE_LIVEKIT_URL)
-                                        <input name="livekitUrl" defaultValue={editingRobot.livekitUrl} placeholder="wss://rur-livekit-server-8b010r3b.livekit.cloud" style={{ padding: '12px', background: 'var(--surface)', color: '#fff', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                                        <input name="livekitUrl" defaultValue={editingRobot.livekitUrl} placeholder="wss://rur-livekit-server-8b010r3b.livekit.cloud" style={S.input} />
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 1' }}>
                                         LiveKit API Key
-                                        <input type="password" name="livekitApiKey" defaultValue={editingRobot.livekitApiKey} placeholder="API Key" style={{ padding: '12px', background: 'var(--surface)', color: '#fff', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                                        <input type="password" name="livekitApiKey" defaultValue={editingRobot.livekitApiKey} placeholder="API Key" style={S.input} />
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 1' }}>
                                         LiveKit API Secret
                                         {/* Se deja vacío a propósito: el backend solo re-cifra si mandas
                                             un valor nuevo, así que vacío = conservar el ya guardado. */}
-                                        <input type="password" name="livekitApiSecret" placeholder={editingRobot.livekitApiSecretMasked ? `Guardado (${editingRobot.livekitApiSecretMasked}) — escribe uno nuevo para reemplazarlo` : 'API Secret'} style={{ padding: '12px', background: 'var(--surface)', color: '#fff', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                                        <input type="password" name="livekitApiSecret" placeholder={editingRobot.livekitApiSecretMasked ? `Guardado (${editingRobot.livekitApiSecretMasked}) — escribe uno nuevo para reemplazarlo` : 'API Secret'} style={S.input} />
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 2' }}>
                                         Ruta del Modelo 3D (.glb) - Opcional
-                                        <input name="modelUrl" defaultValue={editingRobot.modelUrl} placeholder="/models/mi-robot.glb" style={{ padding: '12px', background: 'var(--surface)', color: '#fff', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                                        <input name="modelUrl" defaultValue={editingRobot.modelUrl} placeholder="/models/mi-robot.glb" style={S.input} />
                                     </label>
                                     <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', gridColumn: 'span 2', padding: '16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)' }}>
                                         <input type="checkbox" name="isPublicEvent" defaultChecked={Boolean(editingRobot.isPublicEvent)} style={{ width: 'auto', marginTop: '3px', cursor: 'pointer' }} />
@@ -1729,7 +1738,7 @@ export default function App() {
                                     </label>
                                 </div>
                                 <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '16px' }}>
-                                    <button type="button" onClick={() => setEditingRobot(null)} style={{ padding: '12px 24px', background: 'transparent', color: '#fff', border: '1px solid var(--muted)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)' }}>Cancelar</button>
+                                    <button type="button" onClick={() => setEditingRobot(null)} style={{ padding: '12px 24px', background: 'transparent', color: 'var(--text)', border: '1px solid var(--muted)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)' }}>Cancelar</button>
                                     <button type="submit" style={{ padding: '12px 24px', background: 'var(--accent)', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>{editingRobot.isNew ? 'Registrar' : 'Guardar Cambios'}</button>
                                 </div>
                             </form>
