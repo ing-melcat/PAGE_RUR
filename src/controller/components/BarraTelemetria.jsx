@@ -13,6 +13,7 @@ import {
 } from '../telemetria';
 import { WIDGETS, cargarWidgets, guardarWidgets } from '../widgets';
 import { useEstadisticasEnlace } from '../useEstadisticasEnlace';
+import '../BarraTelemetria.css';
 
 /**
  * Barra de telemetría del espectador, al estilo de las transmisiones de SpaceX:
@@ -38,23 +39,6 @@ const TARJETA = {
   backdropFilter: 'blur(4px)',
 };
 
-const S = {
-  etiqueta: {
-    fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--accent)',
-    textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0,
-    borderBottom: '1px solid var(--border)', paddingBottom: '8px',
-  },
-  // Etiqueta suelta, para las lecturas de una línea: ahí el subrayado del
-  // título de tarjeta no pinta nada.
-  inline: {
-    fontFamily: 'var(--font-ibm-mono)', fontSize: '0.65rem', color: 'var(--accent)',
-    textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0,
-  },
-  pie: {
-    fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', letterSpacing: '0.05em',
-    textTransform: 'uppercase',
-  },
-};
 
 function BarraSegmentos({ nivel, transicion }) {
   return (
@@ -81,24 +65,24 @@ function ModuloAvance({ avance, transicion }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <p style={S.etiqueta}>Avance</p>
+      <p className="telemetria__titulo">Avance</p>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-        <span style={{
-          fontFamily: 'var(--font-ibm-mono)', fontSize: '1.5rem', lineHeight: 1,
-          color: activo ? 'var(--accent)' : 'var(--muted)', transition: transicion,
-        }}>
+        <span
+          className={`telemetria__flecha${activo ? '' : ' telemetria__flecha--apagada'}`}
+          style={{ transition: transicion }}
+        >
           {chevron}
         </span>
-        <span style={{
-          fontFamily: 'var(--font-ibm-mono)', fontSize: '2.2rem', lineHeight: 1,
-          color: activo ? 'var(--bone)' : 'var(--muted)', transition: transicion,
-        }}>
+        <span
+          className={`telemetria__valor${activo ? '' : ' telemetria__valor--apagado'}`}
+          style={{ transition: transicion }}
+        >
           {nivel * 10}
         </span>
-        <span style={S.inline}>%</span>
+        <span className="telemetria__unidad">%</span>
       </div>
       <BarraSegmentos nivel={nivel} transicion={transicion} />
-      <span style={{ ...S.pie, color: activo ? 'var(--bone)' : 'var(--muted)' }}>
+      <span className={`telemetria__pie${activo ? ' telemetria__pie--destacado' : ''}`}>
         {activo ? ETIQUETAS_AVANCE[avance.dir] : 'Detenido'}
       </span>
     </div>
@@ -113,17 +97,17 @@ function ModuloGiro({ giro, transicion }) {
   const desplazamiento = activo ? (signo * nivel * 45) / NIVEL_MAX : 0;
 
   const chevron = (dir, glifo) => (
-    <span style={{
-      fontFamily: 'var(--font-ibm-mono)', fontSize: '0.9rem', transition: transicion,
-      color: activo && giro.dir === dir ? 'var(--accent)' : APAGADO,
-    }}>
+    <span
+      className="telemetria__flecha telemetria__flecha--menor"
+      style={{ color: activo && giro.dir === dir ? 'var(--accent)' : APAGADO, transition: transicion }}
+    >
       {glifo}
     </span>
   );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <p style={S.etiqueta}>Giro</p>
+      <p className="telemetria__titulo">Giro</p>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {chevron('izquierda', '◀')}
         <div style={{
@@ -145,7 +129,7 @@ function ModuloGiro({ giro, transicion }) {
         </div>
         {chevron('derecha', '▶')}
       </div>
-      <span style={{ ...S.pie, color: activo ? 'var(--bone)' : 'var(--muted)' }}>
+      <span className={`telemetria__pie${activo ? ' telemetria__pie--destacado' : ''}`}>
         {activo ? `${ETIQUETAS_GIRO[giro.dir]} ${nivel}` : 'Centrado'}
       </span>
     </div>
@@ -157,7 +141,7 @@ function ModuloActuadores({ actuadores, transicion }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <p style={S.etiqueta}>Actuadores</p>
+      <p className="telemetria__titulo">Actuadores</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, auto)', gap: '6px 16px' }}>
         {ACTUADORES.map(({ clave, abrev }) => {
           const encendido = Boolean(actuadores[clave]);
@@ -169,17 +153,17 @@ function ModuloActuadores({ actuadores, transicion }) {
                 boxShadow: encendido ? '0 0 8px var(--accent)' : 'none',
                 transition: transicion,
               }} />
-              <span style={{
-                fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', letterSpacing: '0.05em',
-                color: encendido ? 'var(--bone)' : 'var(--muted)', transition: transicion,
-              }}>
+              <span
+                className={`telemetria__abrev${encendido ? ' telemetria__abrev--encendido' : ''}`}
+                style={{ transition: transicion }}
+              >
                 {abrev}
               </span>
             </div>
           );
         })}
       </div>
-      <span style={{ ...S.pie, color: 'var(--accent)', minHeight: '1em' }}>
+      <span className="telemetria__pie telemetria__pie--accion">
         {activos.map(({ clave }) => ETIQUETAS_ACCION[actuadores[clave]] ?? actuadores[clave]).join(' · ')}
       </span>
     </div>
@@ -193,11 +177,11 @@ function ModuloActuadores({ actuadores, transicion }) {
 function LecturaCorta({ titulo, valor, activo, transicion }) {
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px' }}>
-      <span style={S.inline}>{titulo}</span>
-      <span style={{
-        fontFamily: 'var(--font-ibm-mono)', fontSize: '0.95rem', lineHeight: 1,
-        color: activo ? 'var(--bone)' : 'var(--muted)', transition: transicion,
-      }}>
+      <span className="telemetria__titulo telemetria__titulo--inline">{titulo}</span>
+      <span
+        className={`telemetria__valor telemetria__valor--medio${activo ? '' : ' telemetria__valor--apagado'}`}
+        style={{ transition: transicion }}
+      >
         {valor}
       </span>
     </div>
@@ -231,11 +215,8 @@ function ChipEntrada({ entrada, transicion }) {
         boxShadow: activo ? '0 0 8px var(--success)' : 'none',
         transition: transicion,
       }} />
-      <span style={S.inline}>Entrada</span>
-      <span style={{
-        fontFamily: 'var(--font-ibm-mono)', fontSize: '0.95rem', lineHeight: 1,
-        color: 'var(--bone)', textTransform: 'uppercase', letterSpacing: '0.05em',
-      }}>
+      <span className="telemetria__titulo telemetria__titulo--inline">Entrada</span>
+      <span className="telemetria__valor telemetria__valor--medio" style={{ textTransform: 'uppercase' }}>
         {modo}
       </span>
     </button>
@@ -247,17 +228,17 @@ function ModuloDato({ titulo, valor, unidad, pie, transicion }) {
   const hayDato = valor !== null && valor !== undefined && valor !== '';
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '92px' }}>
-      <p style={S.etiqueta}>{titulo}</p>
+      <p className="telemetria__titulo">{titulo}</p>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-        <span style={{
-          fontFamily: 'var(--font-ibm-mono)', fontSize: '1.6rem', lineHeight: 1,
-          color: hayDato ? 'var(--bone)' : 'var(--muted)', transition: transicion,
-        }}>
+        <span
+          className={`telemetria__valor${hayDato ? '' : ' telemetria__valor--apagado'}`}
+          style={{ transition: transicion }}
+        >
           {hayDato ? valor : '—'}
         </span>
-        {unidad && <span style={{ ...S.etiqueta, fontSize: '0.7rem' }}>{unidad}</span>}
+        {unidad && <span className="telemetria__unidad">{unidad}</span>}
       </div>
-      <span style={{ ...S.pie, color: 'var(--muted)', minHeight: '1em' }}>{pie ?? ''}</span>
+      <span className="telemetria__pie" style={{ minHeight: '1em' }}>{pie ?? ''}</span>
     </div>
   );
 }
@@ -383,7 +364,7 @@ export function BarraTelemetria({
             display: 'flex', flexDirection: 'column', gap: '10px',
           }}
         >
-          <p style={{ ...S.etiqueta, margin: 0 }}>Elige qué ver</p>
+          <p className="telemetria__titulo">Elige qué ver</p>
 
           {WIDGETS.map(({ id, label, fuente }) => {
             const encendido = activos.includes(id);
@@ -393,11 +374,8 @@ export function BarraTelemetria({
             return (
               <label
                 key={id}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer',
-                  fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem',
-                  color: encendido ? 'var(--bone)' : 'var(--muted)',
-                }}
+                className={`telemetria__opcion${encendido ? ' telemetria__opcion--activa' : ''}`}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
               >
                 <input
                   type="checkbox"
@@ -406,12 +384,12 @@ export function BarraTelemetria({
                   style={{ width: 'auto', accentColor: 'var(--accent)', cursor: 'pointer' }}
                 />
                 <span style={{ flex: 1 }}>{label}</span>
-                {sinDatos && <span style={{ fontSize: '0.65rem', color: 'var(--muted)' }}>sin datos</span>}
+                {sinDatos && <span className="telemetria__nota">sin datos</span>}
               </label>
             );
           })}
 
-          <span style={{ ...S.pie, color: 'var(--muted)', fontSize: '0.65rem', lineHeight: 1.5 }}>
+          <span className="telemetria__nota">
             Tu selección se guarda en este navegador.
           </span>
 
@@ -425,9 +403,9 @@ export function BarraTelemetria({
                   onClick={onClick}
                   style={{
                     cursor: 'pointer', textAlign: 'left', background: 'transparent',
-                    border: '1px solid var(--border)', borderRadius: '4px', padding: '6px 10px',
-                    color: 'var(--muted)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem',
+                    border: '1px solid var(--border)', borderRadius: '2px', padding: '6px 10px',
                   }}
+                  className="telemetria__accion"
                 >
                   {label}
                 </button>
@@ -487,7 +465,7 @@ export function BarraTelemetria({
               boxShadow: `0 0 8px ${enVivo ? 'var(--success)' : 'var(--error)'}`,
               transition: transicion,
             }} />
-            <span style={{ ...S.pie, fontSize: '0.62rem', color: enVivo ? 'var(--success)' : 'var(--error)' }}>
+            <span className="telemetria__pie" style={{ color: enVivo ? 'var(--success)' : 'var(--error)' }}>
               {!enVivo ? 'Sin señal' : telemetria.robot ? 'En vivo' : 'Sin robot'}
             </span>
           </div>
@@ -499,8 +477,8 @@ export function BarraTelemetria({
               pointerEvents: 'auto', cursor: 'pointer', background: 'transparent',
               border: 'none', padding: '0 2px', lineHeight: 1,
               color: menuAbierto ? 'var(--accent)' : 'var(--muted)',
-              fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem',
             }}
+            className="telemetria__accion"
           >
             ⊞
           </button>
@@ -595,7 +573,7 @@ export function BarraTelemetria({
               boxShadow: `0 0 8px ${enVivo ? 'var(--success)' : 'var(--error)'}`,
               transition: transicion,
             }} />
-            <span style={{ ...S.pie, color: enVivo ? 'var(--success)' : 'var(--error)' }}>
+            <span className="telemetria__pie" style={{ color: enVivo ? 'var(--success)' : 'var(--error)' }}>
               {enVivo ? 'En vivo' : 'Sin señal'}
             </span>
           </div>
@@ -603,7 +581,7 @@ export function BarraTelemetria({
               conectado no las está recibiendo nadie, y hay que decirlo o el
               espectador creería que la unidad se está moviendo. */}
           {enVivo && !telemetria.robot && (
-            <span style={{ ...S.pie, color: 'var(--accent)' }}>Sin robot conectado</span>
+            <span className="telemetria__pie telemetria__pie--accion">Sin robot conectado</span>
           )}
 
           {/* La barra entera lleva pointerEvents:none para no estorbar al video,
@@ -615,9 +593,9 @@ export function BarraTelemetria({
               background: 'transparent', border: `1px solid ${menuAbierto ? 'var(--accent)' : 'var(--border)'}`,
               color: menuAbierto ? 'var(--accent)' : 'var(--muted)',
               borderRadius: '4px', padding: '4px 10px', marginTop: '2px',
-              fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem',
-              textTransform: 'uppercase', letterSpacing: '0.05em',
+              textTransform: 'uppercase',
             }}
+            className="telemetria__accion"
           >
             ⊞ Widgets
           </button>
