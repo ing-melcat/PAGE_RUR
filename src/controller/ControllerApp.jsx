@@ -73,12 +73,8 @@ const ACCION_PUBLICA = {
 const NIVEL_MAX = 10;
 const PERIODO_TELEMETRIA_MS = 100;
 
-// Recibe un valor ya normalizado a -1..1. La normalización se hace en quien
-// llama a handleMove, porque cada entrada usa su propia escala y sus propios
-// ejes: el joystick táctil entrega -1..1 con x=avance, el atajo de teclado
-// -100..100 con x=avance, y el gamepad -100..100 pero con los ejes al revés.
-// Unificarlo en el origen cambiaría los números que recibe el robot, y eso no
-// se toca sin poder probarlo contra el hardware.
+// Todas las entradas llegan ya en -1..1, así que el nivel es la magnitud
+// llevada a los diez segmentos de la barra.
 function aNivel(valor) {
   const magnitud = Math.min(Math.abs(valor), 1);
   return Math.round(magnitud * NIVEL_MAX);
@@ -161,10 +157,7 @@ export default function ControllerApp({ onBack, robot }) {
   const estadoActuadoresRef = useRef({});
   const telemetriaIntervalRef = useRef(null);
 
-  // Los mismos mandos, normalizados a -1..1 y con avance/giro ya resueltos,
-  // solo para la telemetría. Se lleva aparte de joystickPosRef porque ese
-  // conserva los valores crudos que van al robot, y cada entrada usa su propia
-  // escala y sus propios ejes.
+  // Los mismos mandos con avance y giro ya nombrados, para la telemetría.
   const ejesTelemetriaRef = useRef({ avance: 0, giro: 0 });
 
   // Misma barra que ve el espectador, pero alimentada en local: el operador
@@ -322,12 +315,11 @@ export default function ControllerApp({ onBack, robot }) {
     sendPacketNow(stopPkt);
   }, [buildPacket, sendPacketNow])
 
-  // `escala`: cuánto vale "a fondo" en los valores recibidos (1 para el
-  // joystick táctil, 100 para el teclado y el gamepad).
-  // `ejesInvertidos`: el gamepad manda x=giro, y=avance, al revés que el
-  // componente del joystick. Ambos datos solo alimentan la telemetría; lo que
-  // se le envía al robot sigue saliendo igual que siempre.
-  const handleMove = useCallback((x, y, escala = 1, ejesInvertidos = false) => {
+  // Las tres entradas —táctil, teclado y mando— entregan ya lo mismo: -1..1,
+  // con x de avance e y de giro. Antes cada una traía su propia escala y su
+  // propio orden de ejes, así que el robot recibía cosas distintas según con
+  // qué estuvieras conduciendo.
+  const handleMove = useCallback((x, y) => {
     const deadZone = 0.05
     const applyDeadZone = (v) => Math.abs(v) < deadZone ? 0 : v
 
@@ -343,11 +335,7 @@ export default function ControllerApp({ onBack, robot }) {
     // Guardar posición actual en el ref
     joystickPosRef.current = { x: deadX, y: deadY };
 
-    const normX = deadX / escala;
-    const normY = deadY / escala;
-    ejesTelemetriaRef.current = ejesInvertidos
-      ? { avance: normY, giro: normX }
-      : { avance: normX, giro: normY };
+    ejesTelemetriaRef.current = { avance: deadX, giro: deadY };
 
     // Si hay movimiento, iniciar envío continuo; si es (0,0), frenar
     if (Math.abs(deadX) > 0 || Math.abs(deadY) > 0) {
@@ -388,17 +376,19 @@ export default function ControllerApp({ onBack, robot }) {
             if (Math.abs(lx) < deadZone) lx = 0;
             if (Math.abs(ly) < deadZone) ly = 0;
 
-            const x = lx * 100;
-            const y = -ly * 100;
+            // En -1..1 y con el mismo orden que el joystick táctil: primero el
+            // avance, luego el giro. Antes iba en -100..100 y con los ejes al
+            // revés, así que con mando el robot recibía el giro donde esperaba
+            // el avance, y cien veces más grande de lo que manda el táctil.
+            const x = -ly;
+            const y = lx;
 
             if (x !== gamepadStateRef.current.x || y !== gamepadStateRef.current.y) {
               if (!hasGamepad && (Math.abs(x) > 0 || Math.abs(y) > 0)) {
                 setHasGamepad(true);
                 setGamepadStatus("Mando detectado. Controles táctiles ocultos.");
               }
-              // El gamepad trabaja en -100..100 y con los ejes al revés que el
-              // componente del joystick: aquí x es el giro e y el avance.
-              handleMove(x, y, 100, true);
+              handleMove(x, y);
               gamepadStateRef.current.x = x;
               gamepadStateRef.current.y = y;
             }
