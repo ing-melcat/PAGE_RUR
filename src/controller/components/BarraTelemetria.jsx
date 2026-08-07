@@ -167,6 +167,62 @@ function ModuloActuadores({ actuadores, transicion }) {
   );
 }
 
+/**
+ * Lectura de una línea para el modo esencial: etiqueta chica y el valor al
+ * lado. Sin barras ni cintas — ahí la gracia es ocupar poco.
+ */
+function LecturaCorta({ titulo, valor, activo, transicion }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px' }}>
+      <span style={{ ...S.etiqueta, fontSize: '0.62rem' }}>{titulo}</span>
+      <span style={{
+        fontFamily: 'var(--font-ibm-mono)', fontSize: '0.95rem', lineHeight: 1,
+        color: activo ? 'var(--bone)' : 'var(--muted)', transition: transicion,
+      }}>
+        {valor}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Modo de entrada activo. Es pulsable cuando hay mando: tocarlo devuelve los
+ * controles táctiles, que es la única acción útil sobre este dato.
+ */
+function ChipEntrada({ entrada, transicion }) {
+  if (!entrada) return null;
+  const { modo, activo, onAlternar } = entrada;
+  const pulsable = typeof onAlternar === 'function';
+
+  return (
+    <button
+      onClick={pulsable ? onAlternar : undefined}
+      disabled={!pulsable}
+      title={pulsable ? 'Cambiar entre mando y controles táctiles' : undefined}
+      style={{
+        pointerEvents: pulsable ? 'auto' : 'none',
+        cursor: pulsable ? 'pointer' : 'default',
+        display: 'flex', alignItems: 'center', gap: '7px',
+        background: 'transparent', border: 'none', padding: 0,
+      }}
+    >
+      <div style={{
+        width: '7px', height: '7px', borderRadius: '50%',
+        background: activo ? 'var(--success)' : 'var(--muted)',
+        boxShadow: activo ? '0 0 8px var(--success)' : 'none',
+        transition: transicion,
+      }} />
+      <span style={{ ...S.etiqueta, fontSize: '0.62rem' }}>Entrada</span>
+      <span style={{
+        fontFamily: 'var(--font-ibm-mono)', fontSize: '0.95rem', lineHeight: 1,
+        color: 'var(--bone)', textTransform: 'uppercase', letterSpacing: '0.05em',
+      }}>
+        {modo}
+      </span>
+    </button>
+  );
+}
+
 /** Lectura genérica para los widgets de enlace: etiqueta, número grande y pie. */
 function ModuloDato({ titulo, valor, unidad, pie, transicion }) {
   const hayDato = valor !== null && valor !== undefined && valor !== '';
@@ -197,8 +253,18 @@ function ModuloDato({ titulo, valor, unidad, pie, transicion }) {
  *                     que tiene joystick y botones anclados al borde inferior.
  * @param margen       píxeles de separación desde ese borde. El operador lo usa
  *                     para no quedar debajo de su cabezal fijo.
+ * @param esencial     modo discreto, tipo OSD de dron: solo lo justo para
+ *                     comprobar qué está haciendo la unidad, en una sola línea
+ *                     y ocupando el ancho mínimo. El operador lo usa mientras
+ *                     los controles táctiles le ocupan las esquinas de abajo.
+ * @param entrada      { modo, activo, onAlternar } para el chip de ENTRADA. El
+ *                     estado del mando es telemetría del operador, así que vive
+ *                     aquí y no suelto por la pantalla.
  */
-export function BarraTelemetria({ room, fuenteLocal, posicion = 'abajo', margen = 0 }) {
+export function BarraTelemetria({
+  room, fuenteLocal, posicion = 'abajo', margen = 0, esencial = false, entrada,
+  accionesMenu = [],
+}) {
   const [telemetria, setTelemetria] = useState(TELEMETRIA_VACIA);
   const [enVivo, setEnVivo] = useState(false);
   const [compacta, setCompacta] = useState(() => window.innerWidth < 900);
@@ -286,6 +352,148 @@ export function BarraTelemetria({ room, fuenteLocal, posicion = 'abajo', margen 
 
   const arriba = posicion === 'arriba';
 
+  const panelMenu = menuAbierto ? (
+        <div
+          style={{
+            pointerEvents: 'auto',
+            position: 'absolute', right: esencial ? 0 : (compacta ? '20px' : '40px'), minWidth: '230px',
+            ...(arriba
+              ? { top: '100%', marginTop: '10px' }
+              : { bottom: '100%', marginBottom: '10px' }),
+            background: 'rgba(2, 7, 19, 0.96)', backdropFilter: 'blur(6px)',
+            border: '1px solid var(--border)', borderRadius: '4px', padding: '14px 16px',
+            display: 'flex', flexDirection: 'column', gap: '10px',
+          }}
+        >
+          <p style={{ ...S.etiqueta, margin: 0 }}>Elige qué ver</p>
+
+          {WIDGETS.map(({ id, label, fuente }) => {
+            const encendido = activos.includes(id);
+            // Un widget cuyos datos aún no llegan se puede encender igual, pero
+            // se avisa para que nadie crea que está roto.
+            const sinDatos = fuente === 'enlace' && necesitaEnlace && !enlace;
+            return (
+              <label
+                key={id}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer',
+                  fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem',
+                  color: encendido ? 'var(--bone)' : 'var(--muted)',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={encendido}
+                  onChange={() => alternar(id)}
+                  style={{ width: 'auto', accentColor: 'var(--accent)', cursor: 'pointer' }}
+                />
+                <span style={{ flex: 1 }}>{label}</span>
+                {sinDatos && <span style={{ fontSize: '0.65rem', color: 'var(--muted)' }}>sin datos</span>}
+              </label>
+            );
+          })}
+
+          <span style={{ ...S.pie, color: 'var(--muted)', fontSize: '0.65rem', lineHeight: 1.5 }}>
+            Tu selección se guarda en este navegador.
+          </span>
+
+          {/* Acciones que no son datos y por eso no van en la barra, pero que
+              tampoco merecen un botón fijo ocupando pantalla. */}
+          {accionesMenu.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+              {accionesMenu.map(({ label, onClick }) => (
+                <button
+                  key={label}
+                  onClick={onClick}
+                  style={{
+                    cursor: 'pointer', textAlign: 'left', background: 'transparent',
+                    border: '1px solid var(--border)', borderRadius: '4px', padding: '6px 10px',
+                    color: 'var(--muted)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null;
+
+  // Modo esencial: una sola línea con lo justo para comprobar qué está
+  // haciendo la unidad. Ancho mínimo y centrada, para caber en el hueco que
+  // dejan el joystick y los botones en sus esquinas.
+  if (esencial) {
+    const { avance, giro, actuadores } = telemetria;
+    const encendidos = ACTUADORES.filter(({ clave }) => actuadores[clave]);
+
+    return (
+      <div
+        style={{
+          position: 'absolute', bottom: margen, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 1000, pointerEvents: 'none', maxWidth: 'calc(100vw - 40px)',
+          opacity: enVivo ? 1 : 0.5,
+          transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
+        }}
+      >
+        <div style={{
+          display: 'flex', alignItems: 'center', flexWrap: 'wrap',
+          gap: '8px 18px', padding: '10px 18px',
+          background: 'rgba(2, 7, 19, 0.62)', backdropFilter: 'blur(6px)',
+          border: '1px solid var(--border)', borderRadius: '4px',
+        }}>
+          <LecturaCorta
+            titulo="Avance"
+            valor={avance ? `${avance.dir === 'atras' ? '▼' : '▲'} ${avance.nivel * 10}%` : '—'}
+            activo={Boolean(avance)}
+            transicion={transicion}
+          />
+          <LecturaCorta
+            titulo="Giro"
+            valor={giro ? `${giro.dir === 'izquierda' ? '◀' : '▶'} ${giro.nivel * 10}%` : '—'}
+            activo={Boolean(giro)}
+            transicion={transicion}
+          />
+          {/* Solo los encendidos: los apagados no gastan espacio aquí. */}
+          <LecturaCorta
+            titulo="Actuadores"
+            valor={encendidos.length > 0 ? encendidos.map((a) => a.abrev).join(' ') : '—'}
+            activo={encendidos.length > 0}
+            transicion={transicion}
+          />
+
+          <ChipEntrada entrada={entrada} transicion={transicion} />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+            <div style={{
+              width: '7px', height: '7px', borderRadius: '50%',
+              background: enVivo ? 'var(--success)' : 'var(--error)',
+              boxShadow: `0 0 8px ${enVivo ? 'var(--success)' : 'var(--error)'}`,
+              transition: transicion,
+            }} />
+            <span style={{ ...S.pie, fontSize: '0.62rem', color: enVivo ? 'var(--success)' : 'var(--error)' }}>
+              {!enVivo ? 'Sin señal' : telemetria.robot ? 'En vivo' : 'Sin robot'}
+            </span>
+          </div>
+
+          <button
+            onClick={() => setMenuAbierto((v) => !v)}
+            title="Elegir qué ver"
+            style={{
+              pointerEvents: 'auto', cursor: 'pointer', background: 'transparent',
+              border: 'none', padding: '0 2px', lineHeight: 1,
+              color: menuAbierto ? 'var(--accent)' : 'var(--muted)',
+              fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem',
+            }}
+          >
+            ⊞
+          </button>
+        </div>
+
+        {panelMenu}
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -356,6 +564,11 @@ export function BarraTelemetria({ room, fuenteLocal, posicion = 'abajo', margen 
         })}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignSelf: compacta ? 'flex-start' : 'flex-end' }}>
+          {entrada && (
+            <div style={{ marginBottom: '2px' }}>
+              <ChipEntrada entrada={entrada} transicion={transicion} />
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{
               width: '8px', height: '8px', borderRadius: '50%',
@@ -392,52 +605,7 @@ export function BarraTelemetria({ room, fuenteLocal, posicion = 'abajo', margen 
         </div>
       </div>
 
-      {menuAbierto && (
-        <div
-          style={{
-            pointerEvents: 'auto',
-            position: 'absolute', right: compacta ? '20px' : '40px', minWidth: '230px',
-            ...(arriba
-              ? { top: '100%', marginTop: '10px' }
-              : { bottom: '100%', marginBottom: '10px' }),
-            background: 'rgba(2, 7, 19, 0.96)', backdropFilter: 'blur(6px)',
-            border: '1px solid var(--border)', borderRadius: '4px', padding: '14px 16px',
-            display: 'flex', flexDirection: 'column', gap: '10px',
-          }}
-        >
-          <p style={{ ...S.etiqueta, margin: 0 }}>Elige qué ver</p>
-
-          {WIDGETS.map(({ id, label, fuente }) => {
-            const encendido = activos.includes(id);
-            // Un widget cuyos datos aún no llegan se puede encender igual, pero
-            // se avisa para que nadie crea que está roto.
-            const sinDatos = fuente === 'enlace' && necesitaEnlace && !enlace;
-            return (
-              <label
-                key={id}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer',
-                  fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem',
-                  color: encendido ? 'var(--bone)' : 'var(--muted)',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={encendido}
-                  onChange={() => alternar(id)}
-                  style={{ width: 'auto', accentColor: 'var(--accent)', cursor: 'pointer' }}
-                />
-                <span style={{ flex: 1 }}>{label}</span>
-                {sinDatos && <span style={{ fontSize: '0.65rem', color: 'var(--muted)' }}>sin datos</span>}
-              </label>
-            );
-          })}
-
-          <span style={{ ...S.pie, color: 'var(--muted)', fontSize: '0.65rem', lineHeight: 1.5 }}>
-            Tu selección se guarda en este navegador.
-          </span>
-        </div>
-      )}
+      {panelMenu}
     </div>
   );
 }
