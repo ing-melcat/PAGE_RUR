@@ -1,0 +1,152 @@
+/* ==================================================================
+   Barra de telemetría
+   ------------------------------------------------------------------
+   La tipografía sale de la escala que ya usa el sitio en src/index.css,
+   no de tamaños inventados: los títulos siguen a .panel-label, los pies
+   a .eyebrow, y todo lo numérico va en la mono institucional.
+
+   Está en CSS y no en estilos en línea a propósito: así hereda el modo
+   TEXTO GRANDE de accesibilidad, que actúa sobre body.large-text.
+   ================================================================== */
+
+/* Título de cada módulo. Mismo papel que .panel-label: nombra la sección
+   en ámbar, pequeño y muy espaciado. */
+.telemetria__titulo {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.75rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* La misma etiqueta cuando va en línea con su valor, sin subrayado ni
+   salto: en las lecturas de una sola línea el subrayado sobra. */
+.telemetria__titulo--inline {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* La lectura protagonista de un módulo. Es el único texto que se sale de
+   la escala normal, y esa es justamente su función: verse de un vistazo
+   sin tener que leer. */
+.telemetria__valor {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 2rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--bone);
+}
+
+.telemetria__valor--medio {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.telemetria__valor--apagado {
+  color: var(--muted);
+}
+
+/* Flechas de dirección: acompañan al número, no compiten con él. */
+.telemetria__flecha {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.telemetria__flecha--apagada {
+  color: var(--muted);
+}
+
+.telemetria__flecha--menor {
+  font-size: 0.9rem;
+}
+
+/* Unidad y pie de módulo. Papel de .eyebrow: contexto secundario que se
+   lee después del dato, nunca antes. */
+.telemetria__unidad,
+.telemetria__pie {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.telemetria__pie--destacado {
+  color: var(--bone);
+}
+
+.telemetria__pie--accion {
+  color: var(--accent);
+  min-height: 1em;
+}
+
+/* Nombre corto de un actuador dentro de su rejilla. */
+.telemetria__abrev {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.telemetria__abrev--encendido {
+  color: var(--bone);
+}
+
+/* Texto de las opciones del menú: es una lista para leer, así que va en
+   la sans del sitio y no en mono. */
+.telemetria__opcion {
+  font-family: var(--font-ibm-sans), sans-serif;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.telemetria__opcion--activa {
+  color: var(--bone);
+}
+
+.telemetria__nota {
+  font-family: var(--font-ibm-sans), sans-serif;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.telemetria__accion {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------
+   Texto grande (accesibilidad). Sin esto la barra sería lo único de la
+   consola que ignora la preferencia del usuario.
+   ------------------------------------------------------------------ */
+body.large-text .telemetria__titulo,
+body.large-text .telemetria__unidad,
+body.large-text .telemetria__pie,
+body.large-text .telemetria__abrev,
+body.large-text .telemetria__accion {
+  font-size: 0.85rem;
+}
+
+body.large-text .telemetria__valor {
+  font-size: 2.4rem;
+}
+
+body.large-text .telemetria__valor--medio {
+  font-size: 1.2rem;
+}
+
+body.large-text .telemetria__opcion {
+  font-size: 0.95rem;
+}
+
+body.large-text .telemetria__nota {
+  font-size: 0.85rem;
+}
