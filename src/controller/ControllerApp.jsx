@@ -238,7 +238,6 @@ export default function ControllerApp({ onBack, robot }) {
     if (state) {
       // Enviar inmediatamente + iniciar envío continuo cada 100ms
       sendCommand();
-      console.log('Sent command (START):', commandStr);
       if (!buttonIntervalsRef.current[key]) {
         buttonIntervalsRef.current[key] = setInterval(sendCommand, 100);
       }
@@ -249,7 +248,6 @@ export default function ControllerApp({ onBack, robot }) {
         delete buttonIntervalsRef.current[key];
       }
       sendCommand();
-      console.log('Sent command (STOP):', commandStr);
     }
   }, []);
 
@@ -374,11 +372,9 @@ export default function ControllerApp({ onBack, robot }) {
 
   useEffect(() => {
     const handleGamepadConnected = (e) => {
-      console.log("Gamepad connected:", e.gamepad.id);
       setHasGamepad(true);
     };
     const handleGamepadDisconnected = (e) => {
-      console.log("Gamepad disconnected:", e.gamepad.id);
       setHasGamepad(false);
     };
 
@@ -498,8 +494,6 @@ export default function ControllerApp({ onBack, robot }) {
       setRoom(roomInstance);
       roomRef.current = roomInstance;
       
-      console.log("Connection established to", finalUrl);
-      console.log("Current remote participants in room:", Array.from(roomInstance.remoteParticipants.values()).map(p => p.identity));
 
       // Solo cuentan los participantes que SON el robot. Contar cualquier
       // participante remoto valía cuando en la sala solo estaban operador y
@@ -509,11 +503,9 @@ export default function ControllerApp({ onBack, robot }) {
       refrescarEnlace();
 
       roomInstance.on(RoomEvent.ParticipantConnected, (participant) => {
-        console.log("NUEVO PARTICIPANTE CONECTADO:", participant.identity);
         refrescarEnlace();
       });
       roomInstance.on(RoomEvent.ParticipantDisconnected, (participant) => {
-        console.log("PARTICIPANTE DESCONECTADO:", participant.identity);
         refrescarEnlace();
       });
       setError(null);
