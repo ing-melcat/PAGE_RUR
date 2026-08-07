@@ -11,6 +11,8 @@ import {
   TOPIC_TELEMETRIA,
   decodificarTelemetria,
 } from '../telemetria';
+import { WIDGETS, cargarWidgets, guardarWidgets } from '../widgets';
+import { useEstadisticasEnlace } from '../useEstadisticasEnlace';
 
 /**
  * Barra de telemetría del espectador, al estilo de las transmisiones de SpaceX:
@@ -165,12 +167,51 @@ function ModuloActuadores({ actuadores, transicion }) {
   );
 }
 
+/** Lectura genérica para los widgets de enlace: etiqueta, número grande y pie. */
+function ModuloDato({ titulo, valor, unidad, pie, transicion }) {
+  const hayDato = valor !== null && valor !== undefined && valor !== '';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '92px' }}>
+      <p style={S.etiqueta}>{titulo}</p>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+        <span style={{
+          fontFamily: 'var(--font-ibm-mono)', fontSize: '1.6rem', lineHeight: 1,
+          color: hayDato ? 'var(--bone)' : 'var(--muted)', transition: transicion,
+        }}>
+          {hayDato ? valor : '—'}
+        </span>
+        {unidad && <span style={{ ...S.etiqueta, fontSize: '0.7rem' }}>{unidad}</span>}
+      </div>
+      <span style={{ ...S.pie, color: 'var(--muted)', minHeight: '1em' }}>{pie ?? ''}</span>
+    </div>
+  );
+}
+
 export function BarraTelemetria({ room }) {
   const [telemetria, setTelemetria] = useState(TELEMETRIA_VACIA);
   const [enVivo, setEnVivo] = useState(false);
   const [compacta, setCompacta] = useState(() => window.innerWidth < 900);
   const [sinMovimiento, setSinMovimiento] = useState(false);
+  const [activos, setActivos] = useState(cargarWidgets);
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const ultimoRef = useRef(0);
+
+  // Las estadísticas del enlace solo se piden si hay algún widget que las use:
+  // sin esto se estaría sondeando la conexión cada segundo para nada.
+  const necesitaEnlace = activos.some(
+    (id) => WIDGETS.find((w) => w.id === id)?.fuente === 'enlace'
+  );
+  const enlace = useEstadisticasEnlace(room, necesitaEnlace);
+
+  const alternar = (id) => {
+    setActivos((previos) => {
+      const siguientes = previos.includes(id)
+        ? previos.filter((x) => x !== id)
+        : [...previos, id];
+      guardarWidgets(siguientes);
+      return siguientes;
+    });
+  };
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -239,9 +280,47 @@ export function BarraTelemetria({ room }) {
           padding: compacta ? '14px 20px 18px' : '18px 40px 22px',
         }}
       >
-        <ModuloAvance avance={telemetria.avance} transicion={transicion} />
-        <ModuloGiro giro={telemetria.giro} transicion={transicion} />
-        <ModuloActuadores actuadores={telemetria.actuadores} transicion={transicion} />
+        {/* El orden lo manda el catálogo, no este archivo: así un widget nuevo
+            aparece en su sitio con solo añadirlo a WIDGETS. */}
+        {WIDGETS.filter((w) => activos.includes(w.id)).map(({ id }) => {
+          switch (id) {
+            case 'avance':
+              return <ModuloAvance key={id} avance={telemetria.avance} transicion={transicion} />;
+            case 'giro':
+              return <ModuloGiro key={id} giro={telemetria.giro} transicion={transicion} />;
+            case 'actuadores':
+              return <ModuloActuadores key={id} actuadores={telemetria.actuadores} transicion={transicion} />;
+            case 'calidad':
+              return <ModuloDato key={id} titulo="Enlace" valor={enlace?.calidad} transicion={transicion} />;
+            case 'bitrate':
+              return <ModuloDato key={id} titulo="Bitrate" valor={enlace?.bitrateKbps} unidad="kbps" transicion={transicion} />;
+            case 'video':
+              return (
+                <ModuloDato
+                  key={id}
+                  titulo="Video"
+                  valor={enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : null}
+                  pie={enlace?.fps != null ? `${enlace.fps} fps · ${enlace.framesCaidos} caídos` : ''}
+                  transicion={transicion}
+                />
+              );
+            case 'perdida':
+              return (
+                <ModuloDato
+                  key={id}
+                  titulo="Pérdida"
+                  valor={enlace?.perdidos}
+                  unidad="paq."
+                  pie={enlace?.jitterMs != null ? `jitter ${enlace.jitterMs} ms · búfer ${enlace.bufferMs} ms` : ''}
+                  transicion={transicion}
+                />
+              );
+            case 'audiencia':
+              return <ModuloDato key={id} titulo="Espectadores" valor={enlace?.espectadores} transicion={transicion} />;
+            default:
+              return null;
+          }
+        })}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignSelf: compacta ? 'flex-start' : 'flex-end' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -261,8 +340,69 @@ export function BarraTelemetria({ room }) {
           {enVivo && !telemetria.robot && (
             <span style={{ ...S.pie, color: 'var(--accent)' }}>Sin robot conectado</span>
           )}
+
+          {/* La barra entera lleva pointerEvents:none para no estorbar al video,
+              así que lo interactivo tiene que reactivarlo por su cuenta. */}
+          <button
+            onClick={() => setMenuAbierto((v) => !v)}
+            style={{
+              pointerEvents: 'auto', cursor: 'pointer', alignSelf: 'flex-start',
+              background: 'transparent', border: `1px solid ${menuAbierto ? 'var(--accent)' : 'var(--border)'}`,
+              color: menuAbierto ? 'var(--accent)' : 'var(--muted)',
+              borderRadius: '4px', padding: '4px 10px', marginTop: '2px',
+              fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem',
+              textTransform: 'uppercase', letterSpacing: '0.05em',
+            }}
+          >
+            ⊞ Widgets
+          </button>
         </div>
       </div>
+
+      {menuAbierto && (
+        <div
+          style={{
+            pointerEvents: 'auto',
+            position: 'absolute', bottom: '100%', right: compacta ? '20px' : '40px',
+            marginBottom: '10px', minWidth: '230px',
+            background: 'rgba(2, 7, 19, 0.96)', backdropFilter: 'blur(6px)',
+            border: '1px solid var(--border)', borderRadius: '4px', padding: '14px 16px',
+            display: 'flex', flexDirection: 'column', gap: '10px',
+          }}
+        >
+          <p style={{ ...S.etiqueta, margin: 0 }}>Elige qué ver</p>
+
+          {WIDGETS.map(({ id, label, fuente }) => {
+            const encendido = activos.includes(id);
+            // Un widget cuyos datos aún no llegan se puede encender igual, pero
+            // se avisa para que nadie crea que está roto.
+            const sinDatos = fuente === 'enlace' && necesitaEnlace && !enlace;
+            return (
+              <label
+                key={id}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer',
+                  fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem',
+                  color: encendido ? 'var(--bone)' : 'var(--muted)',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={encendido}
+                  onChange={() => alternar(id)}
+                  style={{ width: 'auto', accentColor: 'var(--accent)', cursor: 'pointer' }}
+                />
+                <span style={{ flex: 1 }}>{label}</span>
+                {sinDatos && <span style={{ fontSize: '0.65rem', color: 'var(--muted)' }}>sin datos</span>}
+              </label>
+            );
+          })}
+
+          <span style={{ ...S.pie, color: 'var(--muted)', fontSize: '0.65rem', lineHeight: 1.5 }}>
+            Tu selección se guarda en este navegador.
+          </span>
+        </div>
+      )}
     </div>
   );
 }
