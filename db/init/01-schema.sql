@@ -32,6 +32,10 @@ CREATE TABLE IF NOT EXISTS users (
     -- lo necesita también desde otra máquina, y no debe perderlo al recargar.
     large_text BOOLEAN NOT NULL DEFAULT false,
     reduce_animations BOOLEAN NOT NULL DEFAULT false,
+    -- Estilo de las tarjetas de la consola del operador: el clásico de tarjeta
+    -- maciza, o el lenguaje de la barra de telemetría. Misma razón que arriba
+    -- para vivir en la base: es del usuario, no del dispositivo.
+    panel_hud BOOLEAN NOT NULL DEFAULT false,
     control_mappings JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

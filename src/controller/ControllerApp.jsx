@@ -36,21 +36,6 @@ const SERVER_URL = import.meta.env.VITE_LIVEKIT_URL || "wss://rur-livekit-server
 // ---------------------------------------------------------------------------
 const PREFIJO_ROBOT = 'robot-';
 
-// Interruptores de prueba de la consola, con el mismo lenguaje que la barra.
-const estiloInterruptor = (activo) => ({
-  cursor: 'pointer',
-  background: 'rgba(2,7,19,0.7)',
-  backdropFilter: 'blur(4px)',
-  border: `1px solid ${activo ? 'var(--accent)' : 'var(--border)'}`,
-  color: activo ? 'var(--accent)' : 'var(--muted)',
-  borderRadius: '4px',
-  padding: '5px 12px',
-  fontFamily: 'var(--font-ibm-mono)',
-  fontSize: '0.7rem',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-});
-
 function identidadesDeRobots(room) {
   if (!room) return [];
   return Array.from(room.remoteParticipants.values())
@@ -128,7 +113,7 @@ function construirTelemetria({ avance: ejeAvance, giro: ejeGiro }, actuadoresInt
   };
 }
 
-export default function ControllerApp({ onBack, robot }) {
+export default function ControllerApp({ onBack, robot, estiloHud = false }) {
   const [isMobile] = useState(window.innerWidth <= 932);
   const [visible, setVisible] = useState(true);
   const [visible1, setVisible1] = useState(true);
@@ -177,11 +162,33 @@ export default function ControllerApp({ onBack, robot }) {
 
   // Misma barra que ve el espectador, pero alimentada en local: el operador
   // genera estos valores, no tiene por qué esperar a recibirlos de vuelta.
-  const [mostrarBarra, setMostrarBarra] = useState(false);
-  // Cambia el aspecto de las tarjetas de control al de los widgets de la barra.
-  // Es una clase en la raíz y no un cambio por componente, para poder ver los
-  // dos estilos sin tocar cada panel.
-  const [estiloHud, setEstiloHud] = useState(false);
+  //
+  // Con mando conectado los controles táctiles se ocultan (ver controls-overlay
+  // más abajo), y ese hueco es el que aprovecha la barra para expandirse.
+  const controlesOcultos = hasGamepad && !forceMobileMode;
+
+  const entradaActiva = {
+    modo: controlesOcultos ? 'Mando' : 'Táctil',
+    activo: hasGamepad,
+    // Solo tiene sentido alternar si de verdad hay un mando que ignorar.
+    onAlternar: hasGamepad ? () => setForceMobileMode((v) => !v) : undefined,
+  };
+
+  // Rescate para cuando la Gamepad API reporta un mando que no existe: sin
+  // esto los controles táctiles se quedan ocultos y la consola inservible.
+  const accionesMenu = hasGamepad
+    ? [{
+        label: 'Olvidar el mando detectado',
+        onClick: () => {
+          setHasGamepad(false);
+          setGamepadStatus('Reseteado. Modo manual activo.');
+          setForceMobileMode(false);
+          setVisible(true);
+          setVisible1(true);
+        },
+      }]
+    : [];
+
   const telemetriaLocal = useCallback(
     () => construirTelemetria(
       ejesTelemetriaRef.current,
@@ -599,91 +606,26 @@ export default function ControllerApp({ onBack, robot }) {
           isConnected={isConnected} />
       </div>
 
-      {/* Subtle Gamepad HUD Indicator */}
-      <div style={{ position: 'absolute', top: '80px', left: '20px', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '8px', textShadow: '1px 1px 2px rgba(0,0,0,0.8)', opacity: isFetchingToken ? 0 : 1, transition: 'opacity 0.5s' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: hasGamepad ? 'var(--success)' : 'var(--error)', boxShadow: `0 0 8px ${hasGamepad ? 'var(--success)' : 'var(--error)'}` }}></div>
-            <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-ibm-sans), Inter, sans-serif' }}>
-              {hasGamepad ? 'Controller Connected' : 'Controller Offline'}
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: '16px' }}>
-            <span style={{ color: '#b0b0b0', fontSize: '0.7rem', fontFamily: 'var(--font-ibm-mono), monospace' }}>
-              {gamepadStatus}
-            </span>
-            <button 
-              onClick={() => {
-                setHasGamepad(false);
-                setGamepadStatus("Reseteado. Modo manual activo.");
-                setForceMobileMode(false);
-                setVisible(true);
-                setVisible1(true);
-              }}
-              style={{
-                background: 'transparent',
-                color: 'var(--accent)',
-                border: '1px solid var(--accent)',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                fontFamily: 'var(--font-ibm-mono)',
-                fontSize: '0.65rem',
-                cursor: 'pointer',
-                textTransform: 'uppercase',
-                opacity: 0.6,
-                transition: 'opacity 0.2s',
-              }}
-              onMouseEnter={(e) => e.target.style.opacity = 1}
-              onMouseLeave={(e) => e.target.style.opacity = 0.6}
-              title="Reiniciar detector en caso de falsa detección"
-            >
-              Reset
-            </button>
-          </div>
-        </div>
+      {/* El estado del mando ya no vive suelto aquí: es telemetría del
+          operador y se muestra como el chip ENTRADA dentro de la barra, que
+          además es pulsable para volver a los controles táctiles. El Reset por
+          detección falsa pasó al menú de esa misma barra. */}
 
-        {/* Interruptores de prueba. Van bajo el cabezal y pegados a la derecha:
-            antes estaban centrados arriba, justo encima del título RASSOR-UI. */}
-        <div style={{
-          position: 'fixed', top: '70px', right: '16px', zIndex: 1001,
-          display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end',
-        }}>
-          <button onClick={() => setMostrarBarra((v) => !v)} style={estiloInterruptor(mostrarBarra)}>
-            {mostrarBarra ? '⊟ Ocultar telemetría' : '⊞ Telemetría'}
-          </button>
-          <button onClick={() => setEstiloHud((v) => !v)} style={estiloInterruptor(estiloHud)}>
-            {estiloHud ? '◧ Estilo clásico' : '◨ Estilo HUD'}
-          </button>
-        </div>
-
-        {/* El cabezal es fijo y mide unos 60 px, así que la barra arranca
-            debajo en vez de taparlo. */}
-        {mostrarBarra && (
-          <BarraTelemetria room={room} fuenteLocal={telemetriaLocal} posicion="arriba" margen={62} />
-        )}
-
-        {hasGamepad && (
-          <button 
-            onClick={() => setForceMobileMode(!forceMobileMode)}
-            style={{ 
-              background: forceMobileMode ? 'var(--accent)' : 'rgba(0,0,0,0.5)', 
-              color: forceMobileMode ? 'black' : 'var(--muted)', 
-              border: `1px solid ${forceMobileMode ? 'var(--accent)' : 'var(--border)'}`, 
-              padding: '6px 12px', 
-              borderRadius: '4px', 
-              fontFamily: 'var(--font-ibm-mono)', 
-              fontSize: '0.7rem', 
-              cursor: 'pointer',
-              textTransform: 'uppercase',
-              alignSelf: 'flex-start',
-              marginLeft: '16px',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            {forceMobileMode ? 'Volver a modo mando' : 'Forzar controles táctiles'}
-          </button>
-        )}
-      </div>
+      {/* Siempre visible, no detrás de un botón. En modo esencial ocupa solo el
+          hueco central que dejan el joystick y los botones en sus esquinas;
+          cuando la Gamepad API detecta mando esos controles se ocultan y la
+          barra se estira para aprovechar el espacio liberado. */}
+      {!isFetchingToken && (
+        <BarraTelemetria
+          room={room}
+          fuenteLocal={telemetriaLocal}
+          posicion="abajo"
+          margen={controlesOcultos ? 0 : 24}
+          esencial={!controlesOcultos}
+          entrada={entradaActiva}
+          accionesMenu={accionesMenu}
+        />
+      )}
 
       {/* 2. Interactive Controls Layered On Top */}
       <div className="controls-overlay" style={{ pointerEvents: (hasGamepad && !forceMobileMode) || isFetchingToken ? 'none' : 'auto' }}>
