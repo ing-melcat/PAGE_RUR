@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import logoUrl from './assets/isotipo.png';
 import logoBlancoUrl from './assets/real_images/isotipo_blanco.png';
+import { sanitizeHtml } from './lib/sanitizeHtml';
 
 // Carga diferida: three.js y @react-three pesan cerca de un megabyte y solo
 // hacen falta si la publicación trae modelo 3D. Antes viajaban en el paquete
@@ -268,7 +269,7 @@ export const PublicationPage = () => {
              transition={{ duration: 0.6 }}
              style={{ width: '100%', height: '100%' }}
            >
-             <div dangerouslySetInnerHTML={{ __html: (post.pages && post.pages.length > 0) ? post.pages[currentPage].content : (post.content || '') }} style={{ lineHeight: '1.8' }} />
+             <div dangerouslySetInnerHTML={{ __html: sanitizeHtml((post.pages && post.pages.length > 0) ? post.pages[currentPage].content : (post.content || '')) }} style={{ lineHeight: '1.8' }} />
            </motion.div>
         </div>
 

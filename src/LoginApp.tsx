@@ -4,6 +4,7 @@ import { Loader2, CheckCircle } from "lucide-react";
 import "./index.css";
 import { RobotSelection } from "./controller/RobotSelection";
 import { apiFetch } from "./lib/apiClient";
+import { sanitizeHtml } from "./lib/sanitizeHtml";
 
 const ControllerApp = lazy(() => import("./controller/ControllerApp"));
 
@@ -414,7 +415,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
               <textarea required value={content} onChange={(e) => setContent(e.target.value)} placeholder="<h1>Mi Artículo</h1><p>Escribe HTML aquí...</p>" style={{ flex: 1, padding: '20px', background: 'var(--background)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', width: '100%', minHeight: '400px', resize: 'vertical', fontFamily: 'var(--font-ibm-mono)' }}></textarea>
             ) : (
               <div style={{ flex: 1, padding: (type === 'evento' || type === 'aviso') ? '0px' : '40px', background: 'var(--background)', color: 'var(--text)', border: '1px solid var(--accent)', borderRadius: '4px', width: '100%', minHeight: '400px', overflowY: 'auto' }}>
-                <div dangerouslySetInnerHTML={{ __html: content }} style={{ lineHeight: '1.8' }} />
+                <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} style={{ lineHeight: '1.8' }} />
               </div>
             )}
           </div>
