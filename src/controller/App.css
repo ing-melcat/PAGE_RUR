@@ -507,3 +507,36 @@ div#container>.Datos {
 .controls-overlay .config-toggle {
   pointer-events: auto;
 }
+
+/* ------------------------------------------------------------------
+   Estilo HUD (en prueba)
+   Las tarjetas de control adoptan el lenguaje de la barra de telemetría:
+   translúcidas en vez de macizas, sin sombra pesada, y con el título
+   convertido en etiqueta apagada en lugar de encabezado en ámbar.
+   Se activa con la clase .hud en la raíz para poder comparar los dos
+   estilos sin tocar cada componente.
+   ------------------------------------------------------------------ */
+.hud .Datos {
+  background-color: rgba(2, 7, 19, 0.55);
+  border: 1px solid rgba(245, 243, 233, 0.12);
+  border-radius: 4px;
+  box-shadow: none;
+  backdrop-filter: blur(6px);
+  padding: 16px 18px;
+  min-height: 0;
+}
+
+/* Las esquineras de mira sobran en este lenguaje: la barra no las tiene. */
+.hud .Datos::before,
+.hud .Datos::after {
+  display: none;
+}
+
+.hud .Datos h3 {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 12px;
+}

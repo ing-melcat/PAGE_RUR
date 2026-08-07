@@ -195,8 +195,10 @@ function ModuloDato({ titulo, valor, unidad, pie, transicion }) {
  *                     esperarlos de vuelta por la red.
  * @param posicion     'abajo' para el espectador, 'arriba' para el operador,
  *                     que tiene joystick y botones anclados al borde inferior.
+ * @param margen       píxeles de separación desde ese borde. El operador lo usa
+ *                     para no quedar debajo de su cabezal fijo.
  */
-export function BarraTelemetria({ room, fuenteLocal, posicion = 'abajo' }) {
+export function BarraTelemetria({ room, fuenteLocal, posicion = 'abajo', margen = 0 }) {
   const [telemetria, setTelemetria] = useState(TELEMETRIA_VACIA);
   const [enVivo, setEnVivo] = useState(false);
   const [compacta, setCompacta] = useState(() => window.innerWidth < 900);
@@ -288,7 +290,7 @@ export function BarraTelemetria({ room, fuenteLocal, posicion = 'abajo' }) {
     <div
       style={{
         position: 'absolute', left: 0, right: 0, zIndex: 1000,
-        ...(arriba ? { top: 0 } : { bottom: 0 }),
+        ...(arriba ? { top: margen } : { bottom: margen }),
         // Degradado en vez de un bloque sólido: no corta el video en seco. Se
         // invierte según el borde al que esté pegada, para que lo opaco quede
         // siempre del lado del borde.
