@@ -66,8 +66,23 @@ rur.unipolidgo.edu.mx {
 		header /index.html Cache-Control "no-cache"
 		header / Cache-Control "no-cache"
 
-		# SPA: cualquier ruta que no sea un archivo real cae a index.html.
 		root * /srv/releases/current
+
+		# Un asset que no existe tiene que fallar como tal. Sin esto lo recoge
+		# el try_files de abajo y se responde index.html con código 200 y tipo
+		# text/html: el navegador intenta ejecutar HTML como JavaScript, el
+		# import falla y React desmonta la aplicación entera, dejando la
+		# pantalla vacía sin decir por qué.
+		#
+		# Ocurre cuando un navegador conserva un index.html viejo que pide
+		# archivos de una release ya rotada.
+		@assetPerdido {
+			path /assets/*
+			not file
+		}
+		respond @assetPerdido 404
+
+		# SPA: cualquier otra ruta que no sea un archivo real cae a index.html.
 		try_files {path} /index.html
 		file_server
 	}

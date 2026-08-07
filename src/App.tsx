@@ -1,5 +1,6 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { Routes, Route, Link, Outlet, useLocation } from 'react-router-dom';
+import { lazyConRecarga, marcarArranqueCorrecto } from './lib/lazyConRecarga';
 import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion';
 import { MapPin, Phone, Mail, Menu, X } from 'lucide-react';
 import logoUrl from './assets/isotipo.png';
@@ -12,10 +13,10 @@ import imgRassor from './assets/real_images/rassor1.jpeg';
 import imgLine from './assets/real_images/line.jpeg';
 // Carga diferida: arrastra livekit-client, que no tiene por qué pesar en el
 // bundle de quien solo entra a la web pública.
-const SpectatorApp = React.lazy(() => import('./controller/SpectatorApp'));
+const SpectatorApp = lazyConRecarga(() => import('./controller/SpectatorApp'));
 // Igual con el panel: arrastra el visor 3D de la selección de unidad, y con él
 // three.js entero. Quien solo visita la web pública no tiene por qué cargarlo.
-const LoginApp = React.lazy(() => import('./LoginApp'));
+const LoginApp = lazyConRecarga(() => import('./LoginApp'));
 import './App.css';
 import { Landing, PublicationPage, ArchiveDashboard } from './Landing';
 
@@ -499,6 +500,12 @@ const ComingSoon = () => (
 // --- APP PRINCIPAL ---
 function App() {
   const location = useLocation();
+
+  // Si hemos llegado hasta aquí, el shell cargó bien: un fallo futuro de módulo
+  // vuelve a tener derecho a su recarga automática.
+  useEffect(() => {
+    marcarArranqueCorrecto();
+  }, []);
 
   useEffect(() => {
     if (!location.pathname.startsWith('/login')) {

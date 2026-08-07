@@ -36,7 +36,10 @@ function PlaceholderRobotModel({ isOffline }) {
     }
   });
 
-  const color = "var(--accent)";
+  // Literal y no var(--accent): three.js no resuelve variables CSS, descarta el
+  // valor y cae a blanco. Por eso la vista previa nunca salió en ámbar, y de
+  // ahí el aviso "Unknown color model var(--accent)" en la consola.
+  const color = "#FBCA01";
   const materialColor = isOffline ? "#555555" : color;
 
   return (
