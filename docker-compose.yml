@@ -33,7 +33,7 @@ services:
       - NODE_ENV=production
       - PORT=80
       - JWT_SECRET=${JWT_SECRET}
-      - CORS_ORIGIN=https://rur.unipolidgo.edu.mx
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://rur.unipolidgo.edu.mx}
     volumes:
       - ./api/data:/app/api/data
       - ./uploads:/app/api/uploads
@@ -50,7 +50,7 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - JWT_SECRET=${JWT_SECRET}
-      - CORS_ORIGIN=https://rur.unipolidgo.edu.mx
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://rur.unipolidgo.edu.mx}
       - PGHOST=db
       - PGPORT=5432
       - PGUSER=svc_identity_role
@@ -72,7 +72,7 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - JWT_SECRET=${JWT_SECRET}
-      - CORS_ORIGIN=https://rur.unipolidgo.edu.mx
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://rur.unipolidgo.edu.mx}
       - PGHOST=db
       - PGPORT=5432
       - PGUSER=svc_content_role
@@ -96,7 +96,7 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - JWT_SECRET=${JWT_SECRET}
-      - CORS_ORIGIN=https://rur.unipolidgo.edu.mx
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://rur.unipolidgo.edu.mx}
       - ROBOTS_SECRET_KEY=${ROBOTS_SECRET_KEY}
       - CROWDSEC_API_KEY=${CROWDSEC_API_KEY}
       - PGHOST=db
