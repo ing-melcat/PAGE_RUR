@@ -138,7 +138,6 @@ export default function ControllerApp({ onBack, robot }) {
   const [sensitivity, setSensitivity] = useState(1.0)
 
   const [hasGamepad, setHasGamepad] = useState(false);
-  const [gamepadStatus, setGamepadStatus] = useState("Iniciando Gamepad API...");
   const [forceMobileMode, setForceMobileMode] = useState(false);
   
   const gamepadStateRef = useRef({ x: 0, y: 0, buttons: {} });
@@ -181,7 +180,6 @@ export default function ControllerApp({ onBack, robot }) {
         label: 'Olvidar el mando detectado',
         onClick: () => {
           setHasGamepad(false);
-          setGamepadStatus('Reseteado. Modo manual activo.');
           setForceMobileMode(false);
           setVisible(true);
           setVisible1(true);
@@ -378,12 +376,10 @@ export default function ControllerApp({ onBack, robot }) {
     const handleGamepadConnected = (e) => {
       console.log("Gamepad connected:", e.gamepad.id);
       setHasGamepad(true);
-      setGamepadStatus(`Conectado: ${e.gamepad.id}`);
     };
     const handleGamepadDisconnected = (e) => {
       console.log("Gamepad disconnected:", e.gamepad.id);
       setHasGamepad(false);
-      setGamepadStatus("Desconectado. Esperando gamepad...");
     };
 
     window.addEventListener("gamepadconnected", handleGamepadConnected);
@@ -412,7 +408,6 @@ export default function ControllerApp({ onBack, robot }) {
             if (x !== gamepadStateRef.current.x || y !== gamepadStateRef.current.y) {
               if (!hasGamepad && (Math.abs(x) > 0 || Math.abs(y) > 0)) {
                 setHasGamepad(true);
-                setGamepadStatus("Mando detectado. Controles táctiles ocultos.");
               }
               handleMove(x, y);
               gamepadStateRef.current.x = x;
@@ -425,7 +420,6 @@ export default function ControllerApp({ onBack, robot }) {
               if (pressed && !wasPressed) {
                 if (!hasGamepad) {
                   setHasGamepad(true);
-                  setGamepadStatus("Mando detectado. Controles táctiles ocultos.");
                 }
                 handleAction(component, action, stateVal);
                 gamepadStateRef.current.buttons[index] = true;
@@ -454,7 +448,6 @@ export default function ControllerApp({ onBack, robot }) {
       if (activeKeys.includes(e.key.toLowerCase())) {
         if (!hasGamepad) {
           setHasGamepad(true);
-          setGamepadStatus("Teclado detectado. Controles táctiles ocultos.");
         }
       }
     };

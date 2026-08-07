@@ -15,6 +15,29 @@ rur.unipolidgo.edu.mx {
 	@content path /api/posts* /api/upload /api/uploads/*
 	@robots path /api/robots* /api/livekit* /api/crowdsec/* /api/logs
 
+	# Los assets de Vite llevan un hash del contenido en el nombre
+	# (index-Ch5YNdbK.js), así que son inmutables por construcción: si cambia
+	# el archivo, cambia el nombre. Nunca se puede servir uno viejo por error.
+	@assets path /assets/*
+
+	# Cabeceras de seguridad. El sitio tiene panel de administración con sesión
+	# por cookie y un espectador público sin autenticar, así que estas no son
+	# adorno.
+	header {
+		# Obliga a HTTPS en las siguientes visitas, sin dar la oportunidad de
+		# una primera petición en claro que se pueda interceptar.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# Impide que un archivo subido por /api/upload se reinterprete como
+		# script solo porque el navegador adivine su tipo.
+		X-Content-Type-Options "nosniff"
+		# Que los enlaces de espectador no filtren la ruta interna al salir.
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# Nadie embebe el panel en un iframe ajeno.
+		X-Frame-Options "SAMEORIGIN"
+		# Caddy lo anuncia por defecto; no hace falta decir qué servidor somos.
+		-Server
+	}
+
 	# route{} fuerza el orden literal en que aparecen los directivas abajo.
 	# Sin esto, el orden de prioridad interno de Caddy ejecuta try_files
 	# ANTES que reverse_proxy, así que /api/posts (que no es un archivo real
@@ -30,6 +53,18 @@ rur.unipolidgo.edu.mx {
 		# Robots: CRUD, tokens de LiveKit (incluye el espectador público),
 		# logs, métricas de CrowdSec.
 		reverse_proxy @robots svc-robots:3001
+
+		# Los assets con hash se cachean un año. Son la mayor parte del peso
+		# de la página, y sin esto el navegador los volvía a pedir en cada
+		# visita pese a no haber cambiado.
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+
+		# index.html NO se cachea: es el que apunta a los assets con hash, así
+		# que un index viejo carga la aplicación vieja aunque el servidor ya
+		# tenga la nueva. Sin esta línea el navegador aplicaba caché heurística
+		# y los despliegues tardaban en verse, o no se veían.
+		header /index.html Cache-Control "no-cache"
+		header / Cache-Control "no-cache"
 
 		# SPA: cualquier ruta que no sea un archivo real cae a index.html.
 		root * /srv/releases/current

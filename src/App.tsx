@@ -2,8 +2,6 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { Routes, Route, Link, Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion';
 import { MapPin, Phone, Mail, Menu, X } from 'lucide-react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Bounds, useGLTF } from '@react-three/drei';
 import logoUrl from './assets/isotipo.png';
 import logoBlancoUrl from './assets/real_images/isotipo_blanco.png';
 import imgMembers from './assets/real_images/rur-members1.jpeg';
@@ -173,12 +171,6 @@ const Explora = () => (
     </section>
   </div>
 );
-
-// Componente para cargar el modelo GLTF
-function PrototypeModel({ url }: { url: string }) {
-  const { scene } = useGLTF(url);
-  return <primitive object={scene} />;
-}
 
 const Descubre = () => (
   <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
