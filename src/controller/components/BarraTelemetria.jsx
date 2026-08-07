@@ -187,7 +187,16 @@ function ModuloDato({ titulo, valor, unidad, pie, transicion }) {
   );
 }
 
-export function BarraTelemetria({ room }) {
+/**
+ * @param room         sala de LiveKit, para las estadísticas del enlace.
+ * @param fuenteLocal  si se pasa, la telemetría se toma llamando a esta función
+ *                     en vez de escuchar el canal de datos. Lo usa el operador,
+ *                     que genera esos valores él mismo y no tiene por qué
+ *                     esperarlos de vuelta por la red.
+ * @param posicion     'abajo' para el espectador, 'arriba' para el operador,
+ *                     que tiene joystick y botones anclados al borde inferior.
+ */
+export function BarraTelemetria({ room, fuenteLocal, posicion = 'abajo' }) {
   const [telemetria, setTelemetria] = useState(TELEMETRIA_VACIA);
   const [enVivo, setEnVivo] = useState(false);
   const [compacta, setCompacta] = useState(() => window.innerWidth < 900);
@@ -227,8 +236,24 @@ export function BarraTelemetria({ room }) {
     return () => window.removeEventListener('resize', alRedimensionar);
   }, []);
 
+  // Fuente local (operador): se sondea su propio estado al mismo ritmo al que
+  // publica. El estado vive aquí dentro y no en quien nos llama, para no
+  // re-renderizar toda la consola diez veces por segundo.
   useEffect(() => {
-    if (!room) return;
+    if (!fuenteLocal) return;
+    const id = setInterval(() => {
+      const datos = fuenteLocal();
+      if (!datos) return;
+      ultimoRef.current = Date.now();
+      setEnVivo(true);
+      setTelemetria(datos);
+    }, 100);
+    return () => clearInterval(id);
+  }, [fuenteLocal]);
+
+  // Fuente remota (espectador): el canal de datos de la sala.
+  useEffect(() => {
+    if (fuenteLocal || !room) return;
 
     const alRecibir = (payload, _participante, _kind, topic) => {
       if (topic !== TOPIC_TELEMETRIA) return;
@@ -241,7 +266,7 @@ export function BarraTelemetria({ room }) {
 
     room.on(RoomEvent.DataReceived, alRecibir);
     return () => room.off(RoomEvent.DataReceived, alRecibir);
-  }, [room]);
+  }, [room, fuenteLocal]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -257,20 +282,26 @@ export function BarraTelemetria({ room }) {
   // añadir retraso perceptible por encima de los 100 ms que ya tarda el dato.
   const transicion = sinMovimiento ? 'none' : 'all 0.1s linear';
 
+  const arriba = posicion === 'arriba';
+
   return (
     <div
       style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 1000,
-        // Degradado en vez de un bloque sólido: no corta el video en seco.
-        background: 'linear-gradient(to bottom, rgba(2, 7, 19, 0) 0%, rgba(2, 7, 19, 0.85) 45%, rgba(2, 7, 19, 0.94) 100%)',
-        paddingTop: '28px',
+        position: 'absolute', left: 0, right: 0, zIndex: 1000,
+        ...(arriba ? { top: 0 } : { bottom: 0 }),
+        // Degradado en vez de un bloque sólido: no corta el video en seco. Se
+        // invierte según el borde al que esté pegada, para que lo opaco quede
+        // siempre del lado del borde.
+        background: `linear-gradient(to ${arriba ? 'top' : 'bottom'}, rgba(2, 7, 19, 0) 0%, rgba(2, 7, 19, 0.85) 45%, rgba(2, 7, 19, 0.94) 100%)`,
+        ...(arriba ? { paddingBottom: '28px' } : { paddingTop: '28px' }),
+        display: 'flex', flexDirection: arriba ? 'column-reverse' : 'column',
         // Informativa: nunca debe robarle el clic al enlace de Salir ni al video.
         pointerEvents: 'none',
         opacity: enVivo ? 1 : 0.45,
         transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
       }}
     >
-      <div style={{ borderTop: '1px solid var(--border)', margin: '0 24px' }} />
+      <div style={{ [arriba ? 'borderBottom' : 'borderTop']: '1px solid var(--border)', margin: '0 24px' }} />
       <div
         style={{
           display: 'flex', alignItems: 'flex-start',
@@ -363,8 +394,10 @@ export function BarraTelemetria({ room }) {
         <div
           style={{
             pointerEvents: 'auto',
-            position: 'absolute', bottom: '100%', right: compacta ? '20px' : '40px',
-            marginBottom: '10px', minWidth: '230px',
+            position: 'absolute', right: compacta ? '20px' : '40px', minWidth: '230px',
+            ...(arriba
+              ? { top: '100%', marginTop: '10px' }
+              : { bottom: '100%', marginBottom: '10px' }),
             background: 'rgba(2, 7, 19, 0.96)', backdropFilter: 'blur(6px)',
             border: '1px solid var(--border)', borderRadius: '4px', padding: '14px 16px',
             display: 'flex', flexDirection: 'column', gap: '10px',
