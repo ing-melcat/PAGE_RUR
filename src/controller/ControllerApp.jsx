@@ -443,20 +443,19 @@ export default function ControllerApp({ onBack, robot }) {
 
     animationFrameId = requestAnimationFrame(pollGamepad);
 
-    const handleAnyKeyDown = (e) => {
-      const activeKeys = ['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','q','e','o','p'];
-      if (activeKeys.includes(e.key.toLowerCase())) {
-        if (!hasGamepad) {
-          setHasGamepad(true);
-        }
-      }
-    };
-    window.addEventListener("keydown", handleAnyKeyDown);
+    // Antes, pulsar W/A/S/D, una flecha o Q/E/O/P marcaba hasGamepad y con ello
+    // se ocultaba TODA la capa de controles: brazos, tambores, joystick y
+    // estado. O sea que conducir con el teclado dejaba la consola en blanco,
+    // sin nada visible salvo el fondo.
+    //
+    // Usar el teclado no significa querer la pantalla vacía: se puede alternar
+    // entre teclado y dedo en la misma sesión. Solo un mando de verdad
+    // reemplaza a los controles táctiles, y eso ya lo detectan el evento
+    // gamepadconnected y el sondeo de ejes de aquí arriba.
 
     return () => {
       window.removeEventListener("gamepadconnected", handleGamepadConnected);
       window.removeEventListener("gamepaddisconnected", handleGamepadDisconnected);
-      window.removeEventListener("keydown", handleAnyKeyDown);
       cancelAnimationFrame(animationFrameId);
     };
   }, [hasGamepad, handleMove, handleAction]);
