@@ -10,10 +10,12 @@ import imgDelivery from './assets/real_images/delivery.jpg';
 import imgLumobox from './assets/real_images/lumobox.jpg';
 import imgRassor from './assets/real_images/rassor1.jpeg';
 import imgLine from './assets/real_images/line.jpeg';
-import LoginApp from './LoginApp';
 // Carga diferida: arrastra livekit-client, que no tiene por qué pesar en el
 // bundle de quien solo entra a la web pública.
 const SpectatorApp = React.lazy(() => import('./controller/SpectatorApp'));
+// Igual con el panel: arrastra el visor 3D de la selección de unidad, y con él
+// three.js entero. Quien solo visita la web pública no tiene por qué cargarlo.
+const LoginApp = React.lazy(() => import('./LoginApp'));
 import './App.css';
 import { Landing, PublicationPage, ArchiveDashboard } from './Landing';
 
@@ -538,7 +540,14 @@ function App() {
             </Suspense>
           }
         />
-        <Route path="/login/*" element={<PageTransition><LoginApp /></PageTransition>} />
+        <Route
+          path="/login/*"
+          element={
+            <Suspense fallback={null}>
+              <PageTransition><LoginApp /></PageTransition>
+            </Suspense>
+          }
+        />
       </Routes>
     </AnimatePresence>
   );
