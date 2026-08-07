@@ -75,8 +75,13 @@ export function RobotSelection({ robots, onSelectRobot, onBack, onAddRobot, onUp
         }
     }, [configRobot]);
 
-    const activeRobots = robots.filter(r => r.status === 'online');
-    const inactiveRobots = robots.filter(r => r.status !== 'online');
+    // Todos van a la rejilla, encendidos o no. Antes solo entraban los que
+    // estaban 'online' y el resto acababa en una fila diminuta abajo; desde que
+    // el estado refleja de verdad si el receptor del robot esta en la sala, eso
+    // dejaba la pantalla de seleccion practicamente vacia.
+    const robotsOrdenados = [...robots].sort(
+        (a, b) => (a.status === 'online' ? 0 : 1) - (b.status === 'online' ? 0 : 1)
+    );
 
     const handleSelect = async (robot) => {
         setLoading(true);
@@ -180,7 +185,7 @@ export function RobotSelection({ robots, onSelectRobot, onBack, onAddRobot, onUp
                 </div>
             </div>
 
-            {/* GRID DE ROBOTS ACTIVOS */}
+            {/* GRID DE UNIDADES */}
             <motion.div 
                 variants={{
                     hidden: { opacity: 0 },
@@ -193,7 +198,9 @@ export function RobotSelection({ robots, onSelectRobot, onBack, onAddRobot, onUp
                 animate="show"
                 style={{ display: 'grid', gap: '24px', gridTemplateColumns: `repeat(${columns}, 1fr)`, flex: 1 }}
             >
-                {activeRobots.map((robot) => (
+                {robotsOrdenados.map((robot) => {
+                    const enLinea = robot.status === 'online';
+                    return (
                     <motion.div
                         key={robot.id}
                         variants={{
@@ -214,14 +221,28 @@ export function RobotSelection({ robots, onSelectRobot, onBack, onAddRobot, onUp
                         <Robot3DPreview status={robot.status} modelUrl={robot.modelUrl} />
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
                             <h3 style={{ margin: 0, fontSize: '1.1rem', fontFamily: 'var(--font-ibm-mono)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>{robot.name}</h3>
-                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--success)' }} title="En línea" />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: enLinea ? 'var(--success)' : 'var(--error)' }} />
+                                <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', letterSpacing: '0.05em', color: enLinea ? 'var(--success)' : 'var(--error)' }}>
+                                    {enLinea ? 'EN LÍNEA' : 'APAGADO'}
+                                </span>
+                            </div>
                         </div>
                         <div style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)', display: 'flex', justifyContent: 'space-between' }}>
                             <span>{robot.id.toUpperCase()}</span>
                             <span style={{ color: 'var(--accent)' }}>{robot.room || `room-${robot.id.toLowerCase()}`}</span>
                         </div>
+                        {/* Se puede abrir igual: la consola sirve para prepararla
+                            o para esperar a que el robot arranque, y ya avisa por
+                            su cuenta cuando no hay nadie escuchando. */}
+                        {!enLinea && (
+                            <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', color: 'var(--muted)' }}>
+                                Abrir consola de todos modos →
+                            </span>
+                        )}
                     </motion.div>
-                ))}
+                    );
+                })}
             </motion.div>
 
             {/* LOADING OVERLAY */}
@@ -241,36 +262,13 @@ export function RobotSelection({ robots, onSelectRobot, onBack, onAddRobot, onUp
                 )}
             </AnimatePresence>
 
-            {/* FOOTER: Volver + Robots inactivos */}
+            {/* FOOTER */}
             <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: '32px' }}>
                 <button className="back-link" onClick={onBack}>← Volver al Menú</button>
-                <div style={{ display: 'flex', gap: '8px', flexDirection: 'column', alignItems: 'flex-end' }}>
-                    {/* Los robots apagados también se pueden abrir. Antes eran
-                        texto muerto, así que si el robot no estaba encendido no
-                        había forma de entrar a la consola —ni para prepararla,
-                        ni para esperar a que el robot arranque, ni para probar
-                        la interfaz. La consola avisa por su cuenta cuando no hay
-                        robot escuchando. */}
-                    {inactiveRobots.map((robot, i) => (
-                        <motion.div
-                            key={robot.id}
-                            initial={{ opacity: 0, x: 12 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }}
-                            whileHover={{ x: -4 }}
-                            whileTap={{ scale: 0.97 }}
-                            onClick={() => handleSelect(robot)}
-                            title="Abrir la consola sin el robot encendido"
-                            style={{ padding: '6px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', pointerEvents: loading ? 'none' : 'auto' }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--muted)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
-                        >
-                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--error)' }} />
-                            {robot.name} <span style={{ color: 'var(--error)' }}>(offline)</span>
-                            <span style={{ color: 'var(--accent)', fontSize: '0.7rem' }}>abrir →</span>
-                        </motion.div>
-                    ))}
-                </div>
+                {/* Los robots apagados ya no viven aquí abajo: ahora salen en
+                    la rejilla como los demás, marcados en rojo. Tenerlos en una
+                    lista aparte dejaba la pantalla vacía cuando ninguno estaba
+                    encendido, que es lo normal hasta que arranca el receptor. */}
             </div>
 
             {/* ============================================================ */}
