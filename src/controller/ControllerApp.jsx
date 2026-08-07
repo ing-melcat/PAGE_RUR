@@ -113,7 +113,7 @@ function construirTelemetria({ avance: ejeAvance, giro: ejeGiro }, actuadoresInt
   };
 }
 
-export default function ControllerApp({ onBack, robot, estiloHud = false }) {
+export default function ControllerApp({ onBack, robot }) {
   const [isMobile] = useState(window.innerWidth <= 932);
   const [visible, setVisible] = useState(true);
   const [visible1, setVisible1] = useState(true);
@@ -587,7 +587,7 @@ export default function ControllerApp({ onBack, robot, estiloHud = false }) {
   }, []);
 
   return (
-    <div className={`App App-header${estiloHud ? ' hud' : ''}`}>
+    <div className="App App-header">
       {isFetchingToken && (
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', zIndex: 999999, background: 'var(--background)' }}>
           <div className="loading-spinner" style={{ width: '64px', height: '64px', border: '4px solid var(--surface)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '24px' }} />

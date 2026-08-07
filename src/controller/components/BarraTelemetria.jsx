@@ -26,9 +26,28 @@ import { useEstadisticasEnlace } from '../useEstadisticasEnlace';
 
 const APAGADO = 'rgba(245, 243, 233, 0.12)';
 
+// El mismo lenguaje que el resto del sitio: las tarjetas .Datos de App.css y
+// los paneles del panel de administración. Fondo sólido en --surface, esquinas
+// afiladas de 2px y títulos en ámbar subrayados, en vez del HUD translúcido con
+// etiquetas apagadas que se probó antes.
+const TARJETA = {
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  borderRadius: '2px',
+  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
+  backdropFilter: 'blur(4px)',
+};
+
 const S = {
   etiqueta: {
-    fontFamily: 'var(--font-ibm-mono)', fontSize: '0.68rem', color: 'var(--muted)',
+    fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--accent)',
+    textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0,
+    borderBottom: '1px solid var(--border)', paddingBottom: '8px',
+  },
+  // Etiqueta suelta, para las lecturas de una línea: ahí el subrayado del
+  // título de tarjeta no pinta nada.
+  inline: {
+    fontFamily: 'var(--font-ibm-mono)', fontSize: '0.65rem', color: 'var(--accent)',
     textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0,
   },
   pie: {
@@ -76,7 +95,7 @@ function ModuloAvance({ avance, transicion }) {
         }}>
           {nivel * 10}
         </span>
-        <span style={{ ...S.etiqueta, fontSize: '0.8rem' }}>%</span>
+        <span style={S.inline}>%</span>
       </div>
       <BarraSegmentos nivel={nivel} transicion={transicion} />
       <span style={{ ...S.pie, color: activo ? 'var(--bone)' : 'var(--muted)' }}>
@@ -174,7 +193,7 @@ function ModuloActuadores({ actuadores, transicion }) {
 function LecturaCorta({ titulo, valor, activo, transicion }) {
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px' }}>
-      <span style={{ ...S.etiqueta, fontSize: '0.62rem' }}>{titulo}</span>
+      <span style={S.inline}>{titulo}</span>
       <span style={{
         fontFamily: 'var(--font-ibm-mono)', fontSize: '0.95rem', lineHeight: 1,
         color: activo ? 'var(--bone)' : 'var(--muted)', transition: transicion,
@@ -212,7 +231,7 @@ function ChipEntrada({ entrada, transicion }) {
         boxShadow: activo ? '0 0 8px var(--success)' : 'none',
         transition: transicion,
       }} />
-      <span style={{ ...S.etiqueta, fontSize: '0.62rem' }}>Entrada</span>
+      <span style={S.inline}>Entrada</span>
       <span style={{
         fontFamily: 'var(--font-ibm-mono)', fontSize: '0.95rem', lineHeight: 1,
         color: 'var(--bone)', textTransform: 'uppercase', letterSpacing: '0.05em',
@@ -360,8 +379,7 @@ export function BarraTelemetria({
             ...(arriba
               ? { top: '100%', marginTop: '10px' }
               : { bottom: '100%', marginBottom: '10px' }),
-            background: 'rgba(2, 7, 19, 0.96)', backdropFilter: 'blur(6px)',
-            border: '1px solid var(--border)', borderRadius: '4px', padding: '14px 16px',
+            ...TARJETA, padding: '14px 16px',
             display: 'flex', flexDirection: 'column', gap: '10px',
           }}
         >
@@ -436,10 +454,9 @@ export function BarraTelemetria({
         }}
       >
         <div style={{
+          ...TARJETA,
           display: 'flex', alignItems: 'center', flexWrap: 'wrap',
-          gap: '8px 18px', padding: '10px 18px',
-          background: 'rgba(2, 7, 19, 0.62)', backdropFilter: 'blur(6px)',
-          border: '1px solid var(--border)', borderRadius: '4px',
+          gap: '8px 18px', padding: '12px 20px',
         }}>
           <LecturaCorta
             titulo="Avance"
@@ -499,11 +516,14 @@ export function BarraTelemetria({
       style={{
         position: 'absolute', left: 0, right: 0, zIndex: 1000,
         ...(arriba ? { top: margen } : { bottom: margen }),
-        // Degradado en vez de un bloque sólido: no corta el video en seco. Se
-        // invierte según el borde al que esté pegada, para que lo opaco quede
-        // siempre del lado del borde.
-        background: `linear-gradient(to ${arriba ? 'top' : 'bottom'}, rgba(2, 7, 19, 0) 0%, rgba(2, 7, 19, 0.85) 45%, rgba(2, 7, 19, 0.94) 100%)`,
-        ...(arriba ? { paddingBottom: '28px' } : { paddingTop: '28px' }),
+        // Tarjeta sólida, como el resto de paneles del sitio, en vez del
+        // degradado que se probó antes.
+        background: 'var(--surface)',
+        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
+        backdropFilter: 'blur(4px)',
+        ...(arriba
+          ? { borderBottom: '1px solid var(--border)' }
+          : { borderTop: '1px solid var(--border)' }),
         display: 'flex', flexDirection: arriba ? 'column-reverse' : 'column',
         // Informativa: nunca debe robarle el clic al enlace de Salir ni al video.
         pointerEvents: 'none',
@@ -511,7 +531,6 @@ export function BarraTelemetria({
         transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
       }}
     >
-      <div style={{ [arriba ? 'borderBottom' : 'borderTop']: '1px solid var(--border)', margin: '0 24px' }} />
       <div
         style={{
           display: 'flex', alignItems: 'flex-start',
