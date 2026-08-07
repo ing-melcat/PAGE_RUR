@@ -4,14 +4,6 @@ import { Robot3DPreview } from './components/Robot3DPreview';
 import { Gamepad2 } from 'lucide-react';
 import { apiFetch } from '../lib/apiClient';
 
-const TechPencilIcon = ({ size = 24, color = "currentColor" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
-    <path d="M18 2l4 4L7 21H3v-4L18 2z" />
-    <path d="M15 5l4 4" />
-    <line x1="9" y1="15" x2="13" y2="19" strokeDasharray="2 2" />
-  </svg>
-);
-
 // Shared style tokens
 const S = {
   label: { fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
@@ -184,15 +176,6 @@ export function RobotSelection({ robots, onSelectRobot, onBack, onAddRobot, onUp
                         title="Mapeo de Controles"
                     >
                         <Gamepad2 size={24} /> <span style={{display: 'none'}}>MAPEO</span>
-                    </button>
-                    <button 
-                        onClick={() => setConfigRobot(robots[0] || {})}
-                        style={{ ...S.btn }}
-                        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-                        title="Parámetros de Operación"
-                    >
-                        <TechPencilIcon size={24} />
                     </button>
                 </div>
             </div>
