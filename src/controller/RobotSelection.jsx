@@ -245,16 +245,29 @@ export function RobotSelection({ robots, onSelectRobot, onBack, onAddRobot, onUp
             <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: '32px' }}>
                 <button className="back-link" onClick={onBack}>← Volver al Menú</button>
                 <div style={{ display: 'flex', gap: '8px', flexDirection: 'column', alignItems: 'flex-end' }}>
+                    {/* Los robots apagados también se pueden abrir. Antes eran
+                        texto muerto, así que si el robot no estaba encendido no
+                        había forma de entrar a la consola —ni para prepararla,
+                        ni para esperar a que el robot arranque, ni para probar
+                        la interfaz. La consola avisa por su cuenta cuando no hay
+                        robot escuchando. */}
                     {inactiveRobots.map((robot, i) => (
-                        <motion.div 
+                        <motion.div
                             key={robot.id}
                             initial={{ opacity: 0, x: 12 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }}
-                            style={{ padding: '6px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '8px' }}
+                            whileHover={{ x: -4 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => handleSelect(robot)}
+                            title="Abrir la consola sin el robot encendido"
+                            style={{ padding: '6px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', pointerEvents: loading ? 'none' : 'auto' }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--muted)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
                         >
                             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--error)' }} />
                             {robot.name} <span style={{ color: 'var(--error)' }}>(offline)</span>
+                            <span style={{ color: 'var(--accent)', fontSize: '0.7rem' }}>abrir →</span>
                         </motion.div>
                     ))}
                 </div>
