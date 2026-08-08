@@ -19,6 +19,7 @@ const SpectatorApp = lazyConRecarga(() => import('./controller/SpectatorApp'));
 const LoginApp = lazyConRecarga(() => import('./LoginApp'));
 import './App.css';
 import { Landing, PublicationPage, ArchiveDashboard } from './Landing';
+import { useLanguage } from './lib/i18n';
 
 // --- ANIMACIONES DE TRANSICIÓN ---
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
@@ -34,6 +35,7 @@ const PageTransition = ({ children }: { children: React.ReactNode }) => (
 
 // --- COMPONENTE HOME (Página Principal) ---
 function Home() {
+  const { t } = useLanguage();
   const { scrollY } = useScroll();
   
   // Efectos Scrollytelling
@@ -78,17 +80,17 @@ function Home() {
             letterSpacing: '0.02em',
             fontWeight: '600'
           }}>
-            El Futuro de la Tecnología
+            {t('home.heroTitulo')}
           </h1>
-          <p style={{ 
-            fontSize: 'clamp(1rem, 3vw, 1.25rem)', 
-            color: 'var(--bone)', 
-            opacity: 0.9, 
+          <p style={{
+            fontSize: 'clamp(1rem, 3vw, 1.25rem)',
+            color: 'var(--bone)',
+            opacity: 0.9,
             maxWidth: '600px',
             lineHeight: '1.6',
             textShadow: '0 2px 10px rgba(0,0,0,0.8)'
           }}>
-            Dedicados a avanzar las tecnologías robóticas mediante experimentación práctica, diseño colaborativo e innovación interdisciplinaria. Construyendo soluciones escalables para la industria y academia.
+            {t('home.heroTexto')}
           </p>
         </motion.div>
       </section>
@@ -97,9 +99,9 @@ function Home() {
       <section className="main-content responsive-section" style={{ backgroundColor: 'var(--background)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
           <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.5rem', textTransform: 'uppercase' }}>
-            <span style={{ color: 'var(--accent)' }}>/</span> Últimas Publicaciones
+            <span style={{ color: 'var(--accent)' }}>/</span> {t('home.seccionTitulo')}
           </h2>
-          <Link to="/archivo" style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', textDecoration: 'none', letterSpacing: '0.1em' }}>VER TODO →</Link>
+          <Link to="/archivo" style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', textDecoration: 'none', letterSpacing: '0.1em' }}>{t('home.verTodo')}</Link>
         </div>
 
         <Landing />
@@ -109,7 +111,9 @@ function Home() {
 }
 
 // --- COMPONENTES PLACEHOLDER PARA LAS RUTAS ---
-const Explora = () => (
+const Explora = () => {
+  const { t } = useLanguage();
+  return (
   <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
     {/* Hero de Explora */}
     <section style={{ 
@@ -140,16 +144,16 @@ const Explora = () => (
           margin: '0 0 16px 0',
           textShadow: '0 4px 20px rgba(0,0,0,0.8)'
         }}>
-          Explora lo Desconocido
+          {t('explora.heroTitulo')}
         </h1>
-        <p style={{ 
-          fontSize: '1.2rem', 
-          color: 'var(--bone)', 
-          opacity: 0.9, 
+        <p style={{
+          fontSize: '1.2rem',
+          color: 'var(--bone)',
+          opacity: 0.9,
           maxWidth: '600px',
           lineHeight: '1.6'
         }}>
-          Sumérgete en la frontera del conocimiento. Desde misiones análogas espaciales hasta robótica avanzada.
+          {t('explora.heroTexto')}
         </p>
       </div>
     </section>
@@ -158,21 +162,24 @@ const Explora = () => (
     <section className="responsive-section" style={{ backgroundColor: 'var(--background)', padding: '0 60px 60px 60px' }}>
       <div style={{ marginBottom: '40px' }}>
         <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.5rem', textTransform: 'uppercase' }}>
-          <span style={{ color: 'var(--accent)' }}>/</span> Más Novedades de Exploración
+          <span style={{ color: 'var(--accent)' }}>/</span> {t('explora.seccionTitulo')}
         </h2>
       </div>
       <Landing category="explora" />
     </section>
   </div>
-);
+  );
+};
 
-const Descubre = () => (
+const Descubre = () => {
+  const { t } = useLanguage();
+  return (
   <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
-    <section style={{ 
-      position: 'relative', 
-      height: '50vh', 
-      display: 'flex', 
-      flexDirection: 'column', 
+    <section style={{
+      position: 'relative',
+      height: '50vh',
+      display: 'flex',
+      flexDirection: 'column',
       justifyContent: 'center',
       padding: '60px',
       overflow: 'hidden',
@@ -188,24 +195,24 @@ const Descubre = () => (
         zIndex: -1
       }}></div>
       <div style={{ maxWidth: '800px', borderLeft: '4px solid var(--accent)', paddingLeft: '24px' }}>
-        <span className="eyebrow eyebrow--hero" style={{ textTransform: 'uppercase' }}>LABORATORIO VIRTUAL</span>
-        <h1 style={{ 
-          fontSize: '3.5rem', 
+        <span className="eyebrow eyebrow--hero" style={{ textTransform: 'uppercase' }}>{t('descubre.eyebrow')}</span>
+        <h1 style={{
+          fontSize: '3.5rem',
           fontFamily: 'var(--font-ibm-mono)',
           textTransform: 'uppercase',
           margin: '8px 0 16px 0',
           textShadow: '0 4px 20px rgba(0,0,0,0.8)'
         }}>
-          Prototipos 3D
+          {t('descubre.heroTitulo')}
         </h1>
-        <p style={{ 
-          fontSize: '1.2rem', 
-          color: 'var(--bone)', 
-          opacity: 0.9, 
+        <p style={{
+          fontSize: '1.2rem',
+          color: 'var(--bone)',
+          opacity: 0.9,
           maxWidth: '600px',
           lineHeight: '1.6'
         }}>
-          Interactúa con los modelos tridimensionales de nuestros desarrollos. Arrastra para rotar y usa el scroll para acercar.
+          {t('descubre.heroTexto')}
         </p>
       </div>
     </section>
@@ -214,21 +221,24 @@ const Descubre = () => (
     <section className="responsive-section" style={{ backgroundColor: 'var(--background)', padding: '0 60px 60px 60px' }}>
       <div style={{ marginBottom: '40px' }}>
         <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.5rem', textTransform: 'uppercase' }}>
-          <span style={{ color: 'var(--accent)' }}>/</span> Bitácora del Laboratorio
+          <span style={{ color: 'var(--accent)' }}>/</span> {t('descubre.seccionTitulo')}
         </h2>
       </div>
       <Landing category="descubre" />
     </section>
   </div>
-);
+  );
+};
 
-const Conecta = () => (
+const Conecta = () => {
+  const { t } = useLanguage();
+  return (
   <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
-    <section style={{ 
-      position: 'relative', 
-      height: '50vh', 
-      display: 'flex', 
-      flexDirection: 'column', 
+    <section style={{
+      position: 'relative',
+      height: '50vh',
+      display: 'flex',
+      flexDirection: 'column',
       justifyContent: 'center',
       padding: '60px',
       overflow: 'hidden',
@@ -245,26 +255,26 @@ const Conecta = () => (
         animation: 'kenBurns 20s infinite alternate ease-in-out'
       }}></div>
       <div style={{ maxWidth: '800px', borderLeft: '4px solid var(--accent)', paddingLeft: '24px' }}>
-        <span className="eyebrow eyebrow--hero" style={{ textTransform: 'uppercase' }}>ALIANZAS GLOBALES</span>
-        <h1 style={{ 
-          fontSize: '3.5rem', 
+        <span className="eyebrow eyebrow--hero" style={{ textTransform: 'uppercase' }}>{t('conecta.eyebrow')}</span>
+        <h1 style={{
+          fontSize: '3.5rem',
           fontFamily: 'var(--font-ibm-mono)',
           textTransform: 'uppercase',
           margin: '8px 0 16px 0',
           textShadow: '0 4px 20px rgba(0,0,0,0.8)'
         }}>
           <span className="text-reveal-mask">
-            <span>Conecta con el Mundo</span>
+            <span>{t('conecta.heroTitulo')}</span>
           </span>
         </h1>
-        <p style={{ 
-          fontSize: '1.2rem', 
-          color: 'var(--bone)', 
-          opacity: 0.9, 
+        <p style={{
+          fontSize: '1.2rem',
+          color: 'var(--bone)',
+          opacity: 0.9,
           maxWidth: '600px',
           lineHeight: '1.6'
         }}>
-          Nuestra red de colaboraciones internacionales impulsa el desarrollo tecnológico más allá de las fronteras.
+          {t('conecta.heroTexto')}
         </p>
       </div>
     </section>
@@ -273,16 +283,19 @@ const Conecta = () => (
     <section className="responsive-section" style={{ backgroundColor: 'var(--background)', padding: '0 60px 60px 60px' }}>
       <div style={{ marginBottom: '40px' }}>
         <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.5rem', textTransform: 'uppercase' }}>
-          <span style={{ color: 'var(--accent)' }}>/</span> Actualizaciones de la Red
+          <span style={{ color: 'var(--accent)' }}>/</span> {t('conecta.seccionTitulo')}
         </h2>
       </div>
       <Landing category="conecta" />
     </section>
   </div>
-);
+  );
+};
 
 // --- FOOTER COMPONENT ---
-const Footer = () => (
+const Footer = () => {
+  const { t } = useLanguage();
+  return (
   <footer style={{
     backgroundColor: 'var(--background)',
     borderTop: '1px solid var(--accent)',
@@ -292,12 +305,12 @@ const Footer = () => (
   }}>
     <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '40px', marginBottom: '40px' }}>
       <div>
-        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', marginBottom: '20px', letterSpacing: '0.1em' }}>CONTACTO</h4>
+        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', marginBottom: '20px', letterSpacing: '0.1em' }}>{t('footer.contacto')}</h4>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0' }}>
           <MapPin size={18} style={{ flexShrink: 0 }} /> <span style={{ fontSize: '0.9rem', lineHeight: '1.4' }}>México 45, Los Encinos, 34307 Dgo., México</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0' }}>
-          <Phone size={18} style={{ flexShrink: 0 }} /> 
+          <Phone size={18} style={{ flexShrink: 0 }} />
           <Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>+52 (---) --- ----</Link>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0' }}>
@@ -305,13 +318,13 @@ const Footer = () => (
         </div>
       </div>
       <div>
-        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', marginBottom: '20px', letterSpacing: '0.1em' }}>LEGAL</h4>
-        <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>Aviso de Privacidad</Link></p>
-        <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>Términos y Condiciones</Link></p>
-        <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>Política de Cookies</Link></p>
+        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', marginBottom: '20px', letterSpacing: '0.1em' }}>{t('footer.legal')}</h4>
+        <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>{t('footer.avisoPrivacidad')}</Link></p>
+        <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>{t('footer.terminos')}</Link></p>
+        <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>{t('footer.cookies')}</Link></p>
       </div>
       <div>
-        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', marginBottom: '20px', letterSpacing: '0.1em' }}>SOCIAL</h4>
+        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', marginBottom: '20px', letterSpacing: '0.1em' }}>{t('footer.social')}</h4>
         <div style={{ display: 'flex', gap: '20px' }}>
           <Link to="/coming-soon" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '1.2rem', fontWeight: 'bold' }}>𝕏</Link>
           <Link to="/coming-soon" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '1.2rem', fontWeight: 'bold' }}>in</Link>
@@ -320,13 +333,15 @@ const Footer = () => (
       </div>
     </div>
     <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', textAlign: 'center', fontSize: '0.8rem' }}>
-      © {new Date().getFullYear()} Research Unit of Robotics - UNIPOLI Dgo. Todos los derechos reservados.
+      © {new Date().getFullYear()} Research Unit of Robotics - UNIPOLI Dgo. {t('footer.derechos')}
     </div>
   </footer>
-);
+  );
+};
 
 // --- LAYOUT DEL LANDING ---
 const LandingLayout = () => {
+  const { t } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSpecial, setActiveSpecial] = useState<'aviso' | 'evento' | null>(null);
   const location = useLocation();
@@ -392,7 +407,7 @@ const LandingLayout = () => {
                   RESEARCH UNIT<br />OF ROBOTICS
                 </div>
                 <div className="logo-text-hover" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <span style={{ display: 'flex', alignItems: 'center' }}>INICIO</span>
+                  <span style={{ display: 'flex', alignItems: 'center' }}>{t('nav.inicio')}</span>
                   <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: '1.5rem', transform: 'translateY(-3px)' }}>→</span>
                 </div>
               </div>
@@ -410,39 +425,39 @@ const LandingLayout = () => {
 
         {/* Enlaces de Navegación (Las palabras del centro) */}
         <nav className={`main-nav ${isMobileMenuOpen ? 'mobile-open' : ''}`} style={{ textAlign: 'center', display: 'flex', gap: '20px', justifyContent: 'center', alignItems: 'center' }}>
-          <Link to="/explora" className="nav-link" data-text="EXPLORA" onClick={() => setIsMobileMenuOpen(false)}>EXPLORA</Link>
+          <Link to="/explora" className="nav-link" data-text={t('nav.explora')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.explora')}</Link>
           <span className="nav-separator" style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
-          <Link to="/descubre" className="nav-link" data-text="DESCUBRE" onClick={() => setIsMobileMenuOpen(false)}>DESCUBRE</Link>
+          <Link to="/descubre" className="nav-link" data-text={t('nav.descubre')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.descubre')}</Link>
           <span className="nav-separator" style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
-          <Link to="/conecta" className="nav-link" data-text="CONECTA" onClick={() => setIsMobileMenuOpen(false)}>CONECTA</Link>
-          
+          <Link to="/conecta" className="nav-link" data-text={t('nav.conecta')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.conecta')}</Link>
+
           {/* El botón de acceder y el aviso van en el menú móvil para que no se amontone arriba */}
           {activeSpecial && (
             <div className="mobile-only-btn" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: activeSpecial === 'aviso' ? 'var(--error)' : 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '20px' }}>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: activeSpecial === 'aviso' ? 'var(--error)' : 'var(--accent)', animation: 'pulse 1.5s infinite' }}></div>
-              {activeSpecial === 'aviso' ? 'AVISO ACTIVO' : 'EVENTO ACTIVO'}
+              {activeSpecial === 'aviso' ? t('nav.avisoActivo') : t('nav.eventoActivo')}
             </div>
           )}
           <Link to="/login" className="mobile-only-btn" style={{ textDecoration: 'none', marginTop: activeSpecial ? '10px' : '20px' }} onClick={() => setIsMobileMenuOpen(false)}>
             <button className="logout-btn-small" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}>
-              ACCEDER
+              {t('nav.acceder')}
             </button>
           </Link>
         </nav>
-        
+
         <div className="topbar-right desktop-only-btn" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '20px' }}>
           {activeSpecial && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: activeSpecial === 'aviso' ? 'var(--error)' : 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', fontWeight: 'bold' }}>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: activeSpecial === 'aviso' ? 'var(--error)' : 'var(--accent)', animation: 'pulse 1.5s infinite' }}></div>
-              {activeSpecial === 'aviso' ? 'AVISO ACTIVO' : 'EVENTO ACTIVO'}
+              {activeSpecial === 'aviso' ? t('nav.avisoActivo') : t('nav.eventoActivo')}
             </div>
           )}
           <Link to="/login" style={{ textDecoration: 'none' }}>
-            <button 
-              className="logout-btn-small" 
+            <button
+              className="logout-btn-small"
               style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}
             >
-              ACCEDER
+              {t('nav.acceder')}
             </button>
           </Link>
         </div>
@@ -457,36 +472,39 @@ const LandingLayout = () => {
 };
 
 // --- COMPONENTE COMING SOON ---
-const ComingSoon = () => (
-  <div style={{ 
-    height: '60vh', 
-    display: 'flex', 
-    flexDirection: 'column', 
-    justifyContent: 'center', 
+const ComingSoon = () => {
+  const { t } = useLanguage();
+  return (
+  <div style={{
+    height: '60vh',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
     alignItems: 'center',
     textAlign: 'center',
     padding: '40px'
   }}>
-    <h1 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '3rem', color: 'var(--accent)', marginBottom: '20px' }}>PROXIMAMENTE</h1>
+    <h1 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '3rem', color: 'var(--accent)', marginBottom: '20px' }}>{t('comingSoon.titulo')}</h1>
     <p style={{ color: 'var(--muted)', fontSize: '1.2rem', maxWidth: '600px', lineHeight: '1.6' }}>
-      Esta sección aún está en desarrollo. ¡Mantente atento a nuestras redes para futuras actualizaciones!
+      {t('comingSoon.texto')}
     </p>
     <Link to="/" style={{ marginTop: '40px' }}>
-      <button style={{ 
-        background: 'transparent', 
-        color: 'var(--accent)', 
-        border: '1px solid var(--accent)', 
-        padding: '12px 24px', 
-        fontFamily: 'var(--font-ibm-mono)', 
-        fontWeight: 'bold', 
+      <button style={{
+        background: 'transparent',
+        color: 'var(--accent)',
+        border: '1px solid var(--accent)',
+        padding: '12px 24px',
+        fontFamily: 'var(--font-ibm-mono)',
+        fontWeight: 'bold',
         cursor: 'pointer',
         transition: 'all 0.3s ease'
       }}>
-        VOLVER AL INICIO
+        {t('comingSoon.volver')}
       </button>
     </Link>
   </div>
-);
+  );
+};
 
 // --- APP PRINCIPAL ---
 function App() {

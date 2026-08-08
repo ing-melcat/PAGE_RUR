@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
-import { Loader2, CheckCircle, ChevronDown, ChevronUp, Globe, Lock, Upload, TriangleAlert, Star, Eye, EyeOff } from "lucide-react";
+import { Loader2, CheckCircle, ChevronDown, ChevronUp, Globe, Lock, Upload, TriangleAlert, Star, Eye, EyeOff, Languages } from "lucide-react";
 import "./index.css";
 import { RobotSelection } from "./controller/RobotSelection";
 import { apiFetch } from "./lib/apiClient";
@@ -1922,7 +1922,9 @@ export default function App() {
                 </label>
                 <div style={{ padding: '16px', border: '1px solid var(--border)', background: 'var(--background)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div>
-                    <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>{t('accesibilidad.idioma').toUpperCase()}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>
+                      <Languages size={14} /> {t('accesibilidad.idioma').toUpperCase()}
+                    </span>
                     <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--muted)' }}>{t('accesibilidad.idiomaDescripcion')}</p>
                   </div>
                   <div style={{ display: 'flex' }}>
