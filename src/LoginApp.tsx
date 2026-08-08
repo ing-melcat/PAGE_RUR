@@ -5,6 +5,7 @@ import "./index.css";
 import { RobotSelection } from "./controller/RobotSelection";
 import { apiFetch } from "./lib/apiClient";
 import { sanitizeHtml } from "./lib/sanitizeHtml";
+import { useLanguage } from "./lib/i18n";
 
 const ControllerApp = lazy(() => import("./controller/ControllerApp"));
 
@@ -534,6 +535,8 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
 
 
 export default function App() {
+  const { lang, setLang, t } = useLanguage();
+
   // Nada de estado en el navegador, tampoco el de navegación: al recargar se
   // arranca en login y /api/me decide a dónde se va, según la sesión real.
   const [view, setView] = useState("login");
@@ -1917,6 +1920,16 @@ export default function App() {
                     }}
                   />
                 </label>
+                <div style={{ padding: '16px', border: '1px solid var(--border)', background: 'var(--background)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div>
+                    <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>{t('accesibilidad.idioma').toUpperCase()}</span>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--muted)' }}>{t('accesibilidad.idiomaDescripcion')}</p>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <button type="button" onClick={() => setLang('es')} style={{ flex: 1, padding: '10px', background: lang === 'es' ? 'var(--surface-strong)' : 'transparent', color: lang === 'es' ? 'white' : 'var(--muted)', border: '1px solid var(--border)', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer', borderRadius: '4px 0 0 4px', fontWeight: 'bold', fontSize: '0.8rem' }}>{t('accesibilidad.espanol')}</button>
+                    <button type="button" onClick={() => setLang('en')} style={{ flex: 1, padding: '10px', background: lang === 'en' ? 'var(--surface-strong)' : 'transparent', color: lang === 'en' ? 'var(--accent)' : 'var(--muted)', border: '1px solid var(--border)', borderLeft: 'none', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer', borderRadius: '0 4px 4px 0', fontWeight: 'bold', fontSize: '0.8rem' }}>{t('accesibilidad.ingles')}</button>
+                  </div>
+                </div>
               </div>
               <button className="back-link" onClick={() => setView("settings_menu")}>← Atrás</button>
             </motion.section>
