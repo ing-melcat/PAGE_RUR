@@ -20,7 +20,15 @@ async function traducirTexto(texto, destino) {
   });
   if (!res.ok) throw new Error(`LibreTranslate respondió ${res.status}`);
   const data = await res.json();
-  return typeof data.translatedText === 'string' ? data.translatedText : texto;
+  const traducido = typeof data.translatedText === 'string' ? data.translatedText : texto;
+
+  // Salvaguarda contra salidas degeneradas del motor: palabras sueltas en
+  // MAYÚSCULAS (ej. "PRUEBA") a veces vuelven como un simple "_", sin
+  // ninguna letra. Mejor mostrar el original sin traducir que basura.
+  if (texto.trim().length > 2 && !/[a-zA-Z]/.test(traducido)) {
+    return texto;
+  }
+  return traducido;
 }
 
 // Recorre el árbol y junta solo los nodos de TEXTO -- nunca las etiquetas ni
