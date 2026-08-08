@@ -80,9 +80,17 @@
   color: var(--bone);
 }
 
+/* Estado en vivo de los actuadores encendidos -- crece y cambia seguido
+   (hasta 4 a la vez), así que necesita alto fijo para no mover el resto
+   del panel con cada pulsación. Color más apagado que el título para que
+   se lea como estado, no como encabezado de sección. */
 .telemetria__pie--accion {
-  color: var(--accent);
-  min-height: 1em;
+  color: var(--bone);
+  height: 1.4em;
+  min-height: 1.4em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* Nombre corto de un actuador dentro de su rejilla. */
