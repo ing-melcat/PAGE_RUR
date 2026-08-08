@@ -5,56 +5,80 @@
    no de tamaños inventados: los títulos siguen a .panel-label, los pies
    a .eyebrow, y todo lo numérico va en la mono institucional.
 
+   Jerarquía de color: el amarillo institucional (--accent) se reserva
+   para estados críticos y controles interactivos (botón de widgets,
+   borde de foco). Las lecturas normales van en hueso/blanco cuando
+   están activas y en --muted cuando no, para que el amarillo no compita
+   por atención en cada métrica -- eso es lo que lo hacía ilegible.
+
    Está en CSS y no en estilos en línea a propósito: así hereda el modo
    TEXTO GRANDE de accesibilidad, que actúa sobre body.large-text.
    ================================================================== */
 
-/* Título de cada módulo. Mismo papel que .panel-label: nombra la sección
-   en ámbar, pequeño y muy espaciado. */
+/* Mini-header de cada BLOQUE (MOVIMIENTO, ACTUADORES, CONEXIÓN, SESIÓN).
+   Es el único nivel que lleva un lavado de ámbar -- muy tenue, nunca
+   saturado -- para marcar la agrupación sin gritar. */
+.telemetria__bloque-titulo {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(251, 202, 1, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 2px 0;
+}
+
+/* Divisor vertical entre bloques. Se aplica como borde del bloque
+   siguiente, no como elemento aparte, para que el alto se ajuste solo
+   al contenido de la fila. Se apaga en modo angosto: con flex-wrap una
+   línea vertical entre bloques que ya bajaron de fila no significa nada. */
+.telemetria__bloque--dividido {
+  border-left: 1px solid var(--border);
+  padding-left: 24px;
+}
+
+/* Título de cada módulo individual (AVANCE, GIRO...). Gris, pequeño y
+   discreto: nombra el dato sin competir con el valor. */
 .telemetria__titulo {
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.75rem;
-  color: var(--accent);
+  font-size: 0.68rem;
+  color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   margin: 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
 }
 
-/* La misma etiqueta cuando va en línea con su valor, sin subrayado ni
-   salto: en las lecturas de una sola línea el subrayado sobra. */
+/* La misma etiqueta cuando va en línea con su valor, sin salto. */
 .telemetria__titulo--inline {
   padding-bottom: 0;
-  border-bottom: none;
 }
 
-/* La lectura protagonista de un módulo. Es el único texto que se sale de
-   la escala normal, y esa es justamente su función: verse de un vistazo
-   sin tener que leer. */
+/* La lectura protagonista de un módulo: blanco, mono, bold. Deliberadamente
+   más chica que antes (era 2rem) -- un HUD se lee de reojo, no se declama. */
 .telemetria__valor {
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 2rem;
-  font-weight: 500;
+  font-size: 1.25rem;
+  font-weight: 700;
   line-height: 1;
   color: var(--bone);
 }
 
 .telemetria__valor--medio {
-  font-size: 1rem;
-  font-weight: 500;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .telemetria__valor--apagado {
   color: var(--muted);
 }
 
-/* Flechas de dirección: acompañan al número, no compiten con él. */
+/* Flechas de dirección: acompañan al número en blanco, nunca en amarillo
+   -- es una lectura de dato en vivo, no un estado crítico. */
 .telemetria__flecha {
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 1.35rem;
+  font-size: 1.1rem;
   line-height: 1;
-  color: var(--accent);
+  color: var(--bone);
 }
 
 .telemetria__flecha--apagada {
@@ -62,30 +86,30 @@
 }
 
 .telemetria__flecha--menor {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
-/* Unidad y pie de módulo. Papel de .eyebrow: contexto secundario que se
-   lee después del dato, nunca antes. */
+/* Unidad y pie de módulo. Contexto secundario que se lee después del
+   dato, nunca antes. */
 .telemetria__unidad,
 .telemetria__pie {
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
 }
 
 .telemetria__pie--destacado {
   color: var(--bone);
 }
 
-/* Estado en vivo de los actuadores encendidos -- crece y cambia seguido
-   (hasta 4 a la vez), así que necesita alto fijo para no mover el resto
-   del panel con cada pulsación. Color más apagado que el título para que
-   se lea como estado, no como encabezado de sección. */
-.telemetria__pie--accion {
-  color: var(--bone);
+/* Advertencia real (el operador manda órdenes que nadie recibe): esto sí
+   es un estado de alerta, así que sí lleva el ámbar de advertencia --
+   distinto del --accent de marca, para no mezclar "institucional" con
+   "cuidado". */
+.telemetria__pie--advertencia {
+  color: var(--warning);
   height: 1.4em;
   min-height: 1.4em;
   overflow: hidden;
@@ -96,7 +120,7 @@
 /* Nombre corto de un actuador dentro de su rejilla. */
 .telemetria__abrev {
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   letter-spacing: 0.05em;
   color: var(--muted);
 }
@@ -135,20 +159,22 @@
    Texto grande (accesibilidad). Sin esto la barra sería lo único de la
    consola que ignora la preferencia del usuario.
    ------------------------------------------------------------------ */
+body.large-text .telemetria__bloque-titulo,
 body.large-text .telemetria__titulo,
 body.large-text .telemetria__unidad,
 body.large-text .telemetria__pie,
+body.large-text .telemetria__pie--advertencia,
 body.large-text .telemetria__abrev,
 body.large-text .telemetria__accion {
   font-size: 0.85rem;
 }
 
 body.large-text .telemetria__valor {
-  font-size: 2.4rem;
+  font-size: 1.5rem;
 }
 
 body.large-text .telemetria__valor--medio {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
 }
 
 body.large-text .telemetria__opcion {
