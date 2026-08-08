@@ -76,3 +76,20 @@ CREATE TABLE IF NOT EXISTS logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_logs_date ON logs (date DESC);
+
+-- Caché de traducción automática (LibreTranslate) del contenido que escribe
+-- el redactor. Nunca se toca `posts` para esto -- lo que el redactor ve y
+-- edita en el panel es siempre el español original. Una fila por
+-- publicación+idioma; se borra (no se actualiza) cuando el post se edita o
+-- se borra, y se regenera sola la próxima vez que alguien la pida en ese
+-- idioma. Sin FK a posts a propósito: el resto del schema tampoco usa FKs,
+-- el borrado en cascada se maneja a mano en services/content/server.js.
+CREATE TABLE IF NOT EXISTS post_translations (
+    post_id TEXT NOT NULL,
+    lang VARCHAR(10) NOT NULL,
+    title VARCHAR(255),
+    content TEXT,
+    pages JSONB NOT NULL DEFAULT '[]'::jsonb,
+    translated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (post_id, lang)
+);

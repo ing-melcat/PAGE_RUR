@@ -78,14 +78,31 @@ services:
       - PGUSER=svc_content_role
       - PGPASSWORD=${CONTENT_DB_PASSWORD}
       - PGDATABASE=${POSTGRES_DB}
+      - LIBRETRANSLATE_URL=http://libretranslate:5000
     volumes:
       - ./uploads:/app/services/content/uploads
     networks:
       - rur_network
       - rur_db_net
+      - translate_net
     depends_on:
       db:
         condition: service_healthy
+
+  # Traduccion automatica del contenido de publicaciones (Fase B del
+  # selector de idioma). Autohospedado a proposito: sin costo recurrente ni
+  # llave de API externa que gestionar. Sin puerto publicado -- solo
+  # alcanzable por svc-content, vía translate_net. `--load-only en,es`
+  # porque solo hace falta ese par: sin esto descarga ~30 idiomas al
+  # arrancar, mucho mas tiempo y espacio en disco de los que necesitamos.
+  libretranslate:
+    image: libretranslate/libretranslate:latest
+    restart: unless-stopped
+    command: ["--load-only", "en,es"]
+    volumes:
+      - libretranslate_data:/home/libretranslate/.local
+    networks:
+      - translate_net
 
   svc-robots:
     build:
@@ -176,8 +193,16 @@ networks:
   crowdsec_net:
     external: true
     name: crowdsec_crowdsec_net
+  # Aparte de rur_network a propósito: solo conecta svc-content con
+  # libretranslate, nada más -- ni caddy ni los otros dos microservicios
+  # tienen por qué poder alcanzarlo. Necesita ruta de salida (no internal)
+  # porque LibreTranslate descarga los modelos de idioma de internet la
+  # primera vez que arranca.
+  translate_net:
+    driver: bridge
 
 volumes:
   caddy_data:
   caddy_config:
   pg_data:
+  libretranslate_data:

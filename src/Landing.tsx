@@ -51,12 +51,12 @@ export const Countdown = ({ targetDate }: { targetDate?: string }) => {
 };
 
 export const Landing = ({ category = 'landing' }: { category?: string }) => {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [posts, setPosts] = useState<any[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('/api/posts')
+    fetch(`/api/posts?lang=${lang}`)
       .then(res => res.json())
       .then(data => {
         const filtered = data.filter((p: any) => (p.category || 'landing') === category && !p.isHidden);
@@ -70,7 +70,7 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
         setPosts(sorted);
       })
       .catch(console.error);
-  }, [category]);
+  }, [category, lang]);
 
   const handlePostClick = (post: any) => {
     navigate(`/publicacion/${post.id}`);
@@ -163,13 +163,13 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
 };
 
 export const PublicationPage = () => {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { id } = useParams();
   const [post, setPost] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
-    fetch('/api/posts')
+    fetch(`/api/posts?lang=${lang}`)
       .then(res => res.json())
       .then(data => {
         const found = data.find((p: any) => p.id.toString() === id?.toString());
@@ -181,7 +181,7 @@ export const PublicationPage = () => {
           }
         }
       });
-  }, [id]);
+  }, [id, lang]);
 
   if (!post) {
     return <div style={{ minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div className="animate-spin" style={{ width: '32px', height: '32px', border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%' }} /></div>;
@@ -293,14 +293,14 @@ export const PublicationPage = () => {
 };
 
 export const ArchiveDashboard = () => {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [posts, setPosts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('todos');
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('/api/posts')
+    fetch(`/api/posts?lang=${lang}`)
       .then(res => res.json())
       .then(data => {
         const sorted = data
@@ -309,7 +309,7 @@ export const ArchiveDashboard = () => {
         setPosts(sorted);
       })
       .catch(console.error);
-  }, []);
+  }, [lang]);
 
   const handlePostClick = (post: any) => {
     navigate(`/publicacion/${post.id}`);

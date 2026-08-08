@@ -10,6 +10,7 @@ import { getPool } from '../shared/db.js';
 import { verifyToken, requireRole, IS_PRODUCTION } from '../shared/auth.js';
 import { csrfProtection } from '../shared/csrf.js';
 import { saveLog } from '../shared/logs.js';
+import { traducirPost, invalidarTraducciones } from './translate.js';
 
 // Es la ruta de mayor costo de I/O de los tres servicios (escribe archivos a
 // disco) y era la única de los tres sin ningún límite de frecuencia — ni
@@ -84,7 +85,17 @@ app.get('/api/hello', (req, res) => res.json({ message: 'svc-content ok' }));
 
 app.get('/api/posts', async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM posts ORDER BY date DESC');
-  res.json(rows.map(rowToPost));
+  const posts = rows.map(rowToPost);
+
+  // 'es' es el idioma nativo del contenido -- nada que traducir. Cualquier
+  // otro valor de ?lang= pasa por la caché de post_translations.
+  const lang = req.query.lang;
+  if (lang && lang !== 'es') {
+    const traducidos = await Promise.all(posts.map((post) => traducirPost(post, lang)));
+    return res.json(traducidos);
+  }
+
+  res.json(posts);
 });
 
 app.post('/api/upload', verifyToken, uploadLimiter, csrfProtection, upload.single('file'), (req, res) => {
@@ -155,6 +166,7 @@ app.put('/api/posts/:id', verifyToken, requireRole('admin', 'redactor'), csrfPro
       req.params.id,
     ]
   );
+  await invalidarTraducciones(req.params.id);
   await saveLog('info', `${req.user.matricula} modificó la publicación ${req.params.id}.`);
   const { rows } = await pool.query('SELECT * FROM posts WHERE id = $1', [req.params.id]);
   res.json(rowToPost(rows[0]));
@@ -163,6 +175,7 @@ app.put('/api/posts/:id', verifyToken, requireRole('admin', 'redactor'), csrfPro
 app.delete('/api/posts/:id', verifyToken, requireRole('admin'), csrfProtection, async (req, res) => {
   const { rowCount } = await pool.query('DELETE FROM posts WHERE id = $1', [req.params.id]);
   if (rowCount === 0) return res.status(404).json({ message: 'Publicación no encontrada' });
+  await invalidarTraducciones(req.params.id);
   await saveLog('warning', `${req.user.matricula} eliminó la publicación ${req.params.id}.`);
   res.json({ success: true });
 });
