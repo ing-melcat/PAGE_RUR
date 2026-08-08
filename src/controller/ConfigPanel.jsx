@@ -3,9 +3,11 @@ import "./ConfigPanel.css";
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Settings } from 'lucide-react';
+import { useLanguage } from '../lib/i18n';
 
 
 export function ConfigPanel({ onApply }) {
+    const { t } = useLanguage();
     const [isOpen, setIsOpen] = useState(false)
     const [size, setSize] = useState(100);
     const [sensitivity, setSensitivity] = useState(1.0);
@@ -31,7 +33,7 @@ export function ConfigPanel({ onApply }) {
             <button
                 className={`config-toggle ${isOpen ? 'open' : ''}`}
                 onClick={() => setIsOpen(!isOpen)}
-                aria-label="Toggle configuration panel"
+                aria-label={t('operador.configPanel.toggleAriaLabel')}
             >
                 <span className="hud-bracket">[</span>
                 <Settings size={22} className="hud-icon" style={{ margin: '0 4px' }} />
@@ -42,13 +44,13 @@ export function ConfigPanel({ onApply }) {
                 <div className={`config-overlay ${isOpen ? 'open' : ''}`}>
                     <div className="config-modal">
                         <div className="config-header">
-                            <h3>Ajustes</h3>
+                            <h3>{t('operador.configPanel.ajustes')}</h3>
                         </div>
 
                         <div className="controls" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             <div className="control-group">
                                 <label style={{ display: 'block', marginBottom: '8px', color: 'var(--muted)', fontSize: '0.9rem' }}>
-                                    Tamaño del Joystick: {size}%
+                                    {t('operador.configPanel.tamanoJoystick')}: {size}%
                                 </label>
                                 <input
                                     type="range"
@@ -62,7 +64,7 @@ export function ConfigPanel({ onApply }) {
 
                             <div className="control-group">
                                 <label style={{ display: 'block', marginBottom: '8px', color: 'var(--muted)', fontSize: '0.9rem' }}>
-                                    Sensibilidad: {sensitivity.toFixed(1)}x
+                                    {t('operador.configPanel.sensibilidad')}: {sensitivity.toFixed(1)}x
                                 </label>
                                 <input
                                     type="range"
@@ -77,7 +79,7 @@ export function ConfigPanel({ onApply }) {
 
                             <div className="control-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '15px 0' }}>
                                 <label style={{ display: 'block', marginBottom: '15px', color: 'var(--muted)', fontSize: '0.9rem', width: '100%', textAlign: 'center' }}>
-                                    Prueba (Linear: {directionx} | Angular: {directiony})
+                                    {t('operador.configPanel.prueba')} ({t('operador.configPanel.linear')}: {directionx} | {t('operador.configPanel.angular')}: {directiony})
                                 </label>
                                 <Joystck
                                     size={scaleMultiplier * 80}
@@ -95,7 +97,7 @@ export function ConfigPanel({ onApply }) {
                             </div>
 
                             <button className="config-close" onClick={handleClose} style={{ marginTop: '5px' }}>
-                                GUARDAR Y CERRAR
+                                {t('operador.configPanel.guardarCerrar')}
                             </button>
                         </div>
                     </div>

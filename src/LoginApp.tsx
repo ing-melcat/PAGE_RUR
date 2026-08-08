@@ -113,6 +113,7 @@ function hasRole(user: any, ...roles: string[]): boolean {
 
 
 const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
+  const { t } = useLanguage();
   const [viewMode, setViewMode] = useState<'list'|'create'|'edit'>('list');
   const [postsList, setPostsList] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -148,12 +149,12 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   }, [viewMode]);
 
   const handleDelete = async (id: string) => {
-    if(!window.confirm('¿Estás seguro de que deseas eliminar esta publicación?')) return;
+    if(!window.confirm(t('alertas.confirmarEliminarPublicacion'))) return;
     try {
       const res = await apiFetch(`/api/posts/${id}`, { method: 'DELETE' });
       if (res.ok) fetchPosts();
-      else alert('No tienes permisos');
-    } catch(err) { alert('Error al eliminar'); }
+      else alert(t('alertas.sinPermisos'));
+    } catch(err) { alert(t('alertas.errorEliminar')); }
   };
 
   const toggleVisibility = async (post: any) => {
@@ -164,8 +165,8 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
         body: JSON.stringify({ isHidden: !post.isHidden })
       });
       if (res.ok) fetchPosts();
-      else alert('No tienes permisos');
-    } catch(err) { alert('Error al actualizar visibilidad'); }
+      else alert(t('alertas.sinPermisos'));
+    } catch(err) { alert(t('alertas.errorActualizarVisibilidad')); }
   };
 
   const openEdit = (post: any) => {
@@ -208,8 +209,8 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
       });
       const data = await response.json();
       if (data.url) callback(data.url);
-      else alert("Error al subir la imagen");
-    } catch(err) { alert("Error de conexión al subir imagen"); }
+      else alert(t('alertas.errorSubirImagen'));
+    } catch(err) { alert(t('alertas.errorConexionImagen')); }
     setUploadingImage(false);
   };
 
@@ -232,12 +233,12 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
         body: JSON.stringify(postData)
       });
       if (res.ok) {
-        alert(viewMode === 'edit' ? "Publicación actualizada" : "Publicación creada con éxito");
+        alert(viewMode === 'edit' ? t('alertas.publicacionActualizada') : t('alertas.publicacionCreada'));
         setViewMode('list');
       } else {
-        alert("No tienes permisos para guardar esta publicación.");
+        alert(t('alertas.sinPermisosGuardar'));
       }
-    } catch(err) { alert("Error al conectar con el servidor."); }
+    } catch(err) { alert(t('alertas.errorConectarServidor')); }
     setIsSubmitting(false);
   };
 
@@ -245,10 +246,10 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minHeight: '60vh' }}>
         <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <button className="back-link" onClick={onBack}>← Volver al Menú Principal</button>
+          <button className="back-link" onClick={onBack}>{t('adminPublicaciones.volverMenu')}</button>
           <div>
-            <span className="panel-label">ADMINISTRADOR</span>
-            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Gestión de Publicaciones</h2>
+            <span className="panel-label">{t('adminPublicaciones.administrador')}</span>
+            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{t('adminPublicaciones.titulo')}</h2>
           </div>
         </div>
         
@@ -266,8 +267,8 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
           >
             <div style={{ fontSize: '3rem', fontWeight: '100', marginBottom: '16px', lineHeight: 1 }}>+</div>
             <div>
-              <div style={{ fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', letterSpacing: '1px' }}>CREAR NUEVA</div>
-              <div style={{ fontSize: '0.85rem', marginTop: '8px', opacity: 0.8 }}>Sube tu propio HTML completo o crea un artículo simple.</div>
+              <div style={{ fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', letterSpacing: '1px' }}>{t('adminPublicaciones.crearNuevaTitulo')}</div>
+              <div style={{ fontSize: '0.85rem', marginTop: '8px', opacity: 0.8 }}>{t('adminPublicaciones.crearNuevaDescripcion')}</div>
             </div>
           </div>
 
@@ -304,10 +305,10 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
                 <div>
                   <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', fontFamily: 'var(--font-ibm-sans)', color: titleColor }}>{post.title}</h3>
                   <div style={{ display: 'inline-block', background: 'var(--surface-strong)', color: 'var(--muted)', fontSize: '0.7rem', fontFamily: 'var(--font-ibm-mono)', padding: '2px 6px', borderRadius: '4px', marginBottom: '8px', border: '1px solid var(--border)' }}>
-                    DESTINO: {(post.category || 'landing').toUpperCase()}
+                    {t('adminPublicaciones.destino')}: {(post.category || 'landing').toUpperCase()}
                   </div>
                   <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.85rem' }}>
-                    {post.type === 'magazine' ? 'Revista interactiva de varias páginas.' : isAviso ? 'Anuncio destacado.' : isEvento ? 'Evento especial con fecha límite.' : post.type === '3d_model' ? 'Modelo 3D interactivo.' : 'Artículo de una sola página.'}
+                    {post.type === 'magazine' ? t('adminPublicaciones.tipoRevista') : isAviso ? t('adminPublicaciones.tipoAviso') : isEvento ? t('adminPublicaciones.tipoEvento') : post.type === '3d_model' ? t('adminPublicaciones.tipoModelo3d') : t('adminPublicaciones.tipoSimple')}
                   </p>
                 </div>
                 
@@ -316,19 +317,19 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--muted)'; e.currentTarget.style.color = 'var(--surface-strong)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--muted)'; }}
                   >
-                    {post.isHidden ? <Eye size={14} /> : <EyeOff size={14} />} {post.isHidden ? 'MOSTRAR' : 'OCULTAR'}
+                    {post.isHidden ? <Eye size={14} /> : <EyeOff size={14} />} {post.isHidden ? t('adminPublicaciones.mostrar') : t('adminPublicaciones.ocultar')}
                   </button>
                   <button onClick={() => openEdit(post)} style={{ flex: 1, background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', padding: '8px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', transition: 'all 0.2s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'black'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--accent)'; }}
                   >
-                    MODIFICAR
+                    {t('adminPublicaciones.modificar')}
                   </button>
                   <button onClick={() => handleDelete(post.id)} style={{ flex: 1, background: 'transparent', border: '1px solid var(--error)', color: 'var(--error)', padding: '8px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', transition: 'all 0.2s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--error)'; e.currentTarget.style.color = 'white'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--error)'; }}
                   >
-                    ELIMINAR
+                    {t('adminPublicaciones.eliminar')}
                   </button>
                 </div>
               </div>
@@ -343,70 +344,70 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
     <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '32px', height: '100%', minHeight: '80vh' }}>
       {/* Sidebar de Configuración */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <button className="back-link" onClick={() => setViewMode('list')} style={{ marginBottom: '16px', alignSelf: 'flex-start' }}>← Cancelar / Volver</button>
+        <button className="back-link" onClick={() => setViewMode('list')} style={{ marginBottom: '16px', alignSelf: 'flex-start' }}>{t('adminPublicaciones.cancelarVolver')}</button>
         <div>
-          <span className="panel-label">ADMINISTRADOR</span>
-          <h2 style={{ fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>{viewMode === 'edit' ? 'Modificar' : 'Crear'}</h2>
+          <span className="panel-label">{t('adminPublicaciones.administrador')}</span>
+          <h2 style={{ fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>{viewMode === 'edit' ? t('adminPublicaciones.editar') : t('adminPublicaciones.crear')}</h2>
         </div>
-        
+
         <div className="input-group" style={{ display: 'flex', gap: '20px' }}>
           <div style={{ flex: 1 }}>
-            <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Tipo de Publicación</label>
+            <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>{t('adminPublicaciones.tipoLabel')}</label>
             <select value={type} onChange={(e) => setType(e.target.value)} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-sans)' }}>
-              <option value="simple">Artículo Simple</option>
-              <option value="magazine">Revista (Páginas Completas)</option>
-              <option value="aviso">Aviso (Rojo)</option>
-              <option value="evento">Evento (Dorado)</option>
-              {hasRole(user, 'admin') && <option value="3d_model">Modelo 3D (Descubre)</option>}
+              <option value="simple">{t('adminPublicaciones.tipoSimpleOption')}</option>
+              <option value="magazine">{t('adminPublicaciones.tipoMagazineOption')}</option>
+              <option value="aviso">{t('adminPublicaciones.tipoAvisoOption')}</option>
+              <option value="evento">{t('adminPublicaciones.tipoEventoOption')}</option>
+              {hasRole(user, 'admin') && <option value="3d_model">{t('adminPublicaciones.tipoModelo3dOption')}</option>}
             </select>
           </div>
-          
+
           {hasRole(user, 'admin') && (
             <div style={{ flex: 1 }}>
-              <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Destino / Página</label>
+              <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>{t('adminPublicaciones.destinoLabel')}</label>
               <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-sans)' }}>
-                <option value="landing">Revista Principal (Inicio)</option>
-                <option value="explora">Página: Explora</option>
-                <option value="descubre">Página: Descubre</option>
-                <option value="conecta">Página: Conecta</option>
+                <option value="landing">{t('adminPublicaciones.destinoLanding')}</option>
+                <option value="explora">{t('adminPublicaciones.destinoExplora')}</option>
+                <option value="descubre">{t('adminPublicaciones.destinoDescubre')}</option>
+                <option value="conecta">{t('adminPublicaciones.destinoConecta')}</option>
               </select>
             </div>
           )}
         </div>
 
         <div className="input-group">
-          <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Título</label>
-          <input required type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título..." style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+          <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>{t('adminPublicaciones.tituloLabel')}</label>
+          <input required type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('adminPublicaciones.tituloPlaceholder')} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
         </div>
 
         {(type === 'aviso' || type === 'evento') && (
           <div className="input-group">
-            <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: type === 'aviso' ? 'var(--error)' : 'var(--accent)', display: 'block', marginBottom: '8px' }}>Fecha de Expiración (Opcional)</label>
+            <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: type === 'aviso' ? 'var(--error)' : 'var(--accent)', display: 'block', marginBottom: '8px' }}>{t('adminPublicaciones.fechaExpiracion')}</label>
             <input type="datetime-local" value={countdownDate} onChange={(e) => setCountdownDate(e.target.value)} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: `1px solid ${type === 'aviso' ? 'var(--error)' : 'var(--accent)'}`, borderRadius: '4px' }} />
           </div>
         )}
 
         <div className="input-group">
-          <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Portada</label>
+          <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>{t('adminPublicaciones.portada')}</label>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
             <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setImage)} style={{ display: 'none' }} id="upload-cover" />
             <label htmlFor="upload-cover" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px', background: 'var(--surface-strong)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>
-              {uploadingImage ? 'SUBIENDO...' : <><Upload size={14} /> SUBIR LOCAL</>}
+              {uploadingImage ? t('adminPublicaciones.subiendo') : <><Upload size={14} /> {t('adminPublicaciones.subirLocal')}</>}
             </label>
           </div>
-          <input type="text" value={image} onChange={(e) => setImage(e.target.value)} placeholder="O pega URL..." style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+          <input type="text" value={image} onChange={(e) => setImage(e.target.value)} placeholder={t('adminPublicaciones.urlPlaceholder')} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
         </div>
 
         <button onClick={handleSubmit} disabled={isSubmitting} className="action-card" style={{ background: 'var(--accent)', color: 'black', padding: '16px', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', marginTop: 'auto', fontSize: '1rem' }}>
-          {isSubmitting ? 'Guardando...' : (viewMode === 'edit' ? 'GUARDAR CAMBIOS' : 'PUBLICAR AHORA')}
+          {isSubmitting ? t('adminPublicaciones.guardando') : (viewMode === 'edit' ? t('adminPublicaciones.guardarCambios') : t('adminPublicaciones.publicarAhora'))}
         </button>
       </div>
 
       {/* Editor Principal */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '32px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto' }}>
         <div>
-          <span className="panel-label">ADMINISTRADOR</span>
-          <h2 style={{ fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>Contenido HTML (100% Personalizable)</h2>
+          <span className="panel-label">{t('adminPublicaciones.administrador')}</span>
+          <h2 style={{ fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>{t('adminPublicaciones.contenidoHtml')}</h2>
         </div>
 
         {/* La linea de que ya viene estilado se queda siempre visible (es
@@ -420,13 +421,13 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
         <div style={{ background: 'var(--background)', border: '1px dashed var(--border)', borderRadius: '4px', padding: '16px 20px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.78rem', color: 'var(--muted)', lineHeight: 1.7, overflow: 'hidden' }}>
           <motion.div layout="position">
             <p style={{ margin: 0 }}>
-              <strong style={{ color: 'var(--accent)' }}>Guía rápida:</strong> <code style={{ color: 'var(--text)' }}>{'<h1> <h2> <h3> <p> <ul> <a> <blockquote> <img> <code>'}</code> ya tienen el estilo del sitio — no hace falta ponerles <code style={{ color: 'var(--text)' }}>{'style=""'}</code>.{' '}
+              <strong style={{ color: 'var(--accent)' }}>{t('adminPublicaciones.guiaRapida')}</strong> <code style={{ color: 'var(--text)' }}>{'<h1> <h2> <h3> <p> <ul> <a> <blockquote> <img> <code>'}</code> {t('adminPublicaciones.yaTienenEstilo')} <code style={{ color: 'var(--text)' }}>{'style=""'}</code>.{' '}
               <button
                 type="button"
                 onClick={() => setShowEjemplos(v => !v)}
                 style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', textDecoration: 'underline', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '2px', verticalAlign: 'middle' }}
               >
-                {showEjemplos ? 'Ocultar ejemplo' : 'Ver ejemplo'}
+                {showEjemplos ? t('adminPublicaciones.ocultarEjemplo') : t('adminPublicaciones.verEjemplo')}
                 {showEjemplos ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
             </p>
@@ -467,7 +468,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
 
         {type === '3d_model' && (
           <div className="input-group">
-            <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Ruta del Modelo 3D (.glb)</label>
+            <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>{t('adminPublicaciones.rutaModelo3d')}</label>
             <input type="text" value={modelUrl} onChange={(e) => setModelUrl(e.target.value)} placeholder="Ej. /models/BMO.glb" style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
           </div>
         )}
@@ -475,12 +476,12 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
         {(type === 'simple' || type === 'aviso' || type === 'evento' || type === '3d_model') ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', marginBottom: '16px' }}>
-               <button type="button" onClick={() => setShowPreview(false)} style={{ flex: 1, padding: '12px', background: !showPreview ? 'var(--surface-strong)' : 'transparent', color: !showPreview ? 'white' : 'var(--muted)', border: '1px solid var(--border)', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer', borderRadius: '4px 0 0 4px', fontWeight: 'bold' }}>CÓDIGO HTML</button>
-               <button type="button" onClick={() => setShowPreview(true)} style={{ flex: 1, padding: '12px', background: showPreview ? 'var(--surface-strong)' : 'transparent', color: showPreview ? 'var(--accent)' : 'var(--muted)', border: '1px solid var(--border)', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer', borderRadius: '0 4px 4px 0', borderLeft: 'none', fontWeight: 'bold' }}>VISTA PREVIA EN VIVO</button>
+               <button type="button" onClick={() => setShowPreview(false)} style={{ flex: 1, padding: '12px', background: !showPreview ? 'var(--surface-strong)' : 'transparent', color: !showPreview ? 'white' : 'var(--muted)', border: '1px solid var(--border)', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer', borderRadius: '4px 0 0 4px', fontWeight: 'bold' }}>{t('adminPublicaciones.codigoHtml')}</button>
+               <button type="button" onClick={() => setShowPreview(true)} style={{ flex: 1, padding: '12px', background: showPreview ? 'var(--surface-strong)' : 'transparent', color: showPreview ? 'var(--accent)' : 'var(--muted)', border: '1px solid var(--border)', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer', borderRadius: '0 4px 4px 0', borderLeft: 'none', fontWeight: 'bold' }}>{t('adminPublicaciones.vistaPrevia')}</button>
             </div>
-            
+
             {!showPreview ? (
-              <textarea required value={content} onChange={(e) => setContent(e.target.value)} placeholder="<h1>Mi Artículo</h1><p>Escribe HTML aquí...</p>" style={{ flex: 1, padding: '20px', background: 'var(--background)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', width: '100%', minHeight: '400px', resize: 'vertical', fontFamily: 'var(--font-ibm-mono)' }}></textarea>
+              <textarea required value={content} onChange={(e) => setContent(e.target.value)} placeholder={t('adminPublicaciones.htmlPlaceholder')} style={{ flex: 1, padding: '20px', background: 'var(--background)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', width: '100%', minHeight: '400px', resize: 'vertical', fontFamily: 'var(--font-ibm-mono)' }}></textarea>
             ) : (
               <div style={{ flex: 1, padding: (type === 'evento' || type === 'aviso') ? '0px' : '40px', background: 'var(--background)', color: 'var(--text)', border: '1px solid var(--accent)', borderRadius: '4px', width: '100%', minHeight: '400px', overflowY: 'auto' }}>
                 <div className="contenido-publicacion" dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} />
@@ -492,13 +493,13 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
             {pages.map((page, idx) => (
               <div key={idx} style={{ background: 'var(--background)', border: '1px dashed var(--accent)', padding: '24px', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
-                  <strong style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '1.1rem' }}>Página {idx + 1}</strong>
+                  <strong style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '1.1rem' }}>{t('adminPublicaciones.pagina')} {idx + 1}</strong>
                   {pages.length > 1 && (
-                    <button type="button" onClick={() => setPages(pages.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: '1px solid var(--error)', color: 'var(--error)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>ELIMINAR PÁGINA</button>
+                    <button type="button" onClick={() => setPages(pages.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: '1px solid var(--error)', color: 'var(--error)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>{t('adminPublicaciones.eliminarPagina')}</button>
                   )}
                 </div>
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Fondo/Imagen de Página (Opcional)</label>
+                  <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>{t('adminPublicaciones.imagenPagina')}</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (url) => {
                       const newPages = [...pages];
@@ -506,16 +507,16 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
                       setPages(newPages);
                     })} style={{ display: 'none' }} id={`upload-page-${idx}`} />
                     <label htmlFor={`upload-page-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '12px', background: 'var(--surface-strong)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                      <Upload size={14} /> SUBIR LOCAL
+                      <Upload size={14} /> {t('adminPublicaciones.subirLocal')}
                     </label>
                     <input type="text" value={page.image || ''} onChange={(e) => {
                       const newPages = [...pages];
                       newPages[idx].image = e.target.value;
                       setPages(newPages);
-                    }} placeholder="O pega URL..." style={{ flex: 1, padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
+                    }} placeholder={t('adminPublicaciones.urlPlaceholder')} style={{ flex: 1, padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
                   </div>
                 </div>
-                <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Estructura HTML Completa</label>
+                <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>{t('adminPublicaciones.estructuraHtml')}</label>
                 <textarea required value={page.content} onChange={(e) => {
                   const newPages = [...pages];
                   newPages[idx].content = e.target.value;
@@ -524,7 +525,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
               </div>
             ))}
             <button type="button" onClick={() => setPages([...pages, { content: '', image: '' }])} style={{ padding: '16px', background: 'transparent', color: 'var(--accent)', border: '1px dashed var(--accent)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '1rem', width: '100%' }}>
-              + AÑADIR NUEVA PÁGINA
+              {t('adminPublicaciones.anadirPagina')}
             </button>
           </div>
         )}
@@ -905,12 +906,12 @@ export default function App() {
           setView((currentView) => currentView === "welcome" ? "dashboard" : currentView);
         }, 2200);
       } else {
-        setError(data.message || "Credenciales incorrectas.");
+        setError(data.message || t('login.credencialesIncorrectas'));
         setIsShaking(true);
         setTimeout(() => setIsShaking(false), 500);
       }
     } catch (err) {
-      setError("Error interno.");
+      setError(t('login.errorInterno'));
       setIsShaking(true);
       setTimeout(() => setIsShaking(false), 500);
     } finally {
@@ -999,7 +1000,7 @@ export default function App() {
             // pantalla distinta según si estabas en el dashboard o no, con los
             // mismos switches duplicados en las dos.
             onClick={() => setView("settings_menu")}
-            title="Ajustes"
+            title={t('dashboard.ajustesTitulo')}
           >
             <TechGearIcon />
           </div>
@@ -1007,10 +1008,10 @@ export default function App() {
             <motion.button 
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              onClick={handleLogout} 
+              onClick={handleLogout}
               className="logout-btn-small"
             >
-              Salir
+              {t('dashboard.salir')}
             </motion.button>
           )}
         </div>
@@ -1022,8 +1023,8 @@ export default function App() {
           {view === "login" && (
             <motion.section key="login" className="login-panel" {...pageTransition}>
               <div className="panel-header">
-                <span className="panel-label">Completar datos</span>
-                <h1>Acceso al Sistema</h1>
+                <span className="panel-label">{t('login.completarDatos')}</span>
+                <h1>{t('login.titulo')}</h1>
               </div>
               <form onSubmit={handleLogin} autoComplete="off">
                 <div className={`input-group floating ${isShaking ? 'shake-error' : ''}`}>
@@ -1034,19 +1035,19 @@ export default function App() {
                     onChange={(e) => setMatricula(e.target.value)}
                     placeholder=" " 
                   />
-                  <label htmlFor="matricula">Matrícula</label>
+                  <label htmlFor="matricula">{t('login.matricula')}</label>
                   <span className="border-draw"></span>
                 </div>
 
                 <div className={`input-group floating ${isShaking ? 'shake-error' : ''}`}>
-                  <input 
-                    type="password" 
-                    id="password" 
+                  <input
+                    type="password"
+                    id="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder=" " 
+                    placeholder=" "
                   />
-                  <label htmlFor="password">Código de Acceso</label>
+                  <label htmlFor="password">{t('login.codigoAcceso')}</label>
                   <span className="border-draw"></span>
                 </div>
 
@@ -1083,7 +1084,7 @@ export default function App() {
                         </motion.div>
                       ) : (
                         <motion.span key="text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: 'block', width: '100%', textAlign: 'center' }}>
-                          Iniciar Sesión
+                          {t('login.iniciarSesion')}
                         </motion.span>
                       )}
                     </AnimatePresence>
@@ -1131,7 +1132,7 @@ export default function App() {
                   transition={{ delay: 0.25 }}
                   style={{ color: 'var(--accent)', margin: '0 0 12px 0', fontSize: '3.5rem' }}
                 >
-                  Bienvenido
+                  {t('bienvenida.titulo')}
                 </motion.h1>
                 <motion.h2 
                   initial={{ y: 20, opacity: 0 }}
@@ -1192,7 +1193,7 @@ export default function App() {
                   </div>
                   <div style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div>
-                      <p className="user-label">Usuario Conectado</p>
+                      <p className="user-label">{t('dashboard.usuarioConectado')}</p>
                       <h2 style={{ margin: '4px 0 0 0', letterSpacing: '-0.5px' }}>{user.nombre}</h2>
                       {user.alias && (
                         <p style={{ margin: '4px 0 0 0', color: 'var(--accent)', fontSize: '0.95rem', fontStyle: 'italic' }}>"{user.alias}"</p>
@@ -1202,10 +1203,10 @@ export default function App() {
                       )}
                     </div>
                     <div className="user-meta" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <p>Matrícula: <br/><strong style={{fontSize: '1rem', color: 'var(--text)'}}>{user.matricula}</strong></p>
-                      <p>Grupo: <br/><strong style={{fontSize: '1rem', color: 'var(--text)'}}>{user.grupo}</strong></p>
-                      <p>Teléfono: <br/><strong style={{fontSize: '1rem', color: 'var(--text)'}}>{user.telefono}</strong></p>
-                      <div>Roles: <br/>
+                      <p>{t('dashboard.matricula')}: <br/><strong style={{fontSize: '1rem', color: 'var(--text)'}}>{user.matricula}</strong></p>
+                      <p>{t('dashboard.grupo')}: <br/><strong style={{fontSize: '1rem', color: 'var(--text)'}}>{user.grupo}</strong></p>
+                      <p>{t('dashboard.telefono')}: <br/><strong style={{fontSize: '1rem', color: 'var(--text)'}}>{user.telefono}</strong></p>
+                      <div>{t('dashboard.roles')}: <br/>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
                           {(() => {
                             return getRoles(user).map((r: string) => {
@@ -1222,7 +1223,7 @@ export default function App() {
                           })()}
                         </div>
                       </div>
-                      <p>Estado: <strong style={{ color: "var(--success)" }}>Online</strong></p>
+                      <p>{t('dashboard.estado')}: <strong style={{ color: "var(--success)" }}>{t('dashboard.online')}</strong></p>
                       {(user.github || user.instagram || user.reddit || user.facebook) && (
                         <div style={{ display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
                           {user.github && (
@@ -1255,7 +1256,7 @@ export default function App() {
                     style={{ width: '100%', marginTop: 'auto' }}
                     onClick={openProfileEditor}
                   >
-                    Personalizar Perfil
+                    {t('dashboard.personalizarPerfil')}
                   </button>
                 </motion.div>
               </aside>
@@ -1271,17 +1272,17 @@ export default function App() {
                         transition={{ delay: 0.2 }}
                       >
                         <div>
-                          <h1>Panel Principal</h1>
+                          <h1>{t('dashboard.panelPrincipal')}</h1>
                         </div>
                       </motion.div>
 
-                      <motion.p 
+                      <motion.p
                         className="user-welcome"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.3 }}
                       >
-                        Módulos del Sistema (Vista de Panel):
+                        {t('dashboard.modulosDelSistema')}
                       </motion.p>
                       
                       <motion.div className="action-grid" layout style={{ alignItems: 'start' }}>
@@ -1289,23 +1290,23 @@ export default function App() {
                           let actions: any[] = [];
                           if (hasRole(user, 'admin')) {
                             actions = [
-                              { title: "Gestión de Publicaciones", view: "admin_content" },
-                              { title: "Gestión de Usuarios", view: "admin_users" },
-                              { title: "Logs Generales", view: "admin_logs" },
-                              { title: "Administración de Robots", view: "admin_config" },
-                              { title: "Consola del Operador", view: "controles" }
+                              { title: t('dashboard.gestionPublicaciones'), view: "admin_content" },
+                              { title: t('dashboard.gestionUsuarios'), view: "admin_users" },
+                              { title: t('dashboard.logsGenerales'), view: "admin_logs" },
+                              { title: t('dashboard.administracionRobots'), view: "admin_config" },
+                              { title: t('dashboard.consolaOperador'), view: "controles" }
                             ];
                           } else {
                             if (hasRole(user, 'redactor', 'editor')) {
-                              actions.push({ title: "Gestión de Publicaciones", view: "admin_content" });
+                              actions.push({ title: t('dashboard.gestionPublicaciones'), view: "admin_content" });
                             }
                             if (hasRole(user, 'operador')) {
-                              actions.push({ title: "Consola del Operador", view: "controles" });
+                              actions.push({ title: t('dashboard.consolaOperador'), view: "controles" });
                             }
                           }
-                          
+
                           if (actions.length === 0) {
-                            return <p style={{ color: 'var(--muted)', fontSize: '0.9rem', fontStyle: 'italic' }}>No hay herramientas disponibles para tu rol.</p>;
+                            return <p style={{ color: 'var(--muted)', fontSize: '0.9rem', fontStyle: 'italic' }}>{t('dashboard.sinHerramientas')}</p>;
                           }
 
                           return actions.map((action, idx) => {
@@ -1341,7 +1342,7 @@ export default function App() {
                                 )}
                                 <motion.span layout style={{ fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 1 }}>
                                   {isActivating ? (
-                                    <>Conectando <span className="loading-dots">...</span></>
+                                    <>{t('dashboard.conectando')} <span className="loading-dots">...</span></>
                                   ) : (
                                     <>{action.view === 'controles' ? <><ConsoleIcon /> {action.title}</> : action.title}</>
                                   )}
@@ -1357,31 +1358,31 @@ export default function App() {
                   {mainContext === "edit_profile" && (
                     <motion.div key="edit_profile" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                       <div className="panel-header" style={{ marginBottom: '32px' }}>
-                        <span className="panel-label">IDENTIDAD</span>
-                        <h2 style={{ margin: 0, fontSize: '2rem', color: 'var(--accent)' }}>Personaliza tu Perfil</h2>
+                        <span className="panel-label">{t('perfil.identidad')}</span>
+                        <h2 style={{ margin: 0, fontSize: '2rem', color: 'var(--accent)' }}>{t('perfil.titulo')}</h2>
                       </div>
-                      
+
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', maxWidth: '800px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                           <div className="input-group">
-                            <label>Alias / Apodo</label>
-                            <input type="text" placeholder="Ej. CyberNinja" value={profileForm.alias} onChange={e => setProfileForm({...profileForm, alias: e.target.value})} />
+                            <label>{t('perfil.alias')}</label>
+                            <input type="text" placeholder={t('perfil.aliasPlaceholder')} value={profileForm.alias} onChange={e => setProfileForm({...profileForm, alias: e.target.value})} />
                           </div>
                           <div className="input-group">
-                            <label>Breve Bio (Gustos / Personalidad)</label>
-                            <input type="text" placeholder="Me gusta la robótica y el café..." value={profileForm.bio} onChange={e => setProfileForm({...profileForm, bio: e.target.value})} />
+                            <label>{t('perfil.bio')}</label>
+                            <input type="text" placeholder={t('perfil.bioPlaceholder')} value={profileForm.bio} onChange={e => setProfileForm({...profileForm, bio: e.target.value})} />
                           </div>
                           <div className="input-group">
-                            <label>Foto de Perfil (Opcional - Max 2MB)</label>
-                            <input 
-                              type="file" 
-                              accept="image/png, image/jpeg, image/webp" 
+                            <label>{t('perfil.fotoLabel')}</label>
+                            <input
+                              type="file"
+                              accept="image/png, image/jpeg, image/webp"
                               onChange={async (e) => {
                                 const file = e.target.files?.[0];
                                 if (!file) return;
-                                
+
                                 if (file.size > 2 * 1024 * 1024) {
-                                  alert("La imagen no puede pesar más de 2MB");
+                                  alert(t('perfil.imagenPesada'));
                                   e.target.value = '';
                                   return;
                                 }
@@ -1397,12 +1398,12 @@ export default function App() {
                                   const data = await res.json();
                                   if (res.ok && data.url) {
                                     setProfileForm({...profileForm, foto: data.url});
-                                    alert("Foto subida temporalmente. Dale a 'Guardar Cambios' para confirmar.");
+                                    alert(t('perfil.fotoSubidaTemporal'));
                                   } else {
-                                    alert(data.error || data.message || "Error al subir foto");
+                                    alert(data.error || data.message || t('perfil.errorSubirFoto'));
                                   }
                                 } catch (err) {
-                                  alert("Error de conexión al subir la foto");
+                                  alert(t('perfil.errorConexionFoto'));
                                 }
                               }}
                               style={{
@@ -1417,7 +1418,7 @@ export default function App() {
                             />
                             {profileForm.foto && profileForm.foto.includes('/api/uploads/') && (
                               <div style={{ marginTop: '8px', fontSize: '0.8rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <CheckCircle size={14} /> Foto subida y lista
+                                <CheckCircle size={14} /> {t('perfil.fotoSubida')}
                               </div>
                             )}
                           </div>
@@ -1425,28 +1426,28 @@ export default function App() {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                           <div className="input-group">
-                            <label>GitHub (URL)</label>
+                            <label>{t('perfil.github')}</label>
                             <input type="text" placeholder="https://github.com/..." value={profileForm.github} onChange={e => setProfileForm({...profileForm, github: e.target.value})} />
                           </div>
                           <div className="input-group">
-                            <label>Instagram / Twitter (URL)</label>
+                            <label>{t('perfil.instagram')}</label>
                             <input type="text" placeholder="https://instagram.com/..." value={profileForm.instagram} onChange={e => setProfileForm({...profileForm, instagram: e.target.value})} />
                           </div>
                           <div className="input-group">
-                            <label>Reddit (URL o Usuario)</label>
+                            <label>{t('perfil.reddit')}</label>
                             <input type="text" placeholder="Usuario o URL" value={profileForm.reddit} onChange={e => setProfileForm({...profileForm, reddit: e.target.value})} />
                           </div>
                           <div className="input-group">
-                            <label>Facebook (URL)</label>
+                            <label>{t('perfil.facebook')}</label>
                             <input type="text" placeholder="https://facebook.com/..." value={profileForm.facebook} onChange={e => setProfileForm({...profileForm, facebook: e.target.value})} />
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
                             <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', border: '1px solid var(--border)', background: 'var(--background)', cursor: 'pointer' }}>
-                              <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>MOSTRAR ALIAS EN TABLERO</span>
+                              <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>{t('perfil.mostrarAlias')}</span>
                               <input type="checkbox" checked={showAlias} onChange={(e) => setShowAlias(e.target.checked)} style={{width: 'auto', cursor: 'pointer'}} />
                             </label>
                             <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', border: '1px solid var(--border)', background: 'var(--background)', cursor: 'pointer' }}>
-                              <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>RECIBIR NOTIFICACIONES PUSH</span>
+                              <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>{t('perfil.recibirPush')}</span>
                               <input type="checkbox" checked={pushNotifications} onChange={(e) => setPushNotifications(e.target.checked)} style={{width: 'auto', cursor: 'pointer'}} />
                             </label>
                           </div>
@@ -1468,21 +1469,21 @@ export default function App() {
                               const data = await res.json().catch(() => null);
                               if (res.ok && data?.success) {
                                 setUser(data.user);
-                                alert("Perfil actualizado con éxito.");
+                                alert(t('perfil.perfilActualizado'));
                                 setMainContext("modules");
                               } else {
-                                alert(data?.message || "Error al guardar perfil.");
+                                alert(data?.message || t('perfil.errorGuardarPerfil'));
                               }
                             } catch (e) {
-                              alert("Error de conexión.");
+                              alert(t('perfil.errorConexion'));
                             }
                           }}>
-                            Guardar Cambios
+                            {t('perfil.guardarCambios')}
                           </button>
                         </div>
                       </div>
 
-                      <button className="back-link" style={{ marginTop: '32px' }} onClick={() => setMainContext("modules")}>← Cancelar y Volver</button>
+                      <button className="back-link" style={{ marginTop: '32px' }} onClick={() => setMainContext("modules")}>{t('perfil.cancelarVolver')}</button>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -1544,7 +1545,7 @@ export default function App() {
               <Suspense fallback={
                 <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
                   <Loader2 className="animate-spin" size={64} style={{ marginBottom: '24px' }} />
-                  <h2 style={{ fontFamily: 'var(--font-ibm-mono)', margin: 0 }}>INICIALIZANDO CONSOLA...</h2>
+                  <h2 style={{ fontFamily: 'var(--font-ibm-mono)', margin: 0 }}>{t('dashboard.inicializandoConsola')}</h2>
                 </div>
               }>
                 <ControllerApp 
