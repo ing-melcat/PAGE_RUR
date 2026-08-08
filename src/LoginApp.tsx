@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
-import { Loader2, CheckCircle } from "lucide-react";
+import { Loader2, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
 import "./index.css";
 import { RobotSelection } from "./controller/RobotSelection";
 import { apiFetch } from "./lib/apiClient";
@@ -422,9 +422,10 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
               <button
                 type="button"
                 onClick={() => setShowEjemplos(v => !v)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', textDecoration: 'underline', padding: 0 }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', textDecoration: 'underline', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '2px', verticalAlign: 'middle' }}
               >
-                {showEjemplos ? 'Ocultar ejemplo ▴' : 'Ver ejemplo ▾'}
+                {showEjemplos ? 'Ocultar ejemplo' : 'Ver ejemplo'}
+                {showEjemplos ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
             </p>
           </motion.div>
