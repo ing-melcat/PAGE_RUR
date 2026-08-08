@@ -160,6 +160,11 @@ export const en: Dictionary = {
       errorTokenGeneracion: 'Error generating LiveKit token',
       olvidarMando: 'Forget detected controller',
       volverMenuAria: 'Back to Menu',
+      loginLegacyTitulo: 'Login',
+      loginLegacyIdentidad: 'Identity',
+      loginLegacyPassword: 'Password',
+      loginLegacyPlaceholderUsuario: 'Enter your username',
+      loginLegacyPlaceholderPassword: 'Enter your password',
     },
     statusHud: {
       linkStatus: 'Link Status',

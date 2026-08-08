@@ -1,17 +1,20 @@
+import { useLanguage } from '../lib/i18n';
+
 export function Login() {
+    const { t } = useLanguage();
     return (
         <div className="login">
-            <h3>Login</h3>
+            <h3>{t('operador.controller.loginLegacyTitulo')}</h3>
             <hr></hr>
-            <label>Identity</label>
+            <label>{t('operador.controller.loginLegacyIdentidad')}</label>
             <br></br>
-            <input type="text" placeholder="Enter your Username" />
+            <input type="text" placeholder={t('operador.controller.loginLegacyPlaceholderUsuario')} />
             <br></br>
-            <label>Password</label>
+            <label>{t('operador.controller.loginLegacyPassword')}</label>
             <br></br>
-            <input type="password" placeholder="Enter your Password" />
+            <input type="password" placeholder={t('operador.controller.loginLegacyPlaceholderPassword')} />
             <br></br>
-            <button id="connect-button">Connect</button>
+            <button id="connect-button">{t('operador.controller.conectar')}</button>
         </div>
     )
 }
