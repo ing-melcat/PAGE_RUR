@@ -32,18 +32,12 @@ const APAGADO = 'rgba(245, 243, 233, 0.12)';
 // y una lectura normal activa no es ninguna de las dos cosas.
 const BRILLO_ACTIVO = '0 0 8px rgba(245, 243, 233, 0.55)';
 
-// El mismo lenguaje que el resto del sitio: las tarjetas .Datos de App.css y
-// los paneles del panel de administración. Fondo sólido en --surface, esquinas
-// afiladas de 2px, para el menú desplegable de widgets -- es un panel flotante
-// aparte, no la barra misma.
-const TARJETA = {
-  background: 'var(--surface)',
-  border: '1px solid var(--border)',
-  borderRadius: '2px',
-  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
-  backdropFilter: 'blur(4px)',
-  WebkitBackdropFilter: 'blur(4px)',
-};
+// El panel de widgets (elegirQueVer) usa el mismo armazón visual que la
+// barra misma -- fondo --background, borde de 1px var(--border), esquinas
+// afiladas salvo en esencial -- porque es una sección/drawer que cuelga de
+// la barra, no una tarjeta flotando aparte sobre el canvas. Se arma en
+// panelMenu, no aquí, porque el lado que toca la barra no lleva borde (la
+// barra ya pone esa línea) y eso depende de si la barra está arriba o abajo.
 
 // A qué BLOQUE visual pertenece cada widget del catálogo. Es un agrupamiento
 // de layout, no de datos -- por eso vive aquí y no en widgets.js, que solo
@@ -169,7 +163,9 @@ function ModuloActuadores({ actuadores, transicion, chica }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: chica ? '6px' : '8px' }}>
-      <p className="telemetria__titulo">{t('telemetria.actuadores')}</p>
+      {/* Sin título propio: el bloque ACTUADORES que lo contiene ya pone ese
+          mismo header arriba (ver ORDEN_BLOQUES) -- repetirlo aquí era un
+          "ACTUATORS" duplicado dentro de su propia sección. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, auto)', gap: chica ? '4px 12px' : '6px 16px' }}>
         {ACTUADORES.map(({ clave, abrev }) => {
           const encendido = Boolean(actuadores[clave]);
@@ -299,6 +295,13 @@ export function BarraTelemetria({
   );
   const enlace = useEstadisticasEnlace(room, necesitaEnlace);
 
+  // Solo los bloques con al menos un widget activo se dibujan como columna.
+  // Se calcula aparte del render para que tanto la grilla (cuántas columnas
+  // 1fr) como el divisor del primer bloque visible usen el mismo conteo.
+  const bloquesVisibles = ORDEN_BLOQUES.filter((bloque) =>
+    WIDGETS.some((w) => activos.includes(w.id) && BLOQUES[w.id] === bloque)
+  );
+
   const alternar = (id) => {
     setActivos((previos) =>
       previos.includes(id) ? previos.filter((x) => x !== id) : [...previos, id]
@@ -367,15 +370,28 @@ export function BarraTelemetria({
 
   const arriba = posicion === 'arriba';
 
+  // Mismo borde de 1px var(--border) que la barra, salvo en el lado que la
+  // toca -- ese ya lo pone el borde de la barra misma, y duplicarlo se vería
+  // como una costura doble en vez de una sola pieza.
+  const bordeCompartido = '1px solid var(--border)';
   const panelMenu = menuAbierto ? (
         <div
           style={{
             pointerEvents: 'auto',
             position: 'absolute', right: esencial ? 0 : (compacta ? '20px' : '40px'), minWidth: '230px',
+            // Sin margen: el panel queda pegado al borde de la barra, como un
+            // cajón que se abre desde ella, no una tarjeta suelta sobre el
+            // canvas vacío.
             ...(arriba
-              ? { top: '100%', marginTop: '10px' }
-              : { bottom: '100%', marginBottom: '10px' }),
-            ...TARJETA, padding: '14px 16px',
+              ? { top: '100%', borderTop: 'none', borderLeft: bordeCompartido, borderRight: bordeCompartido, borderBottom: bordeCompartido }
+              : { bottom: '100%', borderBottom: 'none', borderLeft: bordeCompartido, borderRight: bordeCompartido, borderTop: bordeCompartido }),
+            background: 'var(--background)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            // Misma regla que la barra: esquinas afiladas salvo en esencial.
+            borderRadius: esencial ? '2px' : 0,
+            padding: '14px 16px',
             display: 'flex', flexDirection: 'column', gap: '10px',
           }}
         >
@@ -462,79 +478,83 @@ export function BarraTelemetria({
     >
       <div
         style={{
-          display: 'flex', alignItems: 'stretch',
-          justifyContent: angosta ? 'flex-start' : 'space-between',
-          flexWrap: angosta ? 'wrap' : 'nowrap',
-          gap: angosta ? '14px 24px' : '0',
+          // En angosta se sigue apilando por flex-wrap. En ancho, en vez de
+          // 'space-between' entre dos grupos (bloques vs. sesión) -- que deja
+          // un hueco gigante en medio cuando hay pocos widgets activos --
+          // cada bloque y la sesión son columnas 1fr de una grilla, así que
+          // el ancho sobrante se reparte entre todas en vez de acumularse en
+          // un solo tramo.
+          display: angosta ? 'flex' : 'grid',
+          ...(angosta
+            ? { alignItems: 'stretch', flexWrap: 'wrap' }
+            : { alignItems: 'stretch', gridAutoFlow: 'column', gridAutoColumns: '1fr' }),
+          gap: angosta ? '14px 24px' : '0 32px',
           padding: angosta ? '12px 18px 14px' : '18px 40px 22px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'stretch', flexWrap: angosta ? 'wrap' : 'nowrap', gap: angosta ? '14px 24px' : '32px' }}>
-          {/* Agrupados por bloque (MOVIMIENTO / ACTUADORES / CONEXIÓN) en vez de
-              una fila plana: cada uno lleva su propio mini-header y, salvo en
-              angosta -- donde ya bajan de línea por su cuenta --, un divisor a
-              la izquierda. El orden interno lo sigue mandando el catálogo. */}
-          {ORDEN_BLOQUES.map((bloque, i) => {
-            const ids = WIDGETS.filter((w) => activos.includes(w.id) && BLOQUES[w.id] === bloque).map((w) => w.id);
-            if (ids.length === 0) return null;
-            return (
-              <div
-                key={bloque}
-                className={i > 0 && !angosta ? 'telemetria__bloque--dividido' : undefined}
-                style={{ display: 'flex', flexDirection: 'column', gap: esencial ? '8px' : '12px' }}
-              >
-                <p className="telemetria__bloque-titulo">{t(`telemetria.bloques.${bloque}`)}</p>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: esencial ? '14px' : '24px', flexWrap: 'wrap' }}>
-                  {ids.map((id) => {
-                    switch (id) {
-                      case 'avance':
-                        return <ModuloAvance key={id} avance={telemetria.avance} transicion={transicion} chica={esencial} />;
-                      case 'giro':
-                        return <ModuloGiro key={id} giro={telemetria.giro} transicion={transicion} chica={esencial} />;
-                      case 'actuadores':
-                        return <ModuloActuadores key={id} actuadores={telemetria.actuadores} transicion={transicion} chica={esencial} />;
-                      case 'calidad':
-                        return <ModuloDato key={id} titulo={t('telemetria.enlace')} valor={enlace?.calidad} transicion={transicion} chica={esencial} />;
-                      case 'bitrate':
-                        return <ModuloDato key={id} titulo={t('telemetria.bitrate')} valor={enlace?.bitrateKbps} unidad={t('telemetria.kbps')} transicion={transicion} chica={esencial} />;
-                      case 'video':
-                        return (
-                          <ModuloDato
-                            key={id}
-                            titulo={t('telemetria.video')}
-                            valor={enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : null}
-                            pie={enlace?.fps != null ? `${enlace.fps} ${t('telemetria.fps')} · ${enlace.framesCaidos} ${t('telemetria.caidos')}` : ''}
-                            transicion={transicion}
-                            chica={esencial}
-                          />
-                        );
-                      case 'perdida':
-                        return (
-                          <ModuloDato
-                            key={id}
-                            titulo={t('telemetria.perdida')}
-                            valor={enlace?.perdidos}
-                            unidad={t('telemetria.paquetes')}
-                            pie={enlace?.jitterMs != null ? `${t('telemetria.jitter')} ${enlace.jitterMs} ${t('telemetria.ms')} · ${t('telemetria.buffer')} ${enlace.bufferMs} ${t('telemetria.ms')}` : ''}
-                            transicion={transicion}
-                            chica={esencial}
-                          />
-                        );
-                      default:
-                        return null;
-                    }
-                  })}
-                </div>
+        {/* Agrupados por bloque (MOVIMIENTO / ACTUADORES / CONEXIÓN) en vez de
+            una fila plana: cada uno lleva su propio mini-header y, salvo en
+            angosta -- donde ya bajan de línea por su cuenta --, un divisor a
+            la izquierda. El orden interno lo sigue mandando el catálogo. */}
+        {bloquesVisibles.map((bloque, i) => {
+          const ids = WIDGETS.filter((w) => activos.includes(w.id) && BLOQUES[w.id] === bloque).map((w) => w.id);
+          return (
+            <div
+              key={bloque}
+              className={i > 0 && !angosta ? 'telemetria__bloque--dividido' : undefined}
+              style={{ display: 'flex', flexDirection: 'column', gap: esencial ? '8px' : '12px' }}
+            >
+              <p className="telemetria__bloque-titulo">{t(`telemetria.bloques.${bloque}`)}</p>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: esencial ? '14px' : '24px', flexWrap: 'wrap' }}>
+                {ids.map((id) => {
+                  switch (id) {
+                    case 'avance':
+                      return <ModuloAvance key={id} avance={telemetria.avance} transicion={transicion} chica={esencial} />;
+                    case 'giro':
+                      return <ModuloGiro key={id} giro={telemetria.giro} transicion={transicion} chica={esencial} />;
+                    case 'actuadores':
+                      return <ModuloActuadores key={id} actuadores={telemetria.actuadores} transicion={transicion} chica={esencial} />;
+                    case 'calidad':
+                      return <ModuloDato key={id} titulo={t('telemetria.enlace')} valor={enlace?.calidad} transicion={transicion} chica={esencial} />;
+                    case 'bitrate':
+                      return <ModuloDato key={id} titulo={t('telemetria.bitrate')} valor={enlace?.bitrateKbps} unidad={t('telemetria.kbps')} transicion={transicion} chica={esencial} />;
+                    case 'video':
+                      return (
+                        <ModuloDato
+                          key={id}
+                          titulo={t('telemetria.video')}
+                          valor={enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : null}
+                          pie={enlace?.fps != null ? `${enlace.fps} ${t('telemetria.fps')} · ${enlace.framesCaidos} ${t('telemetria.caidos')}` : ''}
+                          transicion={transicion}
+                          chica={esencial}
+                        />
+                      );
+                    case 'perdida':
+                      return (
+                        <ModuloDato
+                          key={id}
+                          titulo={t('telemetria.perdida')}
+                          valor={enlace?.perdidos}
+                          unidad={t('telemetria.paquetes')}
+                          pie={enlace?.jitterMs != null ? `${t('telemetria.jitter')} ${enlace.jitterMs} ${t('telemetria.ms')} · ${t('telemetria.buffer')} ${enlace.bufferMs} ${t('telemetria.ms')}` : ''}
+                          transicion={transicion}
+                          chica={esencial}
+                        />
+                      );
+                    default:
+                      return null;
+                  }
+                })}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
 
         {/* Bloque SESIÓN: a diferencia de los anteriores siempre se dibuja --
             el indicador EN VIVO y el botón de widgets son controles fijos de la
             barra, no datos que se puedan apagar. */}
         <div
-          className={!angosta ? 'telemetria__bloque--dividido' : undefined}
+          className={bloquesVisibles.length > 0 && !angosta ? 'telemetria__bloque--dividido' : undefined}
           style={{ display: 'flex', flexDirection: 'column', gap: esencial ? '8px' : '12px', alignSelf: angosta ? 'flex-start' : 'flex-end', alignItems: angosta ? 'flex-start' : 'flex-end' }}
         >
           <p className="telemetria__bloque-titulo">{t('telemetria.bloques.sesion')}</p>
