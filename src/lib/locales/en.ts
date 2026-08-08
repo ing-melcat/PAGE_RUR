@@ -173,6 +173,7 @@ export const en: Dictionary = {
       telemetria: 'Telemetry',
       linX: 'LIN X',
       angZ: 'ANG Z',
+      audiencia: 'Audience',
     },
   },
   telemetria: {
@@ -226,6 +227,12 @@ export const en: Dictionary = {
       video: 'Resolution & FPS',
       perdida: 'Loss & Jitter',
       audiencia: 'Viewers',
+    },
+    bloques: {
+      movimiento: 'Movement',
+      actuadores: 'Actuators',
+      conexion: 'Connection',
+      sesion: 'Session',
     },
   },
   archivo: {

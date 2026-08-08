@@ -9,15 +9,17 @@ import {
   TOPIC_TELEMETRIA,
   decodificarTelemetria,
 } from '../telemetria';
-import { WIDGETS, cargarWidgets, guardarWidgets } from '../widgets';
+import { WIDGETS, WIDGETS_POR_DEFECTO } from '../widgets';
 import { useEstadisticasEnlace } from '../useEstadisticasEnlace';
 import { useLanguage } from '../../lib/i18n';
 import '../BarraTelemetria.css';
 
 /**
- * Barra de telemetría del espectador, al estilo de las transmisiones de SpaceX:
- * pegada al borde inferior y con degradado en vez de un bloque sólido, para que
- * el centro del encuadre quede siempre libre.
+ * Barra de telemetría del espectador, al estilo de un HUD de misión: navy
+ * casi negro como el resto del armazón del sitio, datos agrupados en
+ * bloques (MOVIMIENTO, ACTUADORES, CONEXIÓN, SESIÓN) separados por
+ * divisores finos, y el ámbar de marca reservado a advertencias reales y
+ * controles interactivos -- nunca a una lectura normal.
  *
  * Solo lee del canal de datos: el operador publica un resumen ya traducido
  * (niveles de 0 a 10 y nombres en español), nunca el protocolo de control. Este
@@ -25,11 +27,15 @@ import '../BarraTelemetria.css';
  */
 
 const APAGADO = 'rgba(245, 243, 233, 0.12)';
+// Brillo de un dato EN VIVO. Blanco/hueso, no ámbar: el amarillo institucional
+// se reserva para advertencias y controles interactivos (ver BarraTelemetria.css),
+// y una lectura normal activa no es ninguna de las dos cosas.
+const BRILLO_ACTIVO = '0 0 8px rgba(245, 243, 233, 0.55)';
 
 // El mismo lenguaje que el resto del sitio: las tarjetas .Datos de App.css y
 // los paneles del panel de administración. Fondo sólido en --surface, esquinas
-// afiladas de 2px y títulos en ámbar subrayados, en vez del HUD translúcido con
-// etiquetas apagadas que se probó antes.
+// afiladas de 2px, para el menú desplegable de widgets -- es un panel flotante
+// aparte, no la barra misma.
 const TARJETA = {
   background: 'var(--surface)',
   border: '1px solid var(--border)',
@@ -38,6 +44,22 @@ const TARJETA = {
   backdropFilter: 'blur(4px)',
   WebkitBackdropFilter: 'blur(4px)',
 };
+
+// A qué BLOQUE visual pertenece cada widget del catálogo. Es un agrupamiento
+// de layout, no de datos -- por eso vive aquí y no en widgets.js, que solo
+// sabe de dónde sale cada dato ('operador' / 'enlace'), no de cómo se
+// presenta. 'audiencia' no aparece: se dibuja aparte, dentro del bloque
+// SESIÓN, junto al modo de entrada y el indicador EN VIVO.
+const BLOQUES = {
+  avance: 'movimiento',
+  giro: 'movimiento',
+  actuadores: 'actuadores',
+  calidad: 'conexion',
+  bitrate: 'conexion',
+  video: 'conexion',
+  perdida: 'conexion',
+};
+const ORDEN_BLOQUES = ['movimiento', 'actuadores', 'conexion'];
 
 
 function BarraSegmentos({ nivel, transicion }) {
@@ -48,8 +70,8 @@ function BarraSegmentos({ nivel, transicion }) {
           key={i}
           style={{
             width: '9px', height: '9px',
-            background: i < nivel ? 'var(--accent)' : APAGADO,
-            boxShadow: i < nivel ? '0 0 6px rgba(251, 202, 1, 0.5)' : 'none',
+            background: i < nivel ? 'var(--bone)' : APAGADO,
+            boxShadow: i < nivel ? BRILLO_ACTIVO : 'none',
             transition: transicion,
           }}
         />
@@ -104,7 +126,7 @@ function ModuloGiro({ giro, transicion, chica }) {
   const chevron = (dir, glifo) => (
     <span
       className="telemetria__flecha telemetria__flecha--menor"
-      style={{ color: activo && giro.dir === dir ? 'var(--accent)' : APAGADO, transition: transicion }}
+      style={{ color: activo && giro.dir === dir ? 'var(--bone)' : APAGADO, transition: transicion }}
     >
       {glifo}
     </span>
@@ -127,8 +149,8 @@ function ModuloGiro({ giro, transicion, chica }) {
           }} />
           <div style={{
             position: 'absolute', top: '50%', left: `${50 + desplazamiento}%`,
-            width: '3px', height: chica ? '16px' : '22px', background: activo ? 'var(--accent)' : 'var(--muted)',
-            boxShadow: activo ? '0 0 8px rgba(251, 202, 1, 0.6)' : 'none',
+            width: '3px', height: chica ? '16px' : '22px', background: activo ? 'var(--bone)' : 'var(--muted)',
+            boxShadow: activo ? BRILLO_ACTIVO : 'none',
             transform: 'translate(-50%, -50%)', transition: transicion,
           }} />
         </div>
@@ -155,8 +177,8 @@ function ModuloActuadores({ actuadores, transicion, chica }) {
             <div key={clave} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <div style={{
                 width: '7px', height: '7px', borderRadius: '50%',
-                background: encendido ? 'var(--accent)' : APAGADO,
-                boxShadow: encendido ? '0 0 8px var(--accent)' : 'none',
+                background: encendido ? 'var(--bone)' : APAGADO,
+                boxShadow: encendido ? BRILLO_ACTIVO : 'none',
                 transition: transicion,
               }} />
               <span
@@ -169,7 +191,7 @@ function ModuloActuadores({ actuadores, transicion, chica }) {
           );
         })}
       </div>
-      <span className="telemetria__pie telemetria__pie--accion">
+      <span className="telemetria__pie telemetria__pie--destacado">
         {activos.map(({ clave }) => t(`telemetria.etiquetasAccion.${actuadores[clave]}`)).join(' · ')}
       </span>
     </div>
@@ -263,7 +285,10 @@ export function BarraTelemetria({
   // real: es el hueco central el que manda, no el viewport.
   const angosta = compacta || esencial;
   const [sinMovimiento, setSinMovimiento] = useState(false);
-  const [activos, setActivos] = useState(cargarWidgets);
+  // Sin persistencia: el espectador público no tiene cuenta, así que no hay
+  // dónde guardar esto salvo el navegador — y aquí no se guarda nada en el
+  // navegador. El tablero vuelve a los widgets por defecto en cada visita.
+  const [activos, setActivos] = useState(WIDGETS_POR_DEFECTO);
   const [menuAbierto, setMenuAbierto] = useState(false);
   const ultimoRef = useRef(0);
 
@@ -275,13 +300,9 @@ export function BarraTelemetria({
   const enlace = useEstadisticasEnlace(room, necesitaEnlace);
 
   const alternar = (id) => {
-    setActivos((previos) => {
-      const siguientes = previos.includes(id)
-        ? previos.filter((x) => x !== id)
-        : [...previos, id];
-      guardarWidgets(siguientes);
-      return siguientes;
-    });
+    setActivos((previos) =>
+      previos.includes(id) ? previos.filter((x) => x !== id) : [...previos, id]
+    );
   };
 
   useEffect(() => {
@@ -420,9 +441,11 @@ export function BarraTelemetria({
         ...(esencial
           ? { left: '50%', transform: 'translateX(-50%)', maxWidth: 'calc(100vw - 40px)' }
           : { left: 0, right: 0 }),
-        // Tarjeta sólida, como el resto de paneles del sitio, en vez del
-        // degradado que se probó antes.
-        background: 'var(--surface)',
+        // Mismo navy casi negro que el header/footer del sitio (--background),
+        // no --surface: la barra es parte del armazón de la página, no una
+        // tarjeta flotando sobre él -- eso es lo que hacía que compitiera con
+        // el video en vez de enmarcarlo.
+        background: 'var(--background)',
         boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
         backdropFilter: 'blur(4px)',
         WebkitBackdropFilter: 'blur(4px)',
@@ -439,96 +462,127 @@ export function BarraTelemetria({
     >
       <div
         style={{
-          display: 'flex', alignItems: 'flex-start',
+          display: 'flex', alignItems: 'stretch',
           justifyContent: angosta ? 'flex-start' : 'space-between',
           flexWrap: angosta ? 'wrap' : 'nowrap',
-          gap: angosta ? '14px 24px' : '40px',
+          gap: angosta ? '14px 24px' : '0',
           padding: angosta ? '12px 18px 14px' : '18px 40px 22px',
         }}
       >
-        {/* El orden lo manda el catálogo, no este archivo: así un widget nuevo
-            aparece en su sitio con solo añadirlo a WIDGETS. */}
-        {WIDGETS.filter((w) => activos.includes(w.id)).map(({ id }) => {
-          switch (id) {
-            case 'avance':
-              return <ModuloAvance key={id} avance={telemetria.avance} transicion={transicion} chica={esencial} />;
-            case 'giro':
-              return <ModuloGiro key={id} giro={telemetria.giro} transicion={transicion} chica={esencial} />;
-            case 'actuadores':
-              return <ModuloActuadores key={id} actuadores={telemetria.actuadores} transicion={transicion} chica={esencial} />;
-            case 'calidad':
-              return <ModuloDato key={id} titulo={t('telemetria.enlace')} valor={enlace?.calidad} transicion={transicion} chica={esencial} />;
-            case 'bitrate':
-              return <ModuloDato key={id} titulo={t('telemetria.bitrate')} valor={enlace?.bitrateKbps} unidad={t('telemetria.kbps')} transicion={transicion} chica={esencial} />;
-            case 'video':
-              return (
-                <ModuloDato
-                  key={id}
-                  titulo={t('telemetria.video')}
-                  valor={enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : null}
-                  pie={enlace?.fps != null ? `${enlace.fps} ${t('telemetria.fps')} · ${enlace.framesCaidos} ${t('telemetria.caidos')}` : ''}
-                  transicion={transicion}
-                  chica={esencial}
-                />
-              );
-            case 'perdida':
-              return (
-                <ModuloDato
-                  key={id}
-                  titulo={t('telemetria.perdida')}
-                  valor={enlace?.perdidos}
-                  unidad={t('telemetria.paquetes')}
-                  pie={enlace?.jitterMs != null ? `${t('telemetria.jitter')} ${enlace.jitterMs} ${t('telemetria.ms')} · ${t('telemetria.buffer')} ${enlace.bufferMs} ${t('telemetria.ms')}` : ''}
-                  transicion={transicion}
-                  chica={esencial}
-                />
-              );
-            case 'audiencia':
-              return <ModuloDato key={id} titulo={t('telemetria.espectadores')} valor={enlace?.espectadores} transicion={transicion} chica={esencial} />;
-            default:
-              return null;
-          }
-        })}
+        <div style={{ display: 'flex', alignItems: 'stretch', flexWrap: angosta ? 'wrap' : 'nowrap', gap: angosta ? '14px 24px' : '32px' }}>
+          {/* Agrupados por bloque (MOVIMIENTO / ACTUADORES / CONEXIÓN) en vez de
+              una fila plana: cada uno lleva su propio mini-header y, salvo en
+              angosta -- donde ya bajan de línea por su cuenta --, un divisor a
+              la izquierda. El orden interno lo sigue mandando el catálogo. */}
+          {ORDEN_BLOQUES.map((bloque, i) => {
+            const ids = WIDGETS.filter((w) => activos.includes(w.id) && BLOQUES[w.id] === bloque).map((w) => w.id);
+            if (ids.length === 0) return null;
+            return (
+              <div
+                key={bloque}
+                className={i > 0 && !angosta ? 'telemetria__bloque--dividido' : undefined}
+                style={{ display: 'flex', flexDirection: 'column', gap: esencial ? '8px' : '12px' }}
+              >
+                <p className="telemetria__bloque-titulo">{t(`telemetria.bloques.${bloque}`)}</p>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: esencial ? '14px' : '24px', flexWrap: 'wrap' }}>
+                  {ids.map((id) => {
+                    switch (id) {
+                      case 'avance':
+                        return <ModuloAvance key={id} avance={telemetria.avance} transicion={transicion} chica={esencial} />;
+                      case 'giro':
+                        return <ModuloGiro key={id} giro={telemetria.giro} transicion={transicion} chica={esencial} />;
+                      case 'actuadores':
+                        return <ModuloActuadores key={id} actuadores={telemetria.actuadores} transicion={transicion} chica={esencial} />;
+                      case 'calidad':
+                        return <ModuloDato key={id} titulo={t('telemetria.enlace')} valor={enlace?.calidad} transicion={transicion} chica={esencial} />;
+                      case 'bitrate':
+                        return <ModuloDato key={id} titulo={t('telemetria.bitrate')} valor={enlace?.bitrateKbps} unidad={t('telemetria.kbps')} transicion={transicion} chica={esencial} />;
+                      case 'video':
+                        return (
+                          <ModuloDato
+                            key={id}
+                            titulo={t('telemetria.video')}
+                            valor={enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : null}
+                            pie={enlace?.fps != null ? `${enlace.fps} ${t('telemetria.fps')} · ${enlace.framesCaidos} ${t('telemetria.caidos')}` : ''}
+                            transicion={transicion}
+                            chica={esencial}
+                          />
+                        );
+                      case 'perdida':
+                        return (
+                          <ModuloDato
+                            key={id}
+                            titulo={t('telemetria.perdida')}
+                            valor={enlace?.perdidos}
+                            unidad={t('telemetria.paquetes')}
+                            pie={enlace?.jitterMs != null ? `${t('telemetria.jitter')} ${enlace.jitterMs} ${t('telemetria.ms')} · ${t('telemetria.buffer')} ${enlace.bufferMs} ${t('telemetria.ms')}` : ''}
+                            transicion={transicion}
+                            chica={esencial}
+                          />
+                        );
+                      default:
+                        return null;
+                    }
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignSelf: angosta ? 'flex-start' : 'flex-end' }}>
-          {entrada && (
-            <div style={{ marginBottom: '2px' }}>
-              <ChipEntrada entrada={entrada} transicion={transicion} />
+        {/* Bloque SESIÓN: a diferencia de los anteriores siempre se dibuja --
+            el indicador EN VIVO y el botón de widgets son controles fijos de la
+            barra, no datos que se puedan apagar. */}
+        <div
+          className={!angosta ? 'telemetria__bloque--dividido' : undefined}
+          style={{ display: 'flex', flexDirection: 'column', gap: esencial ? '8px' : '12px', alignSelf: angosta ? 'flex-start' : 'flex-end', alignItems: angosta ? 'flex-start' : 'flex-end' }}
+        >
+          <p className="telemetria__bloque-titulo">{t('telemetria.bloques.sesion')}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: angosta ? 'flex-start' : 'flex-end' }}>
+            {activos.includes('audiencia') && (
+              <ModuloDato titulo={t('telemetria.espectadores')} valor={enlace?.espectadores} transicion={transicion} chica={esencial} />
+            )}
+            {entrada && (
+              <div style={{ marginBottom: '2px' }}>
+                <ChipEntrada entrada={entrada} transicion={transicion} />
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                background: enVivo ? 'var(--success)' : 'var(--error)',
+                boxShadow: `0 0 8px ${enVivo ? 'var(--success)' : 'var(--error)'}`,
+                transition: transicion,
+              }} />
+              <span className="telemetria__pie" style={{ color: enVivo ? 'var(--success)' : 'var(--error)' }}>
+                {enVivo ? t('telemetria.enVivo') : t('telemetria.sinSenal')}
+              </span>
             </div>
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '8px', height: '8px', borderRadius: '50%',
-              background: enVivo ? 'var(--success)' : 'var(--error)',
-              boxShadow: `0 0 8px ${enVivo ? 'var(--success)' : 'var(--error)'}`,
-              transition: transicion,
-            }} />
-            <span className="telemetria__pie" style={{ color: enVivo ? 'var(--success)' : 'var(--error)' }}>
-              {enVivo ? t('telemetria.enVivo') : t('telemetria.sinSenal')}
-            </span>
-          </div>
-          {/* Estos valores son las órdenes del operador. Si no hay robot
-              conectado no las está recibiendo nadie, y hay que decirlo o el
-              espectador creería que la unidad se está moviendo. */}
-          {enVivo && !telemetria.robot && (
-            <span className="telemetria__pie telemetria__pie--accion">{t('telemetria.sinRobotConectado')}</span>
-          )}
+            {/* Estos valores son las órdenes del operador. Si no hay robot
+                conectado no las está recibiendo nadie, y hay que decirlo o el
+                espectador creería que la unidad se está moviendo. Es una
+                advertencia real, así que sí lleva el ámbar -- a diferencia de
+                las lecturas normales de arriba. */}
+            {enVivo && !telemetria.robot && (
+              <span className="telemetria__pie telemetria__pie--advertencia">{t('telemetria.sinRobotConectado')}</span>
+            )}
 
-          {/* La barra entera lleva pointerEvents:none para no estorbar al video,
-              así que lo interactivo tiene que reactivarlo por su cuenta. */}
-          <button
-            onClick={() => setMenuAbierto((v) => !v)}
-            style={{
-              pointerEvents: 'auto', cursor: 'pointer', alignSelf: 'flex-start',
-              background: 'transparent', border: `1px solid ${menuAbierto ? 'var(--accent)' : 'var(--border)'}`,
-              color: menuAbierto ? 'var(--accent)' : 'var(--muted)',
-              borderRadius: '4px', padding: '4px 10px', marginTop: '2px',
-              textTransform: 'uppercase',
-            }}
-            className="telemetria__accion"
-          >
-            <LayoutGrid size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> {t('telemetria.widgets')}
-          </button>
+            {/* La barra entera lleva pointerEvents:none para no estorbar al video,
+                así que lo interactivo tiene que reactivarlo por su cuenta. */}
+            <button
+              onClick={() => setMenuAbierto((v) => !v)}
+              style={{
+                pointerEvents: 'auto', cursor: 'pointer', alignSelf: 'flex-start',
+                background: 'transparent', border: `1px solid ${menuAbierto ? 'var(--accent)' : 'var(--border)'}`,
+                color: menuAbierto ? 'var(--accent)' : 'var(--muted)',
+                borderRadius: '4px', padding: '4px 10px', marginTop: '2px',
+                textTransform: 'uppercase',
+              }}
+              className="telemetria__accion"
+            >
+              <LayoutGrid size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> {t('telemetria.widgets')}
+            </button>
+          </div>
         </div>
       </div>
 

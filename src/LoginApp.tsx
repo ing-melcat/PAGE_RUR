@@ -1502,21 +1502,6 @@ export default function App() {
                     setLivekitToken(robot); // We repurpose this state to hold the entire robot object
                     setView("controles");
                   }}
-                  onAddRobot={(newRobot) => {
-                    setRobots(prev => [...prev, newRobot]);
-                  }}
-                  onUpdateRobot={async (updatedRobot) => {
-                    setRobots(prev => prev.map(r => r.id === updatedRobot.id ? updatedRobot : r));
-                    try {
-                      await apiFetch(`/api/robots/${updatedRobot.id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(updatedRobot)
-                      });
-                    } catch (e) {
-                      console.error("Error al guardar robot en backend:", e);
-                    }
-                  }}
                   controlMappings={user.control_mappings}
                   onUpdateMappings={async (newMappings) => {
                     try {
