@@ -269,7 +269,7 @@ export const PublicationPage = () => {
              transition={{ duration: 0.6 }}
              style={{ width: '100%', height: '100%' }}
            >
-             <div dangerouslySetInnerHTML={{ __html: sanitizeHtml((post.pages && post.pages.length > 0) ? post.pages[currentPage].content : (post.content || '')) }} style={{ lineHeight: '1.8' }} />
+             <div className="contenido-publicacion" dangerouslySetInnerHTML={{ __html: sanitizeHtml((post.pages && post.pages.length > 0) ? post.pages[currentPage].content : (post.content || '')) }} />
            </motion.div>
         </div>
 
