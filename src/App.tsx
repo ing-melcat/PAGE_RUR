@@ -2,7 +2,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { Routes, Route, Link, Outlet, useLocation } from 'react-router-dom';
 import { lazyConRecarga, marcarArranqueCorrecto } from './lib/lazyConRecarga';
 import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion';
-import { MapPin, Phone, Mail, Menu, X } from 'lucide-react';
+import { MapPin, Phone, Mail, Menu, X, Languages } from 'lucide-react';
 import logoUrl from './assets/isotipo.png';
 import logoBlancoUrl from './assets/real_images/isotipo_blanco.png';
 import imgMembers from './assets/real_images/rur-members1.jpeg';
@@ -341,7 +341,7 @@ const Footer = () => {
 
 // --- LAYOUT DEL LANDING ---
 const LandingLayout = () => {
-  const { t } = useLanguage();
+  const { t, lang, setLang } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSpecial, setActiveSpecial] = useState<'aviso' | 'evento' | null>(null);
   const location = useLocation();
@@ -438,6 +438,14 @@ const LandingLayout = () => {
               {activeSpecial === 'aviso' ? t('nav.avisoActivo') : t('nav.eventoActivo')}
             </div>
           )}
+          <button
+            type="button"
+            className="logout-btn-small mobile-only-btn"
+            onClick={() => setLang(lang === 'es' ? 'en' : 'es')}
+            style={{ borderColor: 'var(--accent)', color: 'var(--accent)', marginTop: activeSpecial ? '10px' : '20px', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
+          >
+            <Languages size={14} /> {lang === 'es' ? 'EN' : 'ES'}
+          </button>
           <Link to="/login" className="mobile-only-btn" style={{ textDecoration: 'none', marginTop: activeSpecial ? '10px' : '20px' }} onClick={() => setIsMobileMenuOpen(false)}>
             <button className="logout-btn-small" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}>
               {t('nav.acceder')}
@@ -452,6 +460,15 @@ const LandingLayout = () => {
               {activeSpecial === 'aviso' ? t('nav.avisoActivo') : t('nav.eventoActivo')}
             </div>
           )}
+          <button
+            type="button"
+            className="logout-btn-small"
+            onClick={() => setLang(lang === 'es' ? 'en' : 'es')}
+            title={t('accesibilidad.idioma')}
+            style={{ borderColor: 'var(--accent)', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Languages size={14} /> {lang === 'es' ? 'EN' : 'ES'}
+          </button>
           <Link to="/login" style={{ textDecoration: 'none' }}>
             <button
               className="logout-btn-small"
