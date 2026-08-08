@@ -160,6 +160,11 @@ export const es = {
       errorTokenGeneracion: 'Error al generar el token de LiveKit',
       olvidarMando: 'Olvidar el mando detectado',
       volverMenuAria: 'Volver al Menú',
+      loginLegacyTitulo: 'Acceso',
+      loginLegacyIdentidad: 'Identidad',
+      loginLegacyPassword: 'Contraseña',
+      loginLegacyPlaceholderUsuario: 'Ingresa tu usuario',
+      loginLegacyPlaceholderPassword: 'Ingresa tu contraseña',
     },
     statusHud: {
       linkStatus: 'Estado del Enlace',
