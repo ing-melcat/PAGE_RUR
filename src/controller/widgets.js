@@ -1,8 +1,9 @@
 /**
  * Catálogo de widgets del espectador.
  *
- * Agregar uno nuevo es añadir una entrada aquí y su caso en BarraTelemetria:
- * el menú, el guardado y el orden salen solos de esta lista.
+ * Agregar uno nuevo es añadir una entrada aquí, su etiqueta en
+ * telemetria.widgetLabel (src/lib/locales/es.ts y en.ts) y su caso en
+ * BarraTelemetria: el menú, el guardado y el orden salen solos de esta lista.
  *
  * `fuente` dice de dónde salen sus datos, y sirve para avisar en el menú
  * cuando algo todavía no está disponible:
@@ -12,14 +13,14 @@
  */
 
 export const WIDGETS = [
-  { id: 'avance', label: 'Avance', fuente: 'operador' },
-  { id: 'giro', label: 'Giro', fuente: 'operador' },
-  { id: 'actuadores', label: 'Actuadores', fuente: 'operador' },
-  { id: 'calidad', label: 'Calidad de enlace', fuente: 'enlace' },
-  { id: 'bitrate', label: 'Bitrate', fuente: 'enlace' },
-  { id: 'video', label: 'Resolución y FPS', fuente: 'enlace' },
-  { id: 'perdida', label: 'Pérdida y jitter', fuente: 'enlace' },
-  { id: 'audiencia', label: 'Espectadores', fuente: 'enlace' },
+  { id: 'avance', fuente: 'operador' },
+  { id: 'giro', fuente: 'operador' },
+  { id: 'actuadores', fuente: 'operador' },
+  { id: 'calidad', fuente: 'enlace' },
+  { id: 'bitrate', fuente: 'enlace' },
+  { id: 'video', fuente: 'enlace' },
+  { id: 'perdida', fuente: 'enlace' },
+  { id: 'audiencia', fuente: 'enlace' },
 ];
 
 // Lo que ve alguien que entra por primera vez: los mandos del operador, que es

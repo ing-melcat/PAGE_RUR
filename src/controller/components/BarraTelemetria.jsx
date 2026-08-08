@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { LayoutGrid } from 'lucide-react';
 import { RoomEvent } from 'livekit-client';
 import {
   ACTUADORES,
-  ETIQUETAS_ACCION,
-  ETIQUETAS_AVANCE,
-  ETIQUETAS_GIRO,
   INACTIVIDAD_MS,
   NIVEL_MAX,
   TELEMETRIA_VACIA,
@@ -13,6 +11,7 @@ import {
 } from '../telemetria';
 import { WIDGETS, cargarWidgets, guardarWidgets } from '../widgets';
 import { useEstadisticasEnlace } from '../useEstadisticasEnlace';
+import { useLanguage } from '../../lib/i18n';
 import '../BarraTelemetria.css';
 
 /**
@@ -60,13 +59,14 @@ function BarraSegmentos({ nivel, transicion }) {
 }
 
 function ModuloAvance({ avance, transicion }) {
+  const { t } = useLanguage();
   const nivel = avance?.nivel ?? 0;
   const activo = nivel > 0 && Boolean(avance?.dir);
   const chevron = avance?.dir === 'atras' ? '▼' : '▲';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <p className="telemetria__titulo">Avance</p>
+      <p className="telemetria__titulo">{t('telemetria.avance')}</p>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
         <span
           className={`telemetria__flecha${activo ? '' : ' telemetria__flecha--apagada'}`}
@@ -84,13 +84,14 @@ function ModuloAvance({ avance, transicion }) {
       </div>
       <BarraSegmentos nivel={nivel} transicion={transicion} />
       <span className={`telemetria__pie${activo ? ' telemetria__pie--destacado' : ''}`}>
-        {activo ? ETIQUETAS_AVANCE[avance.dir] : 'Detenido'}
+        {activo ? t(`telemetria.direccionAvance.${avance.dir}`) : t('telemetria.detenido')}
       </span>
     </div>
   );
 }
 
 function ModuloGiro({ giro, transicion }) {
+  const { t } = useLanguage();
   const nivel = giro?.nivel ?? 0;
   const activo = nivel > 0 && Boolean(giro?.dir);
   const signo = giro?.dir === 'izquierda' ? -1 : 1;
@@ -108,7 +109,7 @@ function ModuloGiro({ giro, transicion }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <p className="telemetria__titulo">Giro</p>
+      <p className="telemetria__titulo">{t('telemetria.giro')}</p>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {chevron('izquierda', '◀')}
         <div style={{
@@ -131,18 +132,19 @@ function ModuloGiro({ giro, transicion }) {
         {chevron('derecha', '▶')}
       </div>
       <span className={`telemetria__pie${activo ? ' telemetria__pie--destacado' : ''}`}>
-        {activo ? `${ETIQUETAS_GIRO[giro.dir]} ${nivel}` : 'Centrado'}
+        {activo ? `${t(`telemetria.direccionGiro.${giro.dir}`)} ${nivel}` : t('telemetria.centrado')}
       </span>
     </div>
   );
 }
 
 function ModuloActuadores({ actuadores, transicion }) {
+  const { t } = useLanguage();
   const activos = ACTUADORES.filter(({ clave }) => actuadores[clave]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <p className="telemetria__titulo">Actuadores</p>
+      <p className="telemetria__titulo">{t('telemetria.actuadores')}</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, auto)', gap: '6px 16px' }}>
         {ACTUADORES.map(({ clave, abrev }) => {
           const encendido = Boolean(actuadores[clave]);
@@ -165,7 +167,7 @@ function ModuloActuadores({ actuadores, transicion }) {
         })}
       </div>
       <span className="telemetria__pie telemetria__pie--accion">
-        {activos.map(({ clave }) => ETIQUETAS_ACCION[actuadores[clave]] ?? actuadores[clave]).join(' · ')}
+        {activos.map(({ clave }) => t(`telemetria.etiquetasAccion.${actuadores[clave]}`)).join(' · ')}
       </span>
     </div>
   );
@@ -194,6 +196,7 @@ function LecturaCorta({ titulo, valor, activo, transicion }) {
  * controles táctiles, que es la única acción útil sobre este dato.
  */
 function ChipEntrada({ entrada, transicion }) {
+  const { t } = useLanguage();
   if (!entrada) return null;
   const { modo, activo, onAlternar } = entrada;
   const pulsable = typeof onAlternar === 'function';
@@ -202,7 +205,7 @@ function ChipEntrada({ entrada, transicion }) {
     <button
       onClick={pulsable ? onAlternar : undefined}
       disabled={!pulsable}
-      title={pulsable ? 'Cambiar entre mando y controles táctiles' : undefined}
+      title={pulsable ? t('telemetria.cambiarEntrada') : undefined}
       style={{
         pointerEvents: pulsable ? 'auto' : 'none',
         cursor: pulsable ? 'pointer' : 'default',
@@ -216,7 +219,7 @@ function ChipEntrada({ entrada, transicion }) {
         boxShadow: activo ? '0 0 8px var(--success)' : 'none',
         transition: transicion,
       }} />
-      <span className="telemetria__titulo telemetria__titulo--inline">Entrada</span>
+      <span className="telemetria__titulo telemetria__titulo--inline">{t('telemetria.entrada')}</span>
       <span className="telemetria__valor telemetria__valor--medio" style={{ textTransform: 'uppercase' }}>
         {modo}
       </span>
@@ -266,6 +269,7 @@ export function BarraTelemetria({
   room, fuenteLocal, posicion = 'abajo', margen = 0, esencial = false, entrada,
   accionesMenu = [],
 }) {
+  const { t } = useLanguage();
   const [telemetria, setTelemetria] = useState(TELEMETRIA_VACIA);
   const [enVivo, setEnVivo] = useState(false);
   const [compacta, setCompacta] = useState(() => window.innerWidth < 900);
@@ -365,9 +369,9 @@ export function BarraTelemetria({
             display: 'flex', flexDirection: 'column', gap: '10px',
           }}
         >
-          <p className="telemetria__titulo">Elige qué ver</p>
+          <p className="telemetria__titulo">{t('telemetria.elegirQueVer')}</p>
 
-          {WIDGETS.map(({ id, label, fuente }) => {
+          {WIDGETS.map(({ id, fuente }) => {
             const encendido = activos.includes(id);
             // Un widget cuyos datos aún no llegan se puede encender igual, pero
             // se avisa para que nadie crea que está roto.
@@ -384,14 +388,14 @@ export function BarraTelemetria({
                   onChange={() => alternar(id)}
                   style={{ width: 'auto', accentColor: 'var(--accent)', cursor: 'pointer' }}
                 />
-                <span style={{ flex: 1 }}>{label}</span>
-                {sinDatos && <span className="telemetria__nota">sin datos</span>}
+                <span style={{ flex: 1 }}>{t(`telemetria.widgetLabel.${id}`)}</span>
+                {sinDatos && <span className="telemetria__nota">{t('telemetria.sinDatos')}</span>}
               </label>
             );
           })}
 
           <span className="telemetria__nota">
-            Tu selección se guarda en este navegador.
+            {t('telemetria.seleccionGuardada')}
           </span>
 
           {/* Acciones que no son datos y por eso no van en la barra, pero que
@@ -438,20 +442,20 @@ export function BarraTelemetria({
           gap: '8px 18px', padding: '12px 20px',
         }}>
           <LecturaCorta
-            titulo="Avance"
+            titulo={t('telemetria.avance')}
             valor={avance ? `${avance.dir === 'atras' ? '▼' : '▲'} ${avance.nivel * 10}%` : '—'}
             activo={Boolean(avance)}
             transicion={transicion}
           />
           <LecturaCorta
-            titulo="Giro"
+            titulo={t('telemetria.giro')}
             valor={giro ? `${giro.dir === 'izquierda' ? '◀' : '▶'} ${giro.nivel * 10}%` : '—'}
             activo={Boolean(giro)}
             transicion={transicion}
           />
           {/* Solo los encendidos: los apagados no gastan espacio aquí. */}
           <LecturaCorta
-            titulo="Actuadores"
+            titulo={t('telemetria.actuadores')}
             valor={encendidos.length > 0 ? encendidos.map((a) => a.abrev).join(' ') : '—'}
             activo={encendidos.length > 0}
             transicion={transicion}
@@ -467,13 +471,13 @@ export function BarraTelemetria({
               transition: transicion,
             }} />
             <span className="telemetria__pie" style={{ color: enVivo ? 'var(--success)' : 'var(--error)' }}>
-              {!enVivo ? 'Sin señal' : telemetria.robot ? 'En vivo' : 'Sin robot'}
+              {!enVivo ? t('telemetria.sinSenal') : telemetria.robot ? t('telemetria.enVivo') : t('telemetria.sinRobot')}
             </span>
           </div>
 
           <button
             onClick={() => setMenuAbierto((v) => !v)}
-            title="Elegir qué ver"
+            title={t('telemetria.elegirQueVer')}
             style={{
               pointerEvents: 'auto', cursor: 'pointer', background: 'transparent',
               border: 'none', padding: '0 2px', lineHeight: 1,
@@ -481,7 +485,7 @@ export function BarraTelemetria({
             }}
             className="telemetria__accion"
           >
-            ⊞
+            <LayoutGrid size={16} />
           </button>
         </div>
 
@@ -531,16 +535,16 @@ export function BarraTelemetria({
             case 'actuadores':
               return <ModuloActuadores key={id} actuadores={telemetria.actuadores} transicion={transicion} />;
             case 'calidad':
-              return <ModuloDato key={id} titulo="Enlace" valor={enlace?.calidad} transicion={transicion} />;
+              return <ModuloDato key={id} titulo={t('telemetria.enlace')} valor={enlace?.calidad} transicion={transicion} />;
             case 'bitrate':
-              return <ModuloDato key={id} titulo="Bitrate" valor={enlace?.bitrateKbps} unidad="kbps" transicion={transicion} />;
+              return <ModuloDato key={id} titulo={t('telemetria.bitrate')} valor={enlace?.bitrateKbps} unidad={t('telemetria.kbps')} transicion={transicion} />;
             case 'video':
               return (
                 <ModuloDato
                   key={id}
-                  titulo="Video"
+                  titulo={t('telemetria.video')}
                   valor={enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : null}
-                  pie={enlace?.fps != null ? `${enlace.fps} fps · ${enlace.framesCaidos} caídos` : ''}
+                  pie={enlace?.fps != null ? `${enlace.fps} ${t('telemetria.fps')} · ${enlace.framesCaidos} ${t('telemetria.caidos')}` : ''}
                   transicion={transicion}
                 />
               );
@@ -548,15 +552,15 @@ export function BarraTelemetria({
               return (
                 <ModuloDato
                   key={id}
-                  titulo="Pérdida"
+                  titulo={t('telemetria.perdida')}
                   valor={enlace?.perdidos}
-                  unidad="paq."
-                  pie={enlace?.jitterMs != null ? `jitter ${enlace.jitterMs} ms · búfer ${enlace.bufferMs} ms` : ''}
+                  unidad={t('telemetria.paquetes')}
+                  pie={enlace?.jitterMs != null ? `${t('telemetria.jitter')} ${enlace.jitterMs} ${t('telemetria.ms')} · ${t('telemetria.buffer')} ${enlace.bufferMs} ${t('telemetria.ms')}` : ''}
                   transicion={transicion}
                 />
               );
             case 'audiencia':
-              return <ModuloDato key={id} titulo="Espectadores" valor={enlace?.espectadores} transicion={transicion} />;
+              return <ModuloDato key={id} titulo={t('telemetria.espectadores')} valor={enlace?.espectadores} transicion={transicion} />;
             default:
               return null;
           }
@@ -576,14 +580,14 @@ export function BarraTelemetria({
               transition: transicion,
             }} />
             <span className="telemetria__pie" style={{ color: enVivo ? 'var(--success)' : 'var(--error)' }}>
-              {enVivo ? 'En vivo' : 'Sin señal'}
+              {enVivo ? t('telemetria.enVivo') : t('telemetria.sinSenal')}
             </span>
           </div>
           {/* Estos valores son las órdenes del operador. Si no hay robot
               conectado no las está recibiendo nadie, y hay que decirlo o el
               espectador creería que la unidad se está moviendo. */}
           {enVivo && !telemetria.robot && (
-            <span className="telemetria__pie telemetria__pie--accion">Sin robot conectado</span>
+            <span className="telemetria__pie telemetria__pie--accion">{t('telemetria.sinRobotConectado')}</span>
           )}
 
           {/* La barra entera lleva pointerEvents:none para no estorbar al video,
@@ -599,7 +603,7 @@ export function BarraTelemetria({
             }}
             className="telemetria__accion"
           >
-            ⊞ Widgets
+            <LayoutGrid size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> {t('telemetria.widgets')}
           </button>
         </div>
       </div>
