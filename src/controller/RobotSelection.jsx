@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Robot3DPreview } from './components/Robot3DPreview';
-import { Gamepad2, Settings } from 'lucide-react';
-import { apiFetch } from '../lib/apiClient';
+import { Gamepad2 } from 'lucide-react';
 import { useLanguage } from '../lib/i18n';
 
 // Shared style tokens
@@ -14,15 +13,11 @@ const S = {
   btn: { background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s ease' },
 };
 
-export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobot, onBack, onAddRobot, onUpdateRobot, controlMappings, onUpdateMappings }) {
+export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobot, onBack, controlMappings, onUpdateMappings }) {
     const { t } = useLanguage();
     const [loading, setLoading] = useState(false);
     const [columns, setColumns] = useState(3);
-    const [configRobot, setConfigRobot] = useState(null);
-    const [showAdvanced, setShowAdvanced] = useState(false);
-    // Editable form state
-    const [formData, setFormData] = useState({});
-    
+
     // Mapping state
     const [showMappingsModal, setShowMappingsModal] = useState(false);
     const [mappingForm, setMappingForm] = useState({
@@ -60,23 +55,6 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
         }
     }, [controlMappings]);
 
-    // Sync formData when configRobot changes
-    useEffect(() => {
-        if (configRobot) {
-            setFormData({
-                name: configRobot.name || '',
-                room: configRobot.room || `room-${configRobot.id}`,
-                maxSpeed: configRobot.maxSpeed ?? 75,
-                steeringSensitivity: configRobot.steeringSensitivity ?? 50,
-                digForce: configRobot.digForce ?? 90,
-                livekitUrl: configRobot.livekitUrl || '',
-                livekitApiKey: configRobot.livekitApiKey || '',
-                livekitApiSecret: configRobot.livekitApiSecret || '',
-            });
-            setShowAdvanced(false);
-        }
-    }, [configRobot]);
-
     // Todos van a la rejilla, encendidos o no. Antes solo entraban los que
     // estaban 'online' y el resto acababa en una fila diminuta abajo; desde que
     // el estado refleja de verdad si el receptor del robot esta en la sala, eso
@@ -91,78 +69,6 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
             onSelectRobot(robot);
             setLoading(false);
         }, 600); 
-    };
-
-    const handleAddNewRobot = () => {
-        const newId = `RBT-${Math.floor(Math.random() * 9000) + 1000}`;
-        const newRobot = {
-            id: newId,
-            name: `UNIDAD ${newId.split('-')[1]}`,
-            type: "terrestre",
-            status: "offline",
-            battery: 100,
-            location: "TBD",
-            room: `room-${newId.toLowerCase()}`,
-            modelUrl: "/placeholder_rover.glb",
-            maxSpeed: 75,
-            steeringSensitivity: 50,
-            digForce: 90,
-        };
-        if (onAddRobot) {
-            onAddRobot(newRobot);
-            setConfigRobot(newRobot);
-        }
-    };
-
-    const handleSave = async () => {
-        if (onUpdateRobot && configRobot) {
-            const updated = { ...configRobot, ...formData };
-            
-            // Verificación completa con el backend de LiveKit
-            if (updated.livekitUrl && updated.livekitApiKey && updated.livekitApiSecret) {
-              try {
-                const verifyRes = await apiFetch('/api/livekit-verify', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    livekitUrl: updated.livekitUrl,
-                    livekitApiKey: updated.livekitApiKey,
-                    livekitApiSecret: updated.livekitApiSecret
-                  })
-                });
-                
-                const verifyData = await verifyRes.json();
-                if (!verifyData.success) {
-                  window.alert(`${t('operador.seleccion.errorLivekitPrefijo')}\n${verifyData.message}\n\n${t('operador.seleccion.errorLivekitSufijo')}`);
-                  return false;
-                }
-              } catch (err) {
-                window.alert(t('operador.seleccion.errorLivekitConexion'));
-                return false;
-              }
-            } else if (updated.livekitUrl || updated.livekitApiKey || updated.livekitApiSecret) {
-                if (!window.confirm(t('operador.seleccion.confirmLivekitParcial'))) {
-                    return false;
-                }
-            }
-            
-            onUpdateRobot(updated);
-            // Also update the local configRobot reference
-            setConfigRobot(updated);
-            return true;
-        }
-        return false;
-    };
-
-    const handleFormChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-
-
-    const inputFocusHandlers = {
-        onFocus: (e) => { e.currentTarget.style.borderColor = 'var(--accent)'; },
-        onBlur: (e) => { e.currentTarget.style.borderColor = 'var(--border)'; },
     };
 
     return (
@@ -348,237 +254,6 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                 }}
                                 style={{ ...S.btn, background: 'var(--accent)', color: 'var(--background)', borderColor: 'var(--accent)', fontWeight: 600 }}
                             >{t('operador.seleccion.guardarMapeo')}</button>
-                        </div>
-                    </motion.div>
-                </motion.div>
-            )}
-            </AnimatePresence>
-
-            {/* ============================================================ */}
-            {/*  MODAL DE CONFIGURACIÓN                                      */}
-            {/* ============================================================ */}
-            <AnimatePresence>
-            {configRobot && (
-                <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    onClick={() => setConfigRobot(null)}
-                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(2,7,19,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', padding: '32px' }}
-                >
-                    <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                        onClick={e => e.stopPropagation()}
-                        style={{ background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px', padding: '32px', width: '100%', maxWidth: '900px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
-                    >
-                        {/* MODAL HEADER */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
-                            <div>
-                                <h3 style={{ ...S.sectionTitle, borderBottom: 'none', paddingBottom: 0, fontSize: '1.1rem' }}>{t('operador.seleccion.configTitulo')}</h3>
-                                <p style={{ margin: '6px 0 0 0', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)' }}>{t('operador.seleccion.configDesc')}</p>
-                            </div>
-                            <button 
-                                onClick={() => setConfigRobot(null)} 
-                                style={{ ...S.btn, border: 'none', fontSize: '1.5rem', padding: '4px 8px', lineHeight: 1 }}
-                                onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
-                                onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}
-                            >×</button>
-                        </div>
-
-                        {/* ROBOT SELECTOR */}
-                        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-                            <select 
-                                value={configRobot.id} 
-                                onChange={(e) => setConfigRobot(robots.find(r => r.id === e.target.value))}
-                                style={{ ...S.input, flex: 1 }}
-                            >
-                                {robots.map(r => (
-                                    <option key={r.id} value={r.id}>{r.name} — {r.id} ({r.status})</option>
-                                ))}
-                            </select>
-                            <button 
-                                onClick={handleAddNewRobot}
-                                style={{ ...S.btn, color: 'var(--accent)', borderColor: 'var(--accent)', whiteSpace: 'nowrap' }}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--background)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--accent)'; }}
-                            >{t('operador.seleccion.nuevaUnidad')}</button>
-                        </div>
-
-                        {/* SCROLLABLE CONTENT */}
-                        <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
-                            <AnimatePresence mode="wait">
-                            {!showAdvanced ? (
-                                <motion.div 
-                                    key="basic"
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 10 }}
-                                    transition={{ duration: 0.2 }}
-                                    style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-                                >
-                                    {/* STATUS */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', ...S.panel }}>
-                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: configRobot.status === 'online' ? 'var(--success)' : 'var(--error)' }} />
-                                        <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: configRobot.status === 'online' ? 'var(--success)' : 'var(--error)' }}>
-                                            {configRobot.status === 'online' ? t('operador.seleccion.enLinea') : t('operador.seleccion.fueraDeLinea')}
-                                        </span>
-                                        <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)', marginLeft: 'auto' }}>
-                                            ID: {configRobot.id}
-                                        </span>
-                                    </div>
-
-                                    {/* IDENTIDAD */}
-                                    <div style={{ ...S.panel, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                        <h4 style={{ ...S.sectionTitle }}>{t('operador.seleccion.identificacion')}</h4>
-
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                <span style={S.label}>{t('operador.seleccion.nombreVisible')}</span>
-                                                <input
-                                                    type="text"
-                                                    value={formData.name || ''}
-                                                    onChange={e => handleFormChange('name', e.target.value)}
-                                                    style={S.input}
-                                                    {...inputFocusHandlers}
-                                                />
-                                            </label>
-                                            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                <span style={S.label}>{t('operador.seleccion.salaLivekit')}</span>
-                                                <input 
-                                                    type="text" 
-                                                    value={formData.room || ''} 
-                                                    onChange={e => handleFormChange('room', e.target.value)}
-                                                    style={S.input}
-                                                    {...inputFocusHandlers}
-                                                />
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    {/* LÍMITES OPERACIONALES */}
-                                    <div style={{ ...S.panel, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                        <h4 style={{ ...S.sectionTitle }}>{t('operador.seleccion.limitesOperacionales')}</h4>
-
-                                        {[
-                                            { key: 'maxSpeed', label: t('operador.seleccion.velocidadMaxima'), suffix: '%' },
-                                            { key: 'steeringSensitivity', label: t('operador.seleccion.sensibilidadGiro'), suffix: '%' },
-                                            { key: 'digForce', label: t('operador.seleccion.fuerzaExcavacion'), suffix: '%' },
-                                        ].map(({ key, label, suffix }) => (
-                                            <label key={key} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                    <span style={S.label}>{label}</span>
-                                                    <span style={{ ...S.label, color: 'var(--accent)' }}>{formData[key] || 0}{suffix}</span>
-                                                </div>
-                                                <input 
-                                                    type="range" min="10" max="100" 
-                                                    value={formData[key] || 50}
-                                                    onChange={e => handleFormChange(key, parseInt(e.target.value))}
-                                                    style={{ width: '100%', accentColor: 'var(--accent)' }} 
-                                                />
-                                            </label>
-                                        ))}
-                                    </div>
-
-                                    {/* TOGGLE AVANZADAS */}
-                                    <button 
-                                        onClick={() => setShowAdvanced(true)}
-                                        style={{ ...S.btn, borderStyle: 'dashed', borderColor: 'var(--border)', width: '100%', justifyContent: 'center', alignItems: 'center', gap: '8px', display: 'flex', padding: '14px' }}
-                                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--muted)'; e.currentTarget.style.color = 'var(--text)'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)'; }}
-                                    >
-                                        <Settings size={16} /> {t('operador.seleccion.opcionesAvanzadas')}
-                                    </button>
-                                </motion.div>
-                            ) : (
-                                <motion.div 
-                                    key="advanced"
-                                    initial={{ opacity: 0, x: 10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -10 }}
-                                    transition={{ duration: 0.2 }}
-                                    style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-                                >
-                                    <button 
-                                        onClick={() => setShowAdvanced(false)}
-                                        style={{ ...S.btn, alignSelf: 'flex-start' }}
-                                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text)'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-                                    >
-                                        {t('operador.seleccion.volver')}
-                                    </button>
-
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
-                                        {/* TRANSMISIÓN Y CREDENCIALES LIVEKIT */}
-                                        <div style={{ ...S.panel, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            <h4 style={{ ...S.sectionTitle }}>{t('operador.seleccion.credencialesLivekit')}</h4>
-                                            <p style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem', color: 'var(--muted)', margin: 0, padding: '8px 12px', background: 'var(--background)', borderRadius: '4px', border: '1px solid var(--border)' }}>
-                                                {t('operador.seleccion.credencialesDesc')}
-                                            </p>
-
-                                            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                <span style={S.label}>{t('operador.seleccion.servidorLivekit')}</span>
-                                                <input
-                                                    type="text"
-                                                    value={formData.livekitUrl || ''}
-                                                    onChange={e => handleFormChange('livekitUrl', e.target.value)}
-                                                    placeholder="wss://..."
-                                                    style={S.input}
-                                                    {...inputFocusHandlers}
-                                                />
-                                            </label>
-                                            
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                    <span style={S.label}>API Key</span>
-                                                    <input 
-                                                        type="password" 
-                                                        value={formData.livekitApiKey || ''} 
-                                                        onChange={e => handleFormChange('livekitApiKey', e.target.value)}
-                                                        placeholder="API Key"
-                                                        style={S.input}
-                                                        {...inputFocusHandlers}
-                                                    />
-                                                </label>
-                                                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                    <span style={S.label}>API Secret</span>
-                                                    <input 
-                                                        type="password" 
-                                                        value={formData.livekitApiSecret || ''} 
-                                                        onChange={e => handleFormChange('livekitApiSecret', e.target.value)}
-                                                        placeholder="API Secret"
-                                                        style={S.input}
-                                                        {...inputFocusHandlers}
-                                                    />
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                            </AnimatePresence>
-                        </div>
-
-                        {/* FOOTER BUTTONS */}
-                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-                            <button 
-                                onClick={() => setConfigRobot(null)} 
-                                style={S.btn}
-                                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-                            >{t('operador.seleccion.cancelar')}</button>
-                            <button
-                                onClick={async () => {
-                                    const success = await handleSave();
-                                    if(success) setConfigRobot(null);
-                                }}
-                                style={{ ...S.btn, background: 'var(--accent)', color: 'var(--background)', borderColor: 'var(--accent)', fontWeight: 600 }}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                            >{t('operador.seleccion.guardarCambios')}</button>
                         </div>
                     </motion.div>
                 </motion.div>

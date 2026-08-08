@@ -173,6 +173,7 @@ export const es = {
       telemetria: 'Telemetría',
       linX: 'LIN X',
       angZ: 'ANG Z',
+      audiencia: 'Audiencia',
     },
   },
   telemetria: {
