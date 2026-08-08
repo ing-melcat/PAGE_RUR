@@ -341,6 +341,7 @@ export const es = {
     github: 'GitHub (URL)',
     instagram: 'Instagram / Twitter (URL)',
     reddit: 'Reddit (URL o Usuario)',
+    redditPlaceholder: 'Usuario o URL',
     facebook: 'Facebook (URL)',
     mostrarAlias: 'MOSTRAR ALIAS EN TABLERO',
     recibirPush: 'RECIBIR NOTIFICACIONES PUSH',
@@ -434,6 +435,7 @@ export const es = {
   },
   ajustes: {
     configuracion: 'CONFIGURACIÓN',
+    ajustesLabel: 'AJUSTES',
     menuAjustes: 'Menú de Ajustes',
     seleccionaApartado: 'Selecciona un apartado a configurar:',
     accesibilidad: 'Accesibilidad',

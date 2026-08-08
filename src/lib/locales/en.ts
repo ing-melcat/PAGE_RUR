@@ -341,6 +341,7 @@ export const en: Dictionary = {
     github: 'GitHub (URL)',
     instagram: 'Instagram / Twitter (URL)',
     reddit: 'Reddit (URL or Username)',
+    redditPlaceholder: 'Username or URL',
     facebook: 'Facebook (URL)',
     mostrarAlias: 'SHOW ALIAS ON DASHBOARD',
     recibirPush: 'RECEIVE PUSH NOTIFICATIONS',
@@ -434,6 +435,7 @@ export const en: Dictionary = {
   },
   ajustes: {
     configuracion: 'SETTINGS',
+    ajustesLabel: 'SETTINGS',
     menuAjustes: 'Settings Menu',
     seleccionaApartado: 'Select a section to configure:',
     accesibilidad: 'Accessibility',
