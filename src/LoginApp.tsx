@@ -350,7 +350,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
           <h2 style={{ fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>{viewMode === 'edit' ? t('adminPublicaciones.editar') : t('adminPublicaciones.crear')}</h2>
         </div>
 
-        <div className="input-group" style={{ display: 'flex', gap: '20px' }}>
+        <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ flex: 1 }}>
             <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>{t('adminPublicaciones.tipoLabel')}</label>
             <select value={type} onChange={(e) => setType(e.target.value)} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-sans)' }}>
