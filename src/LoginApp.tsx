@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
-import { Loader2, CheckCircle, ChevronDown, ChevronUp, Globe, Lock, Upload } from "lucide-react";
+import { Loader2, CheckCircle, ChevronDown, ChevronUp, Globe, Lock, Upload, TriangleAlert, Star, Eye, EyeOff } from "lucide-react";
 import "./index.css";
 import { RobotSelection } from "./controller/RobotSelection";
 import { apiFetch } from "./lib/apiClient";
@@ -280,7 +280,8 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
             const titleColor = isAviso ? 'var(--error)' : isEvento ? 'var(--accent)' : 'var(--text)';
             const badgeBg = isAviso ? 'var(--error)' : isEvento ? 'var(--accent)' : 'rgba(5,7,15,0.8)';
             const badgeColor = (isAviso || isEvento) ? 'black' : 'var(--accent)';
-            const badgeText = post.type === 'magazine' ? 'REVISTA' : isAviso ? '⚠️ AVISO' : isEvento ? '⭐ EVENTO' : post.type === '3d_model' ? 'MODELO 3D' : 'SIMPLE';
+            const badgeText = post.type === 'magazine' ? 'REVISTA' : isAviso ? 'AVISO' : isEvento ? 'EVENTO' : post.type === '3d_model' ? 'MODELO 3D' : 'SIMPLE';
+            const BadgeIcon = isAviso ? TriangleAlert : isEvento ? Star : null;
 
             return (
             <div key={post.id} style={{ 
@@ -294,8 +295,8 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
             onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
             >
               <div style={{ height: '140px', width: '100%', background: 'var(--surface-strong)', backgroundImage: post.image ? `url(${post.image})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
-                <div style={{ position: 'absolute', top: 12, right: 12, background: badgeBg, padding: '4px 10px', borderRadius: '4px', border: (isAviso || isEvento) ? 'none' : '1px solid var(--accent)', color: badgeColor, fontSize: '0.7rem', fontFamily: 'var(--font-ibm-mono)', fontWeight: (isAviso || isEvento) ? 'bold' : 'normal' }}>
-                  {badgeText}
+                <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: '4px', background: badgeBg, padding: '4px 10px', borderRadius: '4px', border: (isAviso || isEvento) ? 'none' : '1px solid var(--accent)', color: badgeColor, fontSize: '0.7rem', fontFamily: 'var(--font-ibm-mono)', fontWeight: (isAviso || isEvento) ? 'bold' : 'normal' }}>
+                  {BadgeIcon && <BadgeIcon size={12} />} {badgeText}
                 </div>
               </div>
               <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -310,11 +311,11 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
                 </div>
                 
                 <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
-                  <button onClick={() => toggleVisibility(post)} style={{ flex: 1, background: 'transparent', border: '1px solid var(--muted)', color: 'var(--muted)', padding: '8px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', transition: 'all 0.2s' }}
+                  <button onClick={() => toggleVisibility(post)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'transparent', border: '1px solid var(--muted)', color: 'var(--muted)', padding: '8px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', transition: 'all 0.2s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--muted)'; e.currentTarget.style.color = 'var(--surface-strong)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--muted)'; }}
                   >
-                    {post.isHidden ? '👁 MOSTRAR' : '🚫 OCULTAR'}
+                    {post.isHidden ? <Eye size={14} /> : <EyeOff size={14} />} {post.isHidden ? 'MOSTRAR' : 'OCULTAR'}
                   </button>
                   <button onClick={() => openEdit(post)} style={{ flex: 1, background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', padding: '8px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', transition: 'all 0.2s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'black'; }}
@@ -388,8 +389,8 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
           <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>Portada</label>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
             <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setImage)} style={{ display: 'none' }} id="upload-cover" />
-            <label htmlFor="upload-cover" style={{ flex: 1, padding: '12px', background: 'var(--surface-strong)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>
-              {uploadingImage ? 'SUBIENDO...' : '📁 SUBIR LOCAL'}
+            <label htmlFor="upload-cover" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px', background: 'var(--surface-strong)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>
+              {uploadingImage ? 'SUBIENDO...' : <><Upload size={14} /> SUBIR LOCAL</>}
             </label>
           </div>
           <input type="text" value={image} onChange={(e) => setImage(e.target.value)} placeholder="O pega URL..." style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
@@ -503,8 +504,8 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
                       newPages[idx].image = url;
                       setPages(newPages);
                     })} style={{ display: 'none' }} id={`upload-page-${idx}`} />
-                    <label htmlFor={`upload-page-${idx}`} style={{ padding: '12px', background: 'var(--surface-strong)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                      📁 SUBIR LOCAL
+                    <label htmlFor={`upload-page-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '12px', background: 'var(--surface-strong)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                      <Upload size={14} /> SUBIR LOCAL
                     </label>
                     <input type="text" value={page.image || ''} onChange={(e) => {
                       const newPages = [...pages];

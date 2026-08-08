@@ -1,5 +1,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TriangleAlert, Star } from 'lucide-react';
 
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import logoUrl from './assets/isotipo.png';
@@ -399,7 +400,8 @@ export const ArchiveDashboard = () => {
               const isSpecial = isAviso || isEvento;
               const specialColor = isAviso ? 'var(--error)' : 'var(--accent)';
               const specialBg = isAviso ? 'rgba(255,68,68,0.05)' : 'rgba(251,202,1,0.05)';
-              const badgeText = post.type === 'magazine' ? 'REVISTA' : isAviso ? '⚠️ AVISO' : isEvento ? '⭐ EVENTO' : 'ARTÍCULO';
+              const badgeText = post.type === 'magazine' ? 'REVISTA' : isAviso ? 'AVISO' : isEvento ? 'EVENTO' : 'ARTÍCULO';
+              const BadgeIcon = isAviso ? TriangleAlert : isEvento ? Star : null;
 
               return (
                 <motion.article 
@@ -422,8 +424,8 @@ export const ArchiveDashboard = () => {
                       whileHover={{ scale: 1.05 }}
                       transition={{ duration: 0.4 }}
                     />
-                    <div style={{ position: 'absolute', top: 12, right: 12, background: isSpecial ? specialColor : 'rgba(5,7,15,0.8)', padding: '4px 10px', borderRadius: '4px', border: isSpecial ? 'none' : '1px solid var(--accent)', color: isSpecial ? (isAviso ? 'white' : 'black') : 'var(--accent)', fontSize: '0.7rem', fontFamily: 'var(--font-ibm-mono)', fontWeight: isSpecial ? 'bold' : 'normal' }}>
-                      {badgeText}
+                    <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: '4px', background: isSpecial ? specialColor : 'rgba(5,7,15,0.8)', padding: '4px 10px', borderRadius: '4px', border: isSpecial ? 'none' : '1px solid var(--accent)', color: isSpecial ? (isAviso ? 'white' : 'black') : 'var(--accent)', fontSize: '0.7rem', fontFamily: 'var(--font-ibm-mono)', fontWeight: isSpecial ? 'bold' : 'normal' }}>
+                      {BadgeIcon && <BadgeIcon size={12} />} {badgeText}
                     </div>
                   </div>
                   <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
