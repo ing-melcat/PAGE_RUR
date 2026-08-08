@@ -6,6 +6,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import logoUrl from './assets/isotipo.png';
 import logoBlancoUrl from './assets/real_images/isotipo_blanco.png';
 import { sanitizeHtml } from './lib/sanitizeHtml';
+import { useLanguage } from './lib/i18n';
 
 // Carga diferida: three.js y @react-three pesan cerca de un megabyte y solo
 // hacen falta si la publicación trae modelo 3D. Antes viajaban en el paquete
@@ -13,6 +14,7 @@ import { sanitizeHtml } from './lib/sanitizeHtml';
 const VisorModelo3D = React.lazy(() => import('./VisorModelo3D'));
 
 export const Countdown = ({ targetDate }: { targetDate?: string }) => {
+  const { t } = useLanguage();
   const [timeLeft, setTimeLeft] = useState('');
 
   useEffect(() => {
@@ -21,9 +23,9 @@ export const Countdown = ({ targetDate }: { targetDate?: string }) => {
       const now = new Date().getTime();
       const target = new Date(targetDate).getTime();
       const diff = target - now;
-      
+
       if (diff <= 0) {
-        setTimeLeft('¡TIEMPO AGOTADO!');
+        setTimeLeft(t('countdown.agotado'));
         clearInterval(interval);
       } else {
         const d = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -42,13 +44,14 @@ export const Countdown = ({ targetDate }: { targetDate?: string }) => {
     <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0,0,0,0.6)', padding: '6px 12px', borderRadius: '20px', width: 'fit-content', border: '1px solid rgba(255,255,255,0.1)' }}>
       <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--accent)', animation: 'pulse 1.5s infinite' }}></div>
       <div style={{ fontSize: '0.9rem', color: 'white', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', letterSpacing: '1px' }}>
-        {timeLeft || 'CALCULANDO...'}
+        {timeLeft || t('countdown.calculando')}
       </div>
     </div>
   );
 };
 
 export const Landing = ({ category = 'landing' }: { category?: string }) => {
+  const { t } = useLanguage();
   const [posts, setPosts] = useState<any[]>([]);
   const navigate = useNavigate();
 
@@ -83,15 +86,15 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 500px), 1fr))', gap: '40px' }}>
         {posts.map(post => {
-          const previewText = post.type === 'simple' 
+          const previewText = post.type === 'simple'
             ? stripHtml(post.content).substring(0, 140) + '...'
-            : 'Edición especial multi-página. Haz clic para explorar esta revista interactiva.';
+            : t('landing.previewMagazine');
           const isAviso = post.type === 'aviso';
           const isEvento = post.type === 'evento';
           const isSpecial = isAviso || isEvento;
           const specialColor = isAviso ? 'var(--error)' : 'var(--accent)';
           const specialBg = isAviso ? 'rgba(255,68,68,0.3)' : 'rgba(251,202,1,0.3)';
-          const badgeText = isAviso ? 'AVISO IMPORTANTE' : 'EVENTO ESPECIAL';
+          const badgeText = isAviso ? t('landing.avisoImportante') : t('landing.eventoEspecial');
 
           return (
             <motion.article 
@@ -125,7 +128,7 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
                 )}
                 {post.type === 'magazine' && (
                   <div style={{ position: 'absolute', top: 12, right: 12, background: 'var(--surface-strong)', padding: '6px 12px', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: '0.8rem', fontFamily: 'var(--font-ibm-mono)' }}>
-                    REVISTA MULTI-PÁGINA
+                    {t('landing.revistaMultipagina')}
                   </div>
                 )}
                 {isSpecial && (
@@ -147,7 +150,7 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
                 <p style={{ color: 'var(--muted)', fontSize: '1rem', lineHeight: '1.6', marginTop: '16px' }}>{previewText}</p>
 
                 <div style={{ alignSelf: 'flex-start', color: specialColor, fontFamily: 'var(--font-ibm-mono)', fontSize: '0.9rem', borderBottom: `1px solid ${specialColor}`, paddingBottom: '2px', marginTop: '24px' }}>
-                  LEER AHORA →
+                  {t('landing.leerAhora')}
                 </div>
               </div>
             </motion.article>
@@ -160,6 +163,7 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
 };
 
 export const PublicationPage = () => {
+  const { t } = useLanguage();
   const { id } = useParams();
   const [post, setPost] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -171,7 +175,7 @@ export const PublicationPage = () => {
         const found = data.find((p: any) => p.id.toString() === id?.toString());
         if (found) {
           if (found.type === 'simple' || found.type === 'aviso' || found.type === 'evento' || found.type === '3d_model') {
-            setPost({ ...found, pages: [{ content: found.content || 'Sin contenido adicional.', image: found.image }] });
+            setPost({ ...found, pages: [{ content: found.content || t('publicacion.sinContenido'), image: found.image }] });
           } else {
             setPost(found);
           }
@@ -235,7 +239,7 @@ export const PublicationPage = () => {
               <div className="logo-text-container" style={{ color: 'white', fontFamily: 'var(--font-ibm-sans)', fontWeight: 'bold', fontSize: '0.65rem', letterSpacing: '0.05em', lineHeight: 1.2, textAlign: 'left' }}>
                 <div className="logo-text-default">RESEARCH UNIT<br />OF ROBOTICS</div>
                 <div className="logo-text-hover" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', color: isSpecial ? specialColor : 'var(--accent)' }}>
-                  <span style={{ display: 'flex', alignItems: 'center' }}>INICIO</span>
+                  <span style={{ display: 'flex', alignItems: 'center' }}>{t('nav.inicio')}</span>
                   <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: '1rem', transform: 'translateY(-2px)' }}>→</span>
                 </div>
               </div>
@@ -246,7 +250,7 @@ export const PublicationPage = () => {
             {isSpecial && <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: specialColor, animation: 'pulse 1.5s infinite' }}></div>}
             {post.title}
           </h2>
-          <Link to="/" style={{ textDecoration: 'none', background: 'transparent', border: `1px solid ${isSpecial ? specialColor : 'var(--accent)'}`, color: isSpecial ? specialColor : 'var(--accent)', padding: '6px 16px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.9rem', borderRadius: '4px', whiteSpace: 'nowrap' }}>← VOLVER</Link>
+          <Link to="/" style={{ textDecoration: 'none', background: 'transparent', border: `1px solid ${isSpecial ? specialColor : 'var(--accent)'}`, color: isSpecial ? specialColor : 'var(--accent)', padding: '6px 16px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.9rem', borderRadius: '4px', whiteSpace: 'nowrap' }}>{t('publicacion.volver')}</Link>
         </div>
 
         <div style={{ 
@@ -276,11 +280,11 @@ export const PublicationPage = () => {
 
       {post.pages && post.pages.length > 1 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 60px', borderTop: '1px solid var(--border)', background: 'rgba(5,16,37,0.8)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
-          <button onClick={prev} disabled={currentPage === 0} style={{ padding: '16px 32px', background: 'transparent', color: currentPage === 0 ? 'var(--muted)' : 'var(--text)', border: '1px solid var(--border)', cursor: currentPage === 0 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ibm-mono)' }}>← ANTERIOR</button>
+          <button onClick={prev} disabled={currentPage === 0} style={{ padding: '16px 32px', background: 'transparent', color: currentPage === 0 ? 'var(--muted)' : 'var(--text)', border: '1px solid var(--border)', cursor: currentPage === 0 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ibm-mono)' }}>{t('publicacion.anterior')}</button>
           <span style={{ fontFamily: 'var(--font-ibm-mono)', color: 'var(--accent)', letterSpacing: '4px', fontSize: '1.2rem' }}>
-            PÁGINA {currentPage + 1} / {post.pages.length}
+            {t('publicacion.pagina')} {currentPage + 1} / {post.pages.length}
           </span>
-          <button onClick={next} disabled={currentPage === post.pages.length - 1} style={{ padding: '16px 32px', background: 'transparent', color: currentPage === post.pages.length - 1 ? 'var(--muted)' : 'var(--text)', border: '1px solid var(--border)', cursor: currentPage === post.pages.length - 1 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ibm-mono)' }}>SIGUIENTE →</button>
+          <button onClick={next} disabled={currentPage === post.pages.length - 1} style={{ padding: '16px 32px', background: 'transparent', color: currentPage === post.pages.length - 1 ? 'var(--muted)' : 'var(--text)', border: '1px solid var(--border)', cursor: currentPage === post.pages.length - 1 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ibm-mono)' }}>{t('publicacion.siguiente')}</button>
         </div>
       )}
       </div>
@@ -289,6 +293,7 @@ export const PublicationPage = () => {
 };
 
 export const ArchiveDashboard = () => {
+  const { t } = useLanguage();
   const [posts, setPosts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('todos');
@@ -343,64 +348,64 @@ export const ArchiveDashboard = () => {
         }}></div>
         
         <div style={{ maxWidth: '800px', borderLeft: '4px solid var(--accent)', paddingLeft: '24px' }}>
-          <h1 style={{ 
-            fontSize: '3rem', 
+          <h1 style={{
+            fontSize: '3rem',
             fontFamily: 'var(--font-ibm-mono)',
             textTransform: 'uppercase',
             margin: '0 0 16px 0',
             color: 'var(--text)'
           }}>
-            Archivo de Publicaciones
+            {t('archivo.titulo')}
           </h1>
-          <p style={{ 
-            fontSize: '1.2rem', 
-            color: 'var(--bone)', 
-            opacity: 0.9, 
+          <p style={{
+            fontSize: '1.2rem',
+            color: 'var(--bone)',
+            opacity: 0.9,
             lineHeight: '1.6'
           }}>
-            Explora y busca entre todas nuestras revistas, artículos, avisos y eventos.
+            {t('archivo.subtitulo')}
           </p>
         </div>
       </section>
 
       <section className="responsive-section" style={{ backgroundColor: 'var(--background)' }}>
         <div style={{ display: 'flex', gap: '24px', marginBottom: '40px', flexWrap: 'wrap' }}>
-          <input 
-            type="text" 
-            placeholder="Buscar por título..." 
+          <input
+            type="text"
+            placeholder={t('archivo.buscarPlaceholder')}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             style={{ flex: '1 1 300px', padding: '16px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-mono)', fontSize: '1rem' }}
           />
-          <select 
+          <select
             value={filterType}
             onChange={e => setFilterType(e.target.value)}
             style={{ flex: '0 1 250px', padding: '16px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-mono)', fontSize: '1rem' }}
           >
-            <option value="todos">Todos los Tipos</option>
-            <option value="magazine">Revistas</option>
-            <option value="simple">Artículos Simples</option>
-            <option value="evento">Eventos Especiales</option>
-            <option value="aviso">Avisos</option>
+            <option value="todos">{t('archivo.todos')}</option>
+            <option value="magazine">{t('archivo.revistas')}</option>
+            <option value="simple">{t('archivo.articulosSimples')}</option>
+            <option value="evento">{t('archivo.eventosEspeciales')}</option>
+            <option value="aviso">{t('archivo.avisos')}</option>
           </select>
         </div>
 
         {filteredPosts.length === 0 ? (
           <div style={{ padding: '60px', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--font-ibm-mono)' }}>
-            NO SE ENCONTRARON PUBLICACIONES.
+            {t('archivo.sinResultados')}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '32px' }}>
             {filteredPosts.map(post => {
-              const previewText = post.type === 'simple' 
+              const previewText = post.type === 'simple'
                 ? stripHtml(post.content).substring(0, 100) + '...'
-                : 'Edición especial multi-página.';
+                : t('archivo.previewMagazine');
               const isAviso = post.type === 'aviso';
               const isEvento = post.type === 'evento';
               const isSpecial = isAviso || isEvento;
               const specialColor = isAviso ? 'var(--error)' : 'var(--accent)';
               const specialBg = isAviso ? 'rgba(255,68,68,0.05)' : 'rgba(251,202,1,0.05)';
-              const badgeText = post.type === 'magazine' ? 'REVISTA' : isAviso ? 'AVISO' : isEvento ? 'EVENTO' : 'ARTÍCULO';
+              const badgeText = post.type === 'magazine' ? t('archivo.revista') : isAviso ? t('archivo.aviso') : isEvento ? t('archivo.evento') : t('archivo.articulo');
               const BadgeIcon = isAviso ? TriangleAlert : isEvento ? Star : null;
 
               return (

@@ -56,6 +56,40 @@ export const es = {
     social: 'SOCIAL',
     derechos: 'Todos los derechos reservados.',
   },
+  countdown: {
+    agotado: '¡TIEMPO AGOTADO!',
+    calculando: 'CALCULANDO...',
+  },
+  landing: {
+    previewMagazine: 'Edición especial multi-página. Haz clic para explorar esta revista interactiva.',
+    revistaMultipagina: 'REVISTA MULTI-PÁGINA',
+    avisoImportante: 'AVISO IMPORTANTE',
+    eventoEspecial: 'EVENTO ESPECIAL',
+    leerAhora: 'LEER AHORA →',
+  },
+  publicacion: {
+    volver: '← VOLVER',
+    anterior: '← ANTERIOR',
+    pagina: 'PÁGINA',
+    siguiente: 'SIGUIENTE →',
+    sinContenido: 'Sin contenido adicional.',
+  },
+  archivo: {
+    titulo: 'Archivo de Publicaciones',
+    subtitulo: 'Explora y busca entre todas nuestras revistas, artículos, avisos y eventos.',
+    buscarPlaceholder: 'Buscar por título...',
+    todos: 'Todos los Tipos',
+    revistas: 'Revistas',
+    articulosSimples: 'Artículos Simples',
+    eventosEspeciales: 'Eventos Especiales',
+    avisos: 'Avisos',
+    sinResultados: 'NO SE ENCONTRARON PUBLICACIONES.',
+    previewMagazine: 'Edición especial multi-página.',
+    revista: 'REVISTA',
+    aviso: 'AVISO',
+    evento: 'EVENTO',
+    articulo: 'ARTÍCULO',
+  },
 };
 
 export type Dictionary = typeof es;
