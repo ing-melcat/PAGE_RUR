@@ -169,7 +169,7 @@ export default function ControllerApp({ onBack, robot }) {
   const controlesOcultos = hasGamepad && !forceMobileMode;
 
   const entradaActiva = {
-    modo: controlesOcultos ? 'Mando' : 'Táctil',
+    modo: controlesOcultos ? t('telemetria.mando') : t('telemetria.tactil'),
     activo: hasGamepad,
     // Solo tiene sentido alternar si de verdad hay un mando que ignorar.
     onAlternar: hasGamepad ? () => setForceMobileMode((v) => !v) : undefined,
