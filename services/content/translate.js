@@ -11,20 +11,33 @@ const IDIOMA_ORIGEN = 'es';
 
 const pool = getPool();
 
+function esTodoMayusculas(texto) {
+  return texto === texto.toUpperCase() && texto !== texto.toLowerCase();
+}
+
 async function traducirTexto(texto, destino) {
   if (!texto || !texto.trim()) return texto;
+
+  // Argos/LibreTranslate devuelve salidas basura (ej. "_") con palabras
+  // sueltas en MAYÚSCULAS -- en formato normal traduce bien ("Prueba" ->
+  // "Test"). Los títulos que usan esto se muestran igual en mayúsculas por
+  // CSS (text-transform: uppercase), así que no se pierde nada visualmente
+  // al mandar a traducir la versión no-mayúscula.
+  const textoParaTraducir = esTodoMayusculas(texto)
+    ? texto.charAt(0) + texto.slice(1).toLowerCase()
+    : texto;
+
   const res = await fetch(`${LIBRETRANSLATE_URL}/translate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ q: texto, source: IDIOMA_ORIGEN, target: destino, format: 'text' }),
+    body: JSON.stringify({ q: textoParaTraducir, source: IDIOMA_ORIGEN, target: destino, format: 'text' }),
   });
   if (!res.ok) throw new Error(`LibreTranslate respondió ${res.status}`);
   const data = await res.json();
   const traducido = typeof data.translatedText === 'string' ? data.translatedText : texto;
 
-  // Salvaguarda contra salidas degeneradas del motor: palabras sueltas en
-  // MAYÚSCULAS (ej. "PRUEBA") a veces vuelven como un simple "_", sin
-  // ninguna letra. Mejor mostrar el original sin traducir que basura.
+  // Salvaguarda contra salidas degeneradas del motor: si aun así no queda
+  // ninguna letra, mejor mostrar el original sin traducir que basura.
   if (texto.trim().length > 2 && !/[a-zA-Z]/.test(traducido)) {
     return texto;
   }
