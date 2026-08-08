@@ -1723,11 +1723,6 @@ export default function App() {
 
           {view === "admin_config" && (
             <motion.section key="admin_config" className="full-container" style={{ maxWidth: '1600px', padding: '0 40px' }} {...pageTransition}>
-              <div className="panel-header">
-                <span className="panel-label">{t('adminRobots.administrador')}</span>
-                <h2 style={{margin: '0', fontSize: '1.25rem'}}>{t('adminRobots.titulo')}</h2>
-              </div>
-
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left', flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '8px' }}>
                     <h3 style={{ margin: 0, color: 'var(--accent)' }}>{t('adminRobots.tituloTabla')}</h3>
