@@ -23,6 +23,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     GRANT USAGE, SELECT ON SEQUENCE users_id_seq TO svc_identity_role;
 
     GRANT SELECT, INSERT, UPDATE, DELETE ON posts TO svc_content_role;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON post_translations TO svc_content_role;
 
     GRANT SELECT, INSERT, UPDATE, DELETE ON robots TO svc_robots_role;
     GRANT SELECT, INSERT, UPDATE, DELETE ON logs TO svc_robots_role;
