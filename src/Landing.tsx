@@ -224,7 +224,7 @@ export const PublicationPage = () => {
       )}
       
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, zIndex: 10, position: 'relative' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 60px', borderBottom: `1px solid ${isSpecial ? specialColor : 'var(--border)'}`, alignItems: 'center', background: isSpecial ? specialBg : 'rgba(5,16,37,0.8)', backdropFilter: 'blur(10px)', gap: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 60px', borderBottom: `1px solid ${isSpecial ? specialColor : 'var(--border)'}`, alignItems: 'center', background: isSpecial ? specialBg : 'rgba(5,16,37,0.8)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', gap: '20px' }}>
           <Link to="/" style={{ textDecoration: 'none' }}>
             <div className="action-card logo-card" style={{ display: 'flex', alignItems: 'center', border: `0.6px solid ${isSpecial ? specialColor : 'var(--accent)'}`, padding: '4px 12px', gap: '12px', transition: 'all 0.3s ease' }}>
               <div className="logo-img-container">
@@ -274,7 +274,7 @@ export const PublicationPage = () => {
         </div>
 
       {post.pages && post.pages.length > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 60px', borderTop: '1px solid var(--border)', background: 'rgba(5,16,37,0.8)', backdropFilter: 'blur(10px)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 60px', borderTop: '1px solid var(--border)', background: 'rgba(5,16,37,0.8)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
           <button onClick={prev} disabled={currentPage === 0} style={{ padding: '16px 32px', background: 'transparent', color: currentPage === 0 ? 'var(--muted)' : 'var(--text)', border: '1px solid var(--border)', cursor: currentPage === 0 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ibm-mono)' }}>← ANTERIOR</button>
           <span style={{ fontFamily: 'var(--font-ibm-mono)', color: 'var(--accent)', letterSpacing: '4px', fontSize: '1.2rem' }}>
             PÁGINA {currentPage + 1} / {post.pages.length}

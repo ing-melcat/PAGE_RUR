@@ -273,7 +273,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(2, 7, 19, 0.7)', backdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 50, borderRadius: '8px' }}
+                        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(2, 7, 19, 0.7)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 50, borderRadius: '8px' }}
                     >
                         <div style={{ width: '48px', height: '48px', border: '3px solid var(--surface)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '24px' }} />
                         <span style={{ fontFamily: 'var(--font-ibm-mono)', color: 'var(--accent)', letterSpacing: '0.1em', fontSize: '1.2rem' }}>
@@ -300,7 +300,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                 <motion.div 
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
                     onClick={() => setShowMappingsModal(false)}
-                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(2,7,19,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(4px)', padding: '32px' }}
+                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(2,7,19,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', padding: '32px' }}
                 >
                     <motion.div 
                         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.3 }}
@@ -363,7 +363,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
                     onClick={() => setConfigRobot(null)}
-                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(2,7,19,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(4px)', padding: '32px' }}
+                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(2,7,19,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', padding: '32px' }}
                 >
                     <motion.div 
                         initial={{ opacity: 0, y: 20 }}

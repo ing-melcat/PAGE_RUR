@@ -37,6 +37,7 @@ const TARJETA = {
   borderRadius: '2px',
   boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
   backdropFilter: 'blur(4px)',
+  WebkitBackdropFilter: 'blur(4px)',
 };
 
 
@@ -499,6 +500,7 @@ export function BarraTelemetria({
         background: 'var(--surface)',
         boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
         backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
         ...(arriba
           ? { borderBottom: '1px solid var(--border)' }
           : { borderTop: '1px solid var(--border)' }),
