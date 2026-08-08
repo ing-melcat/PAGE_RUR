@@ -228,6 +228,12 @@ export const es = {
       perdida: 'Pérdida y jitter',
       audiencia: 'Espectadores',
     },
+    bloques: {
+      movimiento: 'Movimiento',
+      actuadores: 'Actuadores',
+      conexion: 'Conexión',
+      sesion: 'Sesión',
+    },
   },
   archivo: {
     titulo: 'Archivo de Publicaciones',

@@ -228,6 +228,12 @@ export const en: Dictionary = {
       perdida: 'Loss & Jitter',
       audiencia: 'Viewers',
     },
+    bloques: {
+      movimiento: 'Movement',
+      actuadores: 'Actuators',
+      conexion: 'Connection',
+      sesion: 'Session',
+    },
   },
   archivo: {
     titulo: 'Post Archive',
