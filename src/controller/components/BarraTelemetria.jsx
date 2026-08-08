@@ -180,10 +180,14 @@ function ModuloActuadores({ actuadores, transicion }) {
 function LecturaCorta({ titulo, valor, activo, transicion }) {
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px' }}>
-      <span className="telemetria__titulo telemetria__titulo--inline">{titulo}</span>
+      <span className="telemetria__pie">{titulo}</span>
       <span
         className={`telemetria__valor telemetria__valor--medio${activo ? '' : ' telemetria__valor--apagado'}`}
-        style={{ transition: transicion }}
+        style={{
+          transition: transicion,
+          display: 'inline-block', maxWidth: '110px', overflow: 'hidden',
+          whiteSpace: 'nowrap', textOverflow: 'ellipsis', verticalAlign: 'bottom',
+        }}
       >
         {valor}
       </span>
