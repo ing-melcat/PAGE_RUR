@@ -243,9 +243,12 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   if (viewMode === 'list') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minHeight: '60vh' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <button className="back-link" onClick={onBack}>← Volver al Menú Principal</button>
-          <h2 style={{ margin: 0, fontFamily: 'var(--font-ibm-mono)', color: 'var(--text)' }}>GESTIÓN DE PUBLICACIONES</h2>
+          <div>
+            <span className="panel-label">ADMINISTRADOR</span>
+            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Gestión de Publicaciones</h2>
+          </div>
         </div>
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
@@ -339,7 +342,10 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
       {/* Sidebar de Configuración */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <button className="back-link" onClick={() => setViewMode('list')} style={{ marginBottom: '16px', alignSelf: 'flex-start' }}>← Cancelar / Volver</button>
-        <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>{viewMode === 'edit' ? 'Modificar' : 'Crear'}</h2>
+        <div>
+          <span className="panel-label">ADMINISTRADOR</span>
+          <h2 style={{ fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>{viewMode === 'edit' ? 'Modificar' : 'Crear'}</h2>
+        </div>
         
         <div className="input-group" style={{ display: 'flex', gap: '20px' }}>
           <div style={{ flex: 1 }}>
@@ -396,7 +402,10 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
 
       {/* Editor Principal */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '32px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto' }}>
-        <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>Contenido HTML (100% Personalizable)</h2>
+        <div>
+          <span className="panel-label">ADMINISTRADOR</span>
+          <h2 style={{ fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>Contenido HTML (100% Personalizable)</h2>
+        </div>
 
         {/* La linea de que ya viene estilado se queda siempre visible (es
             corta y util de un vistazo); el ejemplo completo, que ocupa
