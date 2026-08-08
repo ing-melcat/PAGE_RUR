@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Robot3DPreview } from './components/Robot3DPreview';
 import { Gamepad2, Settings } from 'lucide-react';
 import { apiFetch } from '../lib/apiClient';
+import { useLanguage } from '../lib/i18n';
 
 // Shared style tokens
 const S = {
@@ -14,6 +15,7 @@ const S = {
 };
 
 export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobot, onBack, onAddRobot, onUpdateRobot, controlMappings, onUpdateMappings }) {
+    const { t } = useLanguage();
     const [loading, setLoading] = useState(false);
     const [columns, setColumns] = useState(3);
     const [configRobot, setConfigRobot] = useState(null);
@@ -131,15 +133,15 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                 
                 const verifyData = await verifyRes.json();
                 if (!verifyData.success) {
-                  window.alert(`ERROR DE LIVEKIT:\n${verifyData.message}\n\nRevisa que tus llaves sean las correctas (no copies puntos "......"). No se guardaron los cambios.`);
+                  window.alert(`${t('operador.seleccion.errorLivekitPrefijo')}\n${verifyData.message}\n\n${t('operador.seleccion.errorLivekitSufijo')}`);
                   return false;
                 }
               } catch (err) {
-                window.alert('ERROR: No se pudo contactar al servidor LiveKit. Revisa la URL o enciende tu servidor si es local. No se guardaron los cambios.');
+                window.alert(t('operador.seleccion.errorLivekitConexion'));
                 return false;
               }
             } else if (updated.livekitUrl || updated.livekitApiKey || updated.livekitApiSecret) {
-                if (!window.confirm('Aviso: Has llenado algunos campos de LiveKit pero no todos. La conexión fallará. ¿Guardar de todos modos?')) {
+                if (!window.confirm(t('operador.seleccion.confirmLivekitParcial'))) {
                     return false;
                 }
             }
@@ -169,7 +171,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '48px', borderBottom: '1px solid var(--border)', paddingBottom: '24px' }}>
                 <div style={{ flex: 1, paddingRight: '40px' }}>
                     <h2 style={{ margin: '16px 0', fontSize: '3.5rem', fontFamily: 'var(--font-ibm-mono)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: '1', fontWeight: 500 }}>
-                        Selección de Unidad
+                        {t('operador.seleccion.titulo')}
                     </h2>
                 </div>
                 <div style={{ paddingTop: '12px', display: 'flex', gap: '12px' }}>
@@ -178,9 +180,9 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                         style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '8px' }}
                         onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-                        title="Mapeo de Controles"
+                        title={t('operador.seleccion.mapeoTitle')}
                     >
-                        <Gamepad2 size={24} /> <span style={{display: 'none'}}>MAPEO</span>
+                        <Gamepad2 size={24} /> <span style={{display: 'none'}}>{t('operador.seleccion.mapeoTitle')}</span>
                     </button>
                 </div>
             </div>
@@ -204,16 +206,16 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                 {robotsOrdenados.length === 0 && (
                     <div style={{ ...S.panel, gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'flex-start' }}>
                         <h3 style={{ ...S.sectionTitle, borderBottom: 'none', paddingBottom: 0, color: errorRobots ? 'var(--error)' : 'var(--muted)' }}>
-                            {errorRobots ? 'No se pudieron cargar las unidades' : 'No hay unidades registradas'}
+                            {errorRobots ? t('operador.seleccion.sinUnidadesError') : t('operador.seleccion.sinUnidades')}
                         </h3>
                         <p style={{ ...S.label, textTransform: 'none', margin: 0, lineHeight: 1.6 }}>
                             {errorRobots
                                 ? errorRobots
-                                : 'Registra una desde Administración de Robots para poder operarla.'}
+                                : t('operador.seleccion.registraUnidad')}
                         </p>
                         {errorRobots && onReintentar && (
                             <button onClick={onReintentar} style={{ ...S.btn, marginTop: '4px' }}>
-                                Reintentar
+                                {t('operador.seleccion.reintentar')}
                             </button>
                         )}
                     </div>
@@ -245,7 +247,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: enLinea ? 'var(--success)' : 'var(--error)' }} />
                                 <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', letterSpacing: '0.05em', color: enLinea ? 'var(--success)' : 'var(--error)' }}>
-                                    {enLinea ? 'EN LÍNEA' : 'APAGADO'}
+                                    {enLinea ? t('operador.seleccion.enLinea') : t('operador.seleccion.apagado')}
                                 </span>
                             </div>
                         </div>
@@ -258,7 +260,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                             su cuenta cuando no hay nadie escuchando. */}
                         {!enLinea && (
                             <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', color: 'var(--muted)' }}>
-                                Abrir consola de todos modos →
+                                {t('operador.seleccion.abrirConsola')}
                             </span>
                         )}
                     </motion.div>
@@ -277,7 +279,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                     >
                         <div style={{ width: '48px', height: '48px', border: '3px solid var(--surface)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '24px' }} />
                         <span style={{ fontFamily: 'var(--font-ibm-mono)', color: 'var(--accent)', letterSpacing: '0.1em', fontSize: '1.2rem' }}>
-                            CONECTANDO CON LIVEKIT...
+                            {t('operador.seleccion.conectando')}
                         </span>
                     </motion.div>
                 )}
@@ -285,7 +287,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
 
             {/* FOOTER */}
             <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: '32px' }}>
-                <button className="back-link" onClick={onBack}>← Volver al Menú</button>
+                <button className="back-link" onClick={onBack}>{t('operador.seleccion.volverMenu')}</button>
                 {/* Los robots apagados ya no viven aquí abajo: ahora salen en
                     la rejilla como los demás, marcados en rojo. Tenerlos en una
                     lista aparte dejaba la pantalla vacía cuando ninguno estaba
@@ -309,15 +311,15 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
                             <div>
-                                <h3 style={{ ...S.sectionTitle, borderBottom: 'none', paddingBottom: 0, fontSize: '1.1rem' }}>MAPEO DE CONTROLES</h3>
-                                <p style={{ margin: '6px 0 0 0', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)' }}>Configura tus preferencias de botones (Gamepad / Teclado)</p>
+                                <h3 style={{ ...S.sectionTitle, borderBottom: 'none', paddingBottom: 0, fontSize: '1.1rem' }}>{t('operador.seleccion.mapeoModalTitulo')}</h3>
+                                <p style={{ margin: '6px 0 0 0', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)' }}>{t('operador.seleccion.mapeoModalDesc')}</p>
                             </div>
                         </div>
 
                         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
                             {['gamepad', 'keyboard'].map(type => (
                                 <div key={type} style={{ ...S.panel, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    <h4 style={{ ...S.sectionTitle }}>{type === 'gamepad' ? 'MANDO XBOX / PLAYSTATION' : 'TECLADO'}</h4>
+                                    <h4 style={{ ...S.sectionTitle }}>{type === 'gamepad' ? t('operador.seleccion.mando') : t('operador.seleccion.teclado')}</h4>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                         {Object.keys(mappingForm[type]).map(action => (
                                             <label key={action} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -338,14 +340,14 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-                            <button onClick={() => setShowMappingsModal(false)} style={S.btn}>CANCELAR</button>
-                            <button 
+                            <button onClick={() => setShowMappingsModal(false)} style={S.btn}>{t('operador.seleccion.cancelar')}</button>
+                            <button
                                 onClick={() => {
                                     if (onUpdateMappings) onUpdateMappings(mappingForm);
                                     setShowMappingsModal(false);
                                 }}
                                 style={{ ...S.btn, background: 'var(--accent)', color: 'var(--background)', borderColor: 'var(--accent)', fontWeight: 600 }}
-                            >GUARDAR MAPEO</button>
+                            >{t('operador.seleccion.guardarMapeo')}</button>
                         </div>
                     </motion.div>
                 </motion.div>
@@ -376,8 +378,8 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                         {/* MODAL HEADER */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
                             <div>
-                                <h3 style={{ ...S.sectionTitle, borderBottom: 'none', paddingBottom: 0, fontSize: '1.1rem' }}>CONFIGURACIÓN DE UNIDAD</h3>
-                                <p style={{ margin: '6px 0 0 0', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)' }}>Parámetros de operación del robot</p>
+                                <h3 style={{ ...S.sectionTitle, borderBottom: 'none', paddingBottom: 0, fontSize: '1.1rem' }}>{t('operador.seleccion.configTitulo')}</h3>
+                                <p style={{ margin: '6px 0 0 0', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)' }}>{t('operador.seleccion.configDesc')}</p>
                             </div>
                             <button 
                                 onClick={() => setConfigRobot(null)} 
@@ -403,7 +405,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                 style={{ ...S.btn, color: 'var(--accent)', borderColor: 'var(--accent)', whiteSpace: 'nowrap' }}
                                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--background)'; }}
                                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--accent)'; }}
-                            >+ NUEVA</button>
+                            >{t('operador.seleccion.nuevaUnidad')}</button>
                         </div>
 
                         {/* SCROLLABLE CONTENT */}
@@ -422,7 +424,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', ...S.panel }}>
                                         <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: configRobot.status === 'online' ? 'var(--success)' : 'var(--error)' }} />
                                         <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: configRobot.status === 'online' ? 'var(--success)' : 'var(--error)' }}>
-                                            {configRobot.status === 'online' ? 'EN LÍNEA' : 'FUERA DE LÍNEA'}
+                                            {configRobot.status === 'online' ? t('operador.seleccion.enLinea') : t('operador.seleccion.fueraDeLinea')}
                                         </span>
                                         <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)', marginLeft: 'auto' }}>
                                             ID: {configRobot.id}
@@ -431,21 +433,21 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
 
                                     {/* IDENTIDAD */}
                                     <div style={{ ...S.panel, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                        <h4 style={{ ...S.sectionTitle }}>IDENTIFICACIÓN</h4>
-                                        
+                                        <h4 style={{ ...S.sectionTitle }}>{t('operador.seleccion.identificacion')}</h4>
+
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                             <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                <span style={S.label}>Nombre visible</span>
-                                                <input 
-                                                    type="text" 
-                                                    value={formData.name || ''} 
+                                                <span style={S.label}>{t('operador.seleccion.nombreVisible')}</span>
+                                                <input
+                                                    type="text"
+                                                    value={formData.name || ''}
                                                     onChange={e => handleFormChange('name', e.target.value)}
                                                     style={S.input}
                                                     {...inputFocusHandlers}
                                                 />
                                             </label>
                                             <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                <span style={S.label}>Sala LiveKit (Room)</span>
+                                                <span style={S.label}>{t('operador.seleccion.salaLivekit')}</span>
                                                 <input 
                                                     type="text" 
                                                     value={formData.room || ''} 
@@ -459,12 +461,12 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
 
                                     {/* LÍMITES OPERACIONALES */}
                                     <div style={{ ...S.panel, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                        <h4 style={{ ...S.sectionTitle }}>LÍMITES OPERACIONALES</h4>
-                                        
+                                        <h4 style={{ ...S.sectionTitle }}>{t('operador.seleccion.limitesOperacionales')}</h4>
+
                                         {[
-                                            { key: 'maxSpeed', label: 'Velocidad máxima (motores)', suffix: '%' },
-                                            { key: 'steeringSensitivity', label: 'Sensibilidad de giro', suffix: '%' },
-                                            { key: 'digForce', label: 'Fuerza de excavación', suffix: '%' },
+                                            { key: 'maxSpeed', label: t('operador.seleccion.velocidadMaxima'), suffix: '%' },
+                                            { key: 'steeringSensitivity', label: t('operador.seleccion.sensibilidadGiro'), suffix: '%' },
+                                            { key: 'digForce', label: t('operador.seleccion.fuerzaExcavacion'), suffix: '%' },
                                         ].map(({ key, label, suffix }) => (
                                             <label key={key} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -488,7 +490,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                         onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--muted)'; e.currentTarget.style.color = 'var(--text)'; }}
                                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)'; }}
                                     >
-                                        <Settings size={16} /> OPCIONES AVANZADAS (TRANSMISIÓN / DEBUG)
+                                        <Settings size={16} /> {t('operador.seleccion.opcionesAvanzadas')}
                                     </button>
                                 </motion.div>
                             ) : (
@@ -506,22 +508,22 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                         onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text)'; }}
                                         onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
                                     >
-                                        ← VOLVER
+                                        {t('operador.seleccion.volver')}
                                     </button>
 
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
                                         {/* TRANSMISIÓN Y CREDENCIALES LIVEKIT */}
                                         <div style={{ ...S.panel, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            <h4 style={{ ...S.sectionTitle }}>CREDENCIALES DE LIVEKIT</h4>
+                                            <h4 style={{ ...S.sectionTitle }}>{t('operador.seleccion.credencialesLivekit')}</h4>
                                             <p style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem', color: 'var(--muted)', margin: 0, padding: '8px 12px', background: 'var(--background)', borderRadius: '4px', border: '1px solid var(--border)' }}>
-                                                Ingresa las llaves de tu proyecto en LiveKit Cloud. Esta información es necesaria para generar los tokens seguros de conexión.
+                                                {t('operador.seleccion.credencialesDesc')}
                                             </p>
-                                            
+
                                             <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                <span style={S.label}>Servidor LiveKit (URL)</span>
-                                                <input 
-                                                    type="text" 
-                                                    value={formData.livekitUrl || ''} 
+                                                <span style={S.label}>{t('operador.seleccion.servidorLivekit')}</span>
+                                                <input
+                                                    type="text"
+                                                    value={formData.livekitUrl || ''}
                                                     onChange={e => handleFormChange('livekitUrl', e.target.value)}
                                                     placeholder="wss://..."
                                                     style={S.input}
@@ -567,16 +569,16 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                 style={S.btn}
                                 onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text)'; }}
                                 onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-                            >CANCELAR</button>
-                            <button 
-                                onClick={async () => { 
-                                    const success = await handleSave(); 
-                                    if(success) setConfigRobot(null); 
+                            >{t('operador.seleccion.cancelar')}</button>
+                            <button
+                                onClick={async () => {
+                                    const success = await handleSave();
+                                    if(success) setConfigRobot(null);
                                 }}
                                 style={{ ...S.btn, background: 'var(--accent)', color: 'var(--background)', borderColor: 'var(--accent)', fontWeight: 600 }}
                                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text)'; }}
                                 onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                            >GUARDAR CAMBIOS</button>
+                            >{t('operador.seleccion.guardarCambios')}</button>
                         </div>
                     </motion.div>
                 </motion.div>

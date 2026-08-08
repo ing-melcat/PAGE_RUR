@@ -1,7 +1,9 @@
 import './Cabezal.css';
 import { ConfigPanel } from './ConfigPanel';
+import { useLanguage } from '../lib/i18n';
 
 export function Cabezal({ onCambio, onConfigApply, onBack }) {
+    const { t } = useLanguage();
     return (
         // Simplemente un cabezal con el nombre de la aplicacion, se pueden agregar mas cosas despues
         <header className="cabezal">
@@ -18,7 +20,7 @@ export function Cabezal({ onCambio, onConfigApply, onBack }) {
                     <button 
                         onClick={onBack}
                         style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '8px' }}
-                        aria-label="Volver al Menú"
+                        aria-label={t('operador.controller.volverMenuAria')}
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="19" y1="12" x2="5" y2="12"></line>

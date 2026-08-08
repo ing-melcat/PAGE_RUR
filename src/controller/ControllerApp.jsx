@@ -13,6 +13,7 @@ import { Joystck } from './components/Joystck';
 import { StatusHUD } from './components/StatusHUD';
 import { BarraTelemetria } from './components/BarraTelemetria';
 import { TOPIC_TELEMETRIA } from './telemetria';
+import { useLanguage } from '../lib/i18n';
 
 const TOPIC = 'control';
 const SERVER_URL = import.meta.env.VITE_LIVEKIT_URL || "wss://rur-livekit-server-8b010r3b.livekit.cloud";
@@ -114,6 +115,7 @@ function construirTelemetria({ avance: ejeAvance, giro: ejeGiro }, actuadoresInt
 }
 
 export default function ControllerApp({ onBack, robot }) {
+  const { t } = useLanguage();
   const [isMobile] = useState(window.innerWidth <= 932);
   const [visible, setVisible] = useState(true);
   const [visible1, setVisible1] = useState(true);
@@ -177,7 +179,7 @@ export default function ControllerApp({ onBack, robot }) {
   // esto los controles táctiles se quedan ocultos y la consola inservible.
   const accionesMenu = hasGamepad
     ? [{
-        label: 'Olvidar el mando detectado',
+        label: t('operador.controller.olvidarMando'),
         onClick: () => {
           setHasGamepad(false);
           setForceMobileMode(false);
@@ -476,7 +478,7 @@ export default function ControllerApp({ onBack, robot }) {
 
   const connectToLiveKit = useCallback(async (authToken, customUrl) => {
     if (!authToken) {
-      setError('Please provide a token');
+      setError(t('operador.controller.errorSinToken'));
       return;
     }
 
@@ -539,7 +541,7 @@ export default function ControllerApp({ onBack, robot }) {
              setConnect(true);
              connectToLiveKit(data.token, data.livekitUrl);
           } else {
-             setError(data.message || 'Error generating LiveKit token');
+             setError(data.message || t('operador.controller.errorTokenGeneracion'));
           }
         } catch (err) {
           console.error(err);
@@ -580,10 +582,10 @@ export default function ControllerApp({ onBack, robot }) {
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', zIndex: 999999, background: 'var(--background)' }}>
           <div className="loading-spinner" style={{ width: '64px', height: '64px', border: '4px solid var(--surface)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '24px' }} />
           <h2 style={{ fontFamily: 'var(--font-ibm-mono)', color: 'var(--accent)', margin: 0, letterSpacing: '0.2em' }}>
-            ESTABLECIENDO ENLACE
+            {t('operador.controller.estableciendoEnlace')}
           </h2>
           <p style={{ fontFamily: 'var(--font-ibm-mono)', color: 'var(--muted)', marginTop: '8px' }}>
-            Obteniendo token seguro para la sala: {robot?.room}
+            {t('operador.controller.obteniendoToken')} {robot?.room}
           </p>
         </div>
       )}
@@ -621,24 +623,24 @@ export default function ControllerApp({ onBack, robot }) {
         <div id="left-panel">
           <div className='arms' style={{ opacity: visible ? '1' : '0' }}>
             <Segment id="arms">
-              <h3>Arms</h3>
+              <h3>{t('operador.controller.brazos')}</h3>
               <div className="arm-controls">
-                <ControlGroup 
-                  title="Front" 
-                  groupClass="arm-group" 
-                  buttons={[{ label: "▲", onPress: () => handleAction('ArmFront', 'Up', true), onRelease: () => handleAction('ArmFront', 'Up', false) }, { label: "▼", onPress: () => handleAction('ArmFront', 'Down', true), onRelease: () => handleAction('ArmFront', 'Down', false) }]} 
+                <ControlGroup
+                  title={t('operador.controller.frente')}
+                  groupClass="arm-group"
+                  buttons={[{ label: "▲", onPress: () => handleAction('ArmFront', 'Up', true), onRelease: () => handleAction('ArmFront', 'Up', false) }, { label: "▼", onPress: () => handleAction('ArmFront', 'Down', true), onRelease: () => handleAction('ArmFront', 'Down', false) }]}
                 />
-                <ControlGroup 
-                  title="Back" 
-                  groupClass="arm-group" 
-                  buttons={[{ label: "▲", onPress: () => handleAction('ArmBack', 'Up', true), onRelease: () => handleAction('ArmBack', 'Up', false) }, { label: "▼", onPress: () => handleAction('ArmBack', 'Down', true), onRelease: () => handleAction('ArmBack', 'Down', false) }]} 
+                <ControlGroup
+                  title={t('operador.controller.trasero')}
+                  groupClass="arm-group"
+                  buttons={[{ label: "▲", onPress: () => handleAction('ArmBack', 'Up', true), onRelease: () => handleAction('ArmBack', 'Up', false) }, { label: "▼", onPress: () => handleAction('ArmBack', 'Down', true), onRelease: () => handleAction('ArmBack', 'Down', false) }]}
                 />
               </div>
             </Segment>
           </div>
 
           <Segment id="joystick" style={{ display: visible1 ? 'flex' : 'none', height: Math.max(230, joystickSize + 80) }}>
-            <h3>Joystick Control</h3>
+            <h3>{t('operador.controller.controlJoystick')}</h3>
             <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Joystck onMove={handleMove} onStop={handleMove} setBinPack={setBinPacket} size={joystickSize} />
             </div>
@@ -648,17 +650,17 @@ export default function ControllerApp({ onBack, robot }) {
         <div id="right-panel">
           <div className='drums' style={{ opacity: visible ? '1' : '0' }}>
             <Segment id="drums">
-              <h3>Drums</h3>
+              <h3>{t('operador.controller.tambores')}</h3>
               <div className="drum-controls">
-                <ControlGroup 
-                  title="Front" 
-                  groupClass="drum-group" 
-                  buttons={[{ label: <RotateCcw size={24} />, onPress: () => handleAction('DrumFront', 'Ccw', true), onRelease: () => handleAction('DrumFront', 'Ccw', false) }, { label: <RotateCw size={24} />, onPress: () => handleAction('DrumFront', 'Cw', true), onRelease: () => handleAction('DrumFront', 'Cw', false) }]} 
+                <ControlGroup
+                  title={t('operador.controller.frente')}
+                  groupClass="drum-group"
+                  buttons={[{ label: <RotateCcw size={24} />, onPress: () => handleAction('DrumFront', 'Ccw', true), onRelease: () => handleAction('DrumFront', 'Ccw', false) }, { label: <RotateCw size={24} />, onPress: () => handleAction('DrumFront', 'Cw', true), onRelease: () => handleAction('DrumFront', 'Cw', false) }]}
                 />
-                <ControlGroup 
-                  title="Back" 
-                  groupClass="drum-group" 
-                  buttons={[{ label: <RotateCcw size={24} />, onPress: () => handleAction('DrumBack', 'Ccw', true), onRelease: () => handleAction('DrumBack', 'Ccw', false) }, { label: <RotateCw size={24} />, onPress: () => handleAction('DrumBack', 'Cw', true), onRelease: () => handleAction('DrumBack', 'Cw', false) }]} 
+                <ControlGroup
+                  title={t('operador.controller.trasero')}
+                  groupClass="drum-group"
+                  buttons={[{ label: <RotateCcw size={24} />, onPress: () => handleAction('DrumBack', 'Ccw', true), onRelease: () => handleAction('DrumBack', 'Ccw', false) }, { label: <RotateCw size={24} />, onPress: () => handleAction('DrumBack', 'Cw', true), onRelease: () => handleAction('DrumBack', 'Cw', false) }]}
                 />
               </div>
             </Segment>
@@ -682,26 +684,26 @@ export default function ControllerApp({ onBack, robot }) {
       <div style={{ position: 'relative', zIndex: 110, opacity: hasGamepad ? 0 : 1, visibility: hasGamepad ? 'hidden' : 'visible', transition: 'all 0.5s ease-out', pointerEvents: 'none' }}>
         <div id='liveconn' style={{ pointerEvents: visible2 ? 'auto' : 'none' }}>
           <Segment id="connection" style={{ opacity: visible2 ? '1' : '0', pointerEvents: visible2 ? 'auto' : 'none' }}>
-            <h3>LiveKit Connection</h3>
+            <h3>{t('operador.controller.conexionLivekit')}</h3>
             {!isConnected ? (
               <>
                 <input
                   type="text"
-                  placeholder="Enter LiveKit token"
+                  placeholder={t('operador.controller.ingresarToken')}
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
                   className="styled-input"
                 />
                 <button onClick={() => { connectToLiveKit(token); setConnect(true); }} className="boton">
-                  Connect
+                  {t('operador.controller.conectar')}
                 </button>
                 {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
               </>
             ) : (
               <>
-                <p style={{ color: 'var(--success)' }}>Connected to TRINITY</p>
+                <p style={{ color: 'var(--success)' }}>{t('operador.controller.conectadoTrinity')}</p>
                 <button onClick={disconnect} className="boton">
-                  Disconnect
+                  {t('operador.controller.desconectar')}
                 </button>
               </>
             )}
@@ -711,12 +713,12 @@ export default function ControllerApp({ onBack, robot }) {
 
         <div id="container">
           <Segment id="wheels" style={{ display: 'none' }}>
-            <h3>Wheels</h3>
+            <h3>{t('operador.controller.ruedas')}</h3>
             <div className="control-grid">
-              <ControlButton label="Forward" onPress={() => handleAction('Wheel', 'Forward', true)} onRelease={() => handleAction('Wheel', 'Forward', false)} />
-              <ControlButton label="Left" onPress={() => handleAction('Wheel', 'Left', true)} onRelease={() => handleAction('Wheel', 'Left', false)} />
-              <ControlButton label="Right" onPress={() => handleAction('Wheel', 'Right', true)} onRelease={() => handleAction('Wheel', 'Right', false)} />
-              <ControlButton label="Backward" onPress={() => handleAction('Wheel', 'Backward', true)} onRelease={() => handleAction('Wheel', 'Backward', false)} />
+              <ControlButton label={t('operador.controller.adelante')} onPress={() => handleAction('Wheel', 'Forward', true)} onRelease={() => handleAction('Wheel', 'Forward', false)} />
+              <ControlButton label={t('operador.controller.izquierda')} onPress={() => handleAction('Wheel', 'Left', true)} onRelease={() => handleAction('Wheel', 'Left', false)} />
+              <ControlButton label={t('operador.controller.derecha')} onPress={() => handleAction('Wheel', 'Right', true)} onRelease={() => handleAction('Wheel', 'Right', false)} />
+              <ControlButton label={t('operador.controller.atras')} onPress={() => handleAction('Wheel', 'Backward', true)} onRelease={() => handleAction('Wheel', 'Backward', false)} />
             </div>
           </Segment>
 
