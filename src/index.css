@@ -201,32 +201,39 @@ h1 {
   margin-top: 0;
 }
 
+/* Tamaños sacados de los que el proyecto YA usa en varios lados, no
+   inventados: 1.5rem se repite igual (mono, mayúsculas) cuatro veces en
+   App.tsx para títulos de sección, y coincide con la propia regla global
+   de h1 de arriba -- por eso h1 no redefine tamaño/color/mayúsculas, solo
+   le faltaba margen para no pegarse al párrafo siguiente (el h1 global usa
+   margin:0 a propósito, pensado para títulos de panel, no para artículo).
+   1.25rem es el tamaño repetido de los títulos de panel en LoginApp.tsx
+   ("Contenido HTML...", "Gestión de Usuarios", "Configuración y Unidades",
+   etc). 1.1rem aparece igual en varios títulos de sección más chicos. */
 .contenido-publicacion h1 {
-  font-size: 2rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 500;
-  color: var(--accent);
+  /* Solo el margen inferior: el superior lo da la regla compartida de
+     arriba (1.6em), y :first-child ya lo pone en 0 cuando el h1 es lo
+     primero del contenido -- forzar aquí "margin: 0 ..." completo habría
+     pegado cualquier h1 posterior al párrafo anterior. */
+  margin-bottom: 0.7em;
 }
 
 .contenido-publicacion h2 {
-  font-size: 1.4rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 1.25rem;
   font-weight: 500;
   color: var(--text);
 }
 
 .contenido-publicacion h3 {
   font-size: 1.1rem;
-  color: var(--muted);
   font-weight: 500;
+  color: var(--text);
 }
 
 .contenido-publicacion h4 {
   font-size: 1rem;
-  color: var(--muted);
   font-weight: 500;
+  color: var(--muted);
 }
 
 .contenido-publicacion p {
