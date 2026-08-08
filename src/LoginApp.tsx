@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
-import { Loader2, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, CheckCircle, ChevronDown, ChevronUp, Globe, Lock, Upload } from "lucide-react";
 import "./index.css";
 import { RobotSelection } from "./controller/RobotSelection";
 import { apiFetch } from "./lib/apiClient";
@@ -1756,8 +1756,8 @@ export default function App() {
                                     <td style={{ padding: '16px', color: 'var(--accent)' }}>{r.room}</td>
                                     <td style={{ padding: '16px' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
-                                            <span style={{ padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem', letterSpacing: '0.05em', border: `1px solid ${r.isPublicEvent ? 'var(--accent)' : 'var(--border)'}`, color: r.isPublicEvent ? 'var(--accent)' : 'var(--muted)', background: r.isPublicEvent ? 'rgba(251,202,1,0.08)' : 'transparent' }}>
-                                                {r.isPublicEvent ? '◉ PÚBLICA' : '🔒 PRIVADA'}
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem', letterSpacing: '0.05em', border: `1px solid ${r.isPublicEvent ? 'var(--accent)' : 'var(--border)'}`, color: r.isPublicEvent ? 'var(--accent)' : 'var(--muted)', background: r.isPublicEvent ? 'rgba(251,202,1,0.08)' : 'transparent' }}>
+                                                {r.isPublicEvent ? <Globe size={12} /> : <Lock size={12} />} {r.isPublicEvent ? 'PÚBLICA' : 'PRIVADA'}
                                             </span>
                                             {r.isPublicEvent && (
                                                 <button onClick={() => copiarEnlacePublico(r.id)} style={{ background: 'transparent', border: 'none', color: 'var(--muted)', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', textDecoration: 'underline' }}>copiar enlace</button>
@@ -1829,8 +1829,8 @@ export default function App() {
                                         <div style={{ display: 'flex', gap: '8px' }}>
                                             <input ref={robotModelInputRef} name="modelUrl" defaultValue={editingRobot.modelUrl} placeholder="/models/mi-robot.glb" style={{ ...S.input, flex: 1 }} />
                                             <input type="file" accept=".glb,.gltf" onChange={handleRobotModelUpload} style={{ display: 'none' }} id="upload-robot-model" />
-                                            <label htmlFor="upload-robot-model" style={{ padding: '12px 16px', background: 'var(--surface-strong)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                                                {uploadingRobotModel ? 'SUBIENDO...' : '📁 SUBIR'}
+                                            <label htmlFor="upload-robot-model" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '12px 16px', background: 'var(--surface-strong)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                                                {uploadingRobotModel ? 'SUBIENDO...' : <><Upload size={14} /> SUBIR</>}
                                             </label>
                                         </div>
                                     </label>
