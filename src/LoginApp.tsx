@@ -1772,7 +1772,9 @@ export default function App() {
                             ))}
                             {robots.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>No hay unidades registradas.</td>
+                                    <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: errorRobots ? 'var(--error)' : 'var(--muted)' }}>
+                                        {errorRobots ? `No se pudieron cargar las unidades: ${errorRobots}` : 'No hay unidades registradas.'}
+                                    </td>
                                 </tr>
                             )}
                         </tbody>
