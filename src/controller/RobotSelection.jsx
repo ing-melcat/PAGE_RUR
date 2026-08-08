@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Robot3DPreview } from './components/Robot3DPreview';
-import { Gamepad2 } from 'lucide-react';
+import { Gamepad2, Settings } from 'lucide-react';
 import { apiFetch } from '../lib/apiClient';
 
 // Shared style tokens
@@ -131,11 +131,11 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                 
                 const verifyData = await verifyRes.json();
                 if (!verifyData.success) {
-                  window.alert(`❌ ERROR DE LIVEKIT:\n${verifyData.message}\n\nRevisa que tus llaves sean las correctas (no copies puntos "......"). No se guardaron los cambios.`);
+                  window.alert(`ERROR DE LIVEKIT:\n${verifyData.message}\n\nRevisa que tus llaves sean las correctas (no copies puntos "......"). No se guardaron los cambios.`);
                   return false;
                 }
               } catch (err) {
-                window.alert('❌ ERROR: No se pudo contactar al servidor LiveKit. Revisa la URL o enciende tu servidor si es local. No se guardaron los cambios.');
+                window.alert('ERROR: No se pudo contactar al servidor LiveKit. Revisa la URL o enciende tu servidor si es local. No se guardaron los cambios.');
                 return false;
               }
             } else if (updated.livekitUrl || updated.livekitApiKey || updated.livekitApiSecret) {
@@ -484,11 +484,11 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                     {/* TOGGLE AVANZADAS */}
                                     <button 
                                         onClick={() => setShowAdvanced(true)}
-                                        style={{ ...S.btn, borderStyle: 'dashed', borderColor: 'var(--border)', width: '100%', justifyContent: 'center', display: 'flex', padding: '14px' }}
+                                        style={{ ...S.btn, borderStyle: 'dashed', borderColor: 'var(--border)', width: '100%', justifyContent: 'center', alignItems: 'center', gap: '8px', display: 'flex', padding: '14px' }}
                                         onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--muted)'; e.currentTarget.style.color = 'var(--text)'; }}
                                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)'; }}
                                     >
-                                        ⚙ OPCIONES AVANZADAS (TRANSMISIÓN / DEBUG)
+                                        <Settings size={16} /> OPCIONES AVANZADAS (TRANSMISIÓN / DEBUG)
                                     </button>
                                 </motion.div>
                             ) : (
