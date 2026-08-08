@@ -689,9 +689,9 @@ export default function App() {
       if (data.url && robotModelInputRef.current) {
         robotModelInputRef.current.value = data.url;
       } else if (!data.url) {
-        alert("Error al subir el modelo 3D");
+        alert(t('alertas.errorSubirModelo'));
       }
-    } catch(err) { alert("Error de conexión al subir el modelo 3D"); }
+    } catch(err) { alert(t('alertas.errorConexionModelo')); }
     setUploadingRobotModel(false);
     e.target.value = '';
   };
@@ -771,12 +771,12 @@ export default function App() {
         alert(d.message);
       }
     } catch(e) {
-      alert("Error de conexión");
+      alert(t('alertas.errorConexionGenerico'));
     }
   };
 
   const handleDeleteUser = async (matricula: string) => {
-    if (!window.confirm('¿Seguro que deseas eliminar este usuario?')) return;
+    if (!window.confirm(t('adminUsuarios.confirmarEliminar'))) return;
     try {
       const res = await apiFetch(`/api/users/${matricula}`, { method: 'DELETE' });
       if (res.ok) fetchUsers();
@@ -818,10 +818,10 @@ export default function App() {
         clearTimeout(timeoutId);
         
         if (!pingRes.ok && pingRes.status !== 404) {
-          if (!window.confirm(`Advertencia: El servidor LiveKit respondió con estado ${pingRes.status}. ¿Deseas guardarlo de todos modos?`)) return;
+          if (!window.confirm(`${t('alertas.advertenciaLivekitEstado')} ${pingRes.status}. ${t('alertas.advertenciaGuardarTodosModos')}`)) return;
         }
       } catch (err) {
-        if (!window.confirm('Advertencia: No se pudo establecer conexión con el servidor LiveKit Cloud (Ping fallido). ¿Deseas guardarlo de todos modos?')) {
+        if (!window.confirm(t('alertas.advertenciaLivekitPing'))) {
           return;
         }
       }
@@ -842,10 +842,10 @@ export default function App() {
         setEditingRobot(null);
       } else {
         const d = await res.json();
-        alert(d.message || "Error al guardar el robot");
+        alert(d.message || t('alertas.errorGuardarRobot'));
       }
     } catch(e) {
-      alert("Error de conexión");
+      alert(t('alertas.errorConexionGenerico'));
     }
   };
 
@@ -855,15 +855,15 @@ export default function App() {
     const enlace = `${window.location.origin}/espectador/${robotId}`;
     try {
       await navigator.clipboard.writeText(enlace);
-      alert(`Enlace de espectador copiado:\n${enlace}`);
+      alert(`${t('alertas.enlaceCopiado')}\n${enlace}`);
     } catch {
       // clipboard solo existe en contexto seguro (https/localhost).
-      window.prompt('Copia el enlace de espectador:', enlace);
+      window.prompt(t('alertas.copiarEnlacePrompt'), enlace);
     }
   };
 
   const handleDeleteRobot = async (id: string) => {
-    if (!window.confirm('¿Seguro que deseas eliminar este robot?')) return;
+    if (!window.confirm(t('alertas.confirmarEliminarRobot'))) return;
     try {
       const res = await apiFetch(`/api/robots/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -1435,7 +1435,7 @@ export default function App() {
                           </div>
                           <div className="input-group">
                             <label>{t('perfil.reddit')}</label>
-                            <input type="text" placeholder="Usuario o URL" value={profileForm.reddit} onChange={e => setProfileForm({...profileForm, reddit: e.target.value})} />
+                            <input type="text" placeholder={t('perfil.redditPlaceholder')} value={profileForm.reddit} onChange={e => setProfileForm({...profileForm, reddit: e.target.value})} />
                           </div>
                           <div className="input-group">
                             <label>{t('perfil.facebook')}</label>
@@ -1527,12 +1527,12 @@ export default function App() {
                       });
                       if (res.ok) {
                         setUser({ ...user, control_mappings: newMappings });
-                        alert("Controles mapeados con éxito.");
+                        alert(t('alertas.controlesGuardados'));
                       } else {
-                        alert("Error al guardar controles.");
+                        alert(t('alertas.errorGuardarControles'));
                       }
                     } catch (e) {
-                      alert("Error de conexión.");
+                      alert(t('perfil.errorConexion'));
                     }
                   }}
                 />
@@ -1568,36 +1568,36 @@ export default function App() {
             <motion.section key="admin_users" className="dashboard-card" {...pageTransition} style={{ marginTop: '120px', marginBottom: '60px' }}>
               <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
-                  <span className="panel-label">ADMINISTRADOR</span>
-                  <h2 style={{margin: '0', fontSize: '1.25rem'}}>Gestión de Usuarios</h2>
+                  <span className="panel-label">{t('adminUsuarios.administrador')}</span>
+                  <h2 style={{margin: '0', fontSize: '1.25rem'}}>{t('adminUsuarios.titulo')}</h2>
                 </div>
                 {!isCreatingUser && (
-                  <button onClick={() => setIsCreatingUser(true)} style={{ background: 'var(--accent)', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>+ Crear Usuario</button>
+                  <button onClick={() => setIsCreatingUser(true)} style={{ background: 'var(--accent)', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>{t('adminUsuarios.crearUsuario')}</button>
                 )}
               </div>
-              
+
               {(isCreatingUser || editingUser) ? (
                 <div style={{ textAlign: 'left', marginBottom: '16px', padding: '20px', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px' }}>
                   <form onSubmit={editingUser ? handleUpdateUser : handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem' }}>
-                        Matrícula / ID
+                        {t('adminUsuarios.matriculaId')}
                         <input name="matricula" defaultValue={editingUser?.matricula} readOnly={!!editingUser} required style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', opacity: editingUser ? 0.5 : 1 }} />
                       </label>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem' }}>
-                        Contraseña {editingUser && "(En blanco para mantenerla)"}
+                        {t('adminUsuarios.contrasena')} {editingUser && t('adminUsuarios.enBlanco')}
                         <input name="password" type="password" required={!editingUser} style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
                       </label>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem' }}>
-                        Nombre Completo
+                        {t('adminUsuarios.nombreCompleto')}
                         <input name="nombre" defaultValue={editingUser?.nombre} required style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
                       </label>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem' }}>
-                        Alias / Nickname
+                        {t('adminUsuarios.aliasNickname')}
                         <input name="alias" defaultValue={editingUser?.alias} style={{ padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
                       </label>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem', gridColumn: '1 / -1' }}>
-                        Roles Asignados
+                        {t('adminUsuarios.rolesAsignados')}
                         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', padding: '12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px' }}>
                           {['admin', 'redactor', 'operador', 'hardware'].map(role => (
                             <label key={role} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'white', cursor: 'pointer', flexDirection: 'row' }}>
@@ -1615,8 +1615,8 @@ export default function App() {
                       </label>
                     </div>
                     <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
-                      <button type="submit" style={{ flex: 1, background: 'var(--accent)', color: 'black', border: 'none', padding: '12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>{editingUser ? 'Actualizar Usuario' : 'Guardar Usuario'}</button>
-                      <button type="button" onClick={() => { setIsCreatingUser(false); setEditingUser(null); }} style={{ flex: 1, background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)', padding: '12px', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
+                      <button type="submit" style={{ flex: 1, background: 'var(--accent)', color: 'black', border: 'none', padding: '12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>{editingUser ? t('adminUsuarios.actualizarUsuario') : t('adminUsuarios.guardarUsuario')}</button>
+                      <button type="button" onClick={() => { setIsCreatingUser(false); setEditingUser(null); }} style={{ flex: 1, background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)', padding: '12px', borderRadius: '4px', cursor: 'pointer' }}>{t('adminUsuarios.cancelar')}</button>
                     </div>
                   </form>
                 </div>
@@ -1625,10 +1625,10 @@ export default function App() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>
                     <thead style={{ background: 'var(--background)' }}>
                       <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--muted)' }}>
-                        <th style={{ padding: '12px', textAlign: 'left' }}>Matrícula</th>
-                        <th style={{ padding: '12px', textAlign: 'left' }}>Nombre</th>
-                        <th style={{ padding: '12px', textAlign: 'left' }}>Roles</th>
-                        <th style={{ padding: '12px', textAlign: 'right' }}>Acción</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>{t('adminUsuarios.colMatricula')}</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>{t('adminUsuarios.colNombre')}</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>{t('adminUsuarios.colRoles')}</th>
+                        <th style={{ padding: '12px', textAlign: 'right' }}>{t('adminUsuarios.colAccion')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1640,8 +1640,8 @@ export default function App() {
                           <td style={{ padding: '12px', textAlign: 'right' }}>
                             {u.matricula !== user?.matricula && (
                               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => setEditingUser(u)}>Editar</button>
-                                <button className="logout-btn-small" style={{borderColor: 'var(--error)', color: 'var(--error)'}} onClick={() => handleDeleteUser(u.matricula)}>Revocar</button>
+                                <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => setEditingUser(u)}>{t('adminUsuarios.editar')}</button>
+                                <button className="logout-btn-small" style={{borderColor: 'var(--error)', color: 'var(--error)'}} onClick={() => handleDeleteUser(u.matricula)}>{t('adminUsuarios.revocar')}</button>
                               </div>
                             )}
                           </td>
@@ -1658,7 +1658,7 @@ export default function App() {
                 } else {
                   setView("dashboard");
                 }
-              }}>« Volver</button>
+              }}>{t('adminUsuarios.volver')}</button>
             </motion.section>
           )}
 
@@ -1666,21 +1666,21 @@ export default function App() {
             <motion.section key="admin_logs" className="full-container" style={{ maxWidth: '1200px', padding: '0 20px' }} {...pageTransition}>
               <div className="panel-header" style={{ marginBottom: '24px' }}>
               
-                <h2 style={{margin: '0', fontSize: '1.5rem'}}>Centro de Seguridad (CrowdSec) & Logs</h2>
+                <h2 style={{margin: '0', fontSize: '1.5rem'}}>{t('adminLogs.titulo')}</h2>
               </div>
 
               {crowdsecMetrics ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
                   <div className="action-card" style={{ padding: '20px', background: 'var(--surface)' }}>
                     <div style={{ color: 'var(--accent)', fontSize: '2rem', fontWeight: 'bold' }}>{crowdsecMetrics.active_decisions}</div>
-                    <div style={{ color: 'var(--muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>Amenazas Activas Bloqueadas</div>
+                    <div style={{ color: 'var(--muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>{t('adminLogs.amenazasBloqueadas')}</div>
                   </div>
                   <div className="action-card" style={{ padding: '20px', background: 'var(--surface)' }}>
                     <div style={{ color: 'var(--error)', fontSize: '2rem', fontWeight: 'bold' }}>{crowdsecMetrics.banned_ips}</div>
-                    <div style={{ color: 'var(--muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>IPs Baneadas (Histórico)</div>
+                    <div style={{ color: 'var(--muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>{t('adminLogs.ipsBaneadas')}</div>
                   </div>
                   <div className="action-card" style={{ padding: '20px', background: 'var(--surface)', gridColumn: 'span 2' }}>
-                    <h3 style={{ marginTop: 0, fontSize: '1rem', color: 'var(--text)' }}>Top Escenarios de Ataque</h3>
+                    <h3 style={{ marginTop: 0, fontSize: '1rem', color: 'var(--text)' }}>{t('adminLogs.topEscenarios')}</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
                       {crowdsecMetrics.top_scenarios?.map((s: any, i: number) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>
@@ -1692,13 +1692,13 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)' }}>Cargando métricas de CrowdSec...</div>
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)' }}>{t('adminLogs.cargandoMetricas')}</div>
               )}
 
-              <h3 style={{ fontSize: '1.1rem', color: 'var(--text)', marginBottom: '12px', textAlign: 'left' }}>Registro del Sistema (API Logs)</h3>
+              <h3 style={{ fontSize: '1.1rem', color: 'var(--text)', marginBottom: '12px', textAlign: 'left' }}>{t('adminLogs.registroSistema')}</h3>
               <div style={{ background: '#0a0a0a', border: '1px solid var(--border)', padding: '16px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', height: '350px', overflowY: 'auto', marginBottom: '24px', textAlign: 'left', borderRadius: '4px', boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)' }}>
                 {logsList.length === 0 ? (
-                  <div style={{ color: 'var(--muted)' }}>No hay logs registrados todavía.</div>
+                  <div style={{ color: 'var(--muted)' }}>{t('adminLogs.sinLogs')}</div>
                 ) : (
                   logsList.map((log, i) => {
                     let color = 'var(--muted)';
@@ -1717,34 +1717,34 @@ export default function App() {
                   })
                 )}
               </div>
-              <button className="back-link" onClick={() => setView("dashboard")}>« Volver al Panel</button>
+              <button className="back-link" onClick={() => setView("dashboard")}>{t('adminLogs.volverPanel')}</button>
             </motion.section>
           )}
 
           {view === "admin_config" && (
             <motion.section key="admin_config" className="full-container" style={{ maxWidth: '1600px', padding: '0 40px' }} {...pageTransition}>
               <div className="panel-header">
-                <span className="panel-label">ADMINISTRADOR</span>
-                <h2 style={{margin: '0', fontSize: '1.25rem'}}>Configuración y Unidades</h2>
+                <span className="panel-label">{t('adminRobots.administrador')}</span>
+                <h2 style={{margin: '0', fontSize: '1.25rem'}}>{t('adminRobots.titulo')}</h2>
               </div>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left', flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '8px' }}>
-                    <h3 style={{ margin: 0, color: 'var(--accent)' }}>Administración de Robots (Base de Datos)</h3>
-                    <button onClick={() => setEditingRobot({ isNew: true, id: `rassor-${Date.now().toString().slice(-4)}`, name: '', room: '', status: 'online', modelUrl: '', livekitUrl: '', isPublicEvent: false })} style={{ background: 'var(--accent)', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>+ Registrar Nueva Unidad</button>
+                    <h3 style={{ margin: 0, color: 'var(--accent)' }}>{t('adminRobots.tituloTabla')}</h3>
+                    <button onClick={() => setEditingRobot({ isNew: true, id: `rassor-${Date.now().toString().slice(-4)}`, name: '', room: '', status: 'online', modelUrl: '', livekitUrl: '', isPublicEvent: false })} style={{ background: 'var(--accent)', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>{t('adminRobots.registrarNueva')}</button>
                 </div>
 
                 <div style={{ overflowX: 'auto', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-                                <th style={{ padding: '16px' }}>ESTADO</th>
-                                <th style={{ padding: '16px' }}>UNIDAD (NOMBRE)</th>
-                                <th style={{ padding: '16px' }}>ID INTERNO</th>
-                                <th style={{ padding: '16px' }}>LIVEKIT ROOM</th>
-                                <th style={{ padding: '16px' }}>TRANSMISIÓN</th>
-                                <th style={{ padding: '16px' }}>MODELO 3D (.glb)</th>
-                                <th style={{ padding: '16px', textAlign: 'right' }}>ACCIONES</th>
+                                <th style={{ padding: '16px' }}>{t('adminRobots.colEstado')}</th>
+                                <th style={{ padding: '16px' }}>{t('adminRobots.colUnidad')}</th>
+                                <th style={{ padding: '16px' }}>{t('adminRobots.colId')}</th>
+                                <th style={{ padding: '16px' }}>{t('adminRobots.colRoom')}</th>
+                                <th style={{ padding: '16px' }}>{t('adminRobots.colTransmision')}</th>
+                                <th style={{ padding: '16px' }}>{t('adminRobots.colModelo')}</th>
+                                <th style={{ padding: '16px', textAlign: 'right' }}>{t('adminRobots.colAcciones')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1762,24 +1762,24 @@ export default function App() {
                                     <td style={{ padding: '16px' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
                                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem', letterSpacing: '0.05em', border: `1px solid ${r.isPublicEvent ? 'var(--accent)' : 'var(--border)'}`, color: r.isPublicEvent ? 'var(--accent)' : 'var(--muted)', background: r.isPublicEvent ? 'rgba(251,202,1,0.08)' : 'transparent' }}>
-                                                {r.isPublicEvent ? <Globe size={12} /> : <Lock size={12} />} {r.isPublicEvent ? 'PÚBLICA' : 'PRIVADA'}
+                                                {r.isPublicEvent ? <Globe size={12} /> : <Lock size={12} />} {r.isPublicEvent ? t('adminRobots.publica') : t('adminRobots.privada')}
                                             </span>
                                             {r.isPublicEvent && (
-                                                <button onClick={() => copiarEnlacePublico(r.id)} style={{ background: 'transparent', border: 'none', color: 'var(--muted)', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', textDecoration: 'underline' }}>copiar enlace</button>
+                                                <button onClick={() => copiarEnlacePublico(r.id)} style={{ background: 'transparent', border: 'none', color: 'var(--muted)', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', textDecoration: 'underline' }}>{t('adminRobots.copiarEnlace')}</button>
                                             )}
                                         </div>
                                     </td>
-                                    <td style={{ padding: '16px', color: 'var(--muted)' }}>{r.modelUrl || 'Modelo por defecto'}</td>
+                                    <td style={{ padding: '16px', color: 'var(--muted)' }}>{r.modelUrl || t('adminRobots.modeloPorDefecto')}</td>
                                     <td style={{ padding: '16px', textAlign: 'right' }}>
-                                        <button onClick={() => setEditingRobot(r)} style={{ background: 'transparent', color: 'white', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', marginRight: '8px' }}>Editar</button>
-                                        <button onClick={() => handleDeleteRobot(r.id)} style={{ background: 'var(--error-muted)', color: 'var(--error)', border: '1px solid var(--error)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>Eliminar</button>
+                                        <button onClick={() => setEditingRobot(r)} style={{ background: 'transparent', color: 'white', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', marginRight: '8px' }}>{t('adminRobots.editar')}</button>
+                                        <button onClick={() => handleDeleteRobot(r.id)} style={{ background: 'var(--error-muted)', color: 'var(--error)', border: '1px solid var(--error)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>{t('adminRobots.eliminar')}</button>
                                     </td>
                                 </tr>
                             ))}
                             {robots.length === 0 && (
                                 <tr>
                                     <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: errorRobots ? 'var(--error)' : 'var(--muted)' }}>
-                                        {errorRobots ? `No se pudieron cargar las unidades: ${errorRobots}` : 'No hay unidades registradas.'}
+                                        {errorRobots ? `${t('adminRobots.errorCargarUnidadesPrefijo')} ${errorRobots}` : t('adminRobots.sinUnidades')}
                                     </td>
                                 </tr>
                             )}
@@ -1792,116 +1792,116 @@ export default function App() {
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}>
                         <div style={{ background: 'var(--background)', border: '1px solid var(--accent)', borderRadius: '8px', padding: '32px', width: '100%', maxWidth: '600px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
                             <h3 style={{ marginTop: 0, marginBottom: '24px', fontFamily: 'var(--font-ibm-mono)', fontSize: '1.1rem', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
-                                {editingRobot.isNew ? 'Registrar Nueva Unidad' : 'Editar Unidad'}
+                                {editingRobot.isNew ? t('adminRobots.registrarNuevaUnidad') : t('adminRobots.editarUnidad')}
                             </h3>
                             <form onSubmit={handleSaveRobot} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)' }}>
-                                        ID Interno (Identificador único)
+                                        {t('adminRobots.idInterno')}
                                         <input name="id" defaultValue={editingRobot.id} readOnly={!editingRobot.isNew} required style={S.input} />
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)' }}>
-                                        Nombre Público (Display Name)
+                                        {t('adminRobots.nombrePublico')}
                                         <input name="name" defaultValue={editingRobot.name} required style={S.input} />
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)' }}>
-                                        LiveKit Room (Para la conexión)
+                                        {t('adminRobots.livekitRoom')}
                                         <input name="room" defaultValue={editingRobot.room} required style={{ ...S.input, border: '1px solid var(--accent)' }} />
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)' }}>
-                                        Estado (Simulación Local)
+                                        {t('adminRobots.estadoSimulacion')}
                                         <select name="status" defaultValue={editingRobot.status} style={S.input}>
-                                            <option value="online">Online (Verde)</option>
-                                            <option value="offline">Offline (Rojo)</option>
+                                            <option value="online">{t('adminRobots.onlineVerde')}</option>
+                                            <option value="offline">{t('adminRobots.offlineRojo')}</option>
                                         </select>
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 2' }}>
-                                        URL de LiveKit Cloud (Opcional, sobrescribe VITE_LIVEKIT_URL)
+                                        {t('adminRobots.urlLivekit')}
                                         <input name="livekitUrl" defaultValue={editingRobot.livekitUrl} placeholder="wss://rur-livekit-server-8b010r3b.livekit.cloud" style={S.input} />
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 1' }}>
-                                        LiveKit API Key
-                                        <input type="password" name="livekitApiKey" defaultValue={editingRobot.livekitApiKey} placeholder="API Key" style={S.input} />
+                                        {t('adminRobots.livekitApiKey')}
+                                        <input type="password" name="livekitApiKey" defaultValue={editingRobot.livekitApiKey} placeholder={t('adminRobots.apiSecretPlaceholder')} style={S.input} />
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 1' }}>
-                                        LiveKit API Secret
+                                        {t('adminRobots.livekitApiSecret')}
                                         {/* Se deja vacío a propósito: el backend solo re-cifra si mandas
                                             un valor nuevo, así que vacío = conservar el ya guardado. */}
-                                        <input type="password" name="livekitApiSecret" placeholder={editingRobot.livekitApiSecretMasked ? `Guardado (${editingRobot.livekitApiSecretMasked}) — escribe uno nuevo para reemplazarlo` : 'API Secret'} style={S.input} />
+                                        <input type="password" name="livekitApiSecret" placeholder={editingRobot.livekitApiSecretMasked ? `${t('adminRobots.apiSecretGuardado')} (${editingRobot.livekitApiSecretMasked}) ${t('adminRobots.apiSecretReemplazar')}` : t('adminRobots.apiSecretPlaceholder')} style={S.input} />
                                     </label>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', gridColumn: 'span 2' }}>
-                                        Ruta del Modelo 3D (.glb) - Opcional
+                                        {t('adminRobots.rutaModelo')}
                                         <div style={{ display: 'flex', gap: '8px' }}>
                                             <input ref={robotModelInputRef} name="modelUrl" defaultValue={editingRobot.modelUrl} placeholder="/models/mi-robot.glb" style={{ ...S.input, flex: 1 }} />
                                             <input type="file" accept=".glb,.gltf" onChange={handleRobotModelUpload} style={{ display: 'none' }} id="upload-robot-model" />
                                             <label htmlFor="upload-robot-model" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '12px 16px', background: 'var(--surface-strong)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                                                {uploadingRobotModel ? 'SUBIENDO...' : <><Upload size={14} /> SUBIR</>}
+                                                {uploadingRobotModel ? t('adminRobots.subiendo') : <><Upload size={14} /> {t('adminRobots.subir')}</>}
                                             </label>
                                         </div>
                                     </label>
                                     <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', gridColumn: 'span 2', padding: '16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)' }}>
                                         <input type="checkbox" name="isPublicEvent" defaultChecked={Boolean(editingRobot.isPublicEvent)} style={{ width: 'auto', marginTop: '3px', cursor: 'pointer' }} />
                                         <span style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                            <span style={{ color: 'var(--text)', letterSpacing: '0.05em' }}>TRANSMISIÓN PÚBLICA (MODO EVENTO)</span>
+                                            <span style={{ color: 'var(--text)', letterSpacing: '0.05em' }}>{t('adminRobots.transmisionPublica')}</span>
                                             <span style={{ fontSize: '0.75rem', lineHeight: 1.6 }}>
-                                                Activada, cualquier persona sin cuenta puede ver el video en <span style={{ color: 'var(--accent)' }}>/espectador/{editingRobot.id}</span>. El espectador es de solo lectura y nunca puede controlar la unidad, pero la transmisión queda abierta a todo internet: déjala apagada mientras no haya un evento en curso.
+                                                {t('adminRobots.transmisionDescripcion')} <span style={{ color: 'var(--accent)' }}>/espectador/{editingRobot.id}</span>{t('adminRobots.transmisionDescripcion2')}
                                             </span>
                                         </span>
                                     </label>
                                 </div>
                                 <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '16px' }}>
-                                    <button type="button" onClick={() => setEditingRobot(null)} style={{ padding: '12px 24px', background: 'transparent', color: 'var(--text)', border: '1px solid var(--muted)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)' }}>Cancelar</button>
-                                    <button type="submit" style={{ padding: '12px 24px', background: 'var(--accent)', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>{editingRobot.isNew ? 'Registrar' : 'Guardar Cambios'}</button>
+                                    <button type="button" onClick={() => setEditingRobot(null)} style={{ padding: '12px 24px', background: 'transparent', color: 'var(--text)', border: '1px solid var(--muted)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)' }}>{t('adminRobots.cancelar')}</button>
+                                    <button type="submit" style={{ padding: '12px 24px', background: 'var(--accent)', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>{editingRobot.isNew ? t('adminRobots.registrar') : t('adminRobots.guardarCambios')}</button>
                                 </div>
                             </form>
                         </div>
                     </div>
                 )}
               </div>
-              <button className="back-link" onClick={() => setView("dashboard")}>← Volver al Menú Principal</button>
+              <button className="back-link" onClick={() => setView("dashboard")}>{t('adminRobots.volverMenu')}</button>
             </motion.section>
           )}
 
           {view === "placeholder" && (
             <motion.section key="placeholder" className="dashboard-card" {...pageTransition}>
-              <h1>En Construcción</h1>
-              <p>Este componente React está en construcción.</p>
-              <button className="back-link" onClick={() => setView("dashboard")}>Volver</button>
+              <h1>{t('ajustes.enConstruccion')}</h1>
+              <p>{t('ajustes.enConstruccionTexto')}</p>
+              <button className="back-link" onClick={() => setView("dashboard")}>{t('ajustes.volver')}</button>
             </motion.section>
           )}
           {view === "settings_menu" && (
             <motion.section key="settings_menu" className="dashboard-card" {...pageTransition}>
               <div className="panel-header">
-                <span className="panel-label">CONFIGURACIÓN</span>
-                <h2 style={{margin: '0', fontSize: '1.25rem'}}>Menú de Ajustes</h2>
+                <span className="panel-label">{t('ajustes.configuracion')}</span>
+                <h2 style={{margin: '0', fontSize: '1.25rem'}}>{t('ajustes.menuAjustes')}</h2>
               </div>
-              <p className="user-welcome">Selecciona un apartado a configurar:</p>
+              <p className="user-welcome">{t('ajustes.seleccionaApartado')}</p>
               <div className="action-grid" style={{ marginBottom: '24px' }}>
                 <button className="action-card" onClick={() => setView("accessibility")}>
-                  Accesibilidad
+                  {t('ajustes.accesibilidad')}
                 </button>
                 {user && (
                   <button className="action-card" onClick={openProfileEditor}>
-                    Perfil de Usuario
+                    {t('ajustes.perfilUsuario')}
                   </button>
                 )}
               </div>
-              <button className="back-link" onClick={() => setView(user ? "dashboard" : "login")}>← Volver al inicio</button>
+              <button className="back-link" onClick={() => setView(user ? "dashboard" : "login")}>{t('ajustes.volverInicio')}</button>
             </motion.section>
           )}
 
           {view === "accessibility" && (
             <motion.section key="accessibility" className="dashboard-card" {...pageTransition}>
               <div className="panel-header">
-                <span className="panel-label">AJUSTES</span>
-                <h2 style={{margin: '0', fontSize: '1.25rem'}}>Accesibilidad</h2>
+                <span className="panel-label">{t('ajustes.ajustesLabel')}</span>
+                <h2 style={{margin: '0', fontSize: '1.25rem'}}>{t('ajustes.accesibilidad')}</h2>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left' }}>
                 <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--border)', background: 'var(--background)', cursor: 'pointer' }}>
-                  <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>TEXTO GRANDE</span>
-                  <input 
-                    type="checkbox" 
-                    style={{width: 'auto', cursor: 'pointer'}} 
+                  <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>{t('accesibilidad.textoGrande')}</span>
+                  <input
+                    type="checkbox"
+                    style={{width: 'auto', cursor: 'pointer'}}
                     checked={largeText}
                     onChange={(e) => {
                       setLargeText(e.target.checked);
@@ -1910,10 +1910,10 @@ export default function App() {
                   />
                 </label>
                 <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--border)', background: 'var(--background)', cursor: 'pointer' }}>
-                  <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>REDUCIR ANIMACIONES</span>
-                  <input 
-                    type="checkbox" 
-                    style={{width: 'auto', cursor: 'pointer'}} 
+                  <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>{t('accesibilidad.reducirAnimaciones')}</span>
+                  <input
+                    type="checkbox"
+                    style={{width: 'auto', cursor: 'pointer'}}
                     checked={reduceAnimations}
                     onChange={(e) => {
                       setReduceAnimations(e.target.checked);
@@ -1934,7 +1934,7 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              <button className="back-link" onClick={() => setView("settings_menu")}>← Atrás</button>
+              <button className="back-link" onClick={() => setView("settings_menu")}>{t('accesibilidad.atras')}</button>
             </motion.section>
           )}
 
