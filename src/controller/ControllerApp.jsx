@@ -36,12 +36,20 @@ const SERVER_URL = import.meta.env.VITE_LIVEKIT_URL || "wss://rur-livekit-server
 // no recibe nada (falla cerrado). Con lista negra sí los recibiría.
 // ---------------------------------------------------------------------------
 const PREFIJO_ROBOT = 'robot-';
+const PREFIJOS_ESPECTADOR = ['viewer-', 'public-viewer-'];
 
 function identidadesDeRobots(room) {
   if (!room) return [];
   return Array.from(room.remoteParticipants.values())
     .map((p) => p.identity)
     .filter((identity) => identity?.startsWith(PREFIJO_ROBOT));
+}
+
+function contarEspectadores(room) {
+  if (!room) return 0;
+  return Array.from(room.remoteParticipants.values())
+    .filter((p) => PREFIJOS_ESPECTADOR.some((prefijo) => p.identity?.startsWith(prefijo)))
+    .length;
 }
 
 // ---------------------------------------------------------------------------
@@ -176,6 +184,7 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
   const [room, setRoom] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isRobotConnected, setIsRobotConnected] = useState(false);
+  const [audiencia, setAudiencia] = useState(0);
   const [binPacket, setBinPacket] = useState(null);
 
   // Refs para el envío continuo del joystick (dead-man's switch)
@@ -607,7 +616,10 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
       // participante remoto valía cuando en la sala solo estaban operador y
       // robot; con espectadores públicos entrando a la misma sala, uno de ellos
       // encendía el "Link Status: ONLINE" con el robot apagado.
-      const refrescarEnlace = () => setIsRobotConnected(identidadesDeRobots(roomInstance).length > 0);
+      const refrescarEnlace = () => {
+        setIsRobotConnected(identidadesDeRobots(roomInstance).length > 0);
+        setAudiencia(contarEspectadores(roomInstance));
+      };
       refrescarEnlace();
 
       roomInstance.on(RoomEvent.ParticipantConnected, (participant) => {
@@ -768,7 +780,7 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
             </Segment>
           </div>
 
-          <StatusHUD isConnected={isRobotConnected} visible={visible1} height={Math.max(230, joystickSize + 80)} />
+          <StatusHUD isConnected={isRobotConnected} audiencia={audiencia} visible={visible1} height={Math.max(230, joystickSize + 80)} />
         </div>
 
 

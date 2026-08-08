@@ -9,7 +9,7 @@ import {
   TOPIC_TELEMETRIA,
   decodificarTelemetria,
 } from '../telemetria';
-import { WIDGETS, cargarWidgets, guardarWidgets } from '../widgets';
+import { WIDGETS, WIDGETS_POR_DEFECTO } from '../widgets';
 import { useEstadisticasEnlace } from '../useEstadisticasEnlace';
 import { useLanguage } from '../../lib/i18n';
 import '../BarraTelemetria.css';
@@ -263,7 +263,10 @@ export function BarraTelemetria({
   // real: es el hueco central el que manda, no el viewport.
   const angosta = compacta || esencial;
   const [sinMovimiento, setSinMovimiento] = useState(false);
-  const [activos, setActivos] = useState(cargarWidgets);
+  // Sin persistencia: el espectador público no tiene cuenta, así que no hay
+  // dónde guardar esto salvo el navegador — y aquí no se guarda nada en el
+  // navegador. El tablero vuelve a los widgets por defecto en cada visita.
+  const [activos, setActivos] = useState(WIDGETS_POR_DEFECTO);
   const [menuAbierto, setMenuAbierto] = useState(false);
   const ultimoRef = useRef(0);
 
@@ -275,13 +278,9 @@ export function BarraTelemetria({
   const enlace = useEstadisticasEnlace(room, necesitaEnlace);
 
   const alternar = (id) => {
-    setActivos((previos) => {
-      const siguientes = previos.includes(id)
-        ? previos.filter((x) => x !== id)
-        : [...previos, id];
-      guardarWidgets(siguientes);
-      return siguientes;
-    });
+    setActivos((previos) =>
+      previos.includes(id) ? previos.filter((x) => x !== id) : [...previos, id]
+    );
   };
 
   useEffect(() => {

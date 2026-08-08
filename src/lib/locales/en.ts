@@ -173,6 +173,7 @@ export const en: Dictionary = {
       telemetria: 'Telemetry',
       linX: 'LIN X',
       angZ: 'ANG Z',
+      audiencia: 'Audience',
     },
   },
   telemetria: {
