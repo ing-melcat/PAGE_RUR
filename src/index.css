@@ -161,6 +161,154 @@ h1 {
   letter-spacing: 0.2em;
 }
 
+/* ------------------------------------------------------------------
+   Contenido de publicaciones (redactor)
+   ------------------------------------------------------------------
+   El editor deja escribir HTML crudo a propósito (control total de layout),
+   pero fuera de h1 ningún elemento tenía estilo del sitio: h2/h3 solo
+   heredaban la fuente por la regla global de arriba, y p/ul/a/blockquote/
+   img/code no tenían ninguna regla en todo el proyecto. Una publicación sin
+   style="" a mano se veía como texto plano de navegador encima del resto
+   del sitio ya diseñado.
+
+   Da un estilo automático razonable a las etiquetas comunes, sin que el
+   redactor tenga que escribir ningún style="" -- mismo patrón que .prose de
+   Tailwind. Se aplica igual en la vista previa del editor (LoginApp.tsx) y
+   en la página pública (Landing.tsx): lo que el redactor ve al escribir es
+   lo que el público ve.
+
+   Un style="" explícito en el HTML del redactor sigue ganando siempre --
+   es la cascada normal de CSS, nada aquí lo evita a propósito.
+   ------------------------------------------------------------------ */
+.contenido-publicacion {
+  font-family: var(--font-ibm-sans), Inter, system-ui, sans-serif;
+  color: var(--text);
+  line-height: 1.8;
+}
+
+.contenido-publicacion h1,
+.contenido-publicacion h2,
+.contenido-publicacion h3,
+.contenido-publicacion h4 {
+  font-family: var(--font-ibm-mono), ui-monospace, monospace;
+  line-height: 1.3;
+  margin: 1.6em 0 0.6em;
+}
+
+.contenido-publicacion h1:first-child,
+.contenido-publicacion h2:first-child,
+.contenido-publicacion h3:first-child {
+  margin-top: 0;
+}
+
+.contenido-publicacion h1 {
+  font-size: 2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.contenido-publicacion h2 {
+  font-size: 1.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.contenido-publicacion h3 {
+  font-size: 1.1rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.contenido-publicacion h4 {
+  font-size: 1rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.contenido-publicacion p {
+  margin: 0 0 1.2em;
+}
+
+.contenido-publicacion a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.contenido-publicacion a:hover {
+  border-bottom-color: var(--accent);
+}
+
+.contenido-publicacion ul,
+.contenido-publicacion ol {
+  margin: 0 0 1.2em;
+  padding-left: 1.4em;
+}
+
+.contenido-publicacion li {
+  margin-bottom: 0.5em;
+}
+
+.contenido-publicacion ul li::marker {
+  color: var(--accent);
+}
+
+.contenido-publicacion ol li::marker {
+  color: var(--accent);
+  font-family: var(--font-ibm-mono), monospace;
+}
+
+.contenido-publicacion blockquote {
+  margin: 0 0 1.2em;
+  padding: 0.4em 0 0.4em 1.2em;
+  border-left: 2px solid var(--accent);
+  color: var(--muted);
+  font-style: italic;
+}
+
+.contenido-publicacion img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: block;
+  margin: 1.5em 0;
+}
+
+.contenido-publicacion code {
+  font-family: var(--font-ibm-mono), monospace;
+  background: var(--surface);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.contenido-publicacion pre {
+  font-family: var(--font-ibm-mono), monospace;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1em 1.2em;
+  overflow-x: auto;
+  margin: 0 0 1.2em;
+}
+
+.contenido-publicacion pre code {
+  background: none;
+  padding: 0;
+}
+
+.contenido-publicacion hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2em 0;
+}
+
 .app-shell {
   min-height: 100vh;
   display: flex;
