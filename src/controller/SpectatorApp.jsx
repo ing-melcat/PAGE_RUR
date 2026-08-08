@@ -123,10 +123,10 @@ export default function SpectatorApp() {
       </div>
 
       <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '12px', pointerEvents: 'none' }}>
-        <Link to="/" style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '8px', color: 'white', textDecoration: 'none', fontFamily: 'var(--font-ibm-mono)', textShadow: '1px 1px 2px rgba(0,0,0,0.8)', background: 'rgba(0,0,0,0.4)', padding: '8px 12px', borderRadius: '4px', backdropFilter: 'blur(4px)', width: 'fit-content', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <Link to="/" style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '8px', color: 'white', textDecoration: 'none', fontFamily: 'var(--font-ibm-mono)', textShadow: '1px 1px 2px rgba(0,0,0,0.8)', background: 'rgba(0,0,0,0.4)', padding: '8px 12px', borderRadius: '4px', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', width: 'fit-content', border: '1px solid rgba(255,255,255,0.1)' }}>
           <ArrowLeft size={16} /> Salir
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(0,0,0,0.6)', padding: '12px 20px', borderRadius: '4px', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(0,0,0,0.6)', padding: '12px 20px', borderRadius: '4px', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
           <Eye size={24} color="var(--accent)" />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', fontSize: '1.2rem', letterSpacing: '0.05em' }}>MODO ESPECTADOR</span>
