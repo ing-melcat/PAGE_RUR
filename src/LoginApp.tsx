@@ -399,36 +399,58 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
         <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>Contenido HTML (100% Personalizable)</h2>
 
         {/* La linea de que ya viene estilado se queda siempre visible (es
-            corta y util de un vistazo); los dos ejemplos de codigo, que
-            ocupan bastante espacio vertical, quedan detras de un boton
-            para no saturar el editor por defecto. Mismo patron de toggle
-            que ya usa este archivo para CODIGO HTML / VISTA PREVIA. */}
-        <div style={{ background: 'var(--background)', border: '1px dashed var(--border)', borderRadius: '4px', padding: '16px 20px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.78rem', color: 'var(--muted)', lineHeight: 1.7 }}>
-          <p style={{ margin: 0 }}>
-            <strong style={{ color: 'var(--accent)' }}>Guía rápida:</strong> <code style={{ color: 'var(--text)' }}>{'<h1> <h2> <h3> <p> <ul> <a> <blockquote> <img> <code>'}</code> ya tienen el estilo del sitio — no hace falta ponerles <code style={{ color: 'var(--text)' }}>{'style=""'}</code>.{' '}
-            <button
-              type="button"
-              onClick={() => setShowEjemplos(v => !v)}
-              style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', textDecoration: 'underline', padding: 0 }}
-            >
-              {showEjemplos ? 'Ocultar ejemplos ▴' : 'Ver ejemplos de layouts especiales ▾'}
-            </button>
-          </p>
-          {showEjemplos && (
-            <div style={{ marginTop: '12px' }}>
-              <pre style={{ background: 'var(--surface-strong)', color: 'var(--text)', padding: '10px 14px', borderRadius: '4px', overflowX: 'auto', margin: '0 0 8px', whiteSpace: 'pre-wrap' }}>
-{`<div style="background: var(--accent-muted); border-left: 3px solid var(--accent); padding: 16px 20px; border-radius: 4px;">
-  <strong>Nota destacada</strong>
+            corta y util de un vistazo); el ejemplo completo, que ocupa
+            bastante espacio vertical, queda detras de un boton para no
+            saturar el editor por defecto. La revelacion usa AnimatePresence
+            + motion.div con la prop `layout` -- el mismo patron que ya usa
+            este archivo en otros paneles que cambian de alto (ver el
+            action-grid de mainContext, mas arriba) -- en vez de un
+            mostrar/ocultar instantaneo sin transicion. */}
+        <div style={{ background: 'var(--background)', border: '1px dashed var(--border)', borderRadius: '4px', padding: '16px 20px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.78rem', color: 'var(--muted)', lineHeight: 1.7, overflow: 'hidden' }}>
+          <motion.div layout="position">
+            <p style={{ margin: 0 }}>
+              <strong style={{ color: 'var(--accent)' }}>Guía rápida:</strong> <code style={{ color: 'var(--text)' }}>{'<h1> <h2> <h3> <p> <ul> <a> <blockquote> <img> <code>'}</code> ya tienen el estilo del sitio — no hace falta ponerles <code style={{ color: 'var(--text)' }}>{'style=""'}</code>.{' '}
+              <button
+                type="button"
+                onClick={() => setShowEjemplos(v => !v)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', textDecoration: 'underline', padding: 0 }}
+              >
+                {showEjemplos ? 'Ocultar ejemplo ▴' : 'Ver ejemplo ▾'}
+              </button>
+            </p>
+          </motion.div>
+          <AnimatePresence>
+            {showEjemplos && (
+              <motion.div
+                layout
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                style={{ overflow: 'hidden' }}
+              >
+                <pre style={{ background: 'var(--surface-strong)', color: 'var(--text)', padding: '10px 14px', borderRadius: '4px', overflowX: 'auto', margin: '12px 0 0', whiteSpace: 'pre-wrap' }}>
+{`<h1>Prueba de estilo</h1>
+<p>Este es un párrafo normal, sin ningún <code>style=""</code> a mano. Debería verse integrado con el resto del sitio: mismo color de texto, mismo interlineado.</p>
+
+<h2>Un subtítulo</h2>
+<p>Aquí un link de prueba: <a href="https://rur.unipolidgo.edu.mx">visita la página principal</a>. Debería salir en ámbar y subrayarse solo al pasar el mouse.</p>
+
+<ul>
+  <li>Primer punto de una lista</li>
+  <li>Segundo punto, con las viñetas en ámbar</li>
+  <li>Tercer punto</li>
+</ul>
+
+<blockquote>Esto es una cita destacada, con borde a la izquierda y texto un poco más apagado.</blockquote>
+
+<div style="background: var(--accent-muted); border-left: 3px solid var(--accent); padding: 16px 20px; border-radius: 4px;">
+  <strong>Nota destacada:</strong> esta caja sí lleva style="" a mano — es una de las dos recetas de la guía rápida del editor.
 </div>`}
-              </pre>
-              <pre style={{ background: 'var(--surface-strong)', color: 'var(--text)', padding: '10px 14px', borderRadius: '4px', overflowX: 'auto', margin: 0, whiteSpace: 'pre-wrap' }}>
-{`<figure style="margin: 0;">
-  <img src="/api/uploads/tu-imagen.jpg" alt="..." />
-  <figcaption style="color: var(--muted); font-size: 0.85em; margin-top: 8px;">Pie de foto</figcaption>
-</figure>`}
-              </pre>
-            </div>
-          )}
+                </pre>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {type === '3d_model' && (
