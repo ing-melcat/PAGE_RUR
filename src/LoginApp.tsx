@@ -127,6 +127,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showEjemplos, setShowEjemplos] = useState(false);
 
   const fetchPosts = async () => {
     try {
@@ -397,29 +398,37 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '32px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto' }}>
         <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>Contenido HTML (100% Personalizable)</h2>
 
-        {/* Guía siempre visible, no escondida en un modal: h1-h4, p, listas,
-            links, citas e imágenes ya tienen el estilo del sitio por
-            defecto (ver .contenido-publicacion en index.css), así que un
-            redactor no necesita escribir ni un style="" para que se vea
-            integrado. Las dos recetas son para lo que la tipografía por
-            defecto no cubre -- y usan var(--accent-muted) etc, los mismos
-            tokens del sitio, para que quien copie y ajuste colores use la
-            fuente correcta en vez de un hex a mano. */}
+        {/* La linea de que ya viene estilado se queda siempre visible (es
+            corta y util de un vistazo); los dos ejemplos de codigo, que
+            ocupan bastante espacio vertical, quedan detras de un boton
+            para no saturar el editor por defecto. Mismo patron de toggle
+            que ya usa este archivo para CODIGO HTML / VISTA PREVIA. */}
         <div style={{ background: 'var(--background)', border: '1px dashed var(--border)', borderRadius: '4px', padding: '16px 20px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.78rem', color: 'var(--muted)', lineHeight: 1.7 }}>
-          <p style={{ margin: '0 0 10px' }}>
-            <strong style={{ color: 'var(--accent)' }}>Guía rápida:</strong> <code style={{ color: 'var(--text)' }}>{'<h1> <h2> <h3> <p> <ul> <a> <blockquote> <img> <code>'}</code> ya tienen el estilo del sitio — no hace falta ponerles <code style={{ color: 'var(--text)' }}>{'style=""'}</code>. Para layouts especiales, dos recetas para copiar y ajustar:
+          <p style={{ margin: 0 }}>
+            <strong style={{ color: 'var(--accent)' }}>Guía rápida:</strong> <code style={{ color: 'var(--text)' }}>{'<h1> <h2> <h3> <p> <ul> <a> <blockquote> <img> <code>'}</code> ya tienen el estilo del sitio — no hace falta ponerles <code style={{ color: 'var(--text)' }}>{'style=""'}</code>.{' '}
+            <button
+              type="button"
+              onClick={() => setShowEjemplos(v => !v)}
+              style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', textDecoration: 'underline', padding: 0 }}
+            >
+              {showEjemplos ? 'Ocultar ejemplos ▴' : 'Ver ejemplos de layouts especiales ▾'}
+            </button>
           </p>
-          <pre style={{ background: 'var(--surface-strong)', color: 'var(--text)', padding: '10px 14px', borderRadius: '4px', overflowX: 'auto', margin: '0 0 8px', whiteSpace: 'pre-wrap' }}>
+          {showEjemplos && (
+            <div style={{ marginTop: '12px' }}>
+              <pre style={{ background: 'var(--surface-strong)', color: 'var(--text)', padding: '10px 14px', borderRadius: '4px', overflowX: 'auto', margin: '0 0 8px', whiteSpace: 'pre-wrap' }}>
 {`<div style="background: var(--accent-muted); border-left: 3px solid var(--accent); padding: 16px 20px; border-radius: 4px;">
   <strong>Nota destacada</strong>
 </div>`}
-          </pre>
-          <pre style={{ background: 'var(--surface-strong)', color: 'var(--text)', padding: '10px 14px', borderRadius: '4px', overflowX: 'auto', margin: 0, whiteSpace: 'pre-wrap' }}>
+              </pre>
+              <pre style={{ background: 'var(--surface-strong)', color: 'var(--text)', padding: '10px 14px', borderRadius: '4px', overflowX: 'auto', margin: 0, whiteSpace: 'pre-wrap' }}>
 {`<figure style="margin: 0;">
   <img src="/api/uploads/tu-imagen.jpg" alt="..." />
   <figcaption style="color: var(--muted); font-size: 0.85em; margin-top: 8px;">Pie de foto</figcaption>
 </figure>`}
-          </pre>
+              </pre>
+            </div>
+          )}
         </div>
 
         {type === '3d_model' && (
