@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import './Consola.css';
 import { RotateCcw, RotateCw } from 'lucide-react';
 import { Segment } from './Segment';
@@ -71,6 +71,52 @@ const ACCION_PUBLICA = {
   right: 'derecha',
 };
 
+// ---------------------------------------------------------------------------
+// Mapeo personalizado de brazos/tambores (mando y teclado)
+//
+// El operador lo configura en RobotSelection (botón de ajustes), se guarda en
+// su perfil como control_mappings y llega aquí por props. Antes de esto,
+// ControllerApp ignoraba esa configuración por completo: el mando usaba
+// índices de botón fijos en el código (y con nombres de componente que ni
+// siquiera coincidían con lo que espera el robot), y el teclado no tenía
+// ningún control de brazos/tambores en absoluto.
+//
+// Las 8 claves (`${Componente}${Accion}`) son las mismas que usa el modal de
+// configuración -- no se inventan aquí.
+// ---------------------------------------------------------------------------
+const MAPEO_ACCIONES = [
+  { clave: 'ArmFrontUp', component: 'ArmFront', action: 'Up' },
+  { clave: 'ArmFrontDown', component: 'ArmFront', action: 'Down' },
+  { clave: 'ArmBackUp', component: 'ArmBack', action: 'Up' },
+  { clave: 'ArmBackDown', component: 'ArmBack', action: 'Down' },
+  { clave: 'DrumFrontCw', component: 'DrumFront', action: 'Cw' },
+  { clave: 'DrumFrontCcw', component: 'DrumFront', action: 'Ccw' },
+  { clave: 'DrumBackCw', component: 'DrumBack', action: 'Cw' },
+  { clave: 'DrumBackCcw', component: 'DrumBack', action: 'Ccw' },
+];
+
+// Mismos valores por defecto que RobotSelection.jsx: si el operador nunca
+// abrió el modal de configuración, control_mappings llega vacío/nulo y se
+// usan estos.
+const MAPEO_GAMEPAD_DEFECTO = {
+  ArmFrontUp: 'Y', ArmFrontDown: 'X', ArmBackUp: 'RB', ArmBackDown: 'RT',
+  DrumFrontCw: 'A', DrumFrontCcw: 'B', DrumBackCw: 'LB', DrumBackCcw: 'LT',
+};
+const MAPEO_TECLADO_DEFECTO = {
+  ArmFrontUp: 'KeyW', ArmFrontDown: 'KeyS', ArmBackUp: 'KeyE', ArmBackDown: 'KeyD',
+  DrumFrontCw: 'KeyR', DrumFrontCcw: 'KeyF', DrumBackCw: 'KeyT', DrumBackCcw: 'KeyG',
+};
+
+// El modal guarda nombres de botón de mando estándar (Xbox), no índices.
+// Este es el orden del "standard gamepad mapping" del W3C, el mismo que ya
+// asume el resto del archivo para los ejes del stick izquierdo.
+const GAMEPAD_BOTON_INDICE = {
+  A: 0, B: 1, X: 2, Y: 3,
+  LB: 4, RB: 5, LT: 6, RT: 7,
+  Back: 8, Start: 9, LS: 10, RS: 11,
+  Up: 12, Down: 13, Left: 14, Right: 15,
+};
+
 const NIVEL_MAX = 10;
 const PERIODO_TELEMETRIA_MS = 100;
 
@@ -114,7 +160,7 @@ function construirTelemetria({ avance: ejeAvance, giro: ejeGiro }, actuadoresInt
   };
 }
 
-export default function ControllerApp({ onBack, robot }) {
+export default function ControllerApp({ onBack, robot, controlMappings }) {
   const { t } = useLanguage();
   const [isMobile] = useState(window.innerWidth <= 932);
   const [visible, setVisible] = useState(true);
@@ -252,6 +298,31 @@ export default function ControllerApp({ onBack, robot }) {
       sendCommand();
     }
   }, []);
+
+  // Mapeo efectivo: lo guardado en el perfil, completado con los valores por
+  // defecto para cualquier acción que el operador no haya tocado en el modal.
+  // Indexado por índice de botón / código de tecla (no por la clave
+  // `${Componente}${Accion}`), que es como se va a consultar en cada frame o
+  // en cada evento de teclado.
+  const mapaGamepadPorIndice = useMemo(() => {
+    const mapeo = { ...MAPEO_GAMEPAD_DEFECTO, ...(controlMappings?.gamepad || {}) };
+    const porIndice = {};
+    for (const { clave, component, action } of MAPEO_ACCIONES) {
+      const indice = GAMEPAD_BOTON_INDICE[mapeo[clave]];
+      if (indice != null) porIndice[indice] = { component, action };
+    }
+    return porIndice;
+  }, [controlMappings]);
+
+  const mapaTecladoPorCodigo = useMemo(() => {
+    const mapeo = { ...MAPEO_TECLADO_DEFECTO, ...(controlMappings?.keyboard || {}) };
+    const porCodigo = {};
+    for (const { clave, component, action } of MAPEO_ACCIONES) {
+      const codigo = mapeo[clave];
+      if (codigo) porCodigo[codigo] = { component, action };
+    }
+    return porCodigo;
+  }, [controlMappings]);
 
   // Construye un paquete binario con la posición actual
   const buildPacket = useCallback((deadX, deadY) => {
@@ -412,27 +483,29 @@ export default function ControllerApp({ onBack, robot }) {
               gamepadStateRef.current.y = y;
             }
 
-            const checkButton = (index, component, action, stateVal) => {
+            const checkButton = (index, component, action) => {
               const pressed = gp.buttons[index]?.pressed;
               const wasPressed = gamepadStateRef.current.buttons[index];
               if (pressed && !wasPressed) {
                 if (!hasGamepad) {
                   setHasGamepad(true);
                 }
-                handleAction(component, action, stateVal);
+                handleAction(component, action, true);
                 gamepadStateRef.current.buttons[index] = true;
               } else if (!pressed && wasPressed) {
-                handleAction(component, 'stop', 0);
+                handleAction(component, action, false);
                 gamepadStateRef.current.buttons[index] = false;
               }
             };
 
-            checkButton(12, 'arm', 'up', 1);
-            checkButton(13, 'arm', 'down', -1);
-            checkButton(14, 'drum', 'up', 1);
-            checkButton(15, 'drum', 'down', -1);
-            checkButton(4, 'drum', 'collect', 1);
-            checkButton(5, 'drum', 'dump', -1);
+            // Antes iban fijos aquí (índices de D-pad, con 'arm'/'drum'
+            // genéricos que ni la telemetría ni el robot reconocían). Ahora
+            // salen del mapeo que configuró el operador, con los nombres de
+            // componente exactos que espera robot_receiver_prod.py.
+            for (const indice in mapaGamepadPorIndice) {
+              const { component, action } = mapaGamepadPorIndice[indice];
+              checkButton(Number(indice), component, action);
+            }
           }
         }
       }
@@ -456,7 +529,36 @@ export default function ControllerApp({ onBack, robot }) {
       window.removeEventListener("gamepaddisconnected", handleGamepadDisconnected);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [hasGamepad, handleMove, handleAction]);
+  }, [hasGamepad, handleMove, handleAction, mapaGamepadPorIndice]);
+
+  // Teclado para brazos y tambores, según el mapeo del operador. Aparte del
+  // movimiento (W/A/S/D/flechas), que ya maneja Joystck.jsx -- esas teclas no
+  // se tocan aquí. Ojo: con los valores por defecto del modal de mapeo, W/S/D
+  // coinciden con teclas de movimiento; el operador puede reasignarlas desde
+  // ahí si le estorba.
+  useEffect(() => {
+    const presionadas = new Set();
+
+    const alPresionar = (e) => {
+      const entrada = mapaTecladoPorCodigo[e.code];
+      if (!entrada || presionadas.has(e.code)) return;
+      presionadas.add(e.code);
+      handleAction(entrada.component, entrada.action, true);
+    };
+    const alSoltar = (e) => {
+      const entrada = mapaTecladoPorCodigo[e.code];
+      if (!entrada) return;
+      presionadas.delete(e.code);
+      handleAction(entrada.component, entrada.action, false);
+    };
+
+    window.addEventListener('keydown', alPresionar);
+    window.addEventListener('keyup', alSoltar);
+    return () => {
+      window.removeEventListener('keydown', alPresionar);
+      window.removeEventListener('keyup', alSoltar);
+    };
+  }, [mapaTecladoPorCodigo, handleAction]);
 
   useEffect(() => {
     if (opcion === 'Set1') {
