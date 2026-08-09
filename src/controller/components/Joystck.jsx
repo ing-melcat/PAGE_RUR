@@ -5,7 +5,7 @@ import { Joystick } from 'react-joystick-component';
 // gradación: o pulsas o no, así que a fondo sería la única velocidad posible.
 const VELOCIDAD_TECLADO = 0.5;
 
-export function Joystck({ onMove, onStop, setBinPack, size }) {
+export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent = true, keyboardEnabled = true }) {
 
     // Todo lo que sale de aquí va en -1..1, la escala de
     // react-joystick-component, y con el mismo significado de ejes: el primer
@@ -19,18 +19,25 @@ export function Joystck({ onMove, onStop, setBinPack, size }) {
             setBinPack?.(result);
         }
 
-        // CustomEvent para actualizar el StatusHUD sin re-renderizar todo ControllerApp
-        window.dispatchEvent(new CustomEvent('joystickMove', { detail: { x, y } }));
-    }, [onMove, setBinPack]);
+        // CustomEvent para actualizar el StatusHUD sin re-renderizar todo ControllerApp.
+        // Una segunda instancia (p. ej. el joystick de cámara) no debe pisar el
+        // estado del joystick de movimiento en StatusHUD, por eso es opcional.
+        if (dispatchGlobalEvent) {
+            window.dispatchEvent(new CustomEvent('joystickMove', { detail: { x, y } }));
+        }
+    }, [onMove, setBinPack, dispatchGlobalEvent]);
 
     const handleStopEvent = useCallback(() => {
         const stopResult = onStop?.(0, 0);
         setBinPack?.(stopResult);
-        
-        window.dispatchEvent(new CustomEvent('joystickMove', { detail: { x: 0, y: 0 } }));
-    }, [onStop, setBinPack]);
+
+        if (dispatchGlobalEvent) {
+            window.dispatchEvent(new CustomEvent('joystickMove', { detail: { x: 0, y: 0 } }));
+        }
+    }, [onStop, setBinPack, dispatchGlobalEvent]);
 
     useEffect(() => {
+        if (!keyboardEnabled) return;
         const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
         let active = false;
         let rapido = false;
@@ -101,7 +108,7 @@ export function Joystck({ onMove, onStop, setBinPack, size }) {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [handleMoveEvent, handleStopEvent]);
+    }, [handleMoveEvent, handleStopEvent, keyboardEnabled]);
 
     return (
         <Joystick

@@ -22,6 +22,8 @@ robot_state = {
     "drum_front": "stopped",  # "cw", "ccw", "stopped"
     "drum_back": "stopped",
     "wheels": "stopped",      # "forward", "backward", "left", "right", "stopped"
+    "camera_pan": 0.0,        # -1..1, joystick de cámara en modo manual
+    "camera_tilt": 0.0,       # sin motores conectados todavía: solo se guarda
 }
 
 def decode_telemetry(payload):
@@ -55,12 +57,27 @@ def decode_command(payload):
         cmd = json.loads(text)
         
         component = cmd.get("component", "?")
+
+        # Cámara: paquete continuo de pan/tilt (-1..1), sin action/state de
+        # presionar-soltar como el resto -- lo manda el joystick de cámara
+        # cada 100ms mientras se mueve, igual que el joystick de movimiento.
+        # Sin motores conectados todavía: se guarda el estado y no se mueve
+        # nada físico, protocolo listo a la espera del hardware.
+        if component == "Camera":
+            pan = cmd.get("pan", 0.0)
+            tilt = cmd.get("tilt", 0.0)
+            robot_state["camera_pan"] = pan
+            robot_state["camera_tilt"] = tilt
+            if abs(pan) > 0.05 or abs(tilt) > 0.05:
+                return f"🎥 Cámara → PAN: {pan:+.2f}  TILT: {tilt:+.2f}"
+            return None
+
         action = cmd.get("action", "?")
         state = cmd.get("state", False)
-        
+
         # Actualizar estado interno del robot
         status = action.lower() if state else "stopped"
-        
+
         if component == "ArmFront":
             robot_state["arm_front"] = status
             icon = "🦾"
