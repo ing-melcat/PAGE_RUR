@@ -22,6 +22,11 @@ services:
     networks:
       - rur_network
       - crowdsec_net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
 
   # Monolito legado: se mantiene desplegado (sin recibir tráfico de Caddy,
   # que ya enruta a los 3 servicios de abajo) únicamente como red de
@@ -40,6 +45,14 @@ services:
     restart: unless-stopped
     networks:
       - rur_network
+    # No recibe tráfico real (ver nota arriba) -- tope bajo a propósito para
+    # que no le robe CPU/memoria a svc-robots durante una sesión de operador
+    # activa. Subir esto no debería hacer falta salvo para un rollback.
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
   svc-identity:
     build:
@@ -62,6 +75,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
 
   svc-content:
     build:
@@ -88,6 +106,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
 
   # Traduccion automatica del contenido de publicaciones (Fase B del
   # selector de idioma). Autohospedado a proposito: sin costo recurrente ni
@@ -103,6 +126,14 @@ services:
       - libretranslate_data:/home/libretranslate/.local
     networks:
       - translate_net
+    # Es el servicio con más pico de CPU del stack (carga de modelos +
+    # traducción). Sin tope podía robarle recursos a svc-robots justo
+    # durante una sesión de operador activa.
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
 
   svc-robots:
     build:
@@ -128,6 +159,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # El más sensible a latencia de los tres: es el que sirve el token de
+    # LiveKit y los comandos del operador. Mismo tope que identity/content,
+    # nunca menos.
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
 
   # Postgres — reemplaza el almacenamiento en api/data/*.json. Instancia
   # propia de este proyecto (no se reutiliza el postgres-core de otro stack
@@ -156,6 +195,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
 
   # pg_dump diario a un directorio fuera de cualquier ruta servida por la
   # web. Dataset pequeño -> retención de 14 días es prácticamente gratis.
@@ -177,6 +221,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
 
 networks:
   rur_network:

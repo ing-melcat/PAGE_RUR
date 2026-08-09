@@ -21,6 +21,14 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const pool = getPool();
 
+// Hash "de relleno" para comparar contra él cuando la matrícula no existe:
+// sin esto, un intento contra una cuenta inexistente respondía casi
+// instantáneo (se saltaba bcrypt.compare por completo) mientras uno contra
+// una cuenta real tardaba lo que tarda bcrypt -- una diferencia de tiempo
+// que deja enumerar matrículas válidas sin necesidad del log de auditoría.
+// Calculado una sola vez al arrancar el proceso, no en cada request.
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('sin-cuenta-que-comparar', 10);
+
 app.use(cors({ origin: IS_PRODUCTION ? (process.env.CORS_ORIGIN || false) : true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
@@ -44,7 +52,14 @@ app.post('/api/login', loginIpLimiter, async (req, res) => {
 
   const { rows } = await pool.query('SELECT * FROM users WHERE matricula = $1', [matricula]);
   const userRecord = rows[0];
-  const isMatch = userRecord ? bcrypt.compareSync(password, userRecord.password_hash) : false;
+  // bcrypt.compare (async) en vez de compareSync: la variante síncrona
+  // bloquea el event loop entero de svc-identity mientras corre, así que
+  // cualquier otra request concurrente (incluido /api/me) se congelaba con
+  // ella. Se compara siempre contra un hash real o el de relleno -- nunca
+  // se salta la comparación -- para no filtrar por tiempo de respuesta si
+  // la matrícula existe o no.
+  const passwordMatch = await bcrypt.compare(password, userRecord ? userRecord.password_hash : DUMMY_PASSWORD_HASH);
+  const isMatch = Boolean(userRecord) && passwordMatch;
 
   if (userRecord && isMatch) {
     recordSuccess(matricula);
@@ -277,17 +292,21 @@ app.post('/api/users', verifyToken, requireRole('admin'), csrfProtection, async 
     return res.status(400).json({ message: 'matricula, password y nombre son requeridos' });
   }
 
-  const { rows: existing } = await pool.query('SELECT 1 FROM users WHERE matricula = $1', [matricula]);
-  if (existing.length > 0) {
+  const passwordHash = await bcrypt.hash(password, 10);
+  // ON CONFLICT DO NOTHING + comprobar rowCount en vez de un SELECT previo
+  // seguido de INSERT: dos altas concurrentes con la misma matrícula ya no
+  // pueden colarse entre el chequeo y el INSERT.
+  const { rows } = await pool.query(
+    `INSERT INTO users (matricula, password_hash, nombre, roles, grupo, alias)
+     VALUES ($1, $2, $3, $4::jsonb, $5, $6)
+     ON CONFLICT (matricula) DO NOTHING
+     RETURNING matricula`,
+    [matricula, passwordHash, nombre, JSON.stringify(roles || []), grupo || 'GENERAL', alias || '']
+  );
+  if (rows.length === 0) {
     return res.status(400).json({ message: 'La matrícula ya existe' });
   }
 
-  const passwordHash = bcrypt.hashSync(password, 10);
-  await pool.query(
-    `INSERT INTO users (matricula, password_hash, nombre, roles, grupo, alias)
-     VALUES ($1, $2, $3, $4::jsonb, $5, $6)`,
-    [matricula, passwordHash, nombre, JSON.stringify(roles || []), grupo || 'GENERAL', alias || '']
-  );
   await saveLog('info', `Administrador ${req.user.matricula} creó el usuario ${matricula}.`);
   res.json({ success: true, message: 'Usuario creado' });
 });
@@ -304,7 +323,7 @@ app.put('/api/users/:matricula', verifyToken, requireRole('admin'), csrfProtecti
   const alias = req.body.alias !== undefined ? req.body.alias : existingUser.alias;
   const passwordHash =
     req.body.password && req.body.password.trim() !== ''
-      ? bcrypt.hashSync(req.body.password, 10)
+      ? await bcrypt.hash(req.body.password, 10)
       : existingUser.password_hash;
 
   await pool.query(
