@@ -35,6 +35,9 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
     // operador ya no tiene que saber de memoria el nombre de `event.code`
     // ("KeyW", "ArrowUp", etc.) para escribirlo a mano.
     const [capturandoTecla, setCapturandoTecla] = useState(null);
+    // Resalte al pasar el mouse sobre el botón de una tecla -- por estado,
+    // no por :hover/whileHover (ver por qué en el comentario donde se usa).
+    const [hoverTecla, setHoverTecla] = useState(null);
 
     // We use props.controlMappings instead of local user since we are not directly holding user here, wait I need to add controlMappings and onUpdateMappings to the component props:
 
@@ -278,18 +281,26 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                                     // pulse es el mismo lenguaje visual que ya usa el sitio
                                                     // para "esto está pasando ahora" (ej. el badge de aviso
                                                     // activo en el header) -- no es una animación nueva.
+                                                    //
+                                                    // El resalte al pasar el mouse va por estado de React +
+                                                    // la transición CSS nativa de S.input, no por whileHover de
+                                                    // Motion: Motion no interpola bien un var(--...) crudo como
+                                                    // valor de animación (el color salía mal, tipo negro), y en
+                                                    // pantallas táctiles whileHover se queda pegado hasta el
+                                                    // siguiente toque en otra parte.
                                                     <motion.button
                                                         type="button"
                                                         onClick={() => setCapturandoTecla(action)}
+                                                        onMouseEnter={() => setHoverTecla(action)}
+                                                        onMouseLeave={() => setHoverTecla(null)}
                                                         title={t('operador.seleccion.cambiarTecla')}
-                                                        whileHover={{ borderColor: 'var(--accent)' }}
                                                         whileTap={{ scale: 0.97 }}
                                                         style={{
                                                             ...S.input,
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                                             cursor: 'pointer', fontWeight: 600, letterSpacing: '0.05em',
                                                             color: capturandoTecla === action ? 'var(--accent)' : 'var(--text)',
-                                                            borderColor: capturandoTecla === action ? 'var(--accent)' : 'var(--border)',
+                                                            borderColor: (capturandoTecla === action || hoverTecla === action) ? 'var(--accent)' : 'var(--border)',
                                                         }}
                                                     >
                                                         {capturandoTecla === action ? (

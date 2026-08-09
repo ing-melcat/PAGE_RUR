@@ -113,6 +113,15 @@ body.large-text .user-meta p { font-size: 0.95rem; }
   box-sizing: border-box;
 }
 
+/* Sin esto, en pantallas táctiles cualquier botón/link se queda pintado
+   con el overlay gris/negro por defecto del navegador hasta que se toca
+   otra parte de la pantalla -- se veía como una animación de hover que
+   "se pega". Antes solo estaba resuelto para los botones de mover al
+   robot (.control-btn en Consola.css); esto lo cubre para todo el sitio. */
+button, a, input, select, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
