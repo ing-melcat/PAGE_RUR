@@ -1,0 +1,162 @@
+/* ==================================================================
+   Rótulo de esquina del espectador
+   ------------------------------------------------------------------
+   Una sola línea, del peso de un pie de foto: quién está viendo, qué
+   unidad y en qué condición. Antes era una tarjeta con recuadro, icono
+   ámbar y el nombre en grande — en una pantalla que es sobre todo
+   vídeo, eso compite con la imagen y delata la interfaz.
+
+   El ámbar se reserva aquí para el foco del enlace de salida, que es lo
+   único accionable.
+   ================================================================== */
+
+.espectador__marca {
+  position: absolute;
+  top: 16px;
+  left: 18px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.62rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  /* Sobre vídeo claro, el gris solo no aguanta. */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+  pointer-events: none;
+  max-width: calc(100vw - 36px);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.espectador__salir {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--bone);
+  text-decoration: none;
+  /* Lo único pulsable de la esquina reactiva su propio puntero. */
+  pointer-events: auto;
+  padding: 4px 2px;
+  transition: color .15s ease;
+}
+
+@media (hover: hover) {
+  .espectador__salir:hover {
+    color: var(--accent);
+  }
+}
+
+.espectador__sep {
+  opacity: .45;
+}
+
+@media (max-width: 600px) {
+  .espectador__marca {
+    font-size: 0.56rem;
+    gap: 6px;
+  }
+}
+
+/* ==================================================================
+   Portada de carga
+   ------------------------------------------------------------------
+   Lo primero que ve quien abre el enlace. Tiene que sostener un par de
+   segundos sin aburrir y sin prometer más de lo que hay: un rótulo, una
+   barra que avanza y el nombre de la unidad.
+
+   Nada de porcentajes ni de "cargando 3 de 7": no sabemos cuánto queda
+   —depende de la red y de LiveKit— y un porcentaje inventado que se
+   atasca en el 80% es peor que no tener ninguno.
+   ================================================================== */
+
+.espectador__portada {
+  position: absolute;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: var(--background);
+  animation: espectador-portada-entra 260ms ease-out both;
+}
+
+/* Sale más rápido de lo que entra. */
+.espectador__portada--saliendo {
+  animation: espectador-portada-sale 400ms ease-in both;
+}
+
+@keyframes espectador-portada-entra {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes espectador-portada-sale {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.espectador__marca-carga {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* Barra indeterminada: un trazo que recorre el carril, en vez de un
+   disco girando. Ocupa poco, no tiene centro que reclame la mirada y
+   habla el mismo idioma de líneas que el resto de la interfaz. */
+.espectador__barra {
+  position: relative;
+  width: min(220px, 46vw);
+  height: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.espectador__barra span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 38%;
+  background: var(--accent);
+  animation: espectador-barra 1.5s cubic-bezier(.65, 0, .35, 1) infinite;
+}
+
+@keyframes espectador-barra {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(363%); }
+}
+
+.espectador__unidad {
+  margin: 0;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.62rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Sin animación: la portada sigue ahí, pero quieta. La barra pasa a ser
+   una línea llena, que informa igual sin movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  .espectador__portada,
+  .espectador__portada--saliendo {
+    animation: none;
+  }
+
+  .espectador__barra span {
+    animation: none;
+    width: 100%;
+    opacity: .5;
+  }
+}

@@ -1,0 +1,352 @@
+/* ==================================================================
+   HUD del espectador
+   ------------------------------------------------------------------
+   Una fila de instrumentos sobre el vídeo, al estilo de una
+   retransmisión de lanzamiento.
+
+   ESTE ARCHIVO ES UN SISTEMA, NO UNA COLECCIÓN DE PIEZAS. La versión
+   anterior llegó a tener quince tamaños de letra distintos porque cada
+   instrumento se fue ajustando por su cuenta, y el resultado parecía
+   —con razón— un pegado de trozos ajenos. Las reglas que lo evitan:
+
+   1. TRES TAMAÑOS. Etiqueta, valor y una única cifra protagonista. No
+      se añade un cuarto "para que quepa": si no cabe, se acorta el
+      dato.
+   2. UNA LÍNEA BASE. Todo instrumento tiene la misma estructura
+      —etiqueta arriba, cuerpo de alto fijo, pie abajo—, así que sus
+      etiquetas se alinean entre sí y sus valores también, sea el
+      cuerpo un número, un dibujo o un lienzo 3D.
+   3. UNA SOMBRA, declarada una vez para todo el HUD. Puesta elemento
+      por elemento acababa en tipografías con halos distintos.
+   4. El vídeo manda: el velo se desvanece hacia arriba y nunca es un
+      rectángulo opaco.
+
+   Colores, según la jerarquía del proyecto: hueso para las lecturas,
+   gris para los nombres, ámbar solo para alertas y controles.
+   ================================================================== */
+
+.hud {
+  --hud-etiqueta: 0.58rem;   /* nombres, unidades y pies */
+  --hud-valor: 1.2rem;       /* todas las cifras */
+  --hud-hero: 2rem;          /* solo el reloj de misión */
+  --hud-cuerpo: 40px;        /* alto del cuerpo de cada instrumento */
+
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 24px 14px;
+  background: linear-gradient(to top, rgba(2, 7, 19, .92) 45%, rgba(2, 7, 19, 0));
+  pointer-events: none;
+  /* Una sola vez, para todo: sobre vídeo claro ninguna pieza se pierde y
+     ninguna lleva un halo distinto del de su vecina. */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+}
+
+.hud__grupo {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+/* ------------------------------------------------------------------
+   El instrumento: la unidad que se repite
+
+   Etiqueta · cuerpo de alto fijo · pie. Ese alto fijo es lo que alinea
+   entre sí a un número, una barra de batería y una línea de
+   inclinación, que por su cuenta medirían cosas distintas.
+   ------------------------------------------------------------------ */
+
+.hud__medidor,
+.hud__actuadores {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 74px;
+}
+
+.hud__cuerpo {
+  height: var(--hud-cuerpo);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hud__etiqueta {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--hud-etiqueta);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.hud__cifra,
+.hud__cifra-instrumento {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--hud-valor);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--bone);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud__cifra--apagada {
+  color: var(--muted);
+}
+
+/* El pie reserva su alto aunque vaya vacío: si no, los instrumentos con
+   unidad quedarían más altos que los que no la llevan y la fila se
+   escalonaría. */
+.hud__unidad,
+.hud__pie-instrumento,
+.hud__senal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 12px;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--hud-etiqueta);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.hud__pie-alerta {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--hud-etiqueta);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--error);
+  line-height: 1;
+}
+
+/* ------------------------------------------------------------------
+   Centro: reloj de misión
+
+   La única cifra protagonista de la vista. En mono, como todo lo
+   numérico del proyecto, y con cifras tabulares porque cambia cada
+   segundo: con anchos proporcionales temblaría en cada tic.
+   ------------------------------------------------------------------ */
+
+/* El bloque central manda sobre el alto de todo el HUD: lo que crezca
+   aquí separa el robot de la fila de instrumentos y deja al grafismo
+   ocupando media pantalla. Gap corto y sin aire de más. */
+.hud__centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding-bottom: 2px;
+}
+
+.hud__reloj {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--hud-hero);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--bone);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud__reloj-signo {
+  font-size: var(--hud-valor);
+  color: var(--muted);
+}
+
+.hud__subtitulo {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--hud-etiqueta);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 42ch;
+  line-height: 1;
+}
+
+.hud__alerta {
+  color: var(--warning);
+}
+
+/* ------------------------------------------------------------------
+   Instrumentos concretos
+   ------------------------------------------------------------------ */
+
+.hud__actuadores-puntos {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud__act-punto {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: rgba(245, 243, 233, .16);
+}
+
+.hud__act-punto--on {
+  background: var(--bone);
+  box-shadow: 0 0 8px rgba(245, 243, 233, .6);
+}
+
+/* Punto de señal: relleno con enlace, anillo hueco sin él. El color no
+   puede ser el único portador del estado — el verde y el rojo del sitio
+   se separan apenas ΔE 2.2 bajo deuteranopía. */
+.hud__punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid currentColor;
+}
+
+.hud__punto--vivo { background-color: currentColor; }
+.hud__punto--caido { background-color: transparent; }
+
+/* El lienzo 3D es un cuerpo más de la fila. Sin fondo propio: sobre el
+   vídeo se vería como un recuadro pegado. */
+.hud__robot3d {
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------
+   Adaptación
+
+   Se reduce la escala, nunca la estructura: los instrumentos siguen
+   compartiendo línea base a cualquier tamaño.
+   ------------------------------------------------------------------ */
+
+@media (max-width: 1100px) {
+  .hud {
+    --hud-hero: 1.6rem;
+    --hud-valor: 1.05rem;
+    --hud-cuerpo: 34px;
+    gap: 14px;
+    padding: 12px 16px;
+  }
+
+  .hud__grupo { gap: 14px; }
+
+  .hud__medidor,
+  .hud__actuadores { min-width: 62px; }
+}
+
+@media (max-width: 720px) {
+  .hud {
+    --hud-etiqueta: 0.52rem;
+    --hud-valor: 0.95rem;
+    --hud-hero: 1.3rem;
+    --hud-cuerpo: 28px;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  /* El 3D es lo primero que sobra cuando falta ancho: cuenta lo mismo
+     que las guías y ocupa el triple. */
+  .hud__robot3d { display: none; }
+}
+
+body.large-text .hud {
+  --hud-etiqueta: 0.7rem;
+  --hud-valor: 1.35rem;
+}
+
+/* ==================================================================
+   Entrada de los grafismos
+   ------------------------------------------------------------------
+   Convención de retransmisión: un rótulo no aparece de golpe. Entra con
+   un desplazamiento corto hacia arriba y un desvanecido, y los
+   elementos lo hacen ESCALONADOS —no todos a la vez—, que es lo que
+   distingue un grafismo de televisión de un div que apareció.
+
+   Tres reglas, tomadas de cómo se hace esto en directo:
+
+   1. CORTO. 380 ms. Más allá de medio segundo la entrada deja de ser
+      elegante y se vuelve una espera.
+   2. DESACELERANDO. La curva arranca rápida y frena al final, como algo
+      que se posa. Nunca lineal: lo lineal parece mecánico.
+   3. DE ABAJO ARRIBA. 10px, no más. Un salto grande llama la atención
+      sobre el movimiento en lugar de sobre el dato.
+
+   El escalonado va por posición en la fila, así que el HUD se "monta"
+   de izquierda a derecha en poco más de medio segundo.
+   ================================================================== */
+
+@keyframes hud-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hud__grupo > *,
+.hud__centro > * {
+  animation: hud-entrada 380ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+/* Escalonado. Los retardos son pequeños a propósito: con 70ms el ojo lo
+   percibe como "un" movimiento con textura, no como piezas llegando
+   por separado. */
+.hud__grupo > *:nth-child(1) { animation-delay: 60ms; }
+.hud__grupo > *:nth-child(2) { animation-delay: 130ms; }
+.hud__grupo > *:nth-child(3) { animation-delay: 200ms; }
+.hud__grupo > *:nth-child(4) { animation-delay: 270ms; }
+
+/* El centro entra primero y sin retardo: es el asunto de la
+   transmisión, y el resto se ordena a su alrededor. */
+.hud__centro > *:nth-child(1) { animation-delay: 0ms; }
+.hud__centro > *:nth-child(2) { animation-delay: 90ms; }
+.hud__centro > *:nth-child(3) { animation-delay: 150ms; }
+
+/* El velo entra antes que su contenido: primero se asienta el fondo,
+   luego llegan los datos. Al revés, las cifras aparecerían sobre el
+   vídeo desnudo y saltarían al oscurecerse. */
+.hud {
+  animation: hud-velo 500ms ease-out both;
+}
+
+@keyframes hud-velo {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* El modelo 3D pesa varios megas y llega tarde por definición: cuando
+   termina de cargar entra él solo, más despacio que el resto, para que
+   su aparición no se lea como un fallo de carga. */
+.hud__robot3d {
+  animation: hud-entrada 600ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+/* Quien pidió menos movimiento no quiere una entrada coreografiada:
+   los elementos simplemente están. */
+@media (prefers-reduced-motion: reduce) {
+  .hud,
+  .hud__grupo > *,
+  .hud__centro > *,
+  .hud__robot3d {
+    animation: none;
+  }
+}
