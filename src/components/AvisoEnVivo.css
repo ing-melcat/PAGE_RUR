@@ -1,14 +1,19 @@
 /* ==================================================================
    Aviso de transmisión en curso
    ------------------------------------------------------------------
-   Va en la barra de navegación, y aparece solo cuando hay algo que ver.
-   Por eso puede permitirse llamar la atención: cuando está, es porque
-   está pasando.
+   Va en la barra de navegación y solo aparece cuando hay algo que ver.
 
-   El punto rojo pulsa —es la convención universal de "en directo" y se
-   reconoce sin leer—, pero el texto EN VIVO va siempre al lado: el
-   color y el parpadeo solos no comunican a quien no distingue el rojo
-   ni a quien tiene el movimiento desactivado.
+   EL ROJO ESTÁ SOLO EN EL PUNTO, a propósito. La primera versión pintaba
+   de rojo el borde, el fondo y el texto, y eso choca con el sistema: en
+   este proyecto --error significa "algo va mal" (FUERA DE LÍNEA, SIN
+   SEÑAL, batería crítica). Un bloque rojo en la barra se lee como una
+   avería, no como una invitación.
+
+   El punto conserva el rojo porque es la convención universal de
+   grabación en curso y se reconoce sin leer; el resto del chip habla el
+   idioma del sitio —borde de hueso translúcido, mono, versalitas—, y el
+   ámbar de marca entra solo al pasar por encima y al enfocar, que es
+   donde el sistema lo tiene reservado: lo interactivo.
    ================================================================== */
 
 .aviso-vivo {
@@ -16,24 +21,35 @@
   align-items: center;
   gap: 9px;
   padding: 7px 14px;
-  border: 1px solid var(--error);
+  border: 1px solid var(--border);
   border-radius: 2px;
-  background: rgba(248, 81, 73, .08);
+  background: rgba(245, 243, 233, .04);
   font-family: var(--font-ibm-mono), monospace;
   font-size: 0.7rem;
   letter-spacing: .14em;
   text-transform: uppercase;
   text-decoration: none;
   color: var(--bone);
-  transition: background-color .2s ease, border-color .2s ease;
+  transition: border-color .2s ease, background-color .2s ease;
 }
 
 @media (hover: hover) {
   .aviso-vivo:hover {
-    background: rgba(248, 81, 73, .18);
+    border-color: var(--accent);
+    background: var(--accent-muted);
   }
 }
 
+/* Quien navega con el teclado tiene que ver dónde está. Va con
+   `focus-visible` y no con `focus` para no dibujar el anillo también a
+   quien acaba de hacer clic con el ratón. */
+.aviso-vivo:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Único portador del rojo: es la convención de directo. Y late, que es la
+   otra mitad de esa convención. */
 .aviso-vivo__punto {
   width: 8px;
   height: 8px;
@@ -44,13 +60,16 @@
 }
 
 @keyframes aviso-vivo-latido {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(248, 81, 73, .6); }
-  50% { opacity: .55; box-shadow: 0 0 0 5px rgba(248, 81, 73, 0); }
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(248, 81, 73, .55); }
+  50% { opacity: .5; box-shadow: 0 0 0 5px rgba(248, 81, 73, 0); }
 }
 
+/* El texto acompaña siempre al punto: ni el color ni el parpadeo
+   comunican solos a quien no distingue el rojo o tiene el movimiento
+   desactivado. */
 .aviso-vivo__etiqueta {
-  color: var(--error);
   font-weight: 700;
+  color: var(--bone);
 }
 
 /* El nombre de la unidad es contexto, no el titular. */

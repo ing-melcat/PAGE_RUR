@@ -202,3 +202,29 @@
     gap: 10px;
   }
 }
+
+/* ------------------------------------------------------------------
+   Foco de teclado
+
+   Faltaba en todo el panel. Quien navega con tabulador —o quien monta
+   una transmisión con las manos ocupadas y no quiere buscar el ratón—
+   no tenía forma de saber dónde estaba.
+
+   `focus-visible` y no `focus`: así el anillo no aparece también al
+   hacer clic con el ratón, que es lo que lleva a la gente a quitarlo.
+   ------------------------------------------------------------------ */
+
+.tx-direccion__boton:focus-visible,
+.tx__select:focus-visible,
+.tx__dato:focus-within,
+.tx__dato input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* El input de la URL ya se marcaba con el borde; se le añade el anillo
+   por coherencia con el resto. */
+.tx-direccion__url:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}

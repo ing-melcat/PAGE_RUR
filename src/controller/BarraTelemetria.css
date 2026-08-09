@@ -404,3 +404,13 @@ body.large-text .telemetria__opcion {
 body.large-text .telemetria__nota {
   font-size: 0.85rem;
 }
+
+/* Foco de teclado en los controles de la franja: el botón de widgets y
+   el chip de ENTRADA, que es pulsable para volver a los controles
+   táctiles. Sin esto no había forma de verlos al tabular. */
+.telemetria__osd-boton:focus-visible,
+.telemetria__osd-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
