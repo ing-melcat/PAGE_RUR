@@ -130,7 +130,13 @@ export const es = {
       vrTooltip: 'Disponible cuando se pruebe con las gafas en la universidad.',
       manualTitulo: 'Modo Manual',
       manualDescripcion: 'Mando, teclado o pantalla táctil, con joystick en pantalla para apuntar la cámara.',
+      vrAvisoBeta: 'Beta: escrito con el visor en mente, aún sin probar en el Vive físico.',
       volver: '← Volver',
+    },
+    vr: {
+      volver: '← Volver',
+      entrar: 'Entrar a VR',
+      aviso: 'Beta sin validar en hardware real. Si el visor no responde, confirma primero que el navegador soporta WebXR en este equipo.',
     },
     espectador: {
       transmisionNoDisponible: 'Transmisión no disponible',
