@@ -368,21 +368,33 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                                 <span style={S.label}>{action.replace(/([A-Z])/g, ' $1').trim()}</span>
                                                 {type === 'keyboard' ? (
                                                     // Sin escribir el código a mano: se toca el botón y se
-                                                    // presiona la tecla que se quiera asignar.
-                                                    <button
+                                                    // presiona la tecla que se quiera asignar. El puntito con
+                                                    // pulse es el mismo lenguaje visual que ya usa el sitio
+                                                    // para "esto está pasando ahora" (ej. el badge de aviso
+                                                    // activo en el header) -- no es una animación nueva.
+                                                    <motion.button
                                                         type="button"
                                                         onClick={() => setCapturandoTecla(action)}
                                                         title={t('operador.seleccion.cambiarTecla')}
+                                                        whileHover={{ borderColor: 'var(--accent)' }}
+                                                        whileTap={{ scale: 0.97 }}
                                                         style={{
-                                                            ...S.input, textAlign: 'left', cursor: 'pointer',
+                                                            ...S.input,
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                            cursor: 'pointer', fontWeight: 600, letterSpacing: '0.05em',
                                                             color: capturandoTecla === action ? 'var(--accent)' : 'var(--text)',
                                                             borderColor: capturandoTecla === action ? 'var(--accent)' : 'var(--border)',
                                                         }}
                                                     >
-                                                        {capturandoTecla === action
-                                                            ? t('operador.seleccion.presionaTecla')
-                                                            : formatearTecla(mappingForm.keyboard[action])}
-                                                    </button>
+                                                        {capturandoTecla === action ? (
+                                                            <>
+                                                                <span style={{ width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0, backgroundColor: 'var(--accent)', animation: 'pulse 1.5s infinite' }} />
+                                                                {t('operador.seleccion.presionaTecla')}
+                                                            </>
+                                                        ) : (
+                                                            formatearTecla(mappingForm.keyboard[action])
+                                                        )}
+                                                    </motion.button>
                                                 ) : (
                                                     <input
                                                         type="text"
