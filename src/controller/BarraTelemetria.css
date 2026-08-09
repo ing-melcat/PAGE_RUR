@@ -155,6 +155,226 @@
   color: var(--muted);
 }
 
+/* ==================================================================
+   OSD táctil
+   ------------------------------------------------------------------
+   La cara que toma la barra cuando el operador maneja con los botones
+   en pantalla: una franja de una línea, como el OSD del control de un
+   dron. No es un panel con datos, es una regleta que se lee de reojo
+   mientras las dos manos están ocupadas.
+
+   Dos reglas que mandan sobre todo lo demás aquí:
+
+   1. NADA se mueve al cambiar de estado. Cada lectura tiene un ancho
+      reservado (`min-width` en `ch` + cifras tabulares) y la flecha de
+      dirección vive en una caja de ancho fijo. Si la fila se
+      reacomodara con cada empujón del joystick sería justo lo que el
+      operador no puede permitirse mirar.
+   2. Etiqueta y valor comparten tamaño y peso — la distinción es de
+      color, no de escala: gris para el nombre del dato, hueso para la
+      lectura. El ámbar sigue reservado para alertas y controles, como
+      en el resto del archivo.
+   ================================================================== */
+/* ------------------------------------------------------------------
+   Posición y ancho máximo de la franja.
+
+   Está en CSS y no en un estilo en línea porque tiene que cambiar con el
+   tamaño de la ventana, y un inline le ganaría a la media query de abajo.
+
+   El `max-width` es la regla que impide que la franja se monte sobre los
+   controles: descuenta las dos columnas del HUD (--hud-columna, definida
+   en Consola.css) más sus márgenes y un respiro de 16px por lado. Antes
+   era `100vw - 40px` —o sea, casi toda la ventana—, así que al acercar el
+   zoom la franja crecía hasta debajo de los botones y el operador tenía
+   que alejar el zoom a mano para separarlos.
+   ------------------------------------------------------------------ */
+.telemetria--osd {
+  /* Mismo hueco que dejaba el `margen` de 24px que pasaba el operador. */
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  /* Sin `max-content` la caja se estira a lo que le permita el contenedor
+     y las lecturas quedan nadando en un panel ancho a medio llenar. */
+  width: max-content;
+  max-width: calc(100vw - 2 * (var(--hud-columna, 300px) + var(--hud-margen, 28px) + 16px));
+}
+
+/* Por debajo de ~1000px de ancho, el hueco central (54vw - 72px) baja de
+   los ~470px que ocupa la franja con cinco lecturas: ahí abajo ya solo
+   podría envolver en varios renglones, comiéndose el video justo donde el
+   operador mira. Arriba tiene el ancho entero —las dos columnas están
+   ancladas abajo— y vuelve a una sola línea, dejando libre toda la mitad
+   inferior para las manos. Los 76px dejan pasar el cabezal fijo. */
+@media (max-width: 1000px) {
+  .telemetria--osd {
+    top: 76px;
+    bottom: auto;
+    max-width: calc(100vw - 32px);
+  }
+}
+
+/* `display: contents` y no `flex`: las lecturas y el bloque de sesión son dos
+   contenedores hermanos, y si cada uno es un item del envoltorio, éste los
+   reparte como bloques indivisibles -- basta que no quepan juntos para que el
+   segundo caiga de renglón y la "franja" pase a medir tres líneas. Disueltos
+   con `contents`, todas las lecturas son items del mismo flex y la fila se
+   arma sola de principio a fin. */
+.telemetria__osd {
+  display: contents;
+}
+
+.telemetria__osd-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 9px;
+}
+
+.telemetria__osd-etiqueta,
+.telemetria__osd-valor {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+.telemetria__osd-etiqueta {
+  color: var(--muted);
+}
+
+.telemetria__osd-valor {
+  color: var(--bone);
+  font-variant-numeric: tabular-nums;
+  /* El ancho reservado es lo que evita que la fila baile: el valor más
+     largo posible de una lectura de movimiento es "▲ 100" y el de los
+     actuadores, sus cuatro abreviaturas. */
+  min-width: 5ch;
+  transition: color 0.15s ease;
+}
+
+.telemetria__osd-valor--apagado {
+  color: var(--muted);
+}
+
+/* Separador entre lecturas. Es un punto medio, no un borde: a este
+   tamaño una línea vertical pesa más que el propio dato. */
+.telemetria__osd-sep {
+  color: var(--muted);
+  opacity: 0.45;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.78rem;
+  user-select: none;
+}
+
+/* Caja de ancho fijo para la flecha de dirección: cambia de glifo y de
+   color, nunca de sitio. La animación es un desplazamiento de 1px en el
+   sentido de la marcha — se percibe como que "empuja", sin llamar la
+   atención ni redibujar la fila. */
+.telemetria__osd-flecha {
+  display: inline-block;
+  width: 1.1ch;
+  text-align: center;
+  color: var(--muted);
+  transition: color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+  opacity: 0.5;
+}
+
+.telemetria__osd-flecha--activa {
+  color: var(--bone);
+  opacity: 1;
+}
+
+.telemetria__osd-flecha--arriba.telemetria__osd-flecha--activa {
+  transform: translateY(-1px);
+}
+
+.telemetria__osd-flecha--abajo.telemetria__osd-flecha--activa {
+  transform: translateY(1px);
+}
+
+.telemetria__osd-flecha--izquierda.telemetria__osd-flecha--activa {
+  transform: translateX(-1px);
+}
+
+.telemetria__osd-flecha--derecha.telemetria__osd-flecha--activa {
+  transform: translateX(1px);
+}
+
+/* Punto de señal: sustituye al texto EN VIVO / SIN SEÑAL, que en una
+   franja de este ancho costaba más de lo que informaba.
+
+   El estado NO puede quedar codificado solo por el color: el verde
+   (--success) y el rojo (--error) del sitio se separan apenas ΔE 2.2 bajo
+   deuteranopía —medido, no estimado—, así que para una parte nada
+   despreciable de operadores serían el mismo punto gris. La diferencia
+   real la lleva la FORMA: relleno sólido cuando hay señal, anillo hueco
+   cuando no. Eso se lee igual en escala de grises. */
+.telemetria__osd-senal {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 2px;
+  border: 2px solid currentColor;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.telemetria__osd-senal--vivo {
+  background-color: currentColor;
+}
+
+/* Sin señal: hueco. Además del color, el centro vacío distingue el estado
+   sin depender de la visión cromática. */
+.telemetria__osd-senal--caido {
+  background-color: transparent;
+}
+
+/* Botón de widgets: sin recuadro ni etiqueta, solo el icono. Un botón
+   con borde en mitad de la regleta rompe la línea e invita a tocarlo
+   sin querer con el pulgar mientras se maneja. El área táctil sigue
+   siendo cómoda gracias al padding. */
+.telemetria__osd-boton {
+  pointer-events: auto;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 6px 8px;
+  margin: -6px -2px -6px 4px;
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.telemetria__osd-boton--abierto {
+  color: var(--accent);
+}
+
+@media (hover: hover) {
+  .telemetria__osd-boton:hover {
+    color: var(--bone);
+  }
+}
+
+/* Aviso de que nadie está recibiendo las órdenes: es la única alerta
+   real de la franja, así que es lo único que se lleva el ámbar. */
+.telemetria__osd-alerta {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--warning);
+  padding: 0 9px;
+}
+
+body.large-text .telemetria__osd-etiqueta,
+body.large-text .telemetria__osd-valor,
+body.large-text .telemetria__osd-sep,
+body.large-text .telemetria__osd-alerta {
+  font-size: 0.92rem;
+}
+
 /* ------------------------------------------------------------------
    Texto grande (accesibilidad). Sin esto la barra sería lo único de la
    consola que ignora la preferencia del usuario.

@@ -2,7 +2,14 @@ import './Cabezal.css';
 import { ConfigPanel } from './ConfigPanel';
 import { useLanguage } from '../lib/i18n';
 
-export function Cabezal({ onCambio, onConfigApply, onBack }) {
+/**
+ * @param titulo  nombre del robot que se está operando (`robots.name`). Es más
+ *                útil ahí que el nombre de la aplicación: el operador ya sabe
+ *                en qué app está, lo que necesita confirmar de un vistazo es
+ *                QUÉ unidad tiene en las manos —sobre todo con varias dadas de
+ *                alta—. Si no llega ninguno, se cae al nombre de la aplicación.
+ */
+export function Cabezal({ onCambio, onConfigApply, onBack, titulo }) {
     const { t } = useLanguage();
     return (
         // Simplemente un cabezal con el nombre de la aplicacion, se pueden agregar mas cosas despues
@@ -29,7 +36,20 @@ export function Cabezal({ onCambio, onConfigApply, onBack }) {
                     </button>
                 </div>
                 
-                <div className="topbar-title" style={{ margin: 0, flex: 1, textAlign: 'center', color: 'var(--text)' }}>RASSOR-UI</div>
+                {/* Un nombre de robot puede ser largo y el cabezal es fijo:
+                    se recorta con puntos suspensivos en vez de empujar al
+                    botón de volver o al de configuración. El nombre completo
+                    queda en el title. */}
+                <div
+                    className="topbar-title"
+                    title={titulo || 'RASSOR-UI'}
+                    style={{
+                        margin: 0, flex: 1, textAlign: 'center', color: 'var(--text)',
+                        minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}
+                >
+                    {titulo || 'RASSOR-UI'}
+                </div>
                 
                 {/* ConfigPanel placed inside the header on the right */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', width: 'auto', minWidth: '40px' }}>

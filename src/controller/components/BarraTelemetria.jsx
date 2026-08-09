@@ -1,14 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { LayoutGrid } from 'lucide-react';
-import { RoomEvent } from 'livekit-client';
-import {
-  ACTUADORES,
-  INACTIVIDAD_MS,
-  NIVEL_MAX,
-  TELEMETRIA_VACIA,
-  TOPIC_TELEMETRIA,
-  decodificarTelemetria,
-} from '../telemetria';
+import { ACTUADORES, NIVEL_MAX } from '../telemetria';
+import { useTelemetria, useSinMovimiento } from '../useTelemetria';
 import { WIDGETS, WIDGETS_POR_DEFECTO } from '../widgets';
 import { useEstadisticasEnlace } from '../useEstadisticasEnlace';
 import { useLanguage } from '../../lib/i18n';
@@ -255,6 +248,34 @@ function ModuloDato({ titulo, valor, unidad, pie, transicion, chica }) {
 }
 
 /**
+ * Lectura de una sola línea, para el modo esencial: etiqueta y valor pegados,
+ * sin barra de segmentos, sin cinta y sin pie.
+ *
+ * Es el OSD de un dron: el operador que va con los controles táctiles tiene
+ * las dos manos ocupadas en los joysticks y lee esto de reojo, así que cada
+ * dato ocupa lo mínimo y la barra entera cabe en una franja delgada. Los
+ * módulos altos (ModuloAvance y compañía) son para el otro caso, cuando el
+ * mando libera la pantalla y sí hay sitio para la versión desplegada.
+ */
+function LecturaEnLinea({ titulo, valor, unidad, contenido, activo = true, ancho }) {
+  const hayDato = valor !== null && valor !== undefined && valor !== '';
+  const apagado = contenido ? !activo : !hayDato;
+
+  return (
+    <div className="telemetria__osd-item">
+      <span className="telemetria__osd-etiqueta">{titulo}</span>
+      <span
+        className={`telemetria__osd-valor${apagado ? ' telemetria__osd-valor--apagado' : ''}`}
+        style={ancho && ancho !== 'auto' ? { minWidth: ancho } : undefined}
+      >
+        {contenido ?? (hayDato ? valor : '—')}
+        {unidad && hayDato && ` ${unidad}`}
+      </span>
+    </div>
+  );
+}
+
+/**
  * @param room         sala de LiveKit, para las estadísticas del enlace.
  * @param fuenteLocal  si se pasa, la telemetría se toma llamando a esta función
  *                     en vez de escuchar el canal de datos. Lo usa el operador,
@@ -271,26 +292,36 @@ function ModuloDato({ titulo, valor, unidad, pie, transicion, chica }) {
  * @param entrada      { modo, activo, onAlternar } para el chip de ENTRADA. El
  *                     estado del mando es telemetría del operador, así que vive
  *                     aquí y no suelto por la pantalla.
+ * @param audiencia    número de espectadores ya contado por quien llama. El
+ *                     operador lo pasa porque su cuenta filtra por identidad
+ *                     (`contarEspectadores`) y descarta al robot, mientras que
+ *                     las estadísticas del enlace solo saben de participantes
+ *                     remotos y lo contarían como público. Sin esta prop se cae
+ *                     a la cuenta del enlace, que es lo que ve el espectador.
+ * @param widgetsIniciales  qué widgets salen encendidos la primera vez. El
+ *                     operador enciende también la audiencia, que antes tenía
+ *                     en su propia tarjeta de ESTADO.
  */
 export function BarraTelemetria({
   room, fuenteLocal, posicion = 'abajo', margen = 0, esencial = false, entrada,
-  accionesMenu = [],
+  accionesMenu = [], audiencia, widgetsIniciales = WIDGETS_POR_DEFECTO,
 }) {
   const { t } = useLanguage();
-  const [telemetria, setTelemetria] = useState(TELEMETRIA_VACIA);
-  const [enVivo, setEnVivo] = useState(false);
+  // Estado, decodificación e inactividad viven en el hook: el HUD del
+  // espectador usa exactamente el mismo, así que no hay dos criterios de
+  // "esto ya está viejo" que puedan discrepar.
+  const { telemetria, enVivo } = useTelemetria(room, fuenteLocal);
   const [compacta, setCompacta] = useState(() => window.innerWidth < 900);
   // En modo esencial (controles táctiles ocupando las esquinas) hace falta
   // el mismo apretujado que en pantallas angostas, sin importar el ancho
   // real: es el hueco central el que manda, no el viewport.
   const angosta = compacta || esencial;
-  const [sinMovimiento, setSinMovimiento] = useState(false);
+  const sinMovimiento = useSinMovimiento();
   // Sin persistencia: el espectador público no tiene cuenta, así que no hay
   // dónde guardar esto salvo el navegador — y aquí no se guarda nada en el
   // navegador. El tablero vuelve a los widgets por defecto en cada visita.
-  const [activos, setActivos] = useState(WIDGETS_POR_DEFECTO);
+  const [activos, setActivos] = useState(widgetsIniciales);
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const ultimoRef = useRef(0);
 
   // Las estadísticas del enlace solo se piden si hay algún widget que las use:
   // sin esto se estaría sondeando la conexión cada segundo para nada.
@@ -306,59 +337,9 @@ export function BarraTelemetria({
   };
 
   useEffect(() => {
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const aplicar = () => setSinMovimiento(media.matches);
-    aplicar();
-    media.addEventListener('change', aplicar);
-    return () => media.removeEventListener('change', aplicar);
-  }, []);
-
-  useEffect(() => {
     const alRedimensionar = () => setCompacta(window.innerWidth < 900);
     window.addEventListener('resize', alRedimensionar);
     return () => window.removeEventListener('resize', alRedimensionar);
-  }, []);
-
-  // Fuente local (operador): se sondea su propio estado al mismo ritmo al que
-  // publica. El estado vive aquí dentro y no en quien nos llama, para no
-  // re-renderizar toda la consola diez veces por segundo.
-  useEffect(() => {
-    if (!fuenteLocal) return;
-    const id = setInterval(() => {
-      const datos = fuenteLocal();
-      if (!datos) return;
-      ultimoRef.current = Date.now();
-      setEnVivo(true);
-      setTelemetria(datos);
-    }, 100);
-    return () => clearInterval(id);
-  }, [fuenteLocal]);
-
-  // Fuente remota (espectador): el canal de datos de la sala.
-  useEffect(() => {
-    if (fuenteLocal || !room) return;
-
-    const alRecibir = (payload, _participante, _kind, topic) => {
-      if (topic !== TOPIC_TELEMETRIA) return;
-      const datos = decodificarTelemetria(payload);
-      if (!datos) return;
-      ultimoRef.current = Date.now();
-      setEnVivo(true);
-      setTelemetria(datos);
-    };
-
-    room.on(RoomEvent.DataReceived, alRecibir);
-    return () => room.off(RoomEvent.DataReceived, alRecibir);
-  }, [room, fuenteLocal]);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      if (ultimoRef.current && Date.now() - ultimoRef.current > INACTIVIDAD_MS) {
-        setEnVivo(false);
-        setTelemetria(TELEMETRIA_VACIA);
-      }
-    }, 500);
-    return () => clearInterval(id);
   }, []);
 
   // Se iguala al periodo de la telemetría: suaviza el salto entre paquetes sin
@@ -366,6 +347,98 @@ export function BarraTelemetria({
   const transicion = sinMovimiento ? 'none' : 'all 0.1s linear';
 
   const arriba = posicion === 'arriba';
+
+  // Traduce cada widget del catálogo a una lectura de una línea, para el OSD
+  // táctil. Pierde detalle a propósito frente a los módulos altos -- se van la
+  // cinta de segmentos, el pie de dirección y los pormenores de jitter y
+  // buffer: aquí el dato es "de un vistazo", y quien quiera el desglose suelta
+  // los controles y pasa a mando, que es donde vive la versión desplegada.
+  //
+  // `ancho` es el ancho reservado de la lectura, en caracteres. Va explícito
+  // por dato y no calculado: es lo que garantiza que la fila no se reacomode
+  // cuando el valor pasa de "0" a "100" o el enlace se cae a "—".
+  const lecturaCompacta = (id) => {
+    // Flecha de dirección en su caja de ancho fijo: cambia de glifo y de
+    // color, nunca de sitio.
+    const flecha = (glifo, direccion, activa) => (
+      <span
+        className={`telemetria__osd-flecha telemetria__osd-flecha--${direccion}${activa ? ' telemetria__osd-flecha--activa' : ''}`}
+        style={{ transition: transicion === 'none' ? 'none' : undefined }}
+      >
+        {glifo}
+      </span>
+    );
+
+    switch (id) {
+      case 'avance': {
+        const nivel = telemetria.avance?.nivel ?? 0;
+        const atras = telemetria.avance?.dir === 'atras';
+        const activo = nivel > 0 && Boolean(telemetria.avance?.dir);
+        return {
+          titulo: t('telemetria.avance'),
+          activo,
+          ancho: '7ch',
+          contenido: <>{flecha(atras ? '▼' : '▲', atras ? 'abajo' : 'arriba', activo)} {nivel * 10}%</>,
+        };
+      }
+      case 'giro': {
+        const nivel = telemetria.giro?.nivel ?? 0;
+        const izquierda = telemetria.giro?.dir === 'izquierda';
+        const activo = nivel > 0 && Boolean(telemetria.giro?.dir);
+        return {
+          titulo: t('telemetria.giro'),
+          activo,
+          ancho: '7ch',
+          contenido: <>{flecha(izquierda ? '◀' : '▶', izquierda ? 'izquierda' : 'derecha', activo)} {nivel * 10}%</>,
+        };
+      }
+      case 'actuadores': {
+        // Un punto por actuador, siempre los cuatro y siempre en el orden del
+        // catálogo -- el mismo que el de los botones en pantalla. Las
+        // abreviaturas completas (BRZ-D, TMB-T...) son 23 caracteres: en una
+        // franja de teléfono se comen el resto de las lecturas, y aquí el
+        // operador ya tiene los botones debajo del pulgar para saber cuál
+        // está tocando. El desglose con nombres sigue estando en modo mando.
+        const encendidos = ACTUADORES.filter(({ clave }) => telemetria.actuadores[clave]);
+        return {
+          titulo: t('telemetria.actuadores'),
+          activo: encendidos.length > 0,
+          ancho: 'auto',
+          contenido: (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              {ACTUADORES.map(({ clave, abrev }) => {
+                const encendido = Boolean(telemetria.actuadores[clave]);
+                return (
+                  <span
+                    key={clave}
+                    title={abrev}
+                    style={{
+                      width: '6px', height: '6px', borderRadius: '50%',
+                      background: encendido ? 'var(--bone)' : APAGADO,
+                      boxShadow: encendido ? BRILLO_ACTIVO : 'none',
+                      transition: transicion,
+                    }}
+                  />
+                );
+              })}
+            </span>
+          ),
+        };
+      }
+      case 'calidad':
+        return { titulo: t('telemetria.enlace'), valor: enlace?.calidad, ancho: '4ch' };
+      case 'bitrate':
+        return { titulo: t('telemetria.bitrate'), valor: enlace?.bitrateKbps, unidad: t('telemetria.kbps'), ancho: '5ch' };
+      case 'video':
+        return { titulo: t('telemetria.video'), valor: enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : null, ancho: '9ch' };
+      case 'perdida':
+        return { titulo: t('telemetria.perdida'), valor: enlace?.perdidos, ancho: '4ch' };
+      case 'audiencia':
+        return { titulo: t('telemetria.espectadores'), valor: audiencia ?? enlace?.espectadores, ancho: '3ch' };
+      default:
+        return null;
+    }
+  };
 
   const panelMenu = menuAbierto ? (
         <div
@@ -385,7 +458,11 @@ export function BarraTelemetria({
             const encendido = activos.includes(id);
             // Un widget cuyos datos aún no llegan se puede encender igual, pero
             // se avisa para que nadie crea que está roto.
-            const sinDatos = fuente === 'enlace' && necesitaEnlace && !enlace;
+            // 'robot' se marca siempre: mientras nadie publique el topic
+            // `telemetria_robot` (ver docs/TELEMETRIA_ROBOT.md) esos widgets no
+            // pueden tener datos, y encenderlos sin avisar parecería una avería.
+            const sinDatos = fuente === 'robot'
+              || (fuente === 'enlace' && necesitaEnlace && !enlace);
             return (
               <label
                 key={id}
@@ -432,15 +509,16 @@ export function BarraTelemetria({
 
   return (
     <div
+      className={esencial ? 'telemetria--osd' : undefined}
       style={{
         position: 'absolute', zIndex: 1000,
-        ...(arriba ? { top: margen } : { bottom: margen }),
-        // En esencial (controles táctiles en las esquinas) se queda angosta
-        // y centrada, en el mismo hueco que antes ocupaba la versión mínima
-        // -- de ancho completo se encimaría con el joystick y los botones.
-        ...(esencial
-          ? { left: '50%', transform: 'translateX(-50%)', maxWidth: 'calc(100vw - 40px)' }
-          : { left: 0, right: 0 }),
+        // El posicionamiento del modo esencial NO va aquí: vive en
+        // .telemetria--osd (BarraTelemetria.css), porque tiene que poder
+        // cambiar con media queries -- la franja se sube bajo el cabezal
+        // cuando el hueco entre las dos columnas del HUD deja de dar de sí.
+        // Un estilo en línea le ganaría a cualquier @media y dejaría la
+        // regla muerta.
+        ...(esencial ? {} : { top: arriba ? margen : undefined, bottom: arriba ? undefined : margen, left: 0, right: 0 }),
         // Mismo navy casi negro que el header/footer del sitio (--background),
         // no --surface: la barra es parte del armazón de la página, no una
         // tarjeta flotando sobre él -- eso es lo que hacía que compitiera con
@@ -450,9 +528,14 @@ export function BarraTelemetria({
         backdropFilter: 'blur(4px)',
         WebkitBackdropFilter: 'blur(4px)',
         borderRadius: esencial ? '2px' : 0,
-        ...(esencial ? {} : (arriba
-          ? { borderBottom: '1px solid var(--border)' }
-          : { borderTop: '1px solid var(--border)' })),
+        // En esencial la franja flota sobre el video, así que se cierra por
+        // los cuatro lados: es una regleta, no el borde del armazón. Esquina
+        // de 2px, la misma afilada institucional que las tarjetas del HUD.
+        ...(esencial
+          ? { border: '1px solid var(--border)' }
+          : (arriba
+            ? { borderBottom: '1px solid var(--border)' }
+            : { borderTop: '1px solid var(--border)' })),
         display: 'flex', flexDirection: arriba ? 'column-reverse' : 'column',
         // Informativa: nunca debe robarle el clic al enlace de Salir ni al video.
         pointerEvents: 'none',
@@ -463,12 +546,53 @@ export function BarraTelemetria({
       <div
         style={{
           display: 'flex', alignItems: 'stretch',
-          justifyContent: angosta ? 'flex-start' : 'space-between',
+          justifyContent: esencial ? 'center' : (angosta ? 'flex-start' : 'space-between'),
           flexWrap: angosta ? 'wrap' : 'nowrap',
-          gap: angosta ? '14px 24px' : '0',
-          padding: angosta ? '12px 18px 14px' : '18px 40px 22px',
+          // Sin gap en esencial: cada lectura ya trae su propio padding
+          // lateral, y sumarle hueco entre items separaría el punto del `·`
+          // que le toca.
+          gap: esencial ? '4px 0' : (angosta ? '14px 24px' : '0'),
+          // En esencial la barra es una franja, no un panel: el aire de
+          // alrededor es lo que la haría alta otra vez.
+          padding: esencial ? '7px 10px' : (angosta ? '12px 18px 14px' : '18px 40px 22px'),
+          alignItems: esencial ? 'center' : 'stretch',
         }}
       >
+        {esencial ? (
+          /* Modo táctil: una sola fila de lecturas, sin agrupar por bloque y
+             sin mini-headers. Con los botones y los joysticks ocupando las
+             cuatro esquinas, el hueco que queda es una franja -- ahí no cabe
+             (ni hace falta) la versión desplegada, que es la del modo mando.
+             El orden lo sigue mandando el catálogo de widgets. */
+          <div className="telemetria__osd">
+            {/* Punto de señal en cabeza: sustituye al texto EN VIVO / SIN
+                SEÑAL, que a este ancho costaba más de lo que informaba. */}
+            <span
+              className={`telemetria__osd-senal telemetria__osd-senal--${enVivo ? 'vivo' : 'caido'}`}
+              // El title no basta como única lectura alternativa: en táctil no
+              // hay hover. El role/aria-label lo hace legible para un lector de
+              // pantalla, y el relleno frente al anillo, para quien no
+              // distingue el verde del rojo.
+              role="img"
+              aria-label={enVivo ? t('telemetria.enVivo') : t('telemetria.sinSenal')}
+              title={enVivo ? t('telemetria.enVivo') : t('telemetria.sinSenal')}
+              style={{
+                color: enVivo ? 'var(--success)' : 'var(--error)',
+                boxShadow: enVivo ? '0 0 8px var(--success)' : 'none',
+              }}
+            />
+            {WIDGETS.filter((w) => activos.includes(w.id)).map(({ id }, i) => {
+              const lectura = lecturaCompacta(id);
+              if (!lectura) return null;
+              return (
+                <Fragment key={id}>
+                  {i > 0 && <span className="telemetria__osd-sep">·</span>}
+                  <LecturaEnLinea {...lectura} />
+                </Fragment>
+              );
+            })}
+          </div>
+        ) : (
         <div style={{ display: 'flex', alignItems: 'stretch', flexWrap: angosta ? 'wrap' : 'nowrap', gap: angosta ? '14px 24px' : '32px' }}>
           {/* Agrupados por bloque (MOVIMIENTO / ACTUADORES / CONEXIÓN) en vez de
               una fila plana: cada uno lleva su propio mini-header y, salvo en
@@ -529,59 +653,123 @@ export function BarraTelemetria({
             );
           })}
         </div>
+        )}
 
         {/* Bloque SESIÓN: a diferencia de los anteriores siempre se dibuja --
             el indicador EN VIVO y el botón de widgets son controles fijos de la
-            barra, no datos que se puedan apagar. */}
+            barra, no datos que se puedan apagar. En esencial pierde el
+            mini-header y se tumba en fila, para no romper la franja de una
+            línea que arma el resto. */}
         <div
           className={!angosta ? 'telemetria__bloque--dividido' : undefined}
-          style={{ display: 'flex', flexDirection: 'column', gap: esencial ? '8px' : '12px', alignSelf: angosta ? 'flex-start' : 'flex-end', alignItems: angosta ? 'flex-start' : 'flex-end' }}
+          /* En esencial se disuelve (igual que .telemetria__osd) para que
+             ENTRADA y el botón sean items de la misma fila que las lecturas,
+             en vez de un segundo bloque que cae de renglón. */
+          style={esencial
+            ? { display: 'contents' }
+            : { display: 'flex', flexDirection: 'column', gap: '12px', alignSelf: angosta ? 'flex-start' : 'flex-end', alignItems: angosta ? 'flex-start' : 'flex-end' }}
         >
-          <p className="telemetria__bloque-titulo">{t('telemetria.bloques.sesion')}</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: angosta ? 'flex-start' : 'flex-end' }}>
-            {activos.includes('audiencia') && (
-              <ModuloDato titulo={t('telemetria.espectadores')} valor={enlace?.espectadores} transicion={transicion} chica={esencial} />
+          {!esencial && <p className="telemetria__bloque-titulo">{t('telemetria.bloques.sesion')}</p>}
+          <div style={esencial
+            ? { display: 'contents' }
+            : { display: 'flex', flexDirection: 'column', gap: '6px', alignItems: angosta ? 'flex-start' : 'flex-end' }}
+          >
+            {/* En esencial la audiencia ya salió en la fila de lecturas de
+                arriba, junto al resto de widgets: repetirla aquí la mostraría
+                dos veces. */}
+            {activos.includes('audiencia') && !esencial && (
+              <ModuloDato titulo={t('telemetria.espectadores')} valor={audiencia ?? enlace?.espectadores} transicion={transicion} chica={esencial} />
             )}
-            {entrada && (
-              <div style={{ marginBottom: '2px' }}>
-                <ChipEntrada entrada={entrada} transicion={transicion} />
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                width: '8px', height: '8px', borderRadius: '50%',
-                background: enVivo ? 'var(--success)' : 'var(--error)',
-                boxShadow: `0 0 8px ${enVivo ? 'var(--success)' : 'var(--error)'}`,
-                transition: transicion,
-              }} />
-              <span className="telemetria__pie" style={{ color: enVivo ? 'var(--success)' : 'var(--error)' }}>
-                {enVivo ? t('telemetria.enVivo') : t('telemetria.sinSenal')}
-              </span>
-            </div>
-            {/* Estos valores son las órdenes del operador. Si no hay robot
-                conectado no las está recibiendo nadie, y hay que decirlo o el
-                espectador creería que la unidad se está moviendo. Es una
-                advertencia real, así que sí lleva el ámbar -- a diferencia de
-                las lecturas normales de arriba. */}
-            {enVivo && !telemetria.robot && (
-              <span className="telemetria__pie telemetria__pie--advertencia">{t('telemetria.sinRobotConectado')}</span>
-            )}
+            {esencial ? (
+              <>
+                {/* ENTRADA es una lectura más de la regleta, con el mismo
+                    tratamiento que las de arriba -- solo que esta se puede
+                    pulsar para volver a los controles táctiles. */}
+                {entrada && (
+                  <>
+                    <span className="telemetria__osd-sep">·</span>
+                    <button
+                      onClick={typeof entrada.onAlternar === 'function' ? entrada.onAlternar : undefined}
+                      disabled={typeof entrada.onAlternar !== 'function'}
+                      title={typeof entrada.onAlternar === 'function' ? t('telemetria.cambiarEntrada') : undefined}
+                      className="telemetria__osd-item"
+                      style={{
+                        background: 'transparent', border: 'none',
+                        pointerEvents: typeof entrada.onAlternar === 'function' ? 'auto' : 'none',
+                        cursor: typeof entrada.onAlternar === 'function' ? 'pointer' : 'default',
+                      }}
+                    >
+                      <span className="telemetria__osd-etiqueta">{t('telemetria.entrada')}</span>
+                      <span className="telemetria__osd-valor" style={{ minWidth: '6ch' }}>{entrada.modo}</span>
+                    </button>
+                  </>
+                )}
 
-            {/* La barra entera lleva pointerEvents:none para no estorbar al video,
-                así que lo interactivo tiene que reactivarlo por su cuenta. */}
-            <button
-              onClick={() => setMenuAbierto((v) => !v)}
-              style={{
-                pointerEvents: 'auto', cursor: 'pointer', alignSelf: 'flex-start',
-                background: 'transparent', border: `1px solid ${menuAbierto ? 'var(--accent)' : 'var(--border)'}`,
-                color: menuAbierto ? 'var(--accent)' : 'var(--muted)',
-                borderRadius: '4px', padding: '4px 10px', marginTop: '2px',
-                textTransform: 'uppercase',
-              }}
-              className="telemetria__accion"
-            >
-              <LayoutGrid size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> {t('telemetria.widgets')}
-            </button>
+                {/* Única alerta real de la franja: el operador está mandando
+                    órdenes que no recibe nadie. Por eso es lo único que se
+                    lleva el ámbar aquí. */}
+                {enVivo && !telemetria.robot && (
+                  <span className="telemetria__osd-alerta">{t('telemetria.sinRobotConectado')}</span>
+                )}
+
+                {/* Sin recuadro ni etiqueta: en táctil un botón enmarcado en
+                    mitad de la regleta rompe la línea e invita a tocarlo con
+                    el pulgar sin querer. El área pulsable la da el padding.
+                    La barra entera lleva pointerEvents:none para no estorbar
+                    al video, así que lo interactivo lo reactiva por su cuenta. */}
+                <button
+                  onClick={() => setMenuAbierto((v) => !v)}
+                  title={t('telemetria.widgets')}
+                  aria-label={t('telemetria.widgets')}
+                  className={`telemetria__osd-boton${menuAbierto ? ' telemetria__osd-boton--abierto' : ''}`}
+                >
+                  <LayoutGrid size={15} />
+                </button>
+              </>
+            ) : (
+              <>
+                {entrada && (
+                  <div style={{ marginBottom: '2px' }}>
+                    <ChipEntrada entrada={entrada} transicion={transicion} />
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '8px', height: '8px', borderRadius: '50%',
+                    background: enVivo ? 'var(--success)' : 'var(--error)',
+                    boxShadow: `0 0 8px ${enVivo ? 'var(--success)' : 'var(--error)'}`,
+                    transition: transicion,
+                  }} />
+                  <span className="telemetria__pie" style={{ color: enVivo ? 'var(--success)' : 'var(--error)' }}>
+                    {enVivo ? t('telemetria.enVivo') : t('telemetria.sinSenal')}
+                  </span>
+                </div>
+                {/* Estos valores son las órdenes del operador. Si no hay robot
+                    conectado no las está recibiendo nadie, y hay que decirlo o el
+                    espectador creería que la unidad se está moviendo. Es una
+                    advertencia real, así que sí lleva el ámbar -- a diferencia de
+                    las lecturas normales de arriba. */}
+                {enVivo && !telemetria.robot && (
+                  <span className="telemetria__pie telemetria__pie--advertencia">{t('telemetria.sinRobotConectado')}</span>
+                )}
+
+                {/* La barra entera lleva pointerEvents:none para no estorbar al video,
+                    así que lo interactivo tiene que reactivarlo por su cuenta. */}
+                <button
+                  onClick={() => setMenuAbierto((v) => !v)}
+                  style={{
+                    pointerEvents: 'auto', cursor: 'pointer', alignSelf: 'flex-start',
+                    background: 'transparent', border: `1px solid ${menuAbierto ? 'var(--accent)' : 'var(--border)'}`,
+                    color: menuAbierto ? 'var(--accent)' : 'var(--muted)',
+                    borderRadius: '4px', padding: '4px 10px', marginTop: '2px',
+                    textTransform: 'uppercase',
+                  }}
+                  className="telemetria__accion"
+                >
+                  <LayoutGrid size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> {t('telemetria.widgets')}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

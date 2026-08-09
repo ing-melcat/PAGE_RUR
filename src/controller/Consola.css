@@ -1,3 +1,13 @@
+/* Medidas de las dos columnas del HUD, en un solo sitio y como variables
+   porque no solo las usan ellas: la barra de telemetría necesita saber
+   cuánto espacio ocupan para no invadirlo. Cuando el ancho vivía suelto
+   dentro de #left-panel/#right-panel, la barra no tenía forma de leerlo y
+   se permitía crecer hasta debajo de los botones. */
+.App {
+  --hud-columna: clamp(210px, 23vw, 300px);
+  --hud-margen: 28px;
+}
+
 .App-header {
   background-color: transparent;
   position: relative;
@@ -15,19 +25,27 @@
   align-items: stretch;
 }
 
+/* Hoy solo contiene #wheels, que va oculto. Fuera del flujo para que su
+   margen de 180px y su padding de 40px no sigan empujando el flex de
+   .controls-overlay (era parte de por qué las cajas quedaban corridas). */
 #container {
+  position: absolute;
+  top: 0;
+  left: 0;
   display: flex;
   flex-direction: column;
-  margin-top: 180px;
   justify-content: center;
-  padding: 40px;
   gap: 20px;
 }
 
+/* Va fijo a la ventana, no absoluto: su padre en el JSX es un div sin altura
+   propia dentro del flex de .controls-overlay, así que un `top: 30%` se
+   medía contra una caja de alto ~0 y el panel terminaba pegado arriba y
+   descentrado. Fijo al viewport queda donde dice el comentario original:
+   centrado, justo debajo del cabezal. */
 #liveconn {
-  position: absolute;
-  top: 30%;
-  /* debajo del cabezal */
+  position: fixed;
+  top: 110px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 5;
@@ -72,18 +90,33 @@
   }
 }
 
-/* Títulos de los segmentos */
+/* Títulos de los segmentos.
+   `width: 100%` + `text-align: left` explícitos porque varios segmentos son
+   flex column: sin esto el h3 se encogía a su texto y la línea inferior
+   quedaba a medio ancho, distinta en cada tarjeta. */
 .Datos h3 {
-  margin-top: 0;
+  margin: 0 0 14px 0;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
   color: var(--accent);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  line-height: 1.2;
   font-family: var(--font-ibm-mono), monospace;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
   border-bottom: 1px solid var(--border);
   padding-bottom: 10px;
 }
 
-.App button {
+/* Ojo con el `:not(.control-btn)`: este bloque agrandaba con `scale: 1.1`
+   TODOS los botones, incluidos los de brazos y tambores. Un `scale` no
+   reserva espacio en el layout, así que cada botón se dibujaba un 10% más
+   grande que su caja y se montaba sobre el vecino y sobre el borde de su
+   tarjeta — de ahí buena parte del efecto de "ventanas encimadas". El
+   `margin: 2%` (porcentaje del ancho del contenedor, distinto en cada
+   tarjeta) hacía lo suyo con la asimetría. */
+.App button:not(.control-btn) {
   margin: 2%;
   border-radius: 5px;
   scale: 1.1;
@@ -91,6 +124,11 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+}
+
+.App button.control-btn {
+  margin: 0;
+  transition: transform 0.1s ease-out, background-color 0.1s ease-out;
 }
 
 @media (hover: hover) {
@@ -248,15 +286,31 @@ div#container>.Datos {
 }
 
 
+/* Las tarjetas del HUD lateral: título arriba pegado al borde y contenido
+   centrado debajo. `stretch` en vez de `center` para que el título y su
+   línea ocupen todo el ancho de la tarjeta igual que en BRAZOS/TAMBORES —
+   con `center` el bloque se encogía a su contenido y cada tarjeta salía de
+   un ancho distinto. */
 #joystick,
-#status {
+#status,
+#camera-joystick {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: flex-start;
   width: 100%;
   margin: 0;
-  min-height: 230px;
+  min-height: 0;
+}
+
+/* El contenido bajo el título se reparte el alto sobrante y se centra ahí,
+   en lugar de que el título flote junto con él a media tarjeta. */
+#joystick > *:not(h3),
+#camera-joystick > *:not(h3) {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #status .status-content {
@@ -273,68 +327,137 @@ div#container>.Datos {
   width: 100%;
 }
 
+/* Dentro de ESTADO son subtítulos, no títulos de tarjeta: más chicos y sin
+   la línea amarilla completa, para que las tres secciones no compitan con
+   el título de las tarjetas vecinas. */
 #status .status-section h3 {
   width: 100%;
   text-align: left;
-  margin-bottom: 5px;
+  margin: 0 0 6px 0;
+  padding-bottom: 4px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  border-bottom: none;
 }
 
+/* Etiqueta a la izquierda, valor pegado al borde derecho: con
+   `auto 1fr` y la etiqueta alineada a la derecha, ambas columnas
+   quedaban apiñadas contra el centro de la tarjeta y sobraba un hueco
+   enorme a la derecha. Ahora es una tabla de lectura, alineada con los
+   bordes de la tarjeta. */
 #status .telemetry-grid {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 1fr auto;
   column-gap: 15px;
-  row-gap: 5px;
+  row-gap: 6px;
   width: 100%;
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 #status .telemetry-grid .label {
   color: var(--muted);
-  text-align: right;
+  text-align: left;
 }
 
 #status .telemetry-grid .value {
   color: var(--text);
   font-weight: bold;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Lecturas de ESTADO. Van al tamaño de un dato, no al del cuerpo de texto:
+   heredando 1rem, "FUERA DE LÍNEA - Desconectado" se partía en dos renglones
+   y la tarjeta crecía hasta empujar a CONTROL DE CÁMARA fuera de la pantalla.
+   El verde y el rojo puros se cambian por los tokens del sitio: #00ff00 sobre
+   el navy institucional vibra y no es de la paleta. */
+#status .text-ok,
+#status .text-err {
+  margin: 0;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.95rem;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
 }
 
 #status .text-ok {
-  color: #00ff00;
-  margin: 0;
-  font-family: var(--font-ibm-mono), monospace;
+  color: var(--success);
 }
 
 #status .text-err {
-  color: #ff3333;
-  margin: 0;
-  font-family: var(--font-ibm-mono), monospace;
+  color: var(--error);
+}
+
+/* ==================================================================
+   Columnas del HUD (izquierda: brazos + joystick, derecha: tambores +
+   estado + cámara).
+
+   Las dos comparten TODAS las medidas a propósito: mismo ancho, mismo
+   gap, mismo tope de alto. Antes cada columna se dimensionaba sola con
+   `fit-content`, así que las tarjetas de un lado no coincidían con las
+   del otro ni entre sí; y sin `gap` quedaban pegadas borde con borde,
+   con las esquineras de mira (::before/::after, desplazadas -4px) de una
+   tarjeta montadas encima de la vecina.
+
+   El tope de alto deja libres el cabezal arriba y la barra de telemetría
+   abajo: al sumarse la tarjeta de cámara, la columna derecha ya no cabía
+   en pantallas bajas y se metía debajo del cabezal.
+   ================================================================== */
+#left-panel,
+#right-panel {
+  position: fixed;
+  bottom: 32px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  /* `min-width: fit-content` es la válvula de escape del ancho fijo: en
+     mobile la tarjeta del joystick lleva DOS mandos lado a lado
+     (movimiento + cámara) y no caben en el ancho de la columna. Antes que
+     recortarlos, la columna crece lo justo. */
+  width: var(--hud-columna);
+  min-width: fit-content;
+  max-height: calc(100dvh - 190px);
+  /* Padding + scroll: el padding evita que las esquineras de mira, que
+     salen 4px fuera de la tarjeta, se recorten contra el borde del
+     contenedor cuando el scroll entra en juego. */
+  padding: 4px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #left-panel {
-  display: flex;
-  z-index: 10;
-  flex-direction: column;
-  align-items: center;
-  position: fixed;
-  bottom: 35px;
-  left: 35px;
-  width: fit-content;
-  user-select: none;
-  -webkit-user-select: none;
+  left: var(--hud-margen);
 }
 
-
 #right-panel {
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: fixed;
-  bottom: 35px;
-  right: 35px;
-  user-select: none;
-  -webkit-user-select: none;
+  right: var(--hud-margen);
+}
+
+/* Los envoltorios .arms / .drums solo llevan la opacidad; sin esto se
+   encogían a su contenido y su tarjeta salía más angosta que la de
+   abajo dentro de la misma columna. */
+#left-panel > *,
+#right-panel > * {
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+/* ESTADO es la única tarjeta que puede ceder alto sin recortar nada: su
+   contenido es texto y le sobra aire, mientras que las de botones y las de
+   joystick tienen un tamaño mínimo real. Recibe un `height` en línea desde
+   el JSX para igualar al joystick de enfrente, así que se marca encogible
+   para que en pantallas bajas ceda ella antes de que aparezca el scroll. */
+#right-panel #status {
+  flex: 0 1 auto;
+  min-height: 160px;
 }
 
 
@@ -344,6 +467,173 @@ div#container>.Datos {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* ------------------------------------------------------------------
+   Compacidad de las tarjetas del HUD lateral.
+
+   El `min-height: 180px` de .Datos está pensado para las tarjetas
+   sueltas del centro (#connection, #wheels); apilado tres veces en la
+   columna derecha —tambores, estado y cámara— obligaba a la columna a
+   medir más que la pantalla. Aquí manda el contenido.
+   ------------------------------------------------------------------ */
+#left-panel .Datos,
+#right-panel .Datos {
+  min-height: 0;
+  padding: 16px;
+}
+
+#left-panel .arm-controls,
+#right-panel .drum-controls {
+  gap: 12px;
+}
+
+#left-panel .arm-group,
+#right-panel .drum-group {
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+}
+
+/* Pantallas bajas (portátiles 768px, tablets en horizontal): la columna
+   derecha lleva tres tarjetas, así que se aprieta lo que se puede antes
+   de que aparezca el scroll de seguridad. */
+@media (max-height: 860px) {
+  #left-panel,
+  #right-panel {
+    gap: 12px;
+    bottom: 20px;
+    max-height: calc(100dvh - 150px);
+  }
+
+  #left-panel .Datos,
+  #right-panel .Datos {
+    padding: 12px 14px;
+  }
+
+  #left-panel .Datos h3,
+  #right-panel .Datos h3 {
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    padding-bottom: 7px;
+  }
+
+  #left-panel .control-btn,
+  #right-panel .control-btn {
+    width: 60px;
+    height: 48px;
+    font-size: 1.4rem;
+  }
+
+  #status .status-content {
+    gap: 10px;
+  }
+}
+
+/* Pantallas de verdad bajas (ventana a media altura, portátiles HiDPI,
+   teléfonos en horizontal). Con menos de ~720px de alto, entre el cabezal
+   y la franja de telemetría quedan unos 500px para tres tarjetas: aquí ya
+   no basta con apretar los márgenes, hay que bajar la escala de todo,
+   incluido el joystick de cámara —cuyo tamaño se fija en el JSX y por eso
+   se reduce con un scale, que además encoge su área táctil en la misma
+   proporción y mantiene la relación entre dedo y control. */
+@media (max-height: 720px) {
+  .App {
+    --hud-columna: clamp(190px, 20vw, 240px);
+    --hud-margen: 20px;
+  }
+
+  #left-panel,
+  #right-panel {
+    gap: 8px;
+    bottom: 14px;
+    max-height: calc(100dvh - 120px);
+  }
+
+  #left-panel .Datos,
+  #right-panel .Datos {
+    padding: 9px 11px;
+  }
+
+  #left-panel .Datos h3,
+  #right-panel .Datos h3 {
+    font-size: 0.78rem;
+    margin-bottom: 7px;
+    padding-bottom: 5px;
+  }
+
+  /* Los botones bajan de tamaño de dibujo, no de área tocable: el bloque
+     `pointer: coarse` de más abajo les pone un suelo de 56x48 que gana a
+     esto. Con dedo, el alto que falta se lo quitamos a los márgenes y los
+     títulos, nunca al blanco al que hay que apuntar. */
+  #left-panel .control-btn,
+  #right-panel .control-btn {
+    width: 56px;
+    height: 44px;
+    font-size: 1.2rem;
+  }
+
+  #left-panel .arm-group,
+  #right-panel .drum-group {
+    gap: 6px;
+    padding: 7px;
+  }
+
+  #left-panel .arm-group h4,
+  #right-panel .drum-group h4 {
+    font-size: 0.72rem;
+  }
+
+  #status .status-content {
+    gap: 6px;
+  }
+
+  #status .status-section h3 {
+    font-size: 0.64rem;
+    margin-bottom: 3px;
+    padding-bottom: 2px;
+  }
+
+  #status .text-ok,
+  #status .text-err {
+    font-size: 0.8rem;
+  }
+
+  #status .telemetry-grid {
+    font-size: 0.8rem;
+    row-gap: 3px;
+  }
+
+  #right-panel #status {
+    min-height: 0;
+  }
+
+  /* El joystick de cámara ya NO se encoge aquí: es el gemelo del de
+     movimiento en la columna de enfrente, y reducir solo uno de los dos
+     descuadra la rejilla. Cuando la columna derecha llevaba tres tarjetas
+     había que sacarle alto a algo; hoy son dos por lado y las dos columnas
+     miden lo mismo, así que si cabe una cabe la otra. */
+}
+
+/* ------------------------------------------------------------------
+   Suelo táctil.
+
+   Va después de los escalones por alto y a propósito: en un dispositivo
+   que se maneja con el dedo, el tamaño del botón no es una variable de
+   diseño que se pueda sacrificar para ganar espacio. 48px de alto es el
+   mínimo recomendado para un objetivo táctil, y estos botones se
+   mantienen presionados mientras el robot se mueve — fallar el objetivo
+   a media maniobra es peor que quedarse sin sitio para un título.
+
+   `pointer: coarse` acierta donde `max-width` fallaba: distingue el dedo
+   del ratón, no el tamaño de la pantalla.
+   ------------------------------------------------------------------ */
+@media (pointer: coarse) {
+  .control-btn {
+    min-width: 56px;
+    min-height: 48px;
+  }
 }
 
 
