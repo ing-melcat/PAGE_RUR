@@ -12,6 +12,15 @@
 
 export const TOPIC_TELEMETRIA = 'telemetria';
 
+// Canal por el que el ROBOT publica sus propios sensores, separado del de
+// arriba a propósito: en `telemetria` viaja lo que el operador ORDENA y aquí
+// lo que la máquina MIDE. Mezclarlos haría imposible compararlos, que es
+// justo la lectura que dice si el robot está respondiendo o está atascado.
+//
+// Todavía no lo publica nadie: el contrato está especificado en
+// docs/TELEMETRIA_ROBOT.md, a la espera de la implementación en el robot.
+export const TOPIC_TELEMETRIA_ROBOT = 'telemetria_robot';
+
 // El operador reenvía el estado completo cada 100 ms. Si dejan de llegar
 // paquetes es que soltó los controles o se desconectó; sin este corte los
 // últimos valores se quedarían congelados en pantalla como si siguiera
@@ -65,6 +74,43 @@ export function decodificarTelemetria(payload) {
       // recibiendo nadie. El espectador tiene que poder distinguirlo.
       robot: Boolean(datos.robot),
     };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Decodifica un paquete de los SENSORES del robot (topic
+ * TOPIC_TELEMETRIA_ROBOT). Contrato completo en docs/TELEMETRIA_ROBOT.md.
+ *
+ * La regla que gobierna esta función: **un bloque ausente se queda ausente**.
+ * No se rellenan huecos con ceros ni con objetos vacíos, porque quien pinta
+ * necesita distinguir "este robot no tiene IMU" de "está perfectamente
+ * nivelado". Un cero inventado convierte la interfaz en algo que afirma
+ * cosas falsas delante del público.
+ *
+ * Devuelve null si el paquete no es válido o es de una versión que esta
+ * interfaz no entiende, para que quien llame simplemente lo ignore.
+ */
+export function decodificarTelemetriaRobot(payload) {
+  try {
+    const datos = JSON.parse(new TextDecoder().decode(payload));
+    if (!datos || datos.v !== 1) return null;
+
+    const resultado = {
+      // Reloj monotónico del robot, en ms desde su arranque. Sirve para
+      // ordenar paquetes y, más adelante, para retrasar la telemetría hasta
+      // casarla con la latencia del vídeo (ver §5 del contrato).
+      t: typeof datos.t === 'number' ? datos.t : null,
+    };
+
+    for (const bloque of ['velocidad', 'odometria', 'bateria', 'imu', 'actuadores', 'temperatura', 'estado']) {
+      if (datos[bloque] && typeof datos[bloque] === 'object') {
+        resultado[bloque] = datos[bloque];
+      }
+    }
+
+    return resultado;
   } catch {
     return null;
   }
