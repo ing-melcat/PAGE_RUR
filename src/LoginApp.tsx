@@ -3,6 +3,7 @@ import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { Loader2, CheckCircle, ChevronDown, ChevronUp, Globe, Lock, Upload, TriangleAlert, Star, Eye, EyeOff, Languages } from "lucide-react";
 import "./index.css";
 import { RobotSelection } from "./controller/RobotSelection";
+import { ModeSelect } from "./controller/ModeSelect";
 import { apiFetch } from "./lib/apiClient";
 import { sanitizeHtml } from "./lib/sanitizeHtml";
 import { useLanguage } from "./lib/i18n";
@@ -541,6 +542,10 @@ export default function App() {
   // Nada de estado en el navegador, tampoco el de navegación: al recargar se
   // arranca en login y /api/me decide a dónde se va, según la sesión real.
   const [view, setView] = useState("login");
+  // Elegido en ModeSelect antes de entrar a la consola ("modo_control"),
+  // para que ControllerApp arranque ya configurada. 'manual' por defecto:
+  // modo VR todavía no es seleccionable (sin Vive físico para probarlo).
+  const [controlMode, setControlMode] = useState("manual");
   // El usuario no se cachea en el navegador: la fuente de verdad es la base y
   // se pregunta por ella en /api/me. Antes se hidrataba desde localStorage
   // para evitar el parpadeo inicial, pero eso dejaba una copia del perfil y
@@ -1500,7 +1505,7 @@ export default function App() {
                   onBack={() => setView("dashboard")}
                   onSelectRobot={(robot) => {
                     setLivekitToken(robot); // We repurpose this state to hold the entire robot object
-                    setView("controles");
+                    setView("modo_control");
                   }}
                   onAddRobot={(newRobot) => {
                     setRobots(prev => [...prev, newRobot]);
@@ -1540,6 +1545,18 @@ export default function App() {
             );
           })()}
 
+          {view === "modo_control" && user && hasRole(user, "operador", "admin") && (
+            <motion.section key="modo_control" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
+              <ModeSelect
+                onBack={() => setView("robot_selection")}
+                onSelectMode={(modo: string) => {
+                  setControlMode(modo);
+                  setView("controles");
+                }}
+              />
+            </motion.section>
+          )}
+
           {view === "controles" && livekitToken && (
             <motion.section key="controller" className="controller-view" {...pageTransition}>
               <Suspense fallback={
@@ -1548,10 +1565,11 @@ export default function App() {
                   <h2 style={{ fontFamily: 'var(--font-ibm-mono)', margin: 0 }}>{t('dashboard.inicializandoConsola')}</h2>
                 </div>
               }>
-                <ControllerApp 
-                  onBack={() => setView("robot_selection")} 
+                <ControllerApp
+                  onBack={() => setView("modo_control")}
                   robot={livekitToken}
                   controlMappings={user.control_mappings}
+                  mode={controlMode}
                 />
               </Suspense>
             </motion.section>
