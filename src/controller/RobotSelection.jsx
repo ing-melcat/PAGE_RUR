@@ -35,6 +35,11 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
             DrumFrontCw: "KeyR", DrumFrontCcw: "KeyF", DrumBackCw: "KeyT", DrumBackCcw: "KeyG"
         }
     });
+    // Nombre de la acción (ej. "ArmFrontUp") que está esperando la siguiente
+    // tecla que se presione, o null si no se está capturando ninguna. Así el
+    // operador ya no tiene que saber de memoria el nombre de `event.code`
+    // ("KeyW", "ArrowUp", etc.) para escribirlo a mano.
+    const [capturandoTecla, setCapturandoTecla] = useState(null);
 
     // We use props.controlMappings instead of local user since we are not directly holding user here, wait I need to add controlMappings and onUpdateMappings to the component props:
 
@@ -59,6 +64,43 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
             }));
         }
     }, [controlMappings]);
+
+    // Si se cierra el modal a medio capturar (clic afuera, Cancelar), no debe
+    // quedar un listener de teclado colgado esperando en el resto de la
+    // página.
+    useEffect(() => {
+        if (!showMappingsModal) setCapturandoTecla(null);
+    }, [showMappingsModal]);
+
+    // Mientras `capturandoTecla` tiene una acción, la siguiente tecla que se
+    // presione en toda la ventana se guarda como su mapeo -- Escape cancela
+    // sin cambiar nada. preventDefault() evita que la tecla capturada, de
+    // paso, haga scroll o dispare algún atajo del navegador.
+    useEffect(() => {
+        if (!capturandoTecla) return;
+        const alPresionar = (e) => {
+            e.preventDefault();
+            if (e.code === 'Escape') {
+                setCapturandoTecla(null);
+                return;
+            }
+            setMappingForm(prev => ({
+                ...prev,
+                keyboard: { ...prev.keyboard, [capturandoTecla]: e.code },
+            }));
+            setCapturandoTecla(null);
+        };
+        window.addEventListener('keydown', alPresionar);
+        return () => window.removeEventListener('keydown', alPresionar);
+    }, [capturandoTecla]);
+
+    // "KeyW" -> "W", "Digit1" -> "1", "ArrowUp" se queda igual: para que el
+    // botón muestre algo legible en vez del nombre crudo de event.code.
+    const formatearTecla = (codigo) => {
+        if (!codigo) return '—';
+        const conPrefijo = codigo.match(/^(Key|Digit)(.+)$/);
+        return conPrefijo ? conPrefijo[2] : codigo;
+    };
 
     // Sync formData when configRobot changes
     useEffect(() => {
@@ -324,14 +366,33 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                         {Object.keys(mappingForm[type]).map(action => (
                                             <label key={action} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                                 <span style={S.label}>{action.replace(/([A-Z])/g, ' $1').trim()}</span>
-                                                <input 
-                                                    type="text" 
-                                                    value={mappingForm[type][action]} 
-                                                    onChange={e => setMappingForm(prev => ({
-                                                        ...prev, [type]: { ...prev[type], [action]: e.target.value.toUpperCase() }
-                                                    }))}
-                                                    style={S.input}
-                                                />
+                                                {type === 'keyboard' ? (
+                                                    // Sin escribir el código a mano: se toca el botón y se
+                                                    // presiona la tecla que se quiera asignar.
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setCapturandoTecla(action)}
+                                                        title={t('operador.seleccion.cambiarTecla')}
+                                                        style={{
+                                                            ...S.input, textAlign: 'left', cursor: 'pointer',
+                                                            color: capturandoTecla === action ? 'var(--accent)' : 'var(--text)',
+                                                            borderColor: capturandoTecla === action ? 'var(--accent)' : 'var(--border)',
+                                                        }}
+                                                    >
+                                                        {capturandoTecla === action
+                                                            ? t('operador.seleccion.presionaTecla')
+                                                            : formatearTecla(mappingForm.keyboard[action])}
+                                                    </button>
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        value={mappingForm[type][action]}
+                                                        onChange={e => setMappingForm(prev => ({
+                                                            ...prev, [type]: { ...prev[type], [action]: e.target.value.toUpperCase() }
+                                                        }))}
+                                                        style={S.input}
+                                                    />
+                                                )}
                                             </label>
                                         ))}
                                     </div>
