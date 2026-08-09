@@ -25,10 +25,30 @@ export const loginIpLimiter = rateLimit({
   }),
 });
 
-const attempts = new Map(); // matricula -> { failCount, lockedUntil }
+const attempts = new Map(); // matricula -> { failCount, lockedUntil, lastFailureAt }
 const MAX_FAILS_BEFORE_LOCK = 5;
 const BASE_LOCK_MS = 30 * 1000; // 30s, se duplica por cada fallo adicional
 const MAX_LOCK_MS = 15 * 60 * 1000; // tope de 15 min
+
+// Sin esto el Map crece sin límite: cualquiera que pruebe matrículas
+// aleatorias e inexistentes deja una entrada por siempre (solo se borra en
+// recordSuccess, que nunca llega para una cuenta que no existe). Se purgan
+// las entradas que ya no están bloqueadas y llevan un rato sin fallar; las
+// que siguen bloqueadas, o fallaron hace poco, se conservan tal cual.
+const PURGA_INTERVALO_MS = 10 * 60 * 1000; // cada 10 min
+const PURGA_INACTIVIDAD_MS = 30 * 60 * 1000; // sin fallos en los últimos 30 min
+
+const purgaTimer = setInterval(() => {
+  const ahora = Date.now();
+  for (const [matricula, entry] of attempts) {
+    const sigueBloqueada = entry.lockedUntil && ahora < entry.lockedUntil;
+    if (!sigueBloqueada && ahora - entry.lastFailureAt > PURGA_INACTIVIDAD_MS) {
+      attempts.delete(matricula);
+    }
+  }
+}, PURGA_INTERVALO_MS);
+// No debe mantener vivo el proceso solo por este timer de limpieza.
+purgaTimer.unref?.();
 
 export function isLocked(matricula) {
   const entry = attempts.get(matricula);
@@ -44,8 +64,9 @@ export function lockedRemainingMs(matricula) {
 }
 
 export function recordFailure(matricula) {
-  const entry = attempts.get(matricula) ?? { failCount: 0, lockedUntil: 0 };
+  const entry = attempts.get(matricula) ?? { failCount: 0, lockedUntil: 0, lastFailureAt: 0 };
   entry.failCount += 1;
+  entry.lastFailureAt = Date.now();
   if (entry.failCount >= MAX_FAILS_BEFORE_LOCK) {
     const extraFails = entry.failCount - MAX_FAILS_BEFORE_LOCK;
     const lockMs = Math.min(BASE_LOCK_MS * 2 ** extraFails, MAX_LOCK_MS);

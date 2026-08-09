@@ -8,6 +8,10 @@ import { getPool } from '../shared/db.js';
 
 const LIBRETRANSLATE_URL = process.env.LIBRETRANSLATE_URL || 'http://libretranslate:5000';
 const IDIOMA_ORIGEN = 'es';
+// Un post con muchos párrafos dispara una petición por nodo de texto, todas
+// en paralelo (ver traducirHtml). Sin timeout, un LibreTranslate que no
+// responde deja colgadas todas esas conexiones a la vez.
+const TIMEOUT_LIBRETRANSLATE_MS = 5000;
 
 const pool = getPool();
 
@@ -27,11 +31,19 @@ async function traducirTexto(texto, destino) {
     ? texto.charAt(0) + texto.slice(1).toLowerCase()
     : texto;
 
-  const res = await fetch(`${LIBRETRANSLATE_URL}/translate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ q: textoParaTraducir, source: IDIOMA_ORIGEN, target: destino, format: 'text' }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_LIBRETRANSLATE_MS);
+  let res;
+  try {
+    res = await fetch(`${LIBRETRANSLATE_URL}/translate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q: textoParaTraducir, source: IDIOMA_ORIGEN, target: destino, format: 'text' }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
   if (!res.ok) throw new Error(`LibreTranslate respondió ${res.status}`);
   const data = await res.json();
   const traducido = typeof data.translatedText === 'string' ? data.translatedText : texto;
