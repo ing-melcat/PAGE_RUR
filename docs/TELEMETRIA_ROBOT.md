@@ -3,6 +3,10 @@
 Documento para el **área de hardware**. Define qué debe publicar el robot para
 que la interfaz web lo muestre, en qué formato y con qué frecuencia.
 
+> Esto cubre **solo la telemetría de sensores**. Para el resto de la
+> integración —conexión, identidad, comandos de control, vídeo, watchdog de
+> seguridad y reconexión— ver [`INTEGRACION_ROBOT.md`](./INTEGRACION_ROBOT.md).
+
 El objetivo es cerrar el contrato **antes** de escribir el firmware, para que
 ninguna de las dos partes tenga que rehacer trabajo. Si algo de aquí no es
 viable con el hardware previsto, decidlo cuanto antes: es más barato cambiar
