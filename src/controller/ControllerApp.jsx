@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import './Consola.css';
-import { RotateCcw, RotateCw } from 'lucide-react';
+import { RotateCcw, RotateCw, Loader2 } from 'lucide-react';
 import { Segment } from './Segment';
 import { Cabezal } from './Cabezal';
 import { VideoViewer } from './VideoViewer';
@@ -14,6 +14,11 @@ import { StatusHUD } from './components/StatusHUD';
 import { BarraTelemetria } from './components/BarraTelemetria';
 import { TOPIC_TELEMETRIA } from './telemetria';
 import { useLanguage } from '../lib/i18n';
+
+// three.js + @react-three/xr son pesados y solo hacen falta en modo VR, así
+// que van en su propio chunk -- el modo manual (el único usable hoy) no
+// paga ese peso.
+const VRConsole = lazy(() => import('./VRConsole').then((m) => ({ default: m.VRConsole })));
 
 const TOPIC = 'control';
 const SERVER_URL = import.meta.env.VITE_LIVEKIT_URL || "wss://rur-livekit-server-8b010r3b.livekit.cloud";
@@ -114,14 +119,26 @@ const MAPEO_ACCIONES = [
 // Mismos valores por defecto que RobotSelection.jsx: si el operador nunca
 // abrió el modal de configuración, control_mappings llega vacío/nulo y se
 // usan estos.
+//
+// En mando, los brazos ya NO son bindeables aquí: LT/RT (gatillos) quedan
+// reservados por el sistema para subir/bajar el brazo de esa mano moviendo
+// el propio stick (ver pollGamepad), así que solo quedan las 4 acciones de
+// tambor, repartidas en los botones que el esquema de gatillos deja libres.
+// Teclado no tiene gatillos analógicos, así que conserva sus 8 teclas tal
+// cual.
 const MAPEO_GAMEPAD_DEFECTO = {
-  ArmFrontUp: 'Y', ArmFrontDown: 'X', ArmBackUp: 'RB', ArmBackDown: 'RT',
-  DrumFrontCw: 'A', DrumFrontCcw: 'B', DrumBackCw: 'LB', DrumBackCcw: 'LT',
+  DrumFrontCw: 'Y', DrumFrontCcw: 'X', DrumBackCw: 'B', DrumBackCcw: 'A',
 };
 const MAPEO_TECLADO_DEFECTO = {
   ArmFrontUp: 'KeyW', ArmFrontDown: 'KeyS', ArmBackUp: 'KeyE', ArmBackDown: 'KeyD',
   DrumFrontCw: 'KeyR', DrumFrontCcw: 'KeyF', DrumBackCw: 'KeyT', DrumBackCcw: 'KeyG',
 };
+
+// Índices de botón W3C de los gatillos analógicos (LT/RT), reservados por el
+// esquema de gatillo+stick: mientras se sostienen, el stick de esa misma
+// mano deja de mover el robot y pasa a subir/bajar el brazo correspondiente.
+const INDICE_LT = 6;
+const INDICE_RT = 7;
 
 // El modal guarda nombres de botón de mando estándar (Xbox), no índices.
 // Este es el orden del "standard gamepad mapping" del W3C, el mismo que ya
@@ -176,7 +193,7 @@ function construirTelemetria({ avance: ejeAvance, giro: ejeGiro }, actuadoresInt
   };
 }
 
-export default function ControllerApp({ onBack, robot, controlMappings }) {
+export default function ControllerApp({ onBack, robot, controlMappings, mode = 'manual' }) {
   const { t } = useLanguage();
   const [isMobile] = useState(window.innerWidth <= 932);
   const [visible, setVisible] = useState(true);
@@ -204,8 +221,16 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
 
   const [hasGamepad, setHasGamepad] = useState(false);
   const [forceMobileMode, setForceMobileMode] = useState(false);
-  
+
   const gamepadStateRef = useRef({ x: 0, y: 0, buttons: {} });
+  // Estado del esquema de gatillo+stick: qué gatillo está sostenido y qué
+  // acción de brazo quedó encendida por última vez, para solo llamar a
+  // handleAction en los cruces (igual que checkButton con un botón normal).
+  const gatilloArmRef = useRef({
+    lt: false, rt: false,
+    armFront: null, // 'Up' | 'Down' | null
+    armBack: null,
+  });
   const roomRef = useRef(null);
   const isConnectedRef = useRef(false);
 
@@ -324,8 +349,17 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
     const mapeo = { ...MAPEO_GAMEPAD_DEFECTO, ...(controlMappings?.gamepad || {}) };
     const porIndice = {};
     for (const { clave, component, action } of MAPEO_ACCIONES) {
+      // Los brazos ya no son bindeables en mando (los maneja el esquema de
+      // gatillo+stick de pollGamepad); si un perfil viejo trae una
+      // configuración de antes de este cambio, se ignora aquí en vez de
+      // arrastrarla.
+      if (clave.startsWith('Arm')) continue;
       const indice = GAMEPAD_BOTON_INDICE[mapeo[clave]];
-      if (indice != null) porIndice[indice] = { component, action };
+      // Índices 6/7 (LT/RT) quedan reservados por el sistema para los
+      // gatillos, sin importar lo que diga un mapeo guardado.
+      if (indice != null && indice !== INDICE_LT && indice !== INDICE_RT) {
+        porIndice[indice] = { component, action };
+      }
     }
     return porIndice;
   }, [controlMappings]);
@@ -386,10 +420,67 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
     sendPacketNow(stopPkt);
   }, [buildPacket, sendPacketNow])
 
+  // ---------------------------------------------------------------------------
+  // Joystick de cámara (pan/tilt), solo en modo manual
+  //
+  // Mismo patrón dead-man's switch que el joystick de movimiento (una bandera
+  // que el tick maestro recoge, no un setInterval propio), pero mandando JSON
+  // en vez del paquete binario de 12 bytes: robot_receiver_prod.py distingue
+  // movimiento de comandos por el TAMAÑO del payload (12 bytes exactos =
+  // movimiento), así que la cámara tiene que ir por el camino JSON o se
+  // leería como telemetría de movimiento por error. Sin hardware conectado
+  // todavía esto es protocolo-listo/no-op del lado del robot.
+  // ---------------------------------------------------------------------------
+  const cameraPosRef = useRef({ pan: 0, tilt: 0 });
+  const cameraActiveRef = useRef(false);
+
+  const sendCameraPacketNow = useCallback((pan, tilt) => {
+    if (!roomRef.current || !isConnectedRef.current) return;
+    const destinos = identidadesDeRobots(roomRef.current);
+    if (destinos.length === 0) return;
+    try {
+      const data = new TextEncoder().encode(JSON.stringify({ component: 'Camera', pan, tilt }));
+      roomRef.current.localParticipant.publishData(data, {
+        topic: TOPIC,
+        // Igual que el joystick de movimiento: 10 paquetes por segundo con
+        // la posición completa, una pérdida se corrige sola 100ms después.
+        reliable: false,
+        destinationIdentities: destinos,
+      });
+    } catch (err) {
+      console.error('Error sending camera data:', err);
+    }
+  }, []);
+
+  const startCameraContinuousSend = useCallback(() => {
+    cameraActiveRef.current = true;
+  }, []);
+
+  const stopCameraContinuousSend = useCallback(() => {
+    cameraActiveRef.current = false;
+    sendCameraPacketNow(0, 0);
+  }, [sendCameraPacketNow]);
+
+  const handleCameraMove = useCallback((pan, tilt) => {
+    const deadZone = 0.05;
+    const applyDeadZone = (v) => Math.abs(v) < deadZone ? 0 : v;
+    const deadPan = applyDeadZone(pan);
+    const deadTilt = applyDeadZone(tilt);
+
+    cameraPosRef.current = { pan: deadPan, tilt: deadTilt };
+
+    if (Math.abs(deadPan) > 0 || Math.abs(deadTilt) > 0) {
+      startCameraContinuousSend();
+    } else {
+      stopCameraContinuousSend();
+    }
+  }, [startCameraContinuousSend, stopCameraContinuousSend]);
+
   // Tick maestro único a 100ms: antes había tres setInterval de 100ms
   // desalineados (botones mantenidos, telemetría, reenvío del joystick),
   // cada uno recalculando identidadesDeRobots() y publicando por su cuenta.
-  // Un solo timer que arma y despacha los tres reduce jitter y basura de GC.
+  // Un solo timer que arma y despacha los cuatro reduce jitter y basura de GC
+  // (el joystick de cámara se suma aquí en vez de traer su propio timer).
   useEffect(() => {
     const tickMaestro = setInterval(() => {
       // 1. Botones mantenidos: reenvío continuo de cada comando activo.
@@ -423,10 +514,16 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
         const { x, y } = joystickPosRef.current;
         sendPacketNow(buildPacket(x, y));
       }
+
+      // 4. Reenvío continuo del joystick de cámara (mismo dead-man's switch).
+      if (cameraActiveRef.current) {
+        const { pan, tilt } = cameraPosRef.current;
+        sendCameraPacketNow(pan, tilt);
+      }
     }, PERIODO_TELEMETRIA_MS);
 
     return () => clearInterval(tickMaestro);
-  }, [buildPacket, sendPacketNow]);
+  }, [buildPacket, sendPacketNow, sendCameraPacketNow]);
 
   // Las tres entradas —táctil, teclado y mando— entregan ya lo mismo: -1..1,
   // con x de avance e y de giro. Antes cada una traía su propia escala y su
@@ -480,25 +577,81 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
           const gp = gamepads[i];
           if (gp) {
             const deadZone = 0.15;
-            let lx = gp.axes[0] || 0;
-            let ly = gp.axes[1] || 0;
-            if (Math.abs(lx) < deadZone) lx = 0;
-            if (Math.abs(ly) < deadZone) ly = 0;
 
-            // En -1..1 y con el mismo orden que el joystick táctil: primero el
-            // avance, luego el giro. Antes iba en -100..100 y con los ejes al
-            // revés, así que con mando el robot recibía el giro donde esperaba
-            // el avance, y cien veces más grande de lo que manda el táctil.
-            const x = -ly;
-            const y = lx;
+            // --- Gatillo + stick: mientras se sostiene LT/RT, el stick de esa
+            // misma mano deja de mover el robot y sube/baja el brazo
+            // correspondiente en su lugar. RT usa el stick DERECHO, que el
+            // movimiento nunca lee, así que sostenerlo no afecta la
+            // conducción; LT comparte el stick izquierdo con el movimiento,
+            // así que sostenerlo sí lo congela.
+            const gatillo = gatilloArmRef.current;
+            const ltPresionado = Boolean(gp.buttons[INDICE_LT]?.pressed);
+            const rtPresionado = Boolean(gp.buttons[INDICE_RT]?.pressed);
 
-            if (x !== gamepadStateRef.current.x || y !== gamepadStateRef.current.y) {
-              if (!hasGamepad && (Math.abs(x) > 0 || Math.abs(y) > 0)) {
-                setHasGamepad(true);
+            if ((ltPresionado || rtPresionado) && !hasGamepad) {
+              setHasGamepad(true);
+            }
+
+            if (ltPresionado && !gatillo.lt) {
+              // Frenar una sola vez al tomar el gatillo, no en cada frame.
+              handleMove(0, 0);
+              gamepadStateRef.current.x = 0;
+              gamepadStateRef.current.y = 0;
+            }
+            gatillo.lt = ltPresionado;
+            gatillo.rt = rtPresionado;
+
+            const aplicarBrazoPorStick = (ejeY, brazoActualClave, component) => {
+              let ay = gp.axes[ejeY] || 0;
+              if (Math.abs(ay) < deadZone) ay = 0;
+              // Empujar el stick hacia arriba es eje negativo (misma
+              // convención que ya usa el movimiento: ly=-1 es "adelante").
+              const nuevaAccion = ay < 0 ? 'Up' : ay > 0 ? 'Down' : null;
+              if (nuevaAccion !== gatillo[brazoActualClave]) {
+                if (gatillo[brazoActualClave]) handleAction(component, gatillo[brazoActualClave], false);
+                if (nuevaAccion) handleAction(component, nuevaAccion, true);
+                gatillo[brazoActualClave] = nuevaAccion;
               }
-              handleMove(x, y);
-              gamepadStateRef.current.x = x;
-              gamepadStateRef.current.y = y;
+            };
+
+            if (ltPresionado) {
+              aplicarBrazoPorStick(1, 'armFront', 'ArmFront');
+            } else if (gatillo.armFront) {
+              handleAction('ArmFront', gatillo.armFront, false);
+              gatillo.armFront = null;
+            }
+
+            if (rtPresionado) {
+              aplicarBrazoPorStick(3, 'armBack', 'ArmBack');
+            } else if (gatillo.armBack) {
+              handleAction('ArmBack', gatillo.armBack, false);
+              gatillo.armBack = null;
+            }
+
+            // El stick izquierdo solo mueve el robot cuando no está prestado
+            // al brazo delantero.
+            if (!ltPresionado) {
+              let lx = gp.axes[0] || 0;
+              let ly = gp.axes[1] || 0;
+              if (Math.abs(lx) < deadZone) lx = 0;
+              if (Math.abs(ly) < deadZone) ly = 0;
+
+              // En -1..1 y con el mismo orden que el joystick táctil: primero
+              // el avance, luego el giro. Antes iba en -100..100 y con los
+              // ejes al revés, así que con mando el robot recibía el giro
+              // donde esperaba el avance, y cien veces más grande de lo que
+              // manda el táctil.
+              const x = -ly;
+              const y = lx;
+
+              if (x !== gamepadStateRef.current.x || y !== gamepadStateRef.current.y) {
+                if (!hasGamepad && (Math.abs(x) > 0 || Math.abs(y) > 0)) {
+                  setHasGamepad(true);
+                }
+                handleMove(x, y);
+                gamepadStateRef.current.x = x;
+                gamepadStateRef.current.y = y;
+              }
             }
 
             const checkButton = (index, component, action) => {
@@ -619,7 +772,7 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
       isConnectedRef.current = true;
       setRoom(roomInstance);
       roomRef.current = roomInstance;
-      
+
 
       // Solo cuentan los participantes que SON el robot. Contar cualquier
       // participante remoto valía cuando en la sala solo estaban operador y
@@ -649,7 +802,7 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
     if (robot && !connect && !hasFetched) {
       setHasFetched(true);
       setIsFetchingToken(true);
-      
+
       const fetchToken = async () => {
         try {
           const res = await apiFetch('/api/livekit-token', {
@@ -657,7 +810,7 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ robotId: robot.id })
           });
-          
+
           const data = await res.json();
           if (data.success && data.token) {
              setToken(data.token);
@@ -680,6 +833,7 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
   const disconnect = useCallback(() => {
     if (room) {
       stopContinuousSend();
+      stopCameraContinuousSend();
       room.disconnect();
       setRoom(null);
       roomRef.current = null;
@@ -687,7 +841,7 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
       isConnectedRef.current = false;
       setConnect(false);
     }
-  }, [room, stopContinuousSend]);
+  }, [room, stopContinuousSend, stopCameraContinuousSend]);
 
   return (
     <div className="App App-header">
@@ -702,12 +856,33 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
           </p>
         </div>
       )}
-      
+
+      {/* Modo VR: escena propia (pantalla virtual + wands), nada del
+          dashboard 2D de abajo tiene sentido con el visor puesto. */}
+      {!isFetchingToken && mode === 'vr' && (
+        <Suspense fallback={
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--background)' }}>
+            <Loader2 className="animate-spin" size={48} color="var(--accent)" />
+          </div>
+        }>
+          <VRConsole
+            room={room}
+            isConnected={isConnected}
+            onMove={handleMove}
+            onAction={handleAction}
+            onCameraAim={handleCameraMove}
+            onExit={onBack}
+          />
+        </Suspense>
+      )}
+
       {/* 1. Fullscreen Video Background Component */}
+      {mode !== 'vr' && (
       <div className="video-background-container" style={{ opacity: visible && !isFetchingToken ? '1' : '0', transition: 'opacity 0.5s ease-out' }}>
         <VideoViewer room={room}
           isConnected={isConnected} />
       </div>
+      )}
 
       {/* El estado del mando ya no vive suelto aquí: es telemetría del
           operador y se muestra como el chip ENTRADA dentro de la barra, que
@@ -718,7 +893,7 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
           hueco central que dejan el joystick y los botones en sus esquinas;
           cuando la Gamepad API detecta mando esos controles se ocultan y la
           barra se estira para aprovechar el espacio liberado. */}
-      {!isFetchingToken && (
+      {!isFetchingToken && mode !== 'vr' && (
         <BarraTelemetria
           room={room}
           fuenteLocal={telemetriaLocal}
@@ -731,6 +906,7 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
       )}
 
       {/* 2. Interactive Controls Layered On Top */}
+      {mode !== 'vr' && (
       <div className="controls-overlay" style={{ pointerEvents: (hasGamepad && !forceMobileMode) || isFetchingToken ? 'none' : 'auto' }}>
         <div style={{ opacity: (hasGamepad && !forceMobileMode) || isFetchingToken ? 0 : 1, visibility: (hasGamepad && !forceMobileMode) || isFetchingToken ? 'hidden' : 'visible', transition: 'all 0.5s ease-out', width: '100%', height: '100%' }}>
         <div id="left-panel">
@@ -754,8 +930,24 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
 
           <Segment id="joystick" style={{ display: visible1 ? 'flex' : 'none', height: Math.max(230, joystickSize + 80) }}>
             <h3>{t('operador.controller.controlJoystick')}</h3>
-            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Joystck onMove={handleMove} onStop={handleMove} setBinPack={setBinPacket} size={joystickSize} />
+            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile && mode === 'manual' ? 16 : 0 }}>
+              <Joystck
+                onMove={handleMove}
+                onStop={handleMove}
+                setBinPack={setBinPacket}
+                size={isMobile && mode === 'manual' ? Math.round(joystickSize * 0.75) : joystickSize}
+              />
+              {/* En mobile no hay espacio para un segundo Segment aparte, así
+                  que la cámara comparte fila con el joystick de movimiento. */}
+              {isMobile && mode === 'manual' && (
+                <Joystck
+                  onMove={handleCameraMove}
+                  onStop={handleCameraMove}
+                  size={Math.round(joystickSize * 0.75)}
+                  dispatchGlobalEvent={false}
+                  keyboardEnabled={false}
+                />
+              )}
             </div>
           </Segment>
         </div>
@@ -780,13 +972,31 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
           </div>
 
           <StatusHUD isConnected={isRobotConnected} audiencia={audiencia} visible={visible1} height={Math.max(230, joystickSize + 80)} />
+
+          {/* Solo en modo manual y solo en escritorio/tablet: en mobile ya va
+              junto al joystick de movimiento, arriba. Sin telemetría propia
+              todavía -- no hay pan/tilt físico que confirme nada. */}
+          {!isMobile && mode === 'manual' && (
+            <Segment id="camera-joystick" style={{ display: visible1 ? 'flex' : 'none' }}>
+              <h3>{t('operador.controller.controlCamara')}</h3>
+              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Joystck
+                  onMove={handleCameraMove}
+                  onStop={handleCameraMove}
+                  size={Math.round(joystickSize * 0.7)}
+                  dispatchGlobalEvent={false}
+                  keyboardEnabled={false}
+                />
+              </div>
+            </Segment>
+          )}
         </div>
 
 
         </div>
 
-        <Cabezal 
-          onCambio={setOpcion} 
+        <Cabezal
+          onCambio={setOpcion}
           onConfigApply={({ size, sensitivity: newSensitivity }) => {
             setJystickSize(size)
             setSensitivity(newSensitivity)
@@ -845,6 +1055,7 @@ export default function ControllerApp({ onBack, robot, controlMappings }) {
 
 
       </div>
+      )}
     </div>
   );
 }

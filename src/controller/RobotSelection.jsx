@@ -15,6 +15,11 @@ const INDICE_A_ETIQUETA_GAMEPAD = {
     12: 'Up', 13: 'Down', 14: 'Left', 15: 'Right',
 };
 
+// LT/RT quedan reservados por el esquema de gatillo+stick de
+// ControllerApp.jsx (sostenerlos sube/baja el brazo de esa mano) -- no se
+// pueden reasignar a otra acción desde este panel.
+const INDICES_RESERVADOS_GAMEPAD = new Set([6, 7]);
+
 // Shared style tokens
 const S = {
   label: { fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
@@ -31,10 +36,14 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
 
     // Mapping state
     const [showMappingsModal, setShowMappingsModal] = useState(false);
+    // En mando los brazos ya no son bindeables aquí: sostener LT/RT sube y
+    // baja el brazo de esa mano moviendo el propio stick (ver pollGamepad en
+    // ControllerApp.jsx), así que el panel de mando solo ofrece las 4
+    // acciones de tambor. Teclado no tiene gatillos analógicos y conserva
+    // sus 8 teclas de siempre.
     const [mappingForm, setMappingForm] = useState({
         gamepad: {
-            ArmFrontUp: "Y", ArmFrontDown: "X", ArmBackUp: "RB", ArmBackDown: "RT",
-            DrumFrontCw: "A", DrumFrontCcw: "B", DrumBackCw: "LB", DrumBackCcw: "LT"
+            DrumFrontCw: "Y", DrumFrontCcw: "X", DrumBackCw: "B", DrumBackCcw: "A"
         },
         keyboard: {
             ArmFrontUp: "KeyW", ArmFrontDown: "KeyS", ArmBackUp: "KeyE", ArmBackDown: "KeyD",
@@ -71,10 +80,19 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
 
     useEffect(() => {
         if (controlMappings && Object.keys(controlMappings).length > 0) {
-            setMappingForm(prev => ({
-                gamepad: { ...prev.gamepad, ...(controlMappings.gamepad || {}) },
-                keyboard: { ...prev.keyboard, ...(controlMappings.keyboard || {}) }
-            }));
+            setMappingForm(prev => {
+                // Un perfil guardado antes de este cambio puede traer claves
+                // de brazo en `gamepad` (ArmFrontUp, etc.) -- ya no existen
+                // como fila en este panel, así que se descartan aquí en vez
+                // de arrastrarlas de vuelta a la UI.
+                const gamepadValido = Object.fromEntries(
+                    Object.entries(controlMappings.gamepad || {}).filter(([clave]) => clave in prev.gamepad)
+                );
+                return {
+                    gamepad: { ...prev.gamepad, ...gamepadValido },
+                    keyboard: { ...prev.keyboard, ...(controlMappings.keyboard || {}) }
+                };
+            });
         }
     }, [controlMappings]);
 
@@ -149,6 +167,12 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                 for (let i = 0; i < gp.buttons.length; i++) {
                     const presionado = Boolean(gp.buttons[i]?.pressed);
                     if (presionado && !yaPresionados.has(i)) {
+                        if (INDICES_RESERVADOS_GAMEPAD.has(i)) {
+                            // Gatillo reservado: no se captura, pero se marca
+                            // para no reintentar cada frame mientras se sostiene.
+                            yaPresionados.add(i);
+                            continue;
+                        }
                         const etiqueta = INDICE_A_ETIQUETA_GAMEPAD[i];
                         if (etiqueta) {
                             setMappingForm(prev => ({
@@ -195,7 +219,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                     </h2>
                 </div>
                 <div style={{ paddingTop: '12px', display: 'flex', gap: '12px' }}>
-                    <button 
+                    <button
                         onClick={() => setShowMappingsModal(true)}
                         style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '8px' }}
                         onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
@@ -208,7 +232,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
             </div>
 
             {/* GRID DE UNIDADES */}
-            <motion.div 
+            <motion.div
                 variants={{
                     hidden: { opacity: 0 },
                     show: {
@@ -291,7 +315,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
             {/* LOADING OVERLAY */}
             <AnimatePresence>
                 {loading && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -319,12 +343,12 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
             {/* ============================================================ */}
             <AnimatePresence>
             {showMappingsModal && (
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
                     onClick={() => setShowMappingsModal(false)}
                     style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(2,7,19,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', padding: '32px' }}
                 >
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.3 }}
                         onClick={e => e.stopPropagation()}
                         style={{ background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px', padding: '32px', width: '100%', maxWidth: '800px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
