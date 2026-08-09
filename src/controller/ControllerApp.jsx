@@ -1,11 +1,16 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import './Consola.css';
-import { RotateCcw, RotateCw } from 'lucide-react';
+import { RotateCcw, RotateCw, Loader2 } from 'lucide-react';
 import { Segment } from './Segment';
 import { Cabezal } from './Cabezal';
 import { VideoViewer } from './VideoViewer';
 import { Login } from './Login';
 import { apiFetch } from '../lib/apiClient';
+
+// three.js + @react-three/xr son pesados y solo hacen falta en modo VR, así
+// que van en su propio chunk -- el modo manual (el único usable hoy) no
+// paga ese peso.
+const VRConsole = lazy(() => import('./VRConsole').then((m) => ({ default: m.VRConsole })));
 
 import { ControlButton } from './components/ControlButton';
 import { ControlGroup } from './components/ControlGroup';
@@ -844,12 +849,33 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
           </p>
         </div>
       )}
-      
+
+      {/* Modo VR: escena propia (pantalla virtual + wands), nada del
+          dashboard 2D de abajo tiene sentido con el visor puesto. */}
+      {!isFetchingToken && mode === 'vr' && (
+        <Suspense fallback={
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--background)' }}>
+            <Loader2 className="animate-spin" size={48} color="var(--accent)" />
+          </div>
+        }>
+          <VRConsole
+            room={room}
+            isConnected={isConnected}
+            onMove={handleMove}
+            onAction={handleAction}
+            onCameraAim={handleCameraMove}
+            onExit={onBack}
+          />
+        </Suspense>
+      )}
+
       {/* 1. Fullscreen Video Background Component */}
+      {mode !== 'vr' && (
       <div className="video-background-container" style={{ opacity: visible && !isFetchingToken ? '1' : '0', transition: 'opacity 0.5s ease-out' }}>
         <VideoViewer room={room}
           isConnected={isConnected} />
       </div>
+      )}
 
       {/* El estado del mando ya no vive suelto aquí: es telemetría del
           operador y se muestra como el chip ENTRADA dentro de la barra, que
@@ -860,7 +886,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
           hueco central que dejan el joystick y los botones en sus esquinas;
           cuando la Gamepad API detecta mando esos controles se ocultan y la
           barra se estira para aprovechar el espacio liberado. */}
-      {!isFetchingToken && (
+      {!isFetchingToken && mode !== 'vr' && (
         <BarraTelemetria
           room={room}
           fuenteLocal={telemetriaLocal}
@@ -873,6 +899,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
       )}
 
       {/* 2. Interactive Controls Layered On Top */}
+      {mode !== 'vr' && (
       <div className="controls-overlay" style={{ pointerEvents: (hasGamepad && !forceMobileMode) || isFetchingToken ? 'none' : 'auto' }}>
         <div style={{ opacity: (hasGamepad && !forceMobileMode) || isFetchingToken ? 0 : 1, visibility: (hasGamepad && !forceMobileMode) || isFetchingToken ? 'hidden' : 'visible', transition: 'all 0.5s ease-out', width: '100%', height: '100%' }}>
         <div id="left-panel">
@@ -1021,6 +1048,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
 
 
       </div>
+      )}
     </div>
   );
 }

@@ -14,7 +14,6 @@ const S = {
 export function ModeSelect({ onSelectMode, onBack }) {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
-  const [hoverVr, setHoverVr] = useState(false);
 
   const handleSelect = (modo) => {
     setLoading(true);
@@ -41,39 +40,33 @@ export function ModeSelect({ onSelectMode, onBack }) {
         animate="show"
         style={{ display: 'grid', gap: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', flex: 1 }}
       >
-        {/* Modo VR: deshabilitado hasta poder probarlo con el Vive físico en
-            la universidad -- un stub a medias sería peor que dejarlo claro. */}
+        {/* Modo VR: la sesión WebXR y el mapeo de los wands ya están escritos,
+            pero sin visor a la mano en esta sesión no se pudo probar en
+            hardware real -- por eso el aviso se queda fijo en vez de ser un
+            tooltip que solo se ve al pasar el mouse (con el visor puesto no
+            hay mouse que pasar). */}
         <motion.div
           variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] } } }}
-          onMouseEnter={() => setHoverVr(true)}
-          onMouseLeave={() => setHoverVr(false)}
+          whileHover={{ y: -4 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => handleSelect('vr')}
           style={{
-            ...S.panel, display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative',
-            cursor: 'not-allowed', opacity: 0.5,
+            ...S.panel, display: 'flex', flexDirection: 'column', gap: '16px',
+            cursor: 'pointer', pointerEvents: loading ? 'none' : 'auto', transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
           }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(251, 202, 1, 0.08)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}
         >
-          <Glasses size={32} color="var(--muted)" />
+          <Glasses size={32} color="var(--accent)" />
           <h3 style={{ margin: 0, fontSize: '1.2rem', fontFamily: 'var(--font-ibm-mono)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
             {t('operador.modo.vrTitulo')}
           </h3>
           <p style={{ ...S.label, textTransform: 'none', margin: 0, lineHeight: 1.6 }}>
             {t('operador.modo.vrDescripcion')}
           </p>
-          <AnimatePresence>
-            {hoverVr && (
-              <motion.div
-                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} transition={{ duration: 0.15 }}
-                style={{
-                  position: 'absolute', bottom: '100%', left: 0, marginBottom: '8px',
-                  background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '4px',
-                  padding: '10px 14px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem', color: 'var(--muted)',
-                  maxWidth: '260px', zIndex: 10,
-                }}
-              >
-                {t('operador.modo.vrTooltip')}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <p style={{ ...S.label, textTransform: 'none', margin: 0, lineHeight: 1.5, color: 'var(--accent)', fontSize: '0.75rem' }}>
+            {t('operador.modo.vrAvisoBeta')}
+          </p>
         </motion.div>
 
         {/* Modo Manual: mando/teclado/táctil, con el joystick de cámara en

@@ -130,7 +130,13 @@ export const en: Dictionary = {
       vrTooltip: 'Available once tested with the headset on campus.',
       manualTitulo: 'Manual Mode',
       manualDescripcion: 'Gamepad, keyboard or touchscreen, with an on-screen joystick to aim the camera.',
+      vrAvisoBeta: 'Beta: written with the headset in mind, not yet tested on the physical Vive.',
       volver: '← Back',
+    },
+    vr: {
+      volver: '← Back',
+      entrar: 'Enter VR',
+      aviso: 'Unvalidated beta on real hardware. If the headset doesn\'t respond, first confirm this browser supports WebXR on this machine.',
     },
     espectador: {
       transmisionNoDisponible: 'Stream not available',
