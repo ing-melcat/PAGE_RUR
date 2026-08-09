@@ -99,6 +99,8 @@ export const es = {
       guardarMapeo: 'GUARDAR MAPEO',
       presionaTecla: 'Presiona una tecla…',
       cambiarTecla: 'Cambiar (Esc para cancelar)',
+      presionaBoton: 'Presiona un botón del mando…',
+      cambiarBoton: 'Cambiar (Esc para cancelar)',
       configTitulo: 'CONFIGURACIÓN DE UNIDAD',
       configDesc: 'Parámetros de operación del robot',
       nuevaUnidad: '+ NUEVA',

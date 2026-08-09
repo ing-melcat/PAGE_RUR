@@ -99,6 +99,8 @@ export const en: Dictionary = {
       guardarMapeo: 'SAVE MAPPING',
       presionaTecla: 'Press a key…',
       cambiarTecla: 'Change (Esc to cancel)',
+      presionaBoton: 'Press a controller button…',
+      cambiarBoton: 'Change (Esc to cancel)',
       configTitulo: 'UNIT CONFIGURATION',
       configDesc: 'Robot operation parameters',
       nuevaUnidad: '+ NEW',
