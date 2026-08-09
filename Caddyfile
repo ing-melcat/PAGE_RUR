@@ -44,6 +44,12 @@ rur.unipolidgo.edu.mx {
 	# en disco) terminaba reescrito a /index.html antes de que el matcher de
 	# reverse_proxy lo viera -- toda la API caía silenciosamente al SPA.
 	route {
+		# Comprime el bundle SPA y las respuestas JSON de las 3 APIs. No había
+		# ninguna directiva encode en todo el sitio -- ni el bundle de Vite ni
+		# /api/posts (que puede traer HTML largo por publicación) viajaban
+		# comprimidos.
+		encode zstd gzip
+
 		# Identidad: login, sesión, gestión de usuarios.
 		reverse_proxy @identity svc-identity:3001
 

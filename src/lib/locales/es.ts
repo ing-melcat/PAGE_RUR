@@ -194,6 +194,7 @@ export const es = {
       telemetria: 'Telemetría',
       linX: 'LIN X',
       angZ: 'ANG Z',
+      audiencia: 'Audiencia',
     },
   },
   telemetria: {
@@ -247,6 +248,12 @@ export const es = {
       video: 'Resolución y FPS',
       perdida: 'Pérdida y jitter',
       audiencia: 'Espectadores',
+    },
+    bloques: {
+      movimiento: 'Movimiento',
+      actuadores: 'Actuadores',
+      conexion: 'Conexión',
+      sesion: 'Sesión',
     },
   },
   archivo: {

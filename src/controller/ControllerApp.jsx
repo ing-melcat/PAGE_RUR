@@ -7,11 +7,6 @@ import { VideoViewer } from './VideoViewer';
 import { Login } from './Login';
 import { apiFetch } from '../lib/apiClient';
 
-// three.js + @react-three/xr son pesados y solo hacen falta en modo VR, así
-// que van en su propio chunk -- el modo manual (el único usable hoy) no
-// paga ese peso.
-const VRConsole = lazy(() => import('./VRConsole').then((m) => ({ default: m.VRConsole })));
-
 import { ControlButton } from './components/ControlButton';
 import { ControlGroup } from './components/ControlGroup';
 import { Joystck } from './components/Joystck';
@@ -20,8 +15,21 @@ import { BarraTelemetria } from './components/BarraTelemetria';
 import { TOPIC_TELEMETRIA } from './telemetria';
 import { useLanguage } from '../lib/i18n';
 
+// three.js + @react-three/xr son pesados y solo hacen falta en modo VR, así
+// que van en su propio chunk -- el modo manual (el único usable hoy) no
+// paga ese peso.
+const VRConsole = lazy(() => import('./VRConsole').then((m) => ({ default: m.VRConsole })));
+
 const TOPIC = 'control';
 const SERVER_URL = import.meta.env.VITE_LIVEKIT_URL || "wss://rur-livekit-server-8b010r3b.livekit.cloud";
+
+// Se dispara en cuanto se evalúa este módulo (ControllerApp ya está
+// lazy-loaded desde LoginApp, así que esto ocurre justo cuando el operador
+// elige un robot), en paralelo con el fetch del token de LiveKit de más
+// abajo -- antes el import() se lanzaba recién después de que volvía el
+// fetch del token, encadenando dos operaciones independientes en vez de
+// solaparlas.
+const livekitClientPromise = import('livekit-client');
 
 // ---------------------------------------------------------------------------
 // Reparto de paquetes en la sala
@@ -41,12 +49,20 @@ const SERVER_URL = import.meta.env.VITE_LIVEKIT_URL || "wss://rur-livekit-server
 // no recibe nada (falla cerrado). Con lista negra sí los recibiría.
 // ---------------------------------------------------------------------------
 const PREFIJO_ROBOT = 'robot-';
+const PREFIJOS_ESPECTADOR = ['viewer-', 'public-viewer-'];
 
 function identidadesDeRobots(room) {
   if (!room) return [];
   return Array.from(room.remoteParticipants.values())
     .map((p) => p.identity)
     .filter((identity) => identity?.startsWith(PREFIJO_ROBOT));
+}
+
+function contarEspectadores(room) {
+  if (!room) return 0;
+  return Array.from(room.remoteParticipants.values())
+    .filter((p) => PREFIJOS_ESPECTADOR.some((prefijo) => p.identity?.startsWith(prefijo)))
+    .length;
 }
 
 // ---------------------------------------------------------------------------
@@ -193,18 +209,19 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   const [room, setRoom] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isRobotConnected, setIsRobotConnected] = useState(false);
+  const [audiencia, setAudiencia] = useState(0);
   const [binPacket, setBinPacket] = useState(null);
 
   // Refs para el envío continuo del joystick (dead-man's switch)
   const joystickPosRef = useRef({ x: 0, y: 0 });
-  const sendIntervalRef = useRef(null);
+  const continuousSendActiveRef = useRef(false);
 
   const [joystickSize, setJystickSize] = useState(136)
   const [sensitivity, setSensitivity] = useState(1.0)
 
   const [hasGamepad, setHasGamepad] = useState(false);
   const [forceMobileMode, setForceMobileMode] = useState(false);
-  
+
   const gamepadStateRef = useRef({ x: 0, y: 0, buttons: {} });
   // Estado del esquema de gatillo+stick: qué gatillo está sostenido y qué
   // acción de brazo quedó encendida por última vez, para solo llamar a
@@ -219,15 +236,18 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
 
 
 
-  // Ref para intervalos de botones mantenidos presionados
-  const buttonIntervalsRef = useRef({});
+  // Funciones de reenvío de botones mantenidos presionados -- se registran
+  // aquí en vez de tener un setInterval propio por botón, y un único tick
+  // maestro (más abajo) las llama a todas cada 100ms junto con la telemetría
+  // y el reenvío del joystick, en vez de tres timers de 100ms corriendo por
+  // separado.
+  const buttonSendersRef = useRef({});
 
   // Qué actuador está activo ahora mismo, para la telemetría. Se lleva aparte
-  // de buttonIntervalsRef porque aquel se indexa por `componente-accion` y el
+  // de buttonSendersRef porque aquel se indexa por `componente-accion` y el
   // camino del gamepad lo suelta con la acción 'stop', que no coincide con la
   // clave con la que se creó.
   const estadoActuadoresRef = useRef({});
-  const telemetriaIntervalRef = useRef(null);
 
   // Los mismos mandos con avance y giro ya nombrados, para la telemetría.
   const ejesTelemetriaRef = useRef({ avance: 0, giro: 0 });
@@ -309,17 +329,13 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     const key = `${component}-${action}`;
 
     if (state) {
-      // Enviar inmediatamente + iniciar envío continuo cada 100ms
+      // Enviar inmediatamente + registrar para reenvío continuo en el tick
+      // maestro de 100ms
       sendCommand();
-      if (!buttonIntervalsRef.current[key]) {
-        buttonIntervalsRef.current[key] = setInterval(sendCommand, 100);
-      }
+      buttonSendersRef.current[key] = sendCommand;
     } else {
-      // Detener envío continuo + enviar comando de stop
-      if (buttonIntervalsRef.current[key]) {
-        clearInterval(buttonIntervalsRef.current[key]);
-        delete buttonIntervalsRef.current[key];
-      }
+      // Detener reenvío continuo + enviar comando de stop
+      delete buttonSendersRef.current[key];
       sendCommand();
     }
   }, []);
@@ -390,59 +406,124 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     }
   }, [])
 
-  // Telemetría pública para los espectadores: se DIFUNDE (sin
-  // destinationIdentities) porque va dirigida a ellos, y va en Lossy porque
-  // cada paquete lleva el estado completo y una pérdida se corrige sola 100 ms
-  // después. Retransmitir es justo lo que metería retraso.
-  useEffect(() => {
-    if (!isConnected) return;
-
-    telemetriaIntervalRef.current = setInterval(() => {
-      if (!roomRef.current || !isConnectedRef.current) return;
-      const resumen = construirTelemetria(
-        ejesTelemetriaRef.current,
-        estadoActuadoresRef.current,
-        identidadesDeRobots(roomRef.current).length > 0
-      );
-      try {
-        roomRef.current.localParticipant.publishData(
-          new TextEncoder().encode(JSON.stringify(resumen)),
-          // Sin destinationIdentities: esta sí va a toda la sala, es para los
-          // espectadores. Y sin fiabilidad: cada paquete trae el estado
-          // completo, así que una pérdida se corrige sola en 100 ms.
-          { topic: TOPIC_TELEMETRIA, reliable: false }
-        );
-      } catch (err) {
-        console.error('Error enviando telemetría:', err);
-      }
-    }, PERIODO_TELEMETRIA_MS);
-
-    return () => {
-      clearInterval(telemetriaIntervalRef.current);
-      telemetriaIntervalRef.current = null;
-    };
-  }, [isConnected]);
-
-  // Inicia el loop continuo de envío (10 Hz = cada 100ms)
+  // Inicia el envío continuo del joystick (dead-man's switch): el tick
+  // maestro de abajo lo recoge en cuanto está activo.
   const startContinuousSend = useCallback(() => {
-    if (sendIntervalRef.current) return; // ya está corriendo
-    sendIntervalRef.current = setInterval(() => {
-      const { x, y } = joystickPosRef.current;
-      const pkt = buildPacket(x, y);
-      sendPacketNow(pkt);
-    }, 100); // 10 paquetes por segundo
-  }, [buildPacket, sendPacketNow])
+    continuousSendActiveRef.current = true;
+  }, [])
 
-  // Detiene el loop y envía un último paquete de stop (0,0)
+  // Detiene el envío continuo y manda un último paquete de frenado (0,0) de
+  // inmediato, sin esperar al próximo tick.
   const stopContinuousSend = useCallback(() => {
-    if (sendIntervalRef.current) {
-      clearInterval(sendIntervalRef.current);
-      sendIntervalRef.current = null;
-    }
-    // Enviar paquete final de frenado
+    continuousSendActiveRef.current = false;
     const stopPkt = buildPacket(0, 0);
     sendPacketNow(stopPkt);
   }, [buildPacket, sendPacketNow])
+
+  // ---------------------------------------------------------------------------
+  // Joystick de cámara (pan/tilt), solo en modo manual
+  //
+  // Mismo patrón dead-man's switch que el joystick de movimiento (una bandera
+  // que el tick maestro recoge, no un setInterval propio), pero mandando JSON
+  // en vez del paquete binario de 12 bytes: robot_receiver_prod.py distingue
+  // movimiento de comandos por el TAMAÑO del payload (12 bytes exactos =
+  // movimiento), así que la cámara tiene que ir por el camino JSON o se
+  // leería como telemetría de movimiento por error. Sin hardware conectado
+  // todavía esto es protocolo-listo/no-op del lado del robot.
+  // ---------------------------------------------------------------------------
+  const cameraPosRef = useRef({ pan: 0, tilt: 0 });
+  const cameraActiveRef = useRef(false);
+
+  const sendCameraPacketNow = useCallback((pan, tilt) => {
+    if (!roomRef.current || !isConnectedRef.current) return;
+    const destinos = identidadesDeRobots(roomRef.current);
+    if (destinos.length === 0) return;
+    try {
+      const data = new TextEncoder().encode(JSON.stringify({ component: 'Camera', pan, tilt }));
+      roomRef.current.localParticipant.publishData(data, {
+        topic: TOPIC,
+        // Igual que el joystick de movimiento: 10 paquetes por segundo con
+        // la posición completa, una pérdida se corrige sola 100ms después.
+        reliable: false,
+        destinationIdentities: destinos,
+      });
+    } catch (err) {
+      console.error('Error sending camera data:', err);
+    }
+  }, []);
+
+  const startCameraContinuousSend = useCallback(() => {
+    cameraActiveRef.current = true;
+  }, []);
+
+  const stopCameraContinuousSend = useCallback(() => {
+    cameraActiveRef.current = false;
+    sendCameraPacketNow(0, 0);
+  }, [sendCameraPacketNow]);
+
+  const handleCameraMove = useCallback((pan, tilt) => {
+    const deadZone = 0.05;
+    const applyDeadZone = (v) => Math.abs(v) < deadZone ? 0 : v;
+    const deadPan = applyDeadZone(pan);
+    const deadTilt = applyDeadZone(tilt);
+
+    cameraPosRef.current = { pan: deadPan, tilt: deadTilt };
+
+    if (Math.abs(deadPan) > 0 || Math.abs(deadTilt) > 0) {
+      startCameraContinuousSend();
+    } else {
+      stopCameraContinuousSend();
+    }
+  }, [startCameraContinuousSend, stopCameraContinuousSend]);
+
+  // Tick maestro único a 100ms: antes había tres setInterval de 100ms
+  // desalineados (botones mantenidos, telemetría, reenvío del joystick),
+  // cada uno recalculando identidadesDeRobots() y publicando por su cuenta.
+  // Un solo timer que arma y despacha los cuatro reduce jitter y basura de GC
+  // (el joystick de cámara se suma aquí en vez de traer su propio timer).
+  useEffect(() => {
+    const tickMaestro = setInterval(() => {
+      // 1. Botones mantenidos: reenvío continuo de cada comando activo.
+      for (const enviar of Object.values(buttonSendersRef.current)) {
+        enviar();
+      }
+
+      // 2. Telemetría pública para los espectadores: se DIFUNDE (sin
+      // destinationIdentities) porque va dirigida a ellos, y va en Lossy
+      // porque cada paquete lleva el estado completo y una pérdida se
+      // corrige sola 100ms después. Retransmitir es justo lo que metería
+      // retraso.
+      if (roomRef.current && isConnectedRef.current) {
+        const resumen = construirTelemetria(
+          ejesTelemetriaRef.current,
+          estadoActuadoresRef.current,
+          identidadesDeRobots(roomRef.current).length > 0
+        );
+        try {
+          roomRef.current.localParticipant.publishData(
+            new TextEncoder().encode(JSON.stringify(resumen)),
+            { topic: TOPIC_TELEMETRIA, reliable: false }
+          );
+        } catch (err) {
+          console.error('Error enviando telemetría:', err);
+        }
+      }
+
+      // 3. Reenvío continuo del joystick (dead-man's switch).
+      if (continuousSendActiveRef.current) {
+        const { x, y } = joystickPosRef.current;
+        sendPacketNow(buildPacket(x, y));
+      }
+
+      // 4. Reenvío continuo del joystick de cámara (mismo dead-man's switch).
+      if (cameraActiveRef.current) {
+        const { pan, tilt } = cameraPosRef.current;
+        sendCameraPacketNow(pan, tilt);
+      }
+    }, PERIODO_TELEMETRIA_MS);
+
+    return () => clearInterval(tickMaestro);
+  }, [buildPacket, sendPacketNow, sendCameraPacketNow]);
 
   // Las tres entradas —táctil, teclado y mando— entregan ya lo mismo: -1..1,
   // con x de avance e y de giro. Antes cada una traía su propia escala y su
@@ -476,69 +557,6 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     // También devolver el paquete para el setBinPack del Joystick component
     return buildPacket(deadX, deadY)
   }, [sensitivity, buildPacket, startContinuousSend, stopContinuousSend])
-
-  // ---------------------------------------------------------------------------
-  // Joystick de cámara (pan/tilt), solo en modo manual
-  //
-  // Mismo patrón de envío continuo que el movimiento (startContinuousSend /
-  // stopContinuousSend / sendPacketNow), pero como JSON en vez del paquete
-  // binario de 12 bytes: robot_receiver_prod.py distingue movimiento de
-  // comandos por el TAMAÑO del payload (12 bytes exactos = movimiento), así
-  // que la cámara tiene que ir por el camino JSON o se leería como
-  // telemetría de movimiento por error. Sin hardware conectado todavía esto
-  // es protocolo-listo/no-op del lado del robot.
-  // ---------------------------------------------------------------------------
-  const cameraPosRef = useRef({ pan: 0, tilt: 0 });
-  const cameraSendIntervalRef = useRef(null);
-
-  const sendCameraPacketNow = useCallback((pan, tilt) => {
-    if (!roomRef.current || !isConnectedRef.current) return;
-    const destinos = identidadesDeRobots(roomRef.current);
-    if (destinos.length === 0) return;
-    try {
-      const data = new TextEncoder().encode(JSON.stringify({ component: 'Camera', pan, tilt }));
-      roomRef.current.localParticipant.publishData(data, {
-        topic: TOPIC,
-        // Igual que el joystick de movimiento: 10 paquetes por segundo con
-        // la posición completa, una pérdida se corrige sola 100ms después.
-        reliable: false,
-        destinationIdentities: destinos,
-      });
-    } catch (err) {
-      console.error('Error sending camera data:', err);
-    }
-  }, []);
-
-  const startCameraContinuousSend = useCallback(() => {
-    if (cameraSendIntervalRef.current) return;
-    cameraSendIntervalRef.current = setInterval(() => {
-      const { pan, tilt } = cameraPosRef.current;
-      sendCameraPacketNow(pan, tilt);
-    }, 100);
-  }, [sendCameraPacketNow]);
-
-  const stopCameraContinuousSend = useCallback(() => {
-    if (cameraSendIntervalRef.current) {
-      clearInterval(cameraSendIntervalRef.current);
-      cameraSendIntervalRef.current = null;
-    }
-    sendCameraPacketNow(0, 0);
-  }, [sendCameraPacketNow]);
-
-  const handleCameraMove = useCallback((pan, tilt) => {
-    const deadZone = 0.05;
-    const applyDeadZone = (v) => Math.abs(v) < deadZone ? 0 : v;
-    const deadPan = applyDeadZone(pan);
-    const deadTilt = applyDeadZone(tilt);
-
-    cameraPosRef.current = { pan: deadPan, tilt: deadTilt };
-
-    if (Math.abs(deadPan) > 0 || Math.abs(deadTilt) > 0) {
-      startCameraContinuousSend();
-    } else {
-      stopCameraContinuousSend();
-    }
-  }, [startCameraContinuousSend, stopCameraContinuousSend]);
 
   useEffect(() => {
     const handleGamepadConnected = (e) => {
@@ -738,7 +756,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     }
 
     try {
-      const { Room, RoomEvent, setLogLevel } = await import('livekit-client');
+      const { Room, RoomEvent, setLogLevel } = await livekitClientPromise;
       // El propio SDK trae su nivel de log en 'info' por defecto, que en
       // producción llena la consola con cada cambio de estado de la señal.
       // 'warn' conserva lo que sí importa: advertencias y errores reales.
@@ -754,13 +772,16 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
       isConnectedRef.current = true;
       setRoom(roomInstance);
       roomRef.current = roomInstance;
-      
+
 
       // Solo cuentan los participantes que SON el robot. Contar cualquier
       // participante remoto valía cuando en la sala solo estaban operador y
       // robot; con espectadores públicos entrando a la misma sala, uno de ellos
       // encendía el "Link Status: ONLINE" con el robot apagado.
-      const refrescarEnlace = () => setIsRobotConnected(identidadesDeRobots(roomInstance).length > 0);
+      const refrescarEnlace = () => {
+        setIsRobotConnected(identidadesDeRobots(roomInstance).length > 0);
+        setAudiencia(contarEspectadores(roomInstance));
+      };
       refrescarEnlace();
 
       roomInstance.on(RoomEvent.ParticipantConnected, (participant) => {
@@ -781,7 +802,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     if (robot && !connect && !hasFetched) {
       setHasFetched(true);
       setIsFetchingToken(true);
-      
+
       const fetchToken = async () => {
         try {
           const res = await apiFetch('/api/livekit-token', {
@@ -789,7 +810,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ robotId: robot.id })
           });
-          
+
           const data = await res.json();
           if (data.success && data.token) {
              setToken(data.token);
@@ -821,20 +842,6 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
       setConnect(false);
     }
   }, [room, stopContinuousSend, stopCameraContinuousSend]);
-
-  // Limpiar los intervalos al desmontar el componente
-  useEffect(() => {
-    return () => {
-      if (sendIntervalRef.current) {
-        clearInterval(sendIntervalRef.current);
-        sendIntervalRef.current = null;
-      }
-      if (cameraSendIntervalRef.current) {
-        clearInterval(cameraSendIntervalRef.current);
-        cameraSendIntervalRef.current = null;
-      }
-    };
-  }, []);
 
   return (
     <div className="App App-header">
@@ -964,7 +971,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
             </Segment>
           </div>
 
-          <StatusHUD isConnected={isRobotConnected} visible={visible1} height={Math.max(230, joystickSize + 80)} />
+          <StatusHUD isConnected={isRobotConnected} audiencia={audiencia} visible={visible1} height={Math.max(230, joystickSize + 80)} />
 
           {/* Solo en modo manual y solo en escritorio/tablet: en mobile ya va
               junto al joystick de movimiento, arriba. Sin telemetría propia
@@ -988,8 +995,8 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
 
         </div>
 
-        <Cabezal 
-          onCambio={setOpcion} 
+        <Cabezal
+          onCambio={setOpcion}
           onConfigApply={({ size, sensitivity: newSensitivity }) => {
             setJystickSize(size)
             setSensitivity(newSensitivity)
