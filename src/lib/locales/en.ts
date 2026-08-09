@@ -501,6 +501,10 @@ export const en: Dictionary = {
     sinLivekit: 'This unit has no LiveKit configured, so the broadcast will not start.',
   },
 
+  envivo: {
+    etiqueta: 'Live',
+  },
+
   ajustes: {
     configuracion: 'SETTINGS',
     ajustesLabel: 'SETTINGS',

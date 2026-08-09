@@ -113,6 +113,28 @@ function decryptSecretSafe(encrypted) {
 
 app.get('/api/hello', (req, res) => res.json({ message: 'svc-robots ok' }));
 
+// Transmisiones públicas en curso. SIN sesión: es lo que permite anunciar en
+// la web pública que hay algo que ver, sin obligar a tener cuenta.
+//
+// Devuelve lo MÍNIMO —id, nombre y si está encendido—, nunca la fila entera:
+// esta tabla guarda la URL de LiveKit, la clave de API y el secreto cifrado, y
+// aquí no hay ningún usuario autenticado al que rendirle cuentas. Y solo de las
+// unidades marcadas como evento público, que son las únicas para las que el
+// backend emite token de espectador.
+app.get('/api/robots/publicos', noStore, async (req, res) => {
+  const { rows } = await pool.query(
+    'SELECT id, name, room, livekit_url, livekit_api_key, livekit_api_secret_encrypted FROM robots WHERE is_public_event = true ORDER BY id'
+  );
+  const publicos = await Promise.all(
+    rows.map(async (row) => ({
+      id: row.id,
+      name: row.name,
+      status: await fetchRealStatus(row),
+    }))
+  );
+  res.json({ success: true, robots: publicos });
+});
+
 app.get('/api/robots', verifyToken, noStore, async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM robots ORDER BY id');
   const isAdmin = req.user.roles.includes('admin');

@@ -21,6 +21,7 @@ const LoginApp = lazyConRecarga(() => import('./LoginApp'));
 import './App.css';
 import { Landing, PublicationPage, ArchiveDashboard } from './Landing';
 import { useLanguage } from './lib/i18n';
+import { AvisoEnVivo } from './components/AvisoEnVivo';
 
 // --- ANIMACIONES DE TRANSICIÓN ---
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
@@ -431,6 +432,10 @@ const LandingLayout = () => {
           <Link to="/descubre" className="nav-link" data-text={t('nav.descubre')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.descubre')}</Link>
           <span className="nav-separator" style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
           <Link to="/conecta" className="nav-link" data-text={t('nav.conecta')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.conecta')}</Link>
+
+          {/* Solo se dibuja si hay una unidad emitiendo de verdad: el propio
+              componente se encarga de no aparecer el resto del tiempo. */}
+          <AvisoEnVivo />
 
           {/* El botón de acceder y el aviso van en el menú móvil para que no se amontone arriba */}
           {activeSpecial && (

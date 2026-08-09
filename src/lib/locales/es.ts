@@ -501,6 +501,10 @@ export const es = {
     sinLivekit: 'Esta unidad no tiene LiveKit configurado, así que la transmisión no arrancará.',
   },
 
+  envivo: {
+    etiqueta: 'En vivo',
+  },
+
   ajustes: {
     configuracion: 'CONFIGURACIÓN',
     ajustesLabel: 'AJUSTES',

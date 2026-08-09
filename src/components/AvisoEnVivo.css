@@ -1,0 +1,83 @@
+/* ==================================================================
+   Aviso de transmisión en curso
+   ------------------------------------------------------------------
+   Va en la barra de navegación, y aparece solo cuando hay algo que ver.
+   Por eso puede permitirse llamar la atención: cuando está, es porque
+   está pasando.
+
+   El punto rojo pulsa —es la convención universal de "en directo" y se
+   reconoce sin leer—, pero el texto EN VIVO va siempre al lado: el
+   color y el parpadeo solos no comunican a quien no distingue el rojo
+   ni a quien tiene el movimiento desactivado.
+   ================================================================== */
+
+.aviso-vivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 14px;
+  border: 1px solid var(--error);
+  border-radius: 2px;
+  background: rgba(248, 81, 73, .08);
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.7rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--bone);
+  transition: background-color .2s ease, border-color .2s ease;
+}
+
+@media (hover: hover) {
+  .aviso-vivo:hover {
+    background: rgba(248, 81, 73, .18);
+  }
+}
+
+.aviso-vivo__punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--error);
+  flex-shrink: 0;
+  animation: aviso-vivo-latido 2s ease-in-out infinite;
+}
+
+@keyframes aviso-vivo-latido {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(248, 81, 73, .6); }
+  50% { opacity: .55; box-shadow: 0 0 0 5px rgba(248, 81, 73, 0); }
+}
+
+.aviso-vivo__etiqueta {
+  color: var(--error);
+  font-weight: 700;
+}
+
+/* El nombre de la unidad es contexto, no el titular. */
+.aviso-vivo__nombre {
+  color: var(--muted);
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .aviso-vivo {
+    font-size: 0.62rem;
+    padding: 6px 10px;
+    gap: 7px;
+  }
+
+  /* En la barra de un móvil no cabe todo: se queda el titular, que es lo
+     que hace falta para decidir si entrar. */
+  .aviso-vivo__nombre {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aviso-vivo__punto {
+    animation: none;
+  }
+}
