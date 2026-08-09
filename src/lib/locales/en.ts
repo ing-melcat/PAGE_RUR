@@ -21,6 +21,7 @@ export const en: Dictionary = {
     acceder: 'SIGN IN',
     avisoActivo: 'ACTIVE NOTICE',
     eventoActivo: 'ACTIVE EVENT',
+    variosActivos: '{n} active',
   },
   home: {
     heroTitulo: 'The Future of Technology',

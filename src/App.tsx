@@ -21,7 +21,7 @@ const LoginApp = lazyConRecarga(() => import('./LoginApp'));
 import './App.css';
 import { Landing, PublicationPage, ArchiveDashboard } from './Landing';
 import { useLanguage } from './lib/i18n';
-import { AvisoEnVivo } from './components/AvisoEnVivo';
+import { EstadosActivos } from './components/EstadosActivos';
 
 // --- ANIMACIONES DE TRANSICIÓN ---
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
@@ -345,19 +345,9 @@ const Footer = () => {
 const LandingLayout = () => {
   const { t, lang, setLang } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeSpecial, setActiveSpecial] = useState<'aviso' | 'evento' | null>(null);
   const location = useLocation();
   const isPublication = location.pathname.startsWith('/publicacion/');
 
-  useEffect(() => {
-    fetch('/api/posts')
-      .then(res => res.json())
-      .then(data => {
-        const special = data.find((p: any) => p.type === 'aviso' || p.type === 'evento');
-        setActiveSpecial(special ? special.type : null);
-      })
-      .catch(console.error);
-  }, []);
 
   return (
     <div className="app-shell" style={{ position: 'relative' }}>
@@ -433,26 +423,21 @@ const LandingLayout = () => {
           <span className="nav-separator" style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
           <Link to="/conecta" className="nav-link" data-text={t('nav.conecta')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.conecta')}</Link>
 
-          {/* Solo se dibuja si hay una unidad emitiendo de verdad: el propio
-              componente se encarga de no aparecer el resto del tiempo. */}
-          <AvisoEnVivo />
-
-          {/* El botón de acceder y el aviso van en el menú móvil para que no se amontone arriba */}
-          {activeSpecial && (
-            <div className="mobile-only-btn" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: activeSpecial === 'aviso' ? 'var(--error)' : 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '20px' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: activeSpecial === 'aviso' ? 'var(--error)' : 'var(--accent)', animation: 'pulse 1.5s infinite' }}></div>
-              {activeSpecial === 'aviso' ? t('nav.avisoActivo') : t('nav.eventoActivo')}
-            </div>
-          )}
+          {/* Mismos chips que en la barra de escritorio, no una variante
+              propia: es la misma información y no tiene por qué verse de dos
+              maneras distintas según el ancho de la pantalla. */}
+          <div className="mobile-only-btn" style={{ marginTop: '20px' }}>
+            <EstadosActivos alCerrarMenu={() => setIsMobileMenuOpen(false)} />
+          </div>
           <button
             type="button"
             className="logout-btn-small mobile-only-btn"
             onClick={() => setLang(lang === 'es' ? 'en' : 'es')}
-            style={{ borderColor: 'var(--accent)', color: 'var(--accent)', marginTop: activeSpecial ? '10px' : '20px', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
+            style={{ borderColor: 'var(--accent)', color: 'var(--accent)', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
           >
             <Languages size={14} /> {lang === 'es' ? 'EN' : 'ES'}
           </button>
-          <Link to="/login" className="mobile-only-btn" style={{ textDecoration: 'none', marginTop: activeSpecial ? '10px' : '20px' }} onClick={() => setIsMobileMenuOpen(false)}>
+          <Link to="/login" className="mobile-only-btn" style={{ textDecoration: 'none', marginTop: '10px' }} onClick={() => setIsMobileMenuOpen(false)}>
             <button className="logout-btn-small" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}>
               {t('nav.acceder')}
             </button>
@@ -460,12 +445,7 @@ const LandingLayout = () => {
         </nav>
 
         <div className="topbar-right desktop-only-btn" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '20px' }}>
-          {activeSpecial && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: activeSpecial === 'aviso' ? 'var(--error)' : 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', fontWeight: 'bold' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: activeSpecial === 'aviso' ? 'var(--error)' : 'var(--accent)', animation: 'pulse 1.5s infinite' }}></div>
-              {activeSpecial === 'aviso' ? t('nav.avisoActivo') : t('nav.eventoActivo')}
-            </div>
-          )}
+          <EstadosActivos />
           <button
             type="button"
             className="logout-btn-small"

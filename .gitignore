@@ -32,6 +32,8 @@ dist-ssr
 !.env.example
 api/data/
 uploads/
+# Copias que deja scripts/optimizar-uploads.sh antes de recomprimir.
+uploads.respaldo-*/
 dist-releases/
 
 # Herramientas locales, no se versionan

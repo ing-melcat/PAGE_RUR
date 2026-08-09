@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
+import sharp from 'sharp';
 import rateLimit from 'express-rate-limit';
 import { getPool } from '../shared/db.js';
 import { verifyToken, requireRole, IS_PRODUCTION } from '../shared/auth.js';
@@ -56,7 +57,47 @@ const fileFilter = (req, file, cb) => {
   cb(null, true);
 };
 
-const upload = multer({ storage, fileFilter });
+// 25 MB: no había NINGÚN límite, así que una subida podía llenar el disco del
+// servidor. Una foto de móvil no pasa de 12 MB y un modelo 3D grande ronda los
+// 20; por encima de eso hay que preguntar antes de aceptarlo.
+const LIMITE_SUBIDA = 25 * 1024 * 1024;
+
+const upload = multer({ storage, fileFilter, limits: { fileSize: LIMITE_SUBIDA } });
+
+// ---------------------------------------------------------------------------
+// Reducción de imágenes
+//
+// El CMS guardaba el archivo tal cual: hay publicaciones de 1.5 MB, y una foto
+// de un móvil actual pasa de 5 MB. Eso lo descarga entero cada visitante, y en
+// datos móviles se nota muchísimo.
+//
+// Lo que se hace con cada imagen subida:
+//   - se reduce a ANCHO_MAXIMO si es más grande (sin ampliar nunca: agrandar
+//     una imagen pequeña solo suma peso y no añade detalle);
+//   - se convierte a WebP, que para una foto pesa la mitad que un JPEG con la
+//     misma calidad aparente;
+//   - se descartan los metadatos de la cámara (ubicación GPS incluida, que
+//     nadie quiere publicar sin darse cuenta).
+//
+// GIF y SVG quedan fuera: el primero puede ser animado y convertirlo lo
+// congela; el segundo ya es vectorial y pesa poco.
+// ---------------------------------------------------------------------------
+const ANCHO_MAXIMO = 1800;
+const CALIDAD_WEBP = 82;
+const CONVERTIBLES = /\.(jpe?g|png|webp)$/i;
+
+async function reducirImagen(rutaOriginal, nombreOriginal) {
+  const destino = rutaOriginal.replace(/\.[^.]+$/, '') + '.webp';
+
+  await sharp(rutaOriginal)
+    .rotate()                       // respeta la orientación EXIF de la cámara
+    .resize({ width: ANCHO_MAXIMO, withoutEnlargement: true })
+    .webp({ quality: CALIDAD_WEBP })
+    .toFile(destino);
+
+  await fs.promises.unlink(rutaOriginal).catch(() => {});
+  return path.basename(destino);
+}
 
 const KNOWN_POST_FIELDS = new Set([
   'title', 'type', 'content', 'image', 'videoUrl', 'modelUrl', 'category', 'isHidden', 'pages',
@@ -99,12 +140,33 @@ app.get('/api/posts', async (req, res) => {
   res.json(posts);
 });
 
-app.post('/api/upload', verifyToken, uploadLimiter, csrfProtection, upload.single('file'), (req, res) => {
+app.post('/api/upload', verifyToken, uploadLimiter, csrfProtection, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo.' });
-  res.json({ url: `/api/uploads/${req.file.filename}` });
+
+  let nombre = req.file.filename;
+
+  if (CONVERTIBLES.test(nombre)) {
+    try {
+      nombre = await reducirImagen(req.file.path, req.file.originalname);
+    } catch (e) {
+      // Si la reducción falla —un archivo corrupto, un formato raro— se
+      // conserva el original y se sirve igual. Perder la subida del usuario
+      // por no poder optimizarla sería un mal negocio.
+      console.error('[upload] no se pudo reducir la imagen:', e.message);
+    }
+  }
+
+  res.json({ url: `/api/uploads/${nombre}` });
 });
 
 app.use((err, req, res, next) => {
+  // "File too large" no le dice nada a quien está subiendo una foto: hay que
+  // decirle cuánto pesa el límite y qué hacer.
+  if (err?.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({
+      error: `El archivo supera los ${Math.round(LIMITE_SUBIDA / 1024 / 1024)} MB. Reduce su tamaño e inténtalo de nuevo.`,
+    });
+  }
   if (err instanceof multer.MulterError || err.message?.includes('Formato')) {
     return res.status(400).json({ error: err.message });
   }

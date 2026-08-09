@@ -120,8 +120,16 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
                     </Suspense>
                   </div>
                 ) : (
-                  <motion.div
-                    style={{ width: '100%', height: '100%', backgroundImage: `url(${post.image || ''})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: isSpecial ? 0.7 : 1 }}
+                  /* <img> y no un background-image: solo un <img> admite
+                     `loading="lazy"`, y con publicaciones que pesan más de un
+                     mega, un fondo CSS obliga al navegador a descargarlas
+                     TODAS al pintar la portada, se vean o no. */
+                  <motion.img
+                    src={post.image || ''}
+                    alt={post.title}
+                    loading="lazy"
+                    decoding="async"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: isSpecial ? 0.7 : 1 }}
                     whileHover={{ scale: 1.05 }}
                     transition={{ duration: 0.4 }}
                   />
@@ -424,8 +432,15 @@ export const ArchiveDashboard = () => {
                   onClick={() => handlePostClick(post)}
                 >
                   <div style={{ width: '100%', height: '180px', backgroundColor: 'var(--surface-strong)', position: 'relative', overflow: 'hidden' }}>
-                    <motion.div
-                      style={{ width: '100%', height: '100%', backgroundImage: `url(${post.image || ''})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: isSpecial ? 0.8 : 1 }}
+                    {/* Mismo motivo que en la portada: con background-image el
+                        navegador se descarga la imagen de cada tarjeta del
+                        archivo aunque estén muy por debajo del pliegue. */}
+                    <motion.img
+                      src={post.image || ''}
+                      alt={post.title}
+                      loading="lazy"
+                      decoding="async"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: isSpecial ? 0.8 : 1 }}
                       whileHover={{ scale: 1.05 }}
                       transition={{ duration: 0.4 }}
                     />

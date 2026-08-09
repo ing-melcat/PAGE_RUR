@@ -21,6 +21,7 @@ export const es = {
     acceder: 'ACCEDER',
     avisoActivo: 'AVISO ACTIVO',
     eventoActivo: 'EVENTO ACTIVO',
+    variosActivos: '{n} activos',
   },
   home: {
     heroTitulo: 'El Futuro de la Tecnología',

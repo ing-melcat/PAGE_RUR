@@ -24,14 +24,47 @@
   --warning: #fbbf24;
 }
 
-body.large-text {
-  font-size: 1.15rem;
+/* ==================================================================
+   Escala tipográfica
+   ------------------------------------------------------------------
+   Había 16 tamaños distintos, elegidos uno a uno según hacía falta:
+   0.8, 0.85, 0.9, 0.95, 1.1, 1.15, 1.2, 1.25, 1.8, 2, 2.2… Ninguno
+   guardaba relación con los demás, y eso es lo que hace que una página
+   se lea como ensamblada en vez de como diseñada — aunque cada valor
+   suelto parezca razonable.
+
+   Siete pasos, cada uno con un trabajo:
+
+     --t-xs    etiquetas, pies, metadatos
+     --t-sm    texto secundario e interfaz densa
+     --t-base  el cuerpo de lectura
+     --t-md    entradillas y cifras de tarjeta
+     --t-lg    títulos de sección
+     --t-xl    títulos de página
+     --t-2xl   el titular de portada
+
+   Regla al añadir algo nuevo: se usa el paso más cercano. Si de verdad
+   ninguno sirve, se discute la escala — no se cuela un valor suelto.
+   ================================================================== */
+:root {
+  --t-xs: 0.75rem;
+  --t-sm: 0.875rem;
+  --t-base: 1rem;
+  --t-md: 1.2rem;
+  --t-lg: 1.5rem;
+  --t-xl: 1.85rem;
+  --t-2xl: 2.15rem;
 }
-body.large-text h1 { font-size: 2.2rem; }
-body.large-text h2 { font-size: 1.5rem; }
-body.large-text input, body.large-text button { font-size: 1.1rem; }
-body.large-text .topbar-title { font-size: 1.2rem; }
-body.large-text .user-meta p { font-size: 0.95rem; }
+
+
+body.large-text {
+  font-size: var(--t-md);
+}
+body.large-text h1 { font-size: var(--t-2xl); }
+body.large-text h2 { font-size: var(--t-lg); }
+body.large-text input, body.large-text button { font-size: var(--t-md); }
+body.large-text .topbar-title { font-size: var(--t-md); }
+body.large-text .user-meta p { font-size: var(--t-base); }
 
 @keyframes fadeInAnim {
   from { opacity: 0; transform: translateY(-10px); }
@@ -70,7 +103,7 @@ body.large-text .user-meta p { font-size: 0.95rem; }
   border: 1px solid var(--accent) !important;
   padding: 8px 16px;
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.8rem;
+  font-size: var(--t-sm);
   cursor: pointer;
   border-radius: 2px;
   position: relative;
@@ -144,7 +177,7 @@ h1, h2, h3, .mono, .panel-label, .topbar-title {
 }
 
 h1 {
-  font-size: 1.5rem;
+  font-size: var(--t-lg);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 500;
@@ -154,7 +187,7 @@ h1 {
 
 .eyebrow {
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.75rem;
+  font-size: var(--t-xs);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--muted);
@@ -166,7 +199,7 @@ h1 {
    idéntico repetido tres veces; ahora es una clase explícita. */
 .eyebrow--hero {
   color: var(--accent);
-  font-size: 1rem;
+  font-size: var(--t-base);
   letter-spacing: 0.2em;
 }
 
@@ -228,19 +261,19 @@ h1 {
 }
 
 .contenido-publicacion h2 {
-  font-size: 1.25rem;
+  font-size: var(--t-md);
   font-weight: 500;
   color: var(--text);
 }
 
 .contenido-publicacion h3 {
-  font-size: 1.1rem;
+  font-size: var(--t-md);
   font-weight: 500;
   color: var(--text);
 }
 
 .contenido-publicacion h4 {
-  font-size: 1rem;
+  font-size: var(--t-base);
   font-weight: 500;
   color: var(--muted);
 }
@@ -301,6 +334,9 @@ h1 {
   background: var(--surface);
   padding: 0.15em 0.4em;
   border-radius: 4px;
+  /* En `em` y no en la escala: va dentro de un párrafo y tiene que
+     encoger o crecer con el texto que lo rodea, sea del tamaño que sea.
+     Es la excepción justificada a la escala de tokens. */
   font-size: 0.9em;
 }
 
@@ -363,7 +399,7 @@ h1 {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--bone);
-  font-size: 14px;
+  font-size: var(--t-sm);
   border-radius: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -382,7 +418,7 @@ h1 {
 }
 
 .topbar-title {
-  font-size: 0.85rem;
+  font-size: var(--t-sm);
   font-weight: 700;
   letter-spacing: 0.4em;
   color: var(--text);
@@ -402,7 +438,7 @@ h1 {
   background: transparent;
   color: var(--muted);
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.75rem;
+  font-size: var(--t-xs);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   cursor: pointer;
@@ -472,7 +508,7 @@ h1 {
 
 .panel-label {
   display: block;
-  font-size: 0.75rem;
+  font-size: var(--t-xs);
   color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -488,7 +524,7 @@ h1 {
 .input-group label {
   display: block;
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.75rem;
+  font-size: var(--t-xs);
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 8px;
@@ -502,7 +538,7 @@ input {
   background: var(--background);
   color: var(--text);
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.9rem;
+  font-size: var(--t-sm);
   border-radius: 2px;
   transition: all 0.2s ease;
 }
@@ -521,7 +557,7 @@ button[type="submit"], .action-card {
   background: var(--accent-muted);
   color: var(--accent);
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.85rem;
+  font-size: var(--t-sm);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: 600;
@@ -547,7 +583,7 @@ button[type="submit"]:disabled {
   margin-top: 16px;
   padding: 12px;
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.8rem;
+  font-size: var(--t-sm);
   border-left: 2px solid;
   border-radius: 2px;
 }
@@ -598,7 +634,7 @@ button[type="submit"]:disabled {
 
 .dashboard-card h1 {
   margin: 8px 0 10px;
-  font-size: 1.8rem;
+  font-size: var(--t-xl);
   letter-spacing: -0.02em;
   font-weight: 700;
 }
@@ -619,7 +655,7 @@ button[type="submit"]:disabled {
 
 .user-label {
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.75rem;
+  font-size: var(--t-xs);
   color: var(--muted);
   text-transform: uppercase;
   margin: 0 0 8px 0;
@@ -627,7 +663,7 @@ button[type="submit"]:disabled {
 
 .user-card h2 {
   margin: 0 0 16px 0;
-  font-size: 1.25rem;
+  font-size: var(--t-md);
   font-weight: 400;
 }
 
@@ -636,12 +672,12 @@ button[type="submit"]:disabled {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.8rem;
+  font-size: var(--t-sm);
 }
 
 .user-welcome {
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.8rem;
+  font-size: var(--t-sm);
   color: var(--muted);
   margin-bottom: 16px;
   text-align: left;
@@ -662,7 +698,7 @@ button[type="submit"]:disabled {
   border-radius: 2px;
   padding: 16px;
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.85rem;
+  font-size: var(--t-sm);
   text-transform: uppercase;
   text-decoration: none;
   display: flex;
@@ -700,7 +736,7 @@ button[type="submit"]:disabled {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-size: 0.85rem;
+  font-size: var(--t-sm);
   cursor: pointer;
   transition: all 0.2s ease;
   margin-top: 24px;
@@ -717,7 +753,7 @@ button[type="submit"]:disabled {
   color: var(--muted);
   text-decoration: none;
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.85rem;
+  font-size: var(--t-sm);
   text-transform: uppercase;
   background: none;
   border: none;
@@ -743,7 +779,7 @@ button[type="submit"]:disabled {
   }
 
   .topbar-title {
-    font-size: 0.85rem;
+    font-size: var(--t-sm);
   }
 }
 
@@ -754,7 +790,7 @@ button[type="submit"]:disabled {
   background: var(--accent-muted);
   color: var(--accent);
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.85rem;
+  font-size: var(--t-sm);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: 600;
@@ -780,7 +816,7 @@ button[type="submit"]:disabled {
   border: 1px solid var(--border);
   color: var(--muted);
   font-family: var(--font-ibm-mono), monospace;
-  font-size: 0.75rem;
+  font-size: var(--t-xs);
   text-decoration: none;
   border-radius: 2px;
   transition: all 0.2s ease;
@@ -797,7 +833,7 @@ button[type="submit"]:disabled {
   color: var(--text); /* Typography is now completely solid and normal */
   font-family: var(--font-ibm-sans);
   font-weight: 600;
-  font-size: 1rem;
+  font-size: var(--t-base);
   letter-spacing: 0.1em;
   position: relative;
   padding-bottom: 4px;
@@ -965,7 +1001,7 @@ button:active::after {
   
   /* Make links bigger on mobile menu */
   .main-nav .nav-link {
-    font-size: 2rem !important;
+    font-size: var(--t-2xl) !important;
     margin: 15px 0;
   }
 }
@@ -986,7 +1022,7 @@ button:active::after {
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--text);
-  font-size: 1rem;
+  font-size: var(--t-base);
   transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
   width: 100%;
 }
@@ -999,7 +1035,7 @@ button:active::after {
   position: absolute;
   top: 18px;
   left: 16px;
-  font-size: 1rem;
+  font-size: var(--t-base);
   color: var(--muted);
   pointer-events: none;
   transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
@@ -1038,4 +1074,49 @@ button:active::after {
 }
 .shake-error input {
   border-color: var(--error) !important;
+}
+
+/* ==================================================================
+   Foco de teclado
+   ------------------------------------------------------------------
+   Faltaba en todo el sitio público: había exactamente una regla de
+   `focus-visible` en el proyecto entero. Quien navega con tabulador —o
+   con un lector de pantalla— no tenía forma de saber en qué enlace o
+   botón estaba.
+
+   Va como regla global y al final del archivo a propósito: es más fácil
+   dar una excepción puntual que ir añadiéndola control por control y
+   olvidarse de la mitad.
+
+   `focus-visible` y no `focus`: el navegador solo lo aplica cuando la
+   navegación es por teclado, así que el anillo no aparece al hacer clic
+   con el ratón — que es la razón por la que la gente acaba quitándolo y
+   dejando la página inaccesible.
+   ================================================================== */
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Los campos ya se marcan con su propio borde y su barra ámbar interior;
+   el anillo por fuera se les pega al contenedor y ensucia. Se les deja
+   el suyo, que es igual de visible. */
+input:focus-visible,
+textarea:focus-visible {
+  outline-offset: 0;
+}
+
+/* Sobre el vídeo o una imagen a sangre, el ámbar solo puede perderse:
+   una sombra oscura lo separa del fondo sin cambiar el color. */
+.hero a:focus-visible,
+.landing-hero a:focus-visible {
+  box-shadow: 0 0 0 4px rgba(2, 7, 19, .75);
 }
