@@ -1,0 +1,204 @@
+/* ==================================================================
+   Panel de transmisión en vivo
+   ------------------------------------------------------------------
+   Mismo lenguaje que el resto del panel de administración: superficie
+   navy, esquinas afiladas de 2px, mono para lo técnico y ámbar solo
+   para lo interactivo. Nada nuevo que aprender.
+   ================================================================== */
+
+.tx {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 8px 0 40px;
+  text-align: left;
+}
+
+.tx__cabecera {
+  margin-bottom: 28px;
+}
+
+.tx__titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.tx__bloque {
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--surface);
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+
+.tx__subtitulo {
+  margin: 0 0 6px;
+  color: var(--bone);
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.tx-nota {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.tx-nota--vacio {
+  font-style: italic;
+}
+
+.tx-nota--aviso {
+  color: var(--warning);
+}
+
+/* --- dirección copiable --- */
+
+.tx-direccion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* La URL es texto técnico: mono, seleccionable y de una sola línea. Se
+   deja como input de solo lectura en vez de un <code> para que el
+   navegador dé por gratis el seleccionar-todo al enfocarlo. */
+.tx-direccion__url {
+  flex: 1;
+  min-width: 240px;
+  padding: 9px 12px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--bone);
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.8rem;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.tx-direccion__url:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.tx-direccion__boton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 40px de lado: se pulsa igual con ratón que con el dedo en una tablet,
+     que es donde se monta una transmisión con prisa. */
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--muted);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color .15s ease, border-color .15s ease;
+}
+
+@media (hover: hover) {
+  .tx-direccion__boton:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+}
+
+/* --- controles --- */
+
+.tx__controles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.tx__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tx__select {
+  padding: 8px 10px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--bone);
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.tx__datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tx__dato {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--muted);
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: .08em;
+  cursor: pointer;
+  transition: color .15s ease, border-color .15s ease;
+}
+
+.tx__dato--on {
+  color: var(--bone);
+  border-color: rgba(251, 202, 1, .45);
+}
+
+.tx__dato input {
+  width: auto;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* --- pasos --- */
+
+.tx__pasos {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 0.87rem;
+  line-height: 1.8;
+}
+
+.tx__pasos code {
+  font-family: var(--font-ibm-mono), monospace;
+  color: var(--bone);
+}
+
+@media (max-width: 600px) {
+  .tx__controles {
+    flex-direction: column;
+    gap: 10px;
+  }
+}

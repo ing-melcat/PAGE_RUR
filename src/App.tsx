@@ -14,6 +14,7 @@ import imgLine from './assets/real_images/line.jpeg';
 // Carga diferida: arrastra livekit-client, que no tiene por qué pesar en el
 // bundle de quien solo entra a la web pública.
 const SpectatorApp = lazyConRecarga(() => import('./controller/SpectatorApp'));
+const OverlayApp = lazyConRecarga(() => import('./controller/OverlayApp'));
 // Igual con el panel: arrastra el visor 3D de la selección de unidad, y con él
 // three.js entero. Quien solo visita la web pública no tiene por qué cargarlo.
 const LoginApp = lazyConRecarga(() => import('./LoginApp'));
@@ -570,6 +571,18 @@ function App() {
           element={
             <Suspense fallback={null}>
               <PageTransition><SpectatorApp /></PageTransition>
+            </Suspense>
+          }
+        />
+        {/* Capa de datos para OBS. No es una página para visitar: se pega
+            como Browser Source y se compone sobre el vídeo, así que va sin
+            PageTransition — una animación de entrada se vería como un
+            parpadeo del grafismo cada vez que OBS recarga la fuente. */}
+        <Route
+          path="/overlay/:robotId"
+          element={
+            <Suspense fallback={null}>
+              <OverlayApp />
             </Suspense>
           }
         />

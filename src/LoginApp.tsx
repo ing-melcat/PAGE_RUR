@@ -9,6 +9,7 @@ import { ModeSelect } from "./controller/ModeSelect";
 // completa de three.js en el bundle de LoginApp -- mismo patrón que
 // ControllerApp más abajo.
 const RobotSelection = lazy(() => import("./controller/RobotSelection").then((m) => ({ default: m.RobotSelection as React.ComponentType<any> })));
+const PanelTransmision = lazy(() => import("./controller/PanelTransmision").then((m) => ({ default: m.PanelTransmision as React.ComponentType<any> })));
 import { apiFetch } from "./lib/apiClient";
 import { sanitizeHtml } from "./lib/sanitizeHtml";
 import { useLanguage } from "./lib/i18n";
@@ -1305,7 +1306,8 @@ export default function App() {
                               { title: t('dashboard.gestionUsuarios'), view: "admin_users" },
                               { title: t('dashboard.logsGenerales'), view: "admin_logs" },
                               { title: t('dashboard.administracionRobots'), view: "admin_config" },
-                              { title: t('dashboard.consolaOperador'), view: "controles" }
+                              { title: t('dashboard.consolaOperador'), view: "controles" },
+                              { title: t('dashboard.transmision'), view: "transmision" }
                             ];
                           } else {
                             if (hasRole(user, 'redactor', 'editor')) {
@@ -1313,6 +1315,7 @@ export default function App() {
                             }
                             if (hasRole(user, 'operador')) {
                               actions.push({ title: t('dashboard.consolaOperador'), view: "controles" });
+                              actions.push({ title: t('dashboard.transmision'), view: "transmision" });
                             }
                           }
 
@@ -1507,6 +1510,20 @@ export default function App() {
                   )}
                 </AnimatePresence>
               </main>
+            </motion.section>
+          )}
+          {view === "transmision" && user && hasRole(user, "operador", "admin") && (
+            <motion.section key="transmision" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
+              <Suspense fallback={
+                <div style={{ height: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
+                  <Loader2 className="animate-spin" size={64} />
+                </div>
+              }>
+                {/* Recibe los robots ya cargados en vez de pedirlos otra vez:
+                    el panel solo compone direcciones, no necesita su propia
+                    copia de la lista ni su propio estado de carga. */}
+                <PanelTransmision robots={robots} onBack={() => setView("dashboard")} />
+              </Suspense>
             </motion.section>
           )}
           {(() => {

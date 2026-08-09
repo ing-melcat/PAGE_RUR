@@ -234,7 +234,7 @@ app.post('/api/livekit-token', verifyToken, livekitTokenLimiter, csrfProtection,
 // grant fijo de solo-lectura, sin excepciones, sin importar lo que mande el
 // cliente en el body.
 app.post('/api/livekit/public-token', publicTokenLimiter, async (req, res) => {
-  const { robotId } = req.body ?? {};
+  const { robotId, proposito } = req.body ?? {};
   const { rows } = await pool.query('SELECT * FROM robots WHERE id = $1 AND is_public_event = true', [robotId]);
   const robot = rows[0];
   if (!robot) {
@@ -247,7 +247,13 @@ app.post('/api/livekit/public-token', publicTokenLimiter, async (req, res) => {
   }
 
   try {
-    const identity = `public-viewer-${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    // Las capas de OBS piden el token con proposito:'overlay' y se identifican
+    // aparte. No es cosmético: la audiencia se cuenta por prefijo de identidad
+    // (PREFIJOS_ESPECTADOR en ControllerApp), así que un montaje con cuatro
+    // Browser Sources reportaría "4 espectadores" sin que hubiera nadie
+    // mirando. Los permisos son exactamente los mismos: solo lectura.
+    const prefijo = proposito === 'overlay' ? 'overlay' : 'public-viewer';
+    const identity = `${prefijo}-${Date.now()}-${Math.round(Math.random() * 1e6)}`;
     const at = new AccessToken(robot.livekit_api_key, secret, { identity, ttl: PUBLIC_TOKEN_TTL });
     at.addGrant({ roomJoin: true, room: robot.room, canPublish: false, canSubscribe: true, canPublishData: false });
     const token = await at.toJwt();

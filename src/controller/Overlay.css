@@ -1,0 +1,155 @@
+/* ==================================================================
+   Capa para OBS
+   ------------------------------------------------------------------
+   Lo que se sirve en /overlay/:robotId. La regla que gobierna todo el
+   archivo: NADA pinta fondo. OBS compone esta página sobre el vídeo
+   respetando el canal alfa, así que cualquier color de fondo aparecería
+   como un rectángulo pegado encima de la imagen.
+
+   El tamaño se controla con --overlay-escala desde la URL (?escala=1.5),
+   porque la misma escena se monta a 1080p y a 4K y no se puede pedir a
+   quien produce que edite CSS para eso.
+   ================================================================== */
+
+html:has(.overlay),
+body:has(.overlay) {
+  background: transparent !important;
+  overflow: hidden;
+  /* En OBS no hay ratón, y un cursor parpadeando saldría en directo. */
+  cursor: none;
+  margin: 0;
+  padding: 0;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  pointer-events: none;
+  display: flex;
+  font-size: calc(1rem * var(--overlay-escala, 1));
+}
+
+/* La franja completa se ancla al borde que diga la URL. */
+.overlay--abajo { align-items: flex-end; }
+.overlay--arriba { align-items: flex-start; }
+.overlay--centro { align-items: center; }
+
+/* El HUD conserva su velo también en OBS.
+   
+   Se probó a quitarlo, pensando que en una capa lo suyo era transparencia
+   total. Fue un error: el velo no es decoración, es lo que garantiza que las
+   cifras se lean cuando detrás pasa un cielo claro o una pared iluminada.
+   Además no tapa nada — es un degradado que muere hacia arriba, no un
+   rectángulo.
+   
+   Para transparencia absoluta, ?velo=0. */
+.overlay .hud {
+  position: static;
+  width: 100%;
+  transform: scale(var(--overlay-escala, 1));
+  transform-origin: bottom center;
+}
+
+.overlay--sin-velo .hud {
+  background: none;
+}
+
+.overlay--arriba .hud { transform-origin: top center; }
+.overlay--centro .hud { transform-origin: center; }
+
+/* La sombra la declara .hud una sola vez para todo el HUD (ver
+   HudEspectador.css). Aquí solo hace falta para las lecturas sueltas, que
+   viven fuera de ese contenedor. Declararla pieza por pieza es lo que dejaba
+   cada tipografía con un halo distinto. */
+
+/* ------------------------------------------------------------------
+   Lecturas sueltas (layout=suelto)
+   ------------------------------------------------------------------ */
+
+/* Mismo halo que el del HUD, para que una lectura suelta y la franja
+   completa no se vean de dos sitios distintos. */
+.suelto {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--overlay-escala, 1));
+  padding: calc(14px * var(--overlay-escala, 1));
+}
+
+.suelto__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.suelto__etiqueta {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: calc(0.62rem * var(--overlay-escala, 1));
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.suelto__valor {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: calc(1.75rem * var(--overlay-escala, 1));
+  font-weight: 700;
+  line-height: 1;
+  color: var(--bone);
+  /* Ancho de dígito fijo: en directo, un número que se ensancha al pasar
+     de 9 a 10 se lee como un fallo de la producción. */
+  font-variant-numeric: tabular-nums;
+}
+
+.suelto__unidad {
+  font-size: calc(0.62rem * var(--overlay-escala, 1));
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------
+   Fondos de previsualización (?fondo=…)
+
+   Solo para mirar la capa fuera de OBS. Dentro de OBS no se usan nunca:
+   allí la transparencia es justo lo que se quiere, y un fondo saldría
+   como un rectángulo tapando el vídeo.
+
+   El `html:has()` de arriba fuerza el fondo transparente en la página,
+   así que estos van sobre el propio contenedor .overlay, no sobre body.
+   ------------------------------------------------------------------ */
+
+/* Como un plano nocturno: el caso más habitual con el robot en campo. */
+.overlay--fondo-oscuro {
+  background: linear-gradient(160deg, #0b1a26 0%, #050d14 60%, #01050a 100%);
+}
+
+/* El peor caso de legibilidad. Si el HUD se lee aquí, se lee sobre
+   cualquier cosa: cielo, arena, un foco directo. */
+.overlay--fondo-claro {
+  background: #8c8f94;
+}
+
+/* El damero de los editores de imagen: la convención para "esto de aquí
+   es transparente". Útil para comprobar que ningún instrumento arrastra
+   un fondo propio sin querer. */
+.overlay--fondo-damero {
+  background-color: #2a2f36;
+  background-image:
+    linear-gradient(45deg, #1a1e24 25%, transparent 25%, transparent 75%, #1a1e24 75%),
+    linear-gradient(45deg, #1a1e24 25%, transparent 25%, transparent 75%, #1a1e24 75%);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+}
+
+/* Terreno simulado: la previsualización que de verdad dice si el HUD se lee.
+   Un color plano no sirve para juzgarlo — lo que se come el texto es la
+   textura y, sobre todo, la banda clara del cielo en la parte de arriba.
+   La imagen es generada, no una foto de archivo: sin licencia de terceros y
+   sin dependencia de ningún servidor externo. */
+.overlay--fondo-terreno {
+  background-image: url('/previsualizacion-terreno.png');
+  background-size: cover;
+  background-position: center;
+}

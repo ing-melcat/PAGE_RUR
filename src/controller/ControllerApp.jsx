@@ -10,7 +10,7 @@ import { apiFetch } from '../lib/apiClient';
 import { ControlButton } from './components/ControlButton';
 import { ControlGroup } from './components/ControlGroup';
 import { Joystck } from './components/Joystck';
-import { StatusHUD } from './components/StatusHUD';
+import { WIDGETS_OPERADOR } from './widgets';
 import { BarraTelemetria } from './components/BarraTelemetria';
 import { TOPIC_TELEMETRIA } from './telemetria';
 import { useLanguage } from '../lib/i18n';
@@ -902,6 +902,13 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
           esencial={!controlesOcultos}
           entrada={entradaActiva}
           accionesMenu={accionesMenu}
+          // La cuenta del operador filtra por identidad y descarta al robot;
+          // la del enlace vería un participante más y lo llamaría público.
+          audiencia={audiencia}
+          // Con la tarjeta de ESTADO fuera, la audiencia tiene que venir
+          // encendida de fábrica o el operador perdería un dato que antes
+          // tenía siempre a la vista.
+          widgetsIniciales={WIDGETS_OPERADOR}
         />
       )}
 
@@ -971,19 +978,31 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
             </Segment>
           </div>
 
-          <StatusHUD isConnected={isRobotConnected} audiencia={audiencia} visible={visible1} height={Math.max(230, joystickSize + 80)} />
+          {/* La tarjeta de ESTADO se fue a la barra de telemetría: todo lo que
+              mostraba está ya ahí y mejor colocado -- el estado del enlace es
+              el punto verde/rojo de la cabecera de la franja, LIN X y ANG Z
+              son AVANCE y GIRO, y la audiencia es un widget más. Mantenerla
+              era repetir los mismos cuatro datos en dos sitios y, de paso,
+              dejar la columna derecha con una tarjeta más que la izquierda. */}
 
           {/* Solo en modo manual y solo en escritorio/tablet: en mobile ya va
               junto al joystick de movimiento, arriba. Sin telemetría propia
-              todavía -- no hay pan/tilt físico que confirme nada. */}
+              todavía -- no hay pan/tilt físico que confirme nada.
+
+              Mismo tamaño y misma altura de tarjeta que el joystick de
+              movimiento de enfrente: las dos columnas llevan ahora dos
+              tarjetas cada una y se leen como una rejilla, así que un mando
+              más pequeño aquí se ve como un descuadre, no como una jerarquía.
+              Iba al 70% de cuando la columna derecha tenía tres tarjetas y
+              había que robarle alto a algo. */}
           {!isMobile && mode === 'manual' && (
-            <Segment id="camera-joystick" style={{ display: visible1 ? 'flex' : 'none' }}>
+            <Segment id="camera-joystick" style={{ display: visible1 ? 'flex' : 'none', height: Math.max(230, joystickSize + 80) }}>
               <h3>{t('operador.controller.controlCamara')}</h3>
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Joystck
                   onMove={handleCameraMove}
                   onStop={handleCameraMove}
-                  size={Math.round(joystickSize * 0.7)}
+                  size={joystickSize}
                   dispatchGlobalEvent={false}
                   keyboardEnabled={false}
                 />
@@ -1002,6 +1021,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
             setSensitivity(newSensitivity)
           }}
           onBack={onBack}
+          titulo={robot?.name}
         />
 
       <div style={{ position: 'relative', zIndex: 110, opacity: hasGamepad ? 0 : 1, visibility: hasGamepad ? 'hidden' : 'visible', transition: 'all 0.5s ease-out', pointerEvents: 'none' }}>
