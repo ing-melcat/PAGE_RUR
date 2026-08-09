@@ -24,7 +24,12 @@ dist-ssr
 *.sw?
 
 .env
-.env.backup*
+# Cualquier variante: .env.prueba, .env.local, .env.produccion... Todas
+# llevan secretos en claro. La regla anterior solo cubría .env y .env.backup*,
+# así que un .env.prueba creado para un banco de pruebas era commiteable —
+# y con él, la clave y el secreto de LiveKit.
+.env.*
+!.env.example
 api/data/
 uploads/
 dist-releases/

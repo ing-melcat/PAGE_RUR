@@ -1,0 +1,41 @@
+# Robot de prueba
+#
+# Hace de robot sin robot: se conecta a una sala de LiveKit con identidad
+# `robot-…` y se queda escuchando. Con eso basta para que la plataforma dé la
+# unidad por encendida, que es lo que activa el aviso EN VIVO de la web y lo
+# que permite probar el espectador de punta a punta sin hardware.
+#
+# Está separado del docker-compose.yml de al lado a propósito: aquel es el
+# receptor de verdad, el que acabará corriendo en la máquina del robot. Este
+# es una herramienta de banco de pruebas y no debería arrancar por error en
+# producción.
+#
+# Levantar:  docker compose -f docker-compose.prueba.yml up -d
+# Ver logs:  docker compose -f docker-compose.prueba.yml logs -f
+# Apagar:    docker compose -f docker-compose.prueba.yml down
+#
+# Necesita `.env.prueba` en esta carpeta, con LIVEKIT_URL, LIVEKIT_API_KEY,
+# LIVEKIT_API_SECRET y LIVEKIT_ROOM. Ese archivo lleva el secreto en claro:
+# permisos 600 y NUNCA se commitea.
+#
+# OJO: mientras esté levantado, la unidad figura en línea y cualquier visitante
+# del sitio ve el aviso de transmisión y puede entrar al espectador (donde
+# verá vídeo en negro, porque esto no publica cámara). Apagarlo al terminar.
+
+name: robot-prueba
+
+services:
+  robot-prueba:
+    build: .
+    container_name: robot-prueba
+    env_file:
+      - .env.prueba
+    environment:
+      # Sin esto, Python retiene la salida en el búfer y `docker logs` no
+      # muestra nada hasta que el proceso termina — que es justo lo que no
+      # pasa en un servicio que se queda escuchando.
+      - PYTHONUNBUFFERED=1
+    # `no`: es una herramienta de pruebas. Si se reinicia el host, lo último
+    # que se quiere es que una unidad de prueba vuelva sola a anunciarse como
+    # transmisión en vivo en la web pública.
+    restart: "no"
