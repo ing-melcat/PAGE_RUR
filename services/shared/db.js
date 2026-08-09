@@ -11,6 +11,11 @@ export function getPool() {
     pool = new pg.Pool({
       max: 10,
       idleTimeoutMillis: 30_000,
+      // Sin esto el default es esperar indefinidamente por un cliente libre:
+      // si el pool de 10 se agota (una query lenta reteniendo conexiones),
+      // las siguientes peticiones se quedaban colgadas en vez de fallar
+      // rápido con un error explícito.
+      connectionTimeoutMillis: 5_000,
     });
   }
   return pool;

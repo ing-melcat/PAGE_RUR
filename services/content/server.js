@@ -26,6 +26,8 @@ const uploadLimiter = rateLimit({
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
+// Una sola vez al arrancar el servicio, no en cada POST /api/upload.
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -38,7 +40,6 @@ app.use('/api/uploads', express.static(UPLOADS_DIR));
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
     cb(null, UPLOADS_DIR);
   },
   filename: (req, file, cb) => {
@@ -118,9 +119,10 @@ app.post('/api/posts', verifyToken, requireRole('admin', 'redactor'), csrfProtec
   const id = body.id || Date.now().toString();
   const extra = splitExtra(body);
 
-  await pool.query(
+  const { rows } = await pool.query(
     `INSERT INTO posts (id, title, type, content, image, video_url, model_url, category, is_hidden, pages, extra)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb)`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb)
+     RETURNING *`,
     [
       id,
       body.title,
@@ -136,7 +138,6 @@ app.post('/api/posts', verifyToken, requireRole('admin', 'redactor'), csrfProtec
     ]
   );
   await saveLog('info', `${req.user.matricula} creó la publicación ${id}.`);
-  const { rows } = await pool.query('SELECT * FROM posts WHERE id = $1', [id]);
   res.status(201).json(rowToPost(rows[0]));
 });
 
@@ -149,9 +150,10 @@ app.put('/api/posts/:id', verifyToken, requireRole('admin', 'redactor'), csrfPro
   const merged = { ...rowToPost(existing), ...updateData };
   const extra = splitExtra(merged);
 
-  await pool.query(
+  const { rows } = await pool.query(
     `UPDATE posts SET title=$1, type=$2, content=$3, image=$4, video_url=$5, model_url=$6,
-       category=$7, is_hidden=$8, pages=$9::jsonb, extra=$10::jsonb WHERE id=$11`,
+       category=$7, is_hidden=$8, pages=$9::jsonb, extra=$10::jsonb WHERE id=$11
+     RETURNING *`,
     [
       merged.title,
       merged.type,
@@ -168,7 +170,6 @@ app.put('/api/posts/:id', verifyToken, requireRole('admin', 'redactor'), csrfPro
   );
   await invalidarTraducciones(req.params.id);
   await saveLog('info', `${req.user.matricula} modificó la publicación ${req.params.id}.`);
-  const { rows } = await pool.query('SELECT * FROM posts WHERE id = $1', [req.params.id]);
   res.json(rowToPost(rows[0]));
 });
 

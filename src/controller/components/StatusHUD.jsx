@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Segment } from '../Segment';
 import { useLanguage } from '../../lib/i18n';
 
-export const StatusHUD = ({ isConnected, visible, height }) => {
+export const StatusHUD = ({ isConnected, visible, height, audiencia }) => {
   const { t } = useLanguage();
   const [coords, setCoords] = useState({ x: "0", y: "0" });
 
@@ -23,6 +23,10 @@ export const StatusHUD = ({ isConnected, visible, height }) => {
           <p className={isConnected ? "text-ok" : "text-err"}>
             {isConnected ? t('operador.statusHud.online') : t('operador.statusHud.offline')}
           </p>
+        </div>
+        <div className="status-section">
+          <h3>{t('operador.statusHud.audiencia')}</h3>
+          <p className="text-ok">{audiencia}</p>
         </div>
         <div className="status-section">
           <h3>{t('operador.statusHud.telemetria')}</h3>

@@ -4,7 +4,7 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import { getPool } from '../shared/db.js';
-import { verifyToken, requireRole, IS_PRODUCTION } from '../shared/auth.js';
+import { verifyToken, requireRole, noStore, IS_PRODUCTION } from '../shared/auth.js';
 import { csrfProtection } from '../shared/csrf.js';
 import { encryptSecret, decryptSecret, maskSecret } from '../shared/crypto.js';
 import { saveLog } from '../shared/logs.js';
@@ -113,7 +113,7 @@ function decryptSecretSafe(encrypted) {
 
 app.get('/api/hello', (req, res) => res.json({ message: 'svc-robots ok' }));
 
-app.get('/api/robots', verifyToken, async (req, res) => {
+app.get('/api/robots', verifyToken, noStore, async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM robots ORDER BY id');
   const isAdmin = req.user.roles.includes('admin');
   const augmented = await Promise.all(
@@ -124,18 +124,23 @@ app.get('/api/robots', verifyToken, async (req, res) => {
 
 app.post('/api/robots', verifyToken, requireRole('admin'), csrfProtection, async (req, res) => {
   const body = req.body ?? {};
-  const { rows: existing } = await pool.query('SELECT 1 FROM robots WHERE id = $1', [body.id]);
-  if (existing.length > 0) return res.status(400).json({ message: 'El ID de robot ya existe' });
-
   const { id, name, status, room, modelUrl, livekitUrl, livekitApiKey, livekitApiSecret, isPublicEvent, ...settings } = body;
-  await pool.query(
+
+  // ON CONFLICT DO NOTHING + comprobar rowCount en vez de un SELECT previo
+  // seguido de INSERT: dos requests con el mismo id ya no pueden colarse
+  // entre el chequeo y el INSERT (antes ambas podían pasar el SELECT y
+  // colisionar en el INSERT, cayendo en el 500 genérico en vez de este 400).
+  const { rows } = await pool.query(
     `INSERT INTO robots (id, name, status, room, model_url, livekit_url, livekit_api_key, livekit_api_secret_encrypted, settings, is_public_event)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10)`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10)
+     ON CONFLICT (id) DO NOTHING
+     RETURNING *`,
     [id, name, status || 'offline', room || null, modelUrl || null, livekitUrl || null, livekitApiKey || null,
       encryptSecret(livekitApiSecret), JSON.stringify(settings), Boolean(isPublicEvent)]
   );
+  if (rows.length === 0) return res.status(400).json({ message: 'El ID de robot ya existe' });
+
   await saveLog('info', `Administrador ${req.user.matricula} creó el robot ${id}.`);
-  const { rows } = await pool.query('SELECT * FROM robots WHERE id = $1', [id]);
   res.json({ success: true, message: 'Robot creado', robot: rowToRobot(rows[0], { includeAdminFields: true }) });
 });
 
@@ -153,9 +158,10 @@ app.put('/api/robots/:id', verifyToken, requireRole('admin'), csrfProtection, as
       ? encryptSecret(livekitApiSecret)
       : existing.livekit_api_secret_encrypted;
 
-  await pool.query(
+  const { rows } = await pool.query(
     `UPDATE robots SET name=$1, status=$2, room=$3, model_url=$4, livekit_url=$5, livekit_api_key=$6,
-       livekit_api_secret_encrypted=$7, settings=$8::jsonb, is_public_event=$9 WHERE id=$10`,
+       livekit_api_secret_encrypted=$7, settings=$8::jsonb, is_public_event=$9 WHERE id=$10
+     RETURNING *`,
     [
       name ?? existing.name,
       status ?? existing.status,
@@ -170,7 +176,6 @@ app.put('/api/robots/:id', verifyToken, requireRole('admin'), csrfProtection, as
     ]
   );
   await saveLog('info', `Administrador ${req.user.matricula} actualizó el robot ${req.params.id}.`);
-  const { rows } = await pool.query('SELECT * FROM robots WHERE id = $1', [req.params.id]);
   res.json({ success: true, message: 'Robot actualizado', robot: rowToRobot(rows[0], { includeAdminFields: true }) });
 });
 
@@ -214,7 +219,10 @@ app.post('/api/livekit-token', verifyToken, livekitTokenLimiter, csrfProtection,
     const at = new AccessToken(robot.livekit_api_key, secret, { identity: participantName, ttl: TOKEN_TTL });
     at.addGrant({ roomJoin: true, room: robot.room, canPublish: isOperator, canSubscribe: true, canPublishData: isOperator });
     const token = await at.toJwt();
-    await saveLog('info', `Usuario ${req.user.matricula} generó token de ${grantedRole} para robot ${robotId}.`);
+    // Fire-and-forget: es solo auditoría, no hace falta que la respuesta al
+    // operador espere el round-trip a Postgres.
+    saveLog('info', `Usuario ${req.user.matricula} generó token de ${grantedRole} para robot ${robotId}.`)
+      .catch((err) => console.error('[svc-robots] No se pudo guardar el log de token:', err.message));
     res.json({ success: true, token, livekitUrl: robot.livekit_url, room: robot.room });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error interno al generar el token' });
@@ -258,16 +266,26 @@ app.post('/api/livekit/public-token', publicTokenLimiter, async (req, res) => {
   }
 });
 
-app.get('/api/logs', verifyToken, requireRole('admin'), async (req, res) => {
+app.get('/api/logs', verifyToken, requireRole('admin'), noStore, async (req, res) => {
   const { rows } = await pool.query('SELECT type, message, date FROM logs ORDER BY date DESC LIMIT 200');
   res.json(rows);
 });
 
 app.get('/api/crowdsec/metrics', verifyToken, requireRole('admin'), async (req, res) => {
   try {
-    const response = await fetch('http://crowdsec:8080/v1/decisions/stream?startup=true', {
-      headers: { 'X-Api-Key': process.env.CROWDSEC_API_KEY },
-    });
+    // Mismo tope que fetchRealStatus para LiveKit: sin esto, un CrowdSec que
+    // no responde deja la petición colgada hasta que expire el socket.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_LIVEKIT_MS);
+    let response;
+    try {
+      response = await fetch('http://crowdsec:8080/v1/decisions/stream?startup=true', {
+        headers: { 'X-Api-Key': process.env.CROWDSEC_API_KEY },
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
     if (!response.ok) throw new Error('Crowdsec HTTP ' + response.status);
     const data = await response.json();
     const decisions = data.new || [];

@@ -114,7 +114,12 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
         <Joystick
             size={size}
             stickSize={size * .30}
-            throttle={100} // 10 fps
+            // El envío real al robot ya lo marca el setInterval de 100ms en
+            // ControllerApp -- un throttle igual aquí encadenaba dos
+            // cuantizaciones de 100ms (hasta ~200ms dedo->paquete en el peor
+            // caso). 30ms solo evita renders de sobra en el arrastre del
+            // stick, sin sumarle su propia latencia al camino de control.
+            throttle={30}
             stickShape="square"
             baseColor="var(--surface-strong)"
             stickColor="var(--accent)"

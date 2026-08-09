@@ -2,8 +2,13 @@ import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { Loader2, CheckCircle, ChevronDown, ChevronUp, Globe, Lock, Upload, TriangleAlert, Star, Eye, EyeOff, Languages } from "lucide-react";
 import "./index.css";
-import { RobotSelection } from "./controller/RobotSelection";
 import { ModeSelect } from "./controller/ModeSelect";
+// Carga diferida: arrastra Robot3DPreview -> @react-three/fiber/drei ->
+// three.js entero. Sin esto, cualquiera que solo entra a /login (incluso a
+// escribir su matrícula, o sin rol de operador) ya pagaba la descarga
+// completa de three.js en el bundle de LoginApp -- mismo patrón que
+// ControllerApp más abajo.
+const RobotSelection = lazy(() => import("./controller/RobotSelection").then((m) => ({ default: m.RobotSelection as React.ComponentType<any> })));
 import { apiFetch } from "./lib/apiClient";
 import { sanitizeHtml } from "./lib/sanitizeHtml";
 import { useLanguage } from "./lib/i18n";
@@ -504,7 +509,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (url) => {
                       const newPages = [...pages];
-                      newPages[idx].image = url;
+                      newPages[idx] = { ...newPages[idx], image: url };
                       setPages(newPages);
                     })} style={{ display: 'none' }} id={`upload-page-${idx}`} />
                     <label htmlFor={`upload-page-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '12px', background: 'var(--surface-strong)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
@@ -512,7 +517,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
                     </label>
                     <input type="text" value={page.image || ''} onChange={(e) => {
                       const newPages = [...pages];
-                      newPages[idx].image = e.target.value;
+                      newPages[idx] = { ...newPages[idx], image: e.target.value };
                       setPages(newPages);
                     }} placeholder={t('adminPublicaciones.urlPlaceholder')} style={{ flex: 1, padding: '12px', background: 'var(--surface)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
                   </div>
@@ -520,7 +525,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
                 <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>{t('adminPublicaciones.estructuraHtml')}</label>
                 <textarea required value={page.content} onChange={(e) => {
                   const newPages = [...pages];
-                  newPages[idx].content = e.target.value;
+                  newPages[idx] = { ...newPages[idx], content: e.target.value };
                   setPages(newPages);
                 }} placeholder={`<div style="padding: 40px;">\n  <h1>Página ${idx + 1}</h1>\n</div>`} style={{ padding: '20px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', width: '100%', minHeight: '300px', resize: 'vertical', fontFamily: 'var(--font-ibm-mono)' }}></textarea>
               </div>
@@ -605,6 +610,7 @@ export default function App() {
   const [mainContext, setMainContext] = useState("modules");
   const [activeModule, setActiveModule] = useState<any>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const loadingActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Solo después de haber preguntado a /api/me. Antes el estado inicial venía
@@ -1328,10 +1334,18 @@ export default function App() {
                                   if (action.view === "controles") {
                                     setView("robot_selection");
                                   } else if (!isActivating) {
+                                    // Cancelar cualquier timer de una tarjeta anterior: sin esto,
+                                    // un click en A seguido de otro en B antes de que pasen los
+                                    // 1.2s dejaba dos timers corriendo, y el de A navegaba igual
+                                    // aunque B fuera el último elegido.
+                                    if (loadingActionTimerRef.current) {
+                                      clearTimeout(loadingActionTimerRef.current);
+                                    }
                                     setLoadingAction(action.view);
-                                    setTimeout(() => {
+                                    loadingActionTimerRef.current = setTimeout(() => {
                                       setLoadingAction(null);
                                       setView(action.view);
+                                      loadingActionTimerRef.current = null;
                                     }, 1200);
                                   }
                                 }}
@@ -1498,49 +1512,40 @@ export default function App() {
           {(() => {
             return view === "robot_selection" && user && hasRole(user, "operador", "admin") && (
               <motion.section key="robot_selection" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
-                <RobotSelection 
-                  robots={robots}
-                  errorRobots={errorRobots}
-                  onReintentar={fetchRobots}
-                  onBack={() => setView("dashboard")}
-                  onSelectRobot={(robot) => {
-                    setLivekitToken(robot); // We repurpose this state to hold the entire robot object
-                    setView("modo_control");
-                  }}
-                  onAddRobot={(newRobot) => {
-                    setRobots(prev => [...prev, newRobot]);
-                  }}
-                  onUpdateRobot={async (updatedRobot) => {
-                    setRobots(prev => prev.map(r => r.id === updatedRobot.id ? updatedRobot : r));
-                    try {
-                      await apiFetch(`/api/robots/${updatedRobot.id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(updatedRobot)
-                      });
-                    } catch (e) {
-                      console.error("Error al guardar robot en backend:", e);
-                    }
-                  }}
-                  controlMappings={user.control_mappings}
-                  onUpdateMappings={async (newMappings) => {
-                    try {
-                      const res = await apiFetch('/api/profile/mappings', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ control_mappings: newMappings })
-                      });
-                      if (res.ok) {
-                        setUser({ ...user, control_mappings: newMappings });
-                        alert(t('alertas.controlesGuardados'));
-                      } else {
-                        alert(t('alertas.errorGuardarControles'));
+                <Suspense fallback={
+                  <div style={{ height: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
+                    <Loader2 className="animate-spin" size={64} style={{ marginBottom: '24px' }} />
+                  </div>
+                }>
+                  <RobotSelection
+                    robots={robots}
+                    errorRobots={errorRobots}
+                    onReintentar={fetchRobots}
+                    onBack={() => setView("dashboard")}
+                    onSelectRobot={(robot) => {
+                      setLivekitToken(robot); // We repurpose this state to hold the entire robot object
+                      setView("modo_control");
+                    }}
+                    controlMappings={user.control_mappings}
+                    onUpdateMappings={async (newMappings) => {
+                      try {
+                        const res = await apiFetch('/api/profile/mappings', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ control_mappings: newMappings })
+                        });
+                        if (res.ok) {
+                          setUser({ ...user, control_mappings: newMappings });
+                          alert(t('alertas.controlesGuardados'));
+                        } else {
+                          alert(t('alertas.errorGuardarControles'));
+                        }
+                      } catch (e) {
+                        alert(t('perfil.errorConexion'));
                       }
-                    } catch (e) {
-                      alert(t('perfil.errorConexion'));
-                    }
-                  }}
-                />
+                    }}
+                  />
+                </Suspense>
             </motion.section>
             );
           })()}
@@ -1741,11 +1746,6 @@ export default function App() {
 
           {view === "admin_config" && (
             <motion.section key="admin_config" className="full-container" style={{ maxWidth: '1600px', padding: '0 40px' }} {...pageTransition}>
-              <div className="panel-header">
-                <span className="panel-label">{t('adminRobots.administrador')}</span>
-                <h2 style={{margin: '0', fontSize: '1.25rem'}}>{t('adminRobots.titulo')}</h2>
-              </div>
-
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left', flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '8px' }}>
                     <h3 style={{ margin: 0, color: 'var(--accent)' }}>{t('adminRobots.tituloTabla')}</h3>

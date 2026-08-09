@@ -55,6 +55,10 @@ CREATE TABLE IF NOT EXISTS posts (
     date TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Respalda el ORDER BY date DESC de GET /api/posts (services/content/server.js),
+-- la query pública más frecuente del sitio (landing, /explora, /archivo).
+CREATE INDEX IF NOT EXISTS idx_posts_date ON posts (date DESC);
+
 CREATE TABLE IF NOT EXISTS robots (
     id VARCHAR(100) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
