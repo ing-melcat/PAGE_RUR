@@ -180,12 +180,9 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
         (a, b) => (a.status === 'online' ? 0 : 1) - (b.status === 'online' ? 0 : 1)
     );
 
-    const handleSelect = async (robot) => {
+    const handleSelect = (robot) => {
         setLoading(true);
-        setTimeout(() => {
-            onSelectRobot(robot);
-            setLoading(false);
-        }, 600); 
+        onSelectRobot(robot);
     };
 
     return (
