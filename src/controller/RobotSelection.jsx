@@ -5,6 +5,17 @@ import { Gamepad2, Settings } from 'lucide-react';
 import { apiFetch } from '../lib/apiClient';
 import { useLanguage } from '../lib/i18n';
 
+// Índice de botón (API estándar de Gamepad, W3C) -> etiqueta que ya usa
+// este archivo y ControllerApp.jsx en sus mapeos por defecto. Mismo orden
+// que GAMEPAD_BOTON_INDICE en ControllerApp.jsx, pero invertido: aquí se
+// necesita ir de "se presionó el botón 5" a "eso es RB".
+const INDICE_A_ETIQUETA_GAMEPAD = {
+    0: 'A', 1: 'B', 2: 'X', 3: 'Y',
+    4: 'LB', 5: 'RB', 6: 'LT', 7: 'RT',
+    8: 'Back', 9: 'Start', 10: 'LS', 11: 'RS',
+    12: 'Up', 13: 'Down', 14: 'Left', 15: 'Right',
+};
+
 // Shared style tokens
 const S = {
   label: { fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
@@ -43,6 +54,10 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
     // Resalte al pasar el mouse sobre el botón de una tecla -- por estado,
     // no por :hover/whileHover (ver por qué en el comentario donde se usa).
     const [hoverTecla, setHoverTecla] = useState(null);
+    // Mismo mecanismo que capturandoTecla/hoverTecla, pero para el botón del
+    // mando físico que se está esperando.
+    const [capturandoBoton, setCapturandoBoton] = useState(null);
+    const [hoverBoton, setHoverBoton] = useState(null);
 
     // We use props.controlMappings instead of local user since we are not directly holding user here, wait I need to add controlMappings and onUpdateMappings to the component props:
 
@@ -69,10 +84,13 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
     }, [controlMappings]);
 
     // Si se cierra el modal a medio capturar (clic afuera, Cancelar), no debe
-    // quedar un listener de teclado colgado esperando en el resto de la
-    // página.
+    // quedar un listener de teclado ni un sondeo de mando colgado esperando
+    // en el resto de la página.
     useEffect(() => {
-        if (!showMappingsModal) setCapturandoTecla(null);
+        if (!showMappingsModal) {
+            setCapturandoTecla(null);
+            setCapturandoBoton(null);
+        }
     }, [showMappingsModal]);
 
     // Mientras `capturandoTecla` tiene una acción, la siguiente tecla que se
@@ -104,6 +122,60 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
         const conPrefijo = codigo.match(/^(Key|Digit)(.+)$/);
         return conPrefijo ? conPrefijo[2] : codigo;
     };
+
+    // Escape cancela la captura de botón de mando igual que la de teclado.
+    useEffect(() => {
+        if (!capturandoBoton) return;
+        const alCancelar = (e) => {
+            if (e.code === 'Escape') setCapturandoBoton(null);
+        };
+        window.addEventListener('keydown', alCancelar);
+        return () => window.removeEventListener('keydown', alCancelar);
+    }, [capturandoBoton]);
+
+    // No hay evento "gamepadbuttondown" en el navegador -- hay que sondear
+    // frame a frame mientras se espera, igual que hace ControllerApp.jsx
+    // para leer el mando durante la partida. Se guarda una foto de qué
+    // botones ya estaban presionados al empezar a escuchar, para que uno
+    // que el operador sigue sosteniendo de antes no se lea como "se acaba
+    // de presionar".
+    useEffect(() => {
+        if (!capturandoBoton) return;
+        const yaPresionados = new Set();
+        const gpInicial = navigator.getGamepads?.()[0];
+        if (gpInicial) {
+            gpInicial.buttons.forEach((b, i) => { if (b?.pressed) yaPresionados.add(i); });
+        }
+
+        let animationFrameId;
+        const sondear = () => {
+            const gp = navigator.getGamepads?.()[0];
+            if (gp) {
+                for (let i = 0; i < gp.buttons.length; i++) {
+                    const presionado = Boolean(gp.buttons[i]?.pressed);
+                    if (presionado && !yaPresionados.has(i)) {
+                        const etiqueta = INDICE_A_ETIQUETA_GAMEPAD[i];
+                        if (etiqueta) {
+                            setMappingForm(prev => ({
+                                ...prev,
+                                gamepad: { ...prev.gamepad, [capturandoBoton]: etiqueta },
+                            }));
+                            setCapturandoBoton(null);
+                            return;
+                        }
+                        // Botón sin nombre en la tabla (ej. stick central): se
+                        // ignora, pero se marca para no reintentar cada frame.
+                        yaPresionados.add(i);
+                    } else if (!presionado) {
+                        yaPresionados.delete(i);
+                    }
+                }
+            }
+            animationFrameId = requestAnimationFrame(sondear);
+        };
+        animationFrameId = requestAnimationFrame(sondear);
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [capturandoBoton]);
 
     // Sync formData when configRobot changes
     useEffect(() => {
@@ -369,19 +441,20 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                         {Object.keys(mappingForm[type]).map(action => (
                                             <label key={action} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                                 <span style={S.label}>{action.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                                {/* Sin escribir el código/nombre a mano en ninguno de los dos:
+                                                    se toca el botón y se presiona la tecla o el botón del
+                                                    mando que se quiera asignar. El puntito con pulse es el
+                                                    mismo lenguaje visual que ya usa el sitio para "esto está
+                                                    pasando ahora" (ej. el badge de aviso activo del header) --
+                                                    no es una animación nueva.
+
+                                                    El resalte al pasar el mouse va por estado de React + la
+                                                    transición CSS nativa de S.input, no por whileHover de
+                                                    Motion: Motion no interpola bien un var(--...) crudo como
+                                                    valor de animación (el color salía mal, tipo negro), y en
+                                                    pantallas táctiles whileHover se queda pegado hasta el
+                                                    siguiente toque en otra parte. */}
                                                 {type === 'keyboard' ? (
-                                                    // Sin escribir el código a mano: se toca el botón y se
-                                                    // presiona la tecla que se quiera asignar. El puntito con
-                                                    // pulse es el mismo lenguaje visual que ya usa el sitio
-                                                    // para "esto está pasando ahora" (ej. el badge de aviso
-                                                    // activo en el header) -- no es una animación nueva.
-                                                    //
-                                                    // El resalte al pasar el mouse va por estado de React +
-                                                    // la transición CSS nativa de S.input, no por whileHover de
-                                                    // Motion: Motion no interpola bien un var(--...) crudo como
-                                                    // valor de animación (el color salía mal, tipo negro), y en
-                                                    // pantallas táctiles whileHover se queda pegado hasta el
-                                                    // siguiente toque en otra parte.
                                                     <motion.button
                                                         type="button"
                                                         onClick={() => setCapturandoTecla(action)}
@@ -407,14 +480,30 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                                         )}
                                                     </motion.button>
                                                 ) : (
-                                                    <input
-                                                        type="text"
-                                                        value={mappingForm[type][action]}
-                                                        onChange={e => setMappingForm(prev => ({
-                                                            ...prev, [type]: { ...prev[type], [action]: e.target.value.toUpperCase() }
-                                                        }))}
-                                                        style={S.input}
-                                                    />
+                                                    <motion.button
+                                                        type="button"
+                                                        onClick={() => setCapturandoBoton(action)}
+                                                        onMouseEnter={() => setHoverBoton(action)}
+                                                        onMouseLeave={() => setHoverBoton(null)}
+                                                        title={t('operador.seleccion.cambiarBoton')}
+                                                        whileTap={{ scale: 0.97 }}
+                                                        style={{
+                                                            ...S.input,
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                            cursor: 'pointer', fontWeight: 600, letterSpacing: '0.05em',
+                                                            color: capturandoBoton === action ? 'var(--accent)' : 'var(--text)',
+                                                            borderColor: (capturandoBoton === action || hoverBoton === action) ? 'var(--accent)' : 'var(--border)',
+                                                        }}
+                                                    >
+                                                        {capturandoBoton === action ? (
+                                                            <>
+                                                                <span style={{ width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0, backgroundColor: 'var(--accent)', animation: 'pulse 1.5s infinite' }} />
+                                                                {t('operador.seleccion.presionaBoton')}
+                                                            </>
+                                                        ) : (
+                                                            mappingForm.gamepad[action] || '—'
+                                                        )}
+                                                    </motion.button>
                                                 )}
                                             </label>
                                         ))}
