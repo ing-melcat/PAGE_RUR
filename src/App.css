@@ -358,8 +358,13 @@
    ================================================================== */
 
 .portada {
-  /* Mismo padding que .responsive-section: la alineación es el punto. */
-  padding: 60px 60px 0;
+  /* Sin márgenes: la foto ocupa todo el ancho de la ventana. Encajarla en
+     el margen de 60px la alineaba con el texto, sí, pero a cambio la
+     encogía hasta parecer una ilustración de acompañamiento — y es la
+     primera imagen del sitio, lo que sostiene la portada entera.
+     La alineación con el resto de la página no se pierde: la hereda el
+     TEXTO, vía el padding de .portada__marco. */
+  padding: 0;
 }
 
 .portada__marco {
@@ -370,27 +375,26 @@
      y su propia sombra; la idea es lo contrario, que la imagen sea parte
      del fondo y se disuelva en él. Todo el trabajo lo hacen el velo y la
      viñeta de abajo — ninguna línea encierra la foto. */
-  /* Alta pero nunca a pantalla completa: si ocupa todo el alto, nada
-     indica que hay más página debajo y el visitante no baja. */
-  height: min(66vh, 620px);
-  min-height: 340px;
+  /* Alta, pero nunca del alto completo de la ventana: si llena la pantalla,
+     nada indica que hay más página debajo y el visitante no baja. */
+  height: min(78vh, 760px);
+  min-height: 420px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 48px;
+  /* Este padding es el que alinea el TITULAR con los títulos de sección y
+     las tarjetas de abajo. La foto va a sangre; el texto, no. */
+  padding: 60px;
 }
 
-/* Difumina los cuatro cantos contra el fondo de la página. Sin esto, al
-   quitar el borde queda un corte a cuchillo —la foto termina de golpe en
-   mitad de la nada— que se nota más que el propio borde. Una sombra
-   interior del color del fondo es la forma más compatible de lograrlo:
-   no depende de mask-composite, que aún se comporta distinto según el
-   navegador. */
+/* Funde el canto de arriba con la barra de navegación. Los laterales ya no
+   necesitan nada: la foto llega al borde de la ventana, así que no hay
+   fondo contra el que recortarse. El de abajo lo resuelve el velo. */
 .portada__marco::after {
   content: '';
   position: absolute;
   inset: 0;
-  box-shadow: inset 0 0 64px 24px var(--background);
+  box-shadow: inset 0 56px 44px -32px var(--background);
   pointer-events: none;
   z-index: 1;
 }
@@ -398,8 +402,8 @@
 /* Variante de las portadas de sección (Explora, Descubre, Conecta,
    Archivo): más bajas, y el texto centrado en vez de apoyado abajo. */
 .portada__marco--seccion {
-  height: min(46vh, 420px);
-  min-height: 280px;
+  height: min(56vh, 520px);
+  min-height: 320px;
   justify-content: center;
 }
 
@@ -450,23 +454,20 @@
 }
 
 @media (max-width: 768px) {
-  .portada {
-    /* Mismos 16px que .responsive-section en móvil. */
-    padding: 16px 16px 0;
-  }
-
   .portada__marco {
-    height: min(72vh, 540px);
-    padding: 24px;
+    height: min(76vh, 560px);
+    min-height: 380px;
+    /* Mismos 16px de margen que .responsive-section, para que el titular
+       siga alineado con el contenido de abajo también en móvil. */
+    padding: 24px 16px;
   }
 
   .portada__marco--seccion {
-    height: min(42vh, 340px);
+    height: min(50vh, 400px);
+    min-height: 280px;
   }
 
-  /* La viñeta se encoge con el margen: 24px de difuminado sobre una foto
-     de 400px de ancho se comerían media imagen. */
   .portada__marco::after {
-    box-shadow: inset 0 0 32px 10px var(--background);
+    box-shadow: inset 0 36px 30px -24px var(--background);
   }
 }
