@@ -25,6 +25,16 @@ CREATE TABLE IF NOT EXISTS users (
     instagram VARCHAR(255),
     reddit VARCHAR(255),
     facebook VARCHAR(255),
+    -- Perfil público (sección de miembros). Aparecer es voluntario y está
+    -- apagado por defecto: nadie se publica por el hecho de tener cuenta.
+    -- `rol_publico` y `area` son lo que la persona quiere que se lea de
+    -- ella; `roles`, arriba, sigue siendo solo permisos del sistema y no se
+    -- publica nunca.
+    perfil_publico BOOLEAN NOT NULL DEFAULT false,
+    rol_publico VARCHAR(80),
+    area VARCHAR(80),
+    generacion VARCHAR(20),
+    linkedin VARCHAR(255),
     show_alias BOOLEAN NOT NULL DEFAULT false,
     push_notifications BOOLEAN NOT NULL DEFAULT false,
     -- Preferencias de accesibilidad. Viven en la base y no en el navegador
@@ -88,6 +98,31 @@ CREATE INDEX IF NOT EXISTS idx_logs_date ON logs (date DESC);
 -- se borra, y se regenera sola la próxima vez que alguien la pida en ese
 -- idioma. Sin FK a posts a propósito: el resto del schema tampoco usa FKs,
 -- el borrado en cascada se maneja a mano en services/content/server.js.
+-- Quién desarrolló cada publicación.
+--
+-- Es lo que hace que la sección de miembros sea un historial de trabajo real
+-- y no un catálogo de personas: el recorrido de cada uno no se escribe a
+-- mano, se deduce de los proyectos que el sitio ya publica.
+--
+-- Esta tabla SÍ lleva claves foráneas, a diferencia del resto del esquema.
+-- Es una tabla de enlace y nada más: sus filas no significan nada sin las
+-- dos que unen, y una fila que apunte a una publicación borrada no es un
+-- dato viejo, es basura que ensuciaría la ficha de alguien. Aquí el
+-- ON DELETE CASCADE es la limpieza correcta, no una comodidad.
+CREATE TABLE IF NOT EXISTS post_miembros (
+    post_id  VARCHAR(64) NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    user_id  INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    -- Qué hizo esa persona en ESE proyecto: "electrónica", "control",
+    -- "documentación". La misma persona tiene papeles distintos en
+    -- proyectos distintos, así que no puede vivir en su fila de users.
+    papel    VARCHAR(80),
+    PRIMARY KEY (post_id, user_id)
+);
+
+-- La consulta natural es "los proyectos de esta persona", que va por
+-- user_id; la clave primaria solo indexa bien el sentido contrario.
+CREATE INDEX IF NOT EXISTS idx_post_miembros_user ON post_miembros (user_id);
+
 CREATE TABLE IF NOT EXISTS post_translations (
     post_id TEXT NOT NULL,
     lang VARCHAR(10) NOT NULL,

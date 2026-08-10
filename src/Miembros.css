@@ -1,0 +1,271 @@
+/* ==================================================================
+   Miembros
+   ------------------------------------------------------------------
+   Una ficha de persona corre siempre el mismo riesgo: convertirse en un
+   cromo. Foto grande y centrada, nombre, cargo, y nada más que mirar.
+   Aquí el peso visual va al revés — el retrato es pequeño y va al lado,
+   y el espacio se lo lleva la lista de proyectos, que es lo que
+   distingue a alguien de verdad.
+
+   Todo se apoya en los tokens que ya existen (escala tipográfica,
+   duraciones, paleta): esta sección no inventa colores ni tamaños
+   propios, que es lo que hace que una página nueva parezca de otro
+   sitio.
+   ================================================================== */
+
+.miembros__fondo {
+  /* Sin foto propia todavía: el azul institucional con el mismo velo que
+     las demás portadas. Cuando haya una foto del equipo, se cambia aquí
+     y el resto sigue igual. */
+  background-color: var(--surface-strong);
+}
+
+.miembros__entradilla {
+  font-size: var(--t-md);
+  color: var(--bone);
+  opacity: .9;
+  line-height: 1.6;
+  max-width: 620px;
+  margin: 12px 0 0;
+}
+
+.miembros__area {
+  margin-bottom: 64px;
+}
+
+.miembros__area:last-child {
+  margin-bottom: 0;
+}
+
+.miembros__area-titulo {
+  font-family: var(--font-titulo), sans-serif;
+  font-size: var(--t-xl);
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  margin: 0 0 28px;
+  color: var(--text);
+}
+
+.miembros__barra {
+  color: var(--accent);
+}
+
+.miembros__rejilla {
+  display: grid;
+  /* 340px es lo que necesita la ficha para que un título de proyecto
+     quepa en una línea. Por debajo, los títulos se parten en tres
+     renglones y la lista deja de leerse de un vistazo. */
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+.miembro {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  transition: border-color var(--mov-rapido) ease,
+              transform var(--mov-medio) var(--mov-curva);
+}
+
+@media (hover: hover) {
+  .miembro:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+}
+
+.miembro__cabecera {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.miembro__retrato {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+}
+
+.miembro__retrato img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Quien no ha subido foto sale con sus iniciales, no con un icono de
+   persona genérico: el hueco gris idéntico repetido por toda la rejilla
+   es justo lo que hace que una sección de equipo parezca sin terminar. */
+.miembro__iniciales {
+  font-family: var(--font-titulo), sans-serif;
+  font-size: var(--t-md);
+  letter-spacing: .04em;
+  color: var(--accent);
+}
+
+.miembro__identidad {
+  min-width: 0;   /* deja que el nombre largo se recorte en vez de desbordar */
+}
+
+.miembro__nombre {
+  font-family: var(--font-titulo), sans-serif;
+  font-size: var(--t-lg);
+  font-weight: 400;
+  letter-spacing: .02em;
+  line-height: 1.1;
+  margin: 0;
+  color: var(--text);
+}
+
+.miembro__rol {
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-sm);
+  color: var(--accent);
+  margin: 4px 0 0;
+}
+
+.miembro__generacion {
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+.miembro__bio {
+  font-size: var(--t-sm);
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0;
+}
+
+.miembro__proyectos {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: auto;   /* pega el historial al fondo: todas las fichas de
+                         una fila alinean su lista, aunque las biografías
+                         midan distinto */
+}
+
+.miembro__etiqueta {
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-xs);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.miembro__proyectos ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.miembro__proyecto {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: var(--t-sm);
+  line-height: 1.4;
+  border-left: 2px solid var(--border);
+  padding-left: 10px;
+  transition: border-color var(--mov-rapido) ease, color var(--mov-rapido) ease;
+}
+
+@media (hover: hover) {
+  .miembro__proyecto:hover {
+    border-left-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
+.miembro__proyecto:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.miembro__papel {
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-xs);
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.miembro__redes {
+  display: flex;
+  gap: 8px;
+}
+
+.miembro__redes a {
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-xs);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 5px 10px;
+  transition: color var(--mov-rapido) ease, border-color var(--mov-rapido) ease;
+}
+
+@media (hover: hover) {
+  .miembro__redes a:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+}
+
+.miembro__redes a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.miembros__vacio {
+  font-family: var(--font-etiqueta), sans-serif;
+  color: var(--muted);
+  text-align: center;
+  padding: 60px 0;
+}
+
+@media (max-width: 768px) {
+  .miembros__rejilla {
+    /* Una sola columna: a 340px mínimos, dos columnas en un móvil dejan
+       cada ficha demasiado estrecha para su lista de proyectos. */
+    grid-template-columns: 1fr;
+  }
+
+  .miembros__area {
+    margin-bottom: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .miembro {
+    transition: border-color var(--mov-rapido) ease;
+  }
+
+  @media (hover: hover) {
+    .miembro:hover {
+      transform: none;
+    }
+  }
+}

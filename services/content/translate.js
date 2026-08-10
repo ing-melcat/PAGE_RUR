@@ -9,6 +9,12 @@ import { getPool } from '../shared/db.js';
 const LIBRETRANSLATE_URL = process.env.LIBRETRANSLATE_URL || 'http://libretranslate:5000';
 const IDIOMA_ORIGEN = 'es';
 
+// Los idiomas a los que se traduce al guardar una publicación. Hoy el
+// selector del sitio solo ofrece es/en (src/lib/i18n.tsx) y LibreTranslate
+// arranca con `--load-only en,es`; añadir uno aquí exige cargar también su
+// modelo en el contenedor.
+const IDIOMAS_TRADUCIBLES = ['en'];
+
 // LibreTranslate acepta `q` como arreglo y responde con otro arreglo en el
 // mismo orden. Es la diferencia entre 4 peticiones y 150: el post más largo
 // que hay (7 páginas) tiene 149 nodos de texto, y antes cada uno abría su
@@ -158,47 +164,48 @@ function analizarHtml(html) {
   return html && html.trim() ? parse(html) : null;
 }
 
+function aplicarCache(post, cache) {
+  return {
+    ...post,
+    title: cache.title ?? post.title,
+    content: cache.content ?? post.content,
+    pages: (cache.pages && cache.pages.length > 0) ? cache.pages : post.pages,
+  };
+}
+
 /**
- * Devuelve el post con title/content/pages en `lang`. Si hay una traducción
- * cacheada en post_translations, la devuelve de inmediato (~1 ms). Si NO la
- * hay, devuelve el post ORIGINAL sin traducir y lanza la traducción en
- * segundo plano (fire-and-forget): la próxima petición ya encontrará la
- * caché lista.
+ * Devuelve la lista de posts en `lang`, leyendo las traducciones ya hechas.
+ * NO traduce nada: para cuando llega un visitante el trabajo ya está hecho
+ * (se dispara al guardar la publicación, ver regenerarTraducciones).
  *
- * ¿Por qué no esperar a que termine la traducción? Porque LibreTranslate
- * puede tardar varios segundos por post (o hacer timeout), y la petición GET
- * /api/posts traduce TODOS los posts en paralelo. Con 7 publicaciones, un
- * solo timeout de 5 s convertía una respuesta de 40 ms en una de >5 s,
- * dejando la página colgada cada vez que alguien la abre en inglés.
+ * Una sola consulta para toda la lista. Antes se hacía una por post -- con 7
+ * publicaciones eran 8 consultas por visita, y crecía con cada publicación
+ * nueva.
  *
- * El resultado es que la primera visita en un idioma no-nativo muestra el
- * contenido original. Los posts cortos quedan listos en segundos; el más
- * largo que hay (7 páginas, 149 nodos de texto) tarda ~4.5 min medidos en
- * este hardware. Pero solo pasa UNA vez por post e idioma: en cuanto termina
- * queda cacheado y todas las visitas siguientes salen traducidas al
- * instante.
+ * Si aun así faltara alguna traducción (una publicación creada antes de que
+ * esto existiera, o un LibreTranslate que estaba caído al guardar), se
+ * devuelve el original y se programa la traducción de fondo: red de
+ * seguridad, no el camino normal.
  */
-export async function traducirPost(post, lang) {
+export async function adjuntarTraducciones(posts, lang) {
+  if (!posts.length || !lang || lang === IDIOMA_ORIGEN) return posts;
+
   try {
     const { rows } = await pool.query(
-      'SELECT title, content, pages FROM post_translations WHERE post_id = $1 AND lang = $2',
-      [post.id, lang]
+      'SELECT post_id, title, content, pages FROM post_translations WHERE lang = $1 AND post_id = ANY($2)',
+      [lang, posts.map((post) => post.id)]
     );
-    if (rows.length > 0) {
-      const cache = rows[0];
-      return {
-        ...post,
-        title: cache.title ?? post.title,
-        content: cache.content ?? post.content,
-        pages: (cache.pages && cache.pages.length > 0) ? cache.pages : post.pages,
-      };
-    }
+    const porId = new Map(rows.map((fila) => [fila.post_id, fila]));
 
-    programarTraduccion(post, lang);
-    return post;
+    return posts.map((post) => {
+      const cache = porId.get(post.id);
+      if (cache) return aplicarCache(post, cache);
+      programarTraduccion(post, lang);
+      return post;
+    });
   } catch (err) {
-    console.error(`[svc-content] Error leyendo caché de traducción de ${post.id}:`, err.message);
-    return post;
+    console.error(`[svc-content] Error leyendo la caché de traducciones a "${lang}":`, err.message);
+    return posts;
   }
 }
 
@@ -271,9 +278,92 @@ function programarTraduccion(post, lang) {
     });
 }
 
-// Se llama al editar o borrar un post: la traducción cacheada de la versión
-// vieja ya no aplica. No hace falta regenerarla aquí -- se rehace sola, de
-// forma perezosa, la próxima vez que alguien la pida en ese idioma.
+// Se llama al borrar un post: su traducción ya no le sirve a nadie.
 export async function invalidarTraducciones(postId) {
   await pool.query('DELETE FROM post_translations WHERE post_id = $1', [postId]);
+}
+
+/**
+ * Se llama al CREAR o EDITAR una publicación: tira la traducción vieja (que
+ * ya no corresponde al texto nuevo) y encarga la nueva ahí mismo, en segundo
+ * plano.
+ *
+ * Este es el punto donde debe ocurrir el trabajo. Antes se hacía de forma
+ * perezosa -- se borraba al editar y se regeneraba cuando el primer visitante
+ * pedía ese idioma -- y eso ponía el coste en el lado equivocado: quien
+ * pagaba el retraso era el visitante, y encima veía la publicación en español
+ * habiendo pedido inglés. Guardar pasa unas pocas veces al día y lo hace
+ * alguien que ya está esperando a que se guarde; una visita pasa
+ * constantemente y tiene que ser instantánea.
+ *
+ * No se espera a que termine: el redactor recibe su respuesta de guardado
+ * enseguida y la traducción avanza por detrás.
+ */
+export async function regenerarTraducciones(post) {
+  await pool.query('DELETE FROM post_translations WHERE post_id = $1', [post.id]);
+  for (const lang of IDIOMAS_TRADUCIBLES) {
+    programarTraduccion(post, lang);
+  }
+}
+
+// LibreTranslate tarda en cargar los modelos de idioma, y en un `docker
+// compose up` arranca a la vez que este servicio: sin esperarlo, el
+// precalentado de abajo falla entero con "fetch failed" y las traducciones
+// se quedan sin hacer hasta el siguiente arranque.
+const ESPERA_ENTRE_SONDEOS_MS = 5000;
+const SONDEOS_MAX = 24; // ~2 minutos
+
+async function esperarAlTraductor() {
+  for (let intento = 0; intento < SONDEOS_MAX; intento++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    try {
+      const res = await fetch(`${LIBRETRANSLATE_URL}/languages`, { signal: controller.signal });
+      if (res.ok) return true;
+    } catch {
+      // Todavía no responde: se reintenta abajo.
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    await new Promise((seguir) => setTimeout(seguir, ESPERA_ENTRE_SONDEOS_MS));
+  }
+  return false;
+}
+
+/**
+ * Al arrancar el servicio, completa lo que falte. Cubre el hueco de las
+ * publicaciones que ya existían antes de que la traducción se hiciera al
+ * guardar, y el de un guardado cuyo LibreTranslate estaba caído.
+ *
+ * Va de una en una (manda PETICIONES_EN_PARALELO), así que aunque falten
+ * todas no se le echa encima al traductor de golpe.
+ */
+export async function precalentarTraducciones() {
+  const pendientes = {};
+  for (const lang of IDIOMAS_TRADUCIBLES) {
+    const { rows } = await pool.query(
+      `SELECT p.id, p.title, p.content, p.pages
+         FROM posts p
+         LEFT JOIN post_translations t ON t.post_id = p.id AND t.lang = $1
+        WHERE t.post_id IS NULL`,
+      [lang]
+    );
+    if (rows.length > 0) pendientes[lang] = rows;
+  }
+  if (Object.keys(pendientes).length === 0) return;
+
+  const total = Object.values(pendientes).reduce((suma, rows) => suma + rows.length, 0);
+  console.log(`[svc-content] Faltan ${total} traducciones: esperando a LibreTranslate para generarlas.`);
+
+  if (!(await esperarAlTraductor())) {
+    console.error('[svc-content] LibreTranslate no respondió; las traducciones pendientes quedan para el próximo arranque.');
+    return;
+  }
+
+  for (const [lang, rows] of Object.entries(pendientes)) {
+    for (const post of rows) {
+      programarTraduccion(post, lang);
+    }
+  }
+  console.log(`[svc-content] Generando ${total} traducciones en segundo plano.`);
 }

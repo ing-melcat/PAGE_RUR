@@ -11,7 +11,7 @@ rur.unipolidgo.edu.mx {
 	# bruta, escaneo, etc), antes de que la petición llegue a un servicio.
 	crowdsec
 
-	@identity path /api/login /api/logout /api/me /api/users* /api/profile*
+	@identity path /api/login /api/logout /api/me /api/users* /api/profile* /api/miembros
 	@content path /api/posts* /api/upload /api/uploads/*
 	@robots path /api/robots* /api/livekit* /api/crowdsec/* /api/logs
 

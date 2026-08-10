@@ -14,6 +14,7 @@ export const en: Dictionary = {
     atras: '← Back',
   },
   nav: {
+    miembros: 'MEMBERS',
     inicio: 'HOME',
     explora: 'EXPLORE',
     descubre: 'DISCOVER',
@@ -544,5 +545,14 @@ export const en: Dictionary = {
     advertenciaLivekitEstado: 'Warning: The LiveKit server responded with status',
     advertenciaGuardarTodosModos: 'Do you want to save it anyway?',
     advertenciaLivekitPing: 'Warning: Could not establish a connection with the LiveKit Cloud server (ping failed). Do you want to save it anyway?',
+  },
+  miembros: {
+    eyebrow: 'THE TEAM',
+    titulo: 'Who builds it',
+    entradilla: "Each profile leads with what that person has actually built. Projects come from the site's own publications: if it shows up here, it is published.",
+    proyectos: 'Has worked on',
+    desde: 'Since {a}',
+    cargando: 'Loading…',
+    vacio: 'No public profiles yet. Each member chooses whether to appear, from their own profile.',
   },
 };

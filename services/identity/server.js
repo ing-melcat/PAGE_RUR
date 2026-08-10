@@ -119,9 +119,14 @@ function toPublicUser(row) {
     bio: row.bio ?? '',
     foto: row.foto ?? '',
     github: row.github ?? '',
+    linkedin: row.linkedin ?? '',
     instagram: row.instagram ?? '',
     reddit: row.reddit ?? '',
     facebook: row.facebook ?? '',
+    perfil_publico: row.perfil_publico ?? false,
+    rol_publico: row.rol_publico ?? '',
+    area: row.area ?? '',
+    generacion: row.generacion ?? '',
     show_alias: row.show_alias ?? false,
     push_notifications: row.push_notifications ?? false,
     large_text: row.large_text ?? false,
@@ -155,9 +160,16 @@ const PROFILE_FIELDS = {
   bio: { kind: 'text', maxLength: 2000 },
   foto: { kind: 'upload', maxLength: 255 },
   github: { kind: 'link', maxLength: 255 },
+  linkedin: { kind: 'link', maxLength: 255 },
   instagram: { kind: 'link', maxLength: 255 },
   reddit: { kind: 'link', maxLength: 255 },
   facebook: { kind: 'link', maxLength: 255 },
+  // Perfil público. Cada quien decide si sale en la web y con qué palabras;
+  // nadie más lo edita por él, igual que el resto de este bloque.
+  perfil_publico: { kind: 'boolean' },
+  rol_publico: { kind: 'text', maxLength: 80 },
+  area: { kind: 'text', maxLength: 80 },
+  generacion: { kind: 'text', maxLength: 20 },
   show_alias: { kind: 'boolean' },
   push_notifications: { kind: 'boolean' },
   large_text: { kind: 'boolean' },
@@ -277,6 +289,63 @@ app.put('/api/profile/mappings', verifyToken, csrfProtection, noStore, async (re
   const row = rows[0];
   if (!row) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
   res.json({ success: true, user: toPublicUser(row) });
+});
+
+// La sección de miembros de la web pública.
+//
+// Es el único sitio del proyecto donde salen personas reales a internet, así
+// que se sujeta a tres reglas:
+//
+//   1. Solo quien lo ha pedido. `perfil_publico` está en false por defecto:
+//      tener cuenta no publica a nadie.
+//   2. Lista blanca de columnas, nunca SELECT *. Un campo nuevo en `users`
+//      no se filtra solo por existir — para publicarse hay que añadirlo aquí
+//      a mano. Fuera quedan matrícula, teléfono, grupo y el hash.
+//   3. `roles` NO sale. Mezcla permisos del sistema con áreas escritas a
+//      mano, y publicar quién es administrador es dar información de
+//      seguridad gratis. Lo que se enseña es `rol_publico`, que lo escribe
+//      su dueño.
+//
+// De paso trae los proyectos de cada uno, que es lo que hace de esto un
+// historial de trabajo y no un listado de gente. Solo publicaciones
+// visibles: una firmada en algo aún oculto no lo destapa.
+app.get('/api/miembros', async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT u.id, u.nombre, u.alias, u.show_alias, u.bio, u.foto,
+           u.rol_publico, u.area, u.generacion,
+           u.github, u.linkedin, u.instagram,
+           COALESCE(
+             (SELECT json_agg(json_build_object('id', p.id, 'titulo', p.title, 'papel', pm.papel)
+                              ORDER BY p.date DESC)
+                FROM post_miembros pm
+                JOIN posts p ON p.id = pm.post_id
+               WHERE pm.user_id = u.id AND p.is_hidden IS NOT TRUE),
+             '[]'::json
+           ) AS proyectos
+      FROM users u
+     WHERE u.perfil_publico IS TRUE
+     ORDER BY u.area NULLS LAST, u.nombre
+  `);
+
+  // El nombre que se muestra lo decide quien lo lleva: si activó el alias,
+  // manda el alias.
+  //
+  // Como identificador de la tarjeta va el id interno, NO la matrícula: la
+  // matrícula es el usuario con el que se inicia sesión, así que publicarla
+  // sería regalar la mitad de las credenciales de cada miembro.
+  res.json(rows.map((r) => ({
+    id: r.id,
+    nombre: r.show_alias && r.alias ? r.alias : r.nombre,
+    rol: r.rol_publico ?? '',
+    area: r.area ?? '',
+    generacion: r.generacion ?? '',
+    bio: r.bio ?? '',
+    foto: r.foto ?? '',
+    github: r.github ?? '',
+    linkedin: r.linkedin ?? '',
+    instagram: r.instagram ?? '',
+    proyectos: r.proyectos ?? [],
+  })));
 });
 
 app.get('/api/users', verifyToken, requireRole('admin'), noStore, async (req, res) => {

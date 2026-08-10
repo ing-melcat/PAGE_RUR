@@ -14,6 +14,7 @@ export const es = {
     atras: '← Atrás',
   },
   nav: {
+    miembros: 'MIEMBROS',
     inicio: 'INICIO',
     explora: 'EXPLORA',
     descubre: 'DESCUBRE',
@@ -544,6 +545,15 @@ export const es = {
     advertenciaLivekitEstado: 'Advertencia: El servidor LiveKit respondió con estado',
     advertenciaGuardarTodosModos: '¿Deseas guardarlo de todos modos?',
     advertenciaLivekitPing: 'Advertencia: No se pudo establecer conexión con el servidor LiveKit Cloud (Ping fallido). ¿Deseas guardarlo de todos modos?',
+  },
+  miembros: {
+    eyebrow: 'EL GRUPO',
+    titulo: 'Quiénes lo construyen',
+    entradilla: 'Cada ficha enseña, antes que nada, lo que esa persona ha desarrollado. Los proyectos salen de las publicaciones del sitio: si algo aparece aquí, está publicado.',
+    proyectos: 'Ha desarrollado',
+    desde: 'Desde {a}',
+    cargando: 'Cargando…',
+    vacio: 'Todavía no hay perfiles publicados. Cada miembro decide si aparece desde su perfil.',
   },
 };
 

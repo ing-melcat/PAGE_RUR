@@ -11,7 +11,12 @@ import { getPool } from '../shared/db.js';
 import { verifyToken, requireRole, sesionOpcional, IS_PRODUCTION } from '../shared/auth.js';
 import { csrfProtection } from '../shared/csrf.js';
 import { saveLog } from '../shared/logs.js';
-import { traducirPost, invalidarTraducciones } from './translate.js';
+import {
+  adjuntarTraducciones,
+  invalidarTraducciones,
+  regenerarTraducciones,
+  precalentarTraducciones,
+} from './translate.js';
 
 // Es la ruta de mayor costo de I/O de los tres servicios (escribe archivos a
 // disco) y era la única de los tres sin ningún límite de frecuencia — ni
@@ -147,11 +152,11 @@ app.get('/api/posts', sesionOpcional, async (req, res) => {
   const posts = rows.map(rowToPost);
 
   // 'es' es el idioma nativo del contenido -- nada que traducir. Cualquier
-  // otro valor de ?lang= pasa por la caché de post_translations.
+  // otro valor de ?lang= se sirve de post_translations, que ya está lleno
+  // desde que se guardó la publicación: aquí solo se lee.
   const lang = req.query.lang;
   if (lang && lang !== 'es') {
-    const traducidos = await Promise.all(posts.map((post) => traducirPost(post, lang)));
-    return res.json(traducidos);
+    return res.json(await adjuntarTraducciones(posts, lang));
   }
 
   res.json(posts);
@@ -217,7 +222,13 @@ app.post('/api/posts', verifyToken, requireRole('admin', 'redactor'), csrfProtec
     ]
   );
   await saveLog('info', `${req.user.matricula} creó la publicación ${id}.`);
-  res.status(201).json(rowToPost(rows[0]));
+
+  // Traducirla ahora, no cuando llegue el primer visitante que la pida en
+  // inglés. No se espera: corre por detrás mientras el redactor sigue.
+  const creada = rowToPost(rows[0]);
+  await regenerarTraducciones(creada);
+
+  res.status(201).json(creada);
 });
 
 app.put('/api/posts/:id', verifyToken, requireRole('admin', 'redactor'), csrfProtection, async (req, res) => {
@@ -247,9 +258,15 @@ app.put('/api/posts/:id', verifyToken, requireRole('admin', 'redactor'), csrfPro
       req.params.id,
     ]
   );
-  await invalidarTraducciones(req.params.id);
   await saveLog('info', `${req.user.matricula} modificó la publicación ${req.params.id}.`);
-  res.json(rowToPost(rows[0]));
+
+  // La traducción vieja ya no corresponde al texto nuevo: se tira y se
+  // rehace aquí mismo, para que el visitante no se encuentre la publicación
+  // en español al pedirla en inglés.
+  const modificada = rowToPost(rows[0]);
+  await regenerarTraducciones(modificada);
+
+  res.json(modificada);
 });
 
 app.delete('/api/posts/:id', verifyToken, requireRole('admin'), csrfProtection, async (req, res) => {
@@ -273,4 +290,11 @@ app.use((err, req, res, _next) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`svc-content escuchando en :${PORT} [${IS_PRODUCTION ? 'PRODUCCIÓN' : 'DESARROLLO'}]`);
+
+  // Fuera del camino de arranque: si falta alguna traducción se genera por
+  // detrás, sin retrasar la puesta en marcha ni tumbar el servicio si
+  // LibreTranslate todavía no está listo.
+  precalentarTraducciones().catch((err) => {
+    console.error('[svc-content] No se pudo revisar las traducciones pendientes:', err.message);
+  });
 });

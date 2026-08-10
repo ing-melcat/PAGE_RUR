@@ -24,6 +24,14 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
 
     GRANT SELECT, INSERT, UPDATE, DELETE ON posts TO svc_content_role;
     GRANT SELECT, INSERT, UPDATE, DELETE ON post_translations TO svc_content_role;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON post_miembros TO svc_content_role;
+    -- svc-content necesita leer users para resolver los nombres de quienes
+    -- firman una publicación. Solo lectura: ningún permiso sobre cuentas.
+    GRANT SELECT ON users TO svc_content_role;
+    -- svc-identity sirve la lista de miembros con sus proyectos; escribir
+    -- quién firma qué es cosa del panel de publicaciones, o sea de content.
+    GRANT SELECT ON post_miembros TO svc_identity_role;
+    GRANT SELECT ON posts TO svc_identity_role;
 
     GRANT SELECT, INSERT, UPDATE, DELETE ON robots TO svc_robots_role;
     GRANT SELECT, INSERT, UPDATE, DELETE ON logs TO svc_robots_role;
