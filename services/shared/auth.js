@@ -41,6 +41,23 @@ export const verifyToken = (req, res, next) => {
   });
 };
 
+// sesionOpcional: rellena req.user si hay una sesión válida y sigue adelante
+// igualmente si no la hay. Es para las rutas que sirven a los dos públicos a
+// la vez —el visitante anónimo y el panel— y que deben enseñar más al
+// segundo sin cerrarle la puerta al primero.
+//
+// No es verifyToken con el error silenciado: una cookie inválida o caducada
+// aquí no es un fallo, es sencillamente un visitante anónimo. Lo que nunca
+// hace es dar por buena una sesión que no verifica.
+export const sesionOpcional = (req, res, next) => {
+  const token = req.cookies?.[SESSION_COOKIE];
+  if (!token) return next();
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (!err) req.user = decoded;
+    next();
+  });
+};
+
 export const requireRole = (...roles) => (req, res, next) => {
   const userRoles = req.user?.roles ?? [];
   if (!roles.some((r) => userRoles.includes(r))) {

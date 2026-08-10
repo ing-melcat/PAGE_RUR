@@ -8,7 +8,7 @@ import multer from 'multer';
 import sharp from 'sharp';
 import rateLimit from 'express-rate-limit';
 import { getPool } from '../shared/db.js';
-import { verifyToken, requireRole, IS_PRODUCTION } from '../shared/auth.js';
+import { verifyToken, requireRole, sesionOpcional, IS_PRODUCTION } from '../shared/auth.js';
 import { csrfProtection } from '../shared/csrf.js';
 import { saveLog } from '../shared/logs.js';
 import { traducirPost, invalidarTraducciones } from './translate.js';
@@ -125,8 +125,25 @@ function splitExtra(body) {
 
 app.get('/api/hello', (req, res) => res.json({ message: 'svc-content ok' }));
 
-app.get('/api/posts', async (req, res) => {
-  const { rows } = await pool.query('SELECT * FROM posts ORDER BY date DESC');
+// La misma ruta sirve a dos públicos: el visitante de la web y el panel de
+// redacción. La diferencia la marca la sesión, no el cliente.
+//
+// "Oculta" se aplicaba solo en el navegador: el servidor mandaba TODAS las
+// publicaciones a cualquiera —con su campo is_hidden incluido— y era
+// Landing.tsx quien decidía cuáles pintar. Es decir, un borrador o algo
+// retirado a propósito seguía estando a un `curl /api/posts` de distancia.
+// El filtro tiene que vivir aquí, donde el cliente no puede saltárselo.
+app.get('/api/posts', sesionOpcional, async (req, res) => {
+  // A partir de ahora la respuesta depende de la cookie. Sin esto, un
+  // intermediario que cacheara podría guardar la respuesta de un admin —con
+  // las ocultas dentro— y servírsela después a un visitante cualquiera.
+  res.set('Vary', 'Cookie');
+
+  // Con sesión se ven todas, incluidas las ocultas: es lo que el panel
+  // necesita para poder listarlas y volver a mostrarlas.
+  const { rows } = req.user
+    ? await pool.query('SELECT * FROM posts ORDER BY date DESC')
+    : await pool.query('SELECT * FROM posts WHERE is_hidden IS NOT TRUE ORDER BY date DESC');
   const posts = rows.map(rowToPost);
 
   // 'es' es el idioma nativo del contenido -- nada que traducir. Cualquier
