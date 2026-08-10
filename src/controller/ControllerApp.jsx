@@ -848,7 +848,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
       {isFetchingToken && (
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', zIndex: 999999, background: 'var(--background)' }}>
           <div className="loading-spinner" style={{ width: '64px', height: '64px', border: '4px solid var(--surface)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '24px' }} />
-          <h2 style={{ fontFamily: 'var(--font-ibm-mono)', color: 'var(--accent)', margin: 0, letterSpacing: '0.2em' }}>
+          <h2 style={{ fontFamily: 'var(--font-titulo)', color: 'var(--accent)', margin: 0, letterSpacing: '0.2em' }}>
             {t('operador.controller.estableciendoEnlace')}
           </h2>
           <p style={{ fontFamily: 'var(--font-ibm-mono)', color: 'var(--muted)', marginTop: '8px' }}>

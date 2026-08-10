@@ -103,16 +103,25 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
               initial={{ opacity: 0, y: 40 }} 
               whileInView={{ opacity: 1, y: 0 }} 
               viewport={{ once: true, amount: 0.1 }} 
-              transition={{ duration: 0.6, ease: "easeOut" }} 
-              whileHover={{ y: -10, boxShadow: isSpecial ? `0 20px 40px ${specialBg}` : '0 20px 40px rgba(0,0,0,0.5)' }} 
+              /* Muelle en vez de duración fija: la tarjeta llega y se asienta
+                 con algo de peso, que es lo que la hacía sentirse "seca". */
+              transition={{ type: 'spring', stiffness: 90, damping: 18, mass: 0.9 }} 
+              whileHover={{ y: -6, boxShadow: '0 24px 48px rgba(0,0,0,0.55)' }}
+              /* En táctil no hay "pasar por encima": sin esto, tocar una
+                 tarjeta no produce ninguna reacción y parece que el toque se
+                 ha perdido. Hundirla es la respuesta que todo el mundo
+                 reconoce de una pulsación. */
+              whileTap={{ scale: 0.98 }} 
               style={{ 
                 padding: 0, overflow: 'hidden', display: 'flex', flexDirection: isSpecial ? 'row' : 'column', flexWrap: 'wrap', cursor: 'pointer',
                 gridColumn: isSpecial ? '1 / -1' : 'auto',
-                border: isSpecial ? `2px solid ${specialColor}` : 'none'
+                border: isSpecial ? '1px solid var(--border)' : 'none',
+                borderTop: isSpecial ? `2px solid ${specialColor}` : 'none',
+                position: 'relative'
               }}
               onClick={() => handlePostClick(post)}
             >
-              <div style={{ flex: isSpecial ? '1 1 300px' : 'none', minWidth: isSpecial ? '280px' : '100%', height: isSpecial ? '100%' : '300px', minHeight: '300px', backgroundColor: isAviso ? '#2a0a0a' : isEvento ? '#251b03' : 'var(--surface-strong)', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ flex: isSpecial ? '1 1 300px' : 'none', minWidth: isSpecial ? '280px' : '100%', height: isSpecial ? '100%' : '300px', minHeight: '300px', backgroundColor: 'var(--surface-strong)', position: 'relative', overflow: 'hidden' }}>
                 {post.type === '3d_model' && post.modelUrl ? (
                   <div style={{ width: '100%', height: '100%', backgroundColor: '#101525', cursor: 'grab' }} onClick={(e) => e.stopPropagation()}>
                     <Suspense fallback={null}>
@@ -123,16 +132,23 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
                   /* <img> y no un background-image: solo un <img> admite
                      `loading="lazy"`, y con publicaciones que pesan más de un
                      mega, un fondo CSS obliga al navegador a descargarlas
-                     TODAS al pintar la portada, se vean o no. */
+                     TODAS al pintar la portada, se vean o no.
+                     
+                     Y solo si HAY imagen: un <img src=""> dibuja el icono de
+                     archivo roto y el texto alternativo encima de la tarjeta,
+                     mientras que el fondo CSS anterior simplemente no pintaba
+                     nada. */
+                  post.image ? (
                   <motion.img
-                    src={post.image || ''}
+                    src={post.image}
                     alt={post.title}
                     loading="lazy"
                     decoding="async"
                     style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: isSpecial ? 0.7 : 1 }}
                     whileHover={{ scale: 1.05 }}
-                    transition={{ duration: 0.4 }}
+                    transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
                   />
+                  ) : null
                 )}
                 {post.type === 'magazine' && (
                   <div style={{ position: 'absolute', top: 12, right: 12, background: 'var(--surface-strong)', padding: '6px 12px', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: '0.8rem', fontFamily: 'var(--font-ibm-mono)' }}>
@@ -140,7 +156,7 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
                   </div>
                 )}
                 {isSpecial && (
-                  <div style={{ position: 'absolute', top: 16, left: 16, background: specialColor, padding: '8px 16px', color: isAviso ? 'white' : 'black', fontSize: '0.9rem', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ position: 'absolute', top: 14, left: 14, background: specialColor, padding: '5px 11px', borderRadius: '2px', color: isAviso ? 'white' : 'black', fontSize: '0.68rem', letterSpacing: '0.1em', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: isAviso ? 'white' : 'black', animation: 'pulse 1.5s infinite' }}></div>
                     {badgeText}
                   </div>
@@ -148,7 +164,7 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
               </div>
               <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', flex: isSpecial ? '2 1 400px' : 1, justifyContent: 'space-between', background: isAviso ? 'linear-gradient(to right, #1a0505, var(--surface))' : isEvento ? 'linear-gradient(to right, #1f1a05, var(--surface))' : 'transparent' }}>
                 <div>
-                  <h3 style={{ fontSize: isSpecial ? '2rem' : '1.25rem', margin: '0 0 16px 0', fontFamily: 'var(--font-ibm-sans)', color: isSpecial ? specialColor : 'var(--text)' }}>{post.title}</h3>
+                  <h3 style={{ fontSize: isSpecial ? '2.4rem' : '1.5rem', margin: '0 0 16px 0', fontFamily: 'var(--font-titulo)', color: 'var(--text)' }}>{post.title}</h3>
                   
                   {isSpecial && post.countdownDate && (
                     <Countdown targetDate={post.countdownDate} />
@@ -254,7 +270,7 @@ export const PublicationPage = () => {
             </div>
           </Link>
 
-          <h2 style={{ margin: 0, color: isSpecial ? specialColor : 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '1.1rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '12px', letterSpacing: '1px', flex: 1, justifyContent: 'center', textAlign: 'center' }}>
+          <h2 style={{ margin: 0, color: isSpecial ? specialColor : 'var(--accent)', fontFamily: 'var(--font-titulo)', fontSize: '1.35rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '12px', letterSpacing: '1px', flex: 1, justifyContent: 'center', textAlign: 'center' }}>
             {isSpecial && <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: specialColor, animation: 'pulse 1.5s infinite' }}></div>}
             {post.title}
           </h2>
@@ -337,28 +353,18 @@ export const ArchiveDashboard = () => {
 
   return (
     <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
-      <section style={{ 
-        position: 'relative', 
-        height: '40vh', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        justifyContent: 'center',
-        padding: '60px',
-        overflow: 'hidden',
-        borderBottom: '1px solid var(--accent)'
-      }}>
-        <div style={{
-          position: 'absolute',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: '#0a1a3a',
-          filter: 'brightness(0.3)',
-          zIndex: -1
-        }}></div>
-        
-        <div style={{ maxWidth: '800px', borderLeft: '4px solid var(--accent)', paddingLeft: '24px' }}>
+      <section className="portada">
+        <div className="portada__marco portada__marco--seccion">
+          {/* El archivo no tiene foto: el fondo es el azul institucional,
+              que con el mismo velo y la misma viñeta se funde con la
+              página igual que las portadas con imagen. */}
+          <div className="portada__foto" style={{ backgroundColor: 'var(--surface-strong)' }} />
+          <div className="portada__velo" />
+
+          <div className="portada__texto portada__texto--marcado">
           <h1 style={{
-            fontSize: '3rem',
-            fontFamily: 'var(--font-ibm-mono)',
+            fontSize: '3.6rem',
+            fontFamily: 'var(--font-titulo)',
             textTransform: 'uppercase',
             margin: '0 0 16px 0',
             color: 'var(--text)'
@@ -373,6 +379,7 @@ export const ArchiveDashboard = () => {
           }}>
             {t('archivo.subtitulo')}
           </p>
+          </div>
         </div>
       </section>
 
@@ -423,7 +430,8 @@ export const ArchiveDashboard = () => {
                   initial={{ opacity: 0, y: 20 }} 
                   whileInView={{ opacity: 1, y: 0 }} 
                   viewport={{ once: true, amount: 0.1 }} 
-                  whileHover={{ y: -5, boxShadow: isSpecial ? `0 10px 20px ${specialBg}` : '0 10px 20px rgba(0,0,0,0.5)' }} 
+                  whileHover={{ y: -5, boxShadow: isSpecial ? `0 10px 20px ${specialBg}` : '0 10px 20px rgba(0,0,0,0.5)' }}
+                  whileTap={{ scale: 0.98 }} 
                   style={{ 
                     padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer',
                     border: isSpecial ? `2px solid ${specialColor}` : '1px solid var(--border)',
@@ -450,7 +458,7 @@ export const ArchiveDashboard = () => {
                   </div>
                   <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
                     <div>
-                      <h3 style={{ fontSize: '1.2rem', margin: '0 0 12px 0', fontFamily: 'var(--font-ibm-sans)', color: isSpecial ? specialColor : 'var(--text)' }}>{post.title}</h3>
+                      <h3 style={{ fontSize: '1.45rem', margin: '0 0 12px 0', fontFamily: 'var(--font-titulo)', color: isSpecial ? specialColor : 'var(--text)' }}>{post.title}</h3>
                       <p style={{ color: 'var(--muted)', fontSize: '0.9rem', lineHeight: '1.5' }}>{previewText}</p>
                     </div>
                   </div>

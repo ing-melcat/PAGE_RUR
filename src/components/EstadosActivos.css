@@ -37,7 +37,7 @@
   text-transform: uppercase;
   text-decoration: none;
   color: var(--bone);
-  transition: border-color .2s ease, background-color .2s ease;
+  transition: border-color var(--mov-rapido) ease, background-color .2s ease;
 }
 
 @media (hover: hover) {
@@ -64,16 +64,11 @@
   font-weight: 700;
 }
 
-/* El detalle —nombre de la unidad, título del evento— es contexto, no el
-   titular: entra en gris y se recorta antes de empujar la barra. */
-.estado__detalle {
-  color: var(--muted);
-  font-weight: 400;
-  max-width: 20ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* El chip dice SOLO qué ocurre. Llevaba también el nombre de la unidad o el
+   título del evento, y en pantalla ancha reaparecía cortado con puntos
+   suspensivos —"UNIDAD DE PR…"— que se lee peor que no ponerlo. El nombre
+   completo está en la invitación flotante, en el title del enlace y en la
+   página a la que lleva. */
 
 /* --- tonos ---------------------------------------------------------
    Solo tiñen el punto, vía currentColor del propio punto.
@@ -112,11 +107,6 @@
     gap: 7px;
   }
 
-  /* En una barra estrecha se queda el titular, que es lo que hace falta
-     para decidir si entrar. */
-  .estado__detalle {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -29,6 +29,11 @@
    margen de 180px y su padding de 40px no sigan empujando el flex de
    .controls-overlay (era parte de por qué las cajas quedaban corridas). */
 #container {
+  /* Roboto no es de paso fijo. Sin cifras tabulares, un valor que pasa
+     de 1 a 8 cambia de ancho y arrastra todo lo que tiene al lado: en un
+     instrumento que se refresca varias veces por segundo eso se ve como
+     un temblor constante. */
+  font-variant-numeric: tabular-nums;
   position: absolute;
   top: 0;
   left: 0;
@@ -240,7 +245,7 @@ button.boton:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.1s ease-out;
+  transition: color 0.1s ease-out, background-color 0.1s ease-out, border-color 0.1s ease-out, opacity 0.1s ease-out, transform 0.1s ease-out, box-shadow 0.1s ease-out;
   cursor: pointer;
   /* MÁXIMA PROTECCIÓN MÓVIL PARA MANTENER PRESIONADO */
   user-select: none;

@@ -1,0 +1,217 @@
+/* ==================================================================
+   Invitación a la transmisión
+   ------------------------------------------------------------------
+   Tarjeta anclada abajo a la derecha, sobre el contenido. Es lo único
+   de la web que interrumpe, así que se comporta como debe hacerlo algo
+   que interrumpe: entra despacio, ocupa poco, se cierra fácil y no
+   bloquea nada de lo que hay detrás.
+
+   Del rojo solo el punto, como en el chip de la barra: en este sistema
+   --error significa avería, y una tarjeta roja en la esquina se lee
+   como un problema del sitio. Lo que llama es el movimiento del punto y
+   el botón ámbar, no un bloque de color.
+   ================================================================== */
+
+.invitacion {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 900;
+  width: min(300px, calc(100vw - 32px));
+  padding: 18px 20px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  /* Entra desde abajo y no desde el borde derecho: un deslizamiento lateral
+     se parece demasiado a un anuncio. El rebote final es mínimo — lo justo
+     para que la tarjeta se sienta física y no dibujada de golpe. */
+  animation: invitacion-entra 520ms cubic-bezier(.22, 1.2, .36, 1) both;
+  /* El borde no es fijo: recorre el contorno de la tarjeta muy despacio, un
+     ciclo cada seis segundos. Es lo que hace que se lea como "algo está
+     ocurriendo" sin parpadear ni pedir nada. */
+  position: fixed;
+  overflow: hidden;
+}
+
+@keyframes invitacion-entra {
+  from { opacity: 0; transform: translateY(24px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Barrido de luz sobre el borde superior. Un solo elemento, animado con
+   `transform`, así que no cuesta nada: es la tarjeta gráfica moviendo una
+   franja, no el navegador recalculando la página. */
+.invitacion::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 40%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: invitacion-barrido 6s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+@keyframes invitacion-barrido {
+  0% { transform: translateX(0); opacity: 0; }
+  15% { opacity: 1; }
+  60% { transform: translateX(350%); opacity: 1; }
+  70%, 100% { transform: translateX(350%); opacity: 0; }
+}
+
+.invitacion__cerrar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 32px: se cierra sin apuntar con cuidado, también con el pulgar. */
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: color var(--mov-rapido) ease;
+}
+
+@media (hover: hover) {
+  .invitacion__cerrar:hover { color: var(--bone); }
+}
+
+.invitacion__cerrar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.invitacion__cabecera {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.invitacion__punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--error);
+  flex-shrink: 0;
+  animation: invitacion-latido 2s ease-in-out infinite;
+}
+
+/* Latido con anillo que se expande y se desvanece, como el punto de
+   grabación de una cámara. Dos segundos por ciclo: más rápido resulta
+   nervioso, más lento deja de leerse como "en directo". */
+@keyframes invitacion-latido {
+  0% { box-shadow: 0 0 0 0 rgba(248, 81, 73, .6); }
+  70% { box-shadow: 0 0 0 8px rgba(248, 81, 73, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0); }
+}
+
+.invitacion__vivo {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+
+.invitacion__unidad {
+  margin: 0 0 4px;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--t-md);
+  line-height: 1.2;
+  color: var(--bone);
+}
+
+.invitacion__texto {
+  margin: 0 0 16px;
+  font-size: var(--t-sm);
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* Lo único ámbar de la tarjeta: hay una sola acción, y tiene que
+   distinguirse sin discusión de la de cerrar. */
+.invitacion__boton {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: var(--background);
+  border-radius: 2px;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  text-align: center;
+  text-decoration: none;
+  transition: filter var(--mov-rapido) ease;
+}
+
+@media (hover: hover) {
+  .invitacion__boton:hover { filter: brightness(1.12); }
+
+  /* Destello que cruza el botón al pasar por encima. Se dibuja con un
+     pseudoelemento desplazado, no cambiando el fondo: así el ámbar de marca
+     se mantiene exacto y el movimiento no toca el diseño. */
+  .invitacion__boton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .55) 50%, transparent 65%);
+    transform: translateX(-120%);
+    transition: transform var(--mov-lento) var(--mov-curva);
+  }
+
+  .invitacion__boton:hover::after {
+    transform: translateX(120%);
+  }
+}
+
+/* Al pulsar se hunde: en el móvil no hay "pasar por encima", y sin esta
+   respuesta el toque parece no haber llegado. */
+.invitacion__boton:active {
+  transform: scale(.97);
+}
+
+.invitacion__boton:focus-visible {
+  outline: 2px solid var(--bone);
+  outline-offset: 2px;
+}
+
+/* En el móvil ocupa el ancho, pegada abajo: en una pantalla estrecha una
+   tarjeta flotando en una esquina tapa justo lo que se está leyendo. */
+@media (max-width: 600px) {
+  .invitacion {
+    right: 12px;
+    left: 12px;
+    bottom: 12px;
+    width: auto;
+    padding: 14px 16px 16px;
+  }
+}
+
+/* Con movimiento reducido no queda nada moviéndose: ni entrada, ni barrido,
+   ni latido. La tarjeta simplemente está. */
+@media (prefers-reduced-motion: reduce) {
+  .invitacion,
+  .invitacion::before,
+  .invitacion__punto {
+    animation: none;
+  }
+
+  .invitacion__boton::after {
+    display: none;
+  }
+}

@@ -22,6 +22,11 @@ body:has(.overlay) {
 }
 
 .overlay {
+  /* Roboto no es de paso fijo. Sin cifras tabulares, un valor que pasa
+     de 1 a 8 cambia de ancho y arrastra todo lo que tiene al lado: en un
+     instrumento que se refresca varias veces por segundo eso se ve como
+     un temblor constante. */
+  font-variant-numeric: tabular-nums;
   position: fixed;
   inset: 0;
   background: transparent;

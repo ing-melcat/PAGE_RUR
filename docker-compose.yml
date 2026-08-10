@@ -28,31 +28,6 @@ services:
           cpus: '1.0'
           memory: 256M
 
-  # Monolito legado: se mantiene desplegado (sin recibir tráfico de Caddy,
-  # que ya enruta a los 3 servicios de abajo) únicamente como red de
-  # seguridad para rollback rápido durante el corte a producción. Se
-  # decomisiona en la fase 7-9 una vez confirmada la estabilidad del split.
-  rur-web:
-    build: .
-    environment:
-      - NODE_ENV=production
-      - PORT=80
-      - JWT_SECRET=${JWT_SECRET}
-      - CORS_ORIGIN=${CORS_ORIGIN:-https://rur.unipolidgo.edu.mx}
-    volumes:
-      - ./api/data:/app/api/data
-      - ./uploads:/app/api/uploads
-    restart: unless-stopped
-    networks:
-      - rur_network
-    # No recibe tráfico real (ver nota arriba) -- tope bajo a propósito para
-    # que no le robe CPU/memoria a svc-robots durante una sesión de operador
-    # activa. Subir esto no debería hacer falta salvo para un rollback.
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
 
   svc-identity:
     build:

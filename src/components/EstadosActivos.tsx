@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../lib/i18n';
+import { useEnVivo } from '../lib/useEnVivo';
 import './EstadosActivos.css';
 
-type RobotPublico = { id: string; name: string; status: string };
 type Publicacion = { id: string; title: string; type: string; date?: string };
 
 /**
@@ -38,30 +38,11 @@ type Estado = {
 
 export function EstadosActivos({ alCerrarMenu }: { alCerrarMenu?: () => void }) {
   const { t } = useLanguage();
-  const [enVivo, setEnVivo] = useState<RobotPublico | null>(null);
+  // La transmisión la resuelve el hook común: si cada anuncio hiciera su
+  // propia consulta, uno podría estar mostrando el aviso mientras el otro ya
+  // lo ha retirado.
+  const enVivo = useEnVivo();
   const [especiales, setEspeciales] = useState<Publicacion[]>([]);
-
-  // Transmisión: se resondea, porque puede empezar con la página ya abierta.
-  useEffect(() => {
-    let cancelado = false;
-
-    const consultar = async () => {
-      try {
-        const res = await fetch('/api/robots/publicos');
-        if (!res.ok) return;
-        const datos = await res.json();
-        if (cancelado) return;
-        setEnVivo((datos.robots || []).find((r: RobotPublico) => r.status === 'online') ?? null);
-      } catch {
-        // Un fallo de la API no puede tumbar la barra de navegación: sin
-        // respuesta, el indicador simplemente no aparece.
-      }
-    };
-
-    consultar();
-    const id = setInterval(consultar, 30000);
-    return () => { cancelado = true; clearInterval(id); };
-  }, []);
 
   // Publicaciones: una sola vez. Un aviso o un evento no aparecen de repente
   // mientras alguien mira la página, así que sondearlos sería gasto sin uso.
@@ -132,11 +113,12 @@ export function EstadosActivos({ alCerrarMenu }: { alCerrarMenu?: () => void }) 
           key={e.clave}
           to={e.destino}
           className={`estado estado--${e.tono}`}
+          title={e.detalle}
+          aria-label={e.detalle ? `${e.etiqueta}: ${e.detalle}` : e.etiqueta}
           onClick={alCerrarMenu}
         >
           <span className="estado__punto" />
           <span className="estado__etiqueta">{e.etiqueta}</span>
-          {e.detalle && <span className="estado__detalle">{e.detalle}</span>}
         </Link>
       ))}
     </div>

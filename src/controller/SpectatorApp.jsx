@@ -123,7 +123,7 @@ export default function SpectatorApp() {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--background)', color: 'var(--error)' }}>
         <ShieldAlert size={64} style={{ marginBottom: '24px' }} />
-        <h2 style={{ fontFamily: 'var(--font-ibm-mono)', textTransform: 'uppercase' }}>{t('operador.espectador.transmisionNoDisponible')}</h2>
+        <h2 style={{ fontFamily: 'var(--font-titulo)', textTransform: 'uppercase' }}>{t('operador.espectador.transmisionNoDisponible')}</h2>
         <p style={{ maxWidth: '480px', textAlign: 'center' }}>{error}</p>
         <Link to="/" style={{ marginTop: '20px', color: 'var(--accent)', textDecoration: 'none' }}>{t('operador.espectador.volverInicio')}</Link>
       </div>

@@ -27,7 +27,7 @@ export function ModeSelect({ onSelectMode, onBack }) {
     <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: '600px' }}>
       {/* HEADER */}
       <div style={{ marginBottom: '48px', borderBottom: '1px solid var(--border)', paddingBottom: '24px' }}>
-        <h2 style={{ margin: '16px 0', fontSize: '3.5rem', fontFamily: 'var(--font-ibm-mono)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: '1', fontWeight: 500 }}>
+        <h2 style={{ margin: '16px 0', fontSize: '3.5rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: '1', fontWeight: 400 }}>
           {t('operador.modo.titulo')}
         </h2>
         <p style={{ ...S.label, textTransform: 'none', margin: 0 }}>{t('operador.modo.subtitulo')}</p>
@@ -58,7 +58,7 @@ export function ModeSelect({ onSelectMode, onBack }) {
           onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}
         >
           <Glasses size={32} color="var(--accent)" />
-          <h3 style={{ margin: 0, fontSize: '1.2rem', fontFamily: 'var(--font-ibm-mono)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
+          <h3 style={{ margin: 0, fontSize: '1.2rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 400 }}>
             {t('operador.modo.vrTitulo')}
           </h3>
           <p style={{ ...S.label, textTransform: 'none', margin: 0, lineHeight: 1.6 }}>
@@ -84,7 +84,7 @@ export function ModeSelect({ onSelectMode, onBack }) {
           onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}
         >
           <Gamepad2 size={32} color="var(--accent)" />
-          <h3 style={{ margin: 0, fontSize: '1.2rem', fontFamily: 'var(--font-ibm-mono)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
+          <h3 style={{ margin: 0, fontSize: '1.2rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 400 }}>
             {t('operador.modo.manualTitulo')}
           </h3>
           <p style={{ ...S.label, textTransform: 'none', margin: 0, lineHeight: 1.6 }}>

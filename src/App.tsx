@@ -22,6 +22,7 @@ import './App.css';
 import { Landing, PublicationPage, ArchiveDashboard } from './Landing';
 import { useLanguage } from './lib/i18n';
 import { EstadosActivos } from './components/EstadosActivos';
+import { InvitacionEnVivo } from './components/InvitacionEnVivo';
 
 // --- ANIMACIONES DE TRANSICIÓN ---
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
@@ -42,45 +43,37 @@ function Home() {
   
   // Efectos Scrollytelling
   const bgScale = useTransform(scrollY, [0, 500], [1, 1.15]); // Fondo hace zoom al bajar
-  const textY = useTransform(scrollY, [0, 400], [0, 150]);    // Texto baja a menor velocidad (parallax)
-  const textOpacity = useTransform(scrollY, [0, 300], [1, 0]); // Texto se desvanece
+  // El texto se rezaga respecto al scroll. Antes bajaba 150px, que con la
+  // foto a sangre acababan fuera de la ventana y no se veían; ahora el
+  // marco recorta, así que un recorrido largo solo serviría para cortar el
+  // titular contra el borde inferior. 60px bastan para el efecto.
+  const textY = useTransform(scrollY, [0, 400], [0, 60]);
+  const textOpacity = useTransform(scrollY, [0, 260], [1, 0]); // Texto se desvanece
   
   return (
     <>
-      {/* Hero Section */}
-      <section style={{ 
-        position: 'relative', 
-        height: '75vh', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        justifyContent: 'flex-end',
-        padding: '60px',
-        overflow: 'hidden'
-      }}>
-        <motion.div style={{
-          position: 'absolute',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundImage: `url(${imgMembers})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          filter: 'brightness(0.5) contrast(1.2)',
-          zIndex: -1,
-          scale: bgScale
-        }}></motion.div>
+      {/* Portada: la foto dentro del mismo margen que el resto de la página */}
+      <section className="portada">
+        <div className="portada__marco">
+          <motion.div
+            className="portada__foto"
+            style={{ backgroundImage: `url(${imgMembers})`, scale: bgScale }}
+          />
+          <div className="portada__velo" />
 
-        <motion.div style={{ maxWidth: '800px', y: textY, opacity: textOpacity }}>
+          <motion.div className="portada__texto" style={{ y: textY, opacity: textOpacity }}>
           <span className="eyebrow eyebrow--hero" style={{ marginBottom: '16px', display: 'block' }}>
-            
+
           </span>
           <h1 style={{ 
-            fontSize: 'clamp(2.5rem, 8vw, 4.5rem)', 
+            fontSize: 'clamp(3rem, 9vw, 5.4rem)', 
             lineHeight: '1.1', 
             marginBottom: '24px', 
             textShadow: '0 4px 20px rgba(0,0,0,0.8)',
-            fontFamily: 'var(--font-ibm-mono)',
+            fontFamily: 'var(--font-titulo)',
             textTransform: 'uppercase',
             letterSpacing: '0.02em',
-            fontWeight: '600'
+            fontWeight: '400'
           }}>
             {t('home.heroTitulo')}
           </h1>
@@ -94,13 +87,14 @@ function Home() {
           }}>
             {t('home.heroTexto')}
           </p>
-        </motion.div>
+          </motion.div>
+        </div>
       </section>
 
       {/* Grid de Artículos */}
       <section className="main-content responsive-section" style={{ backgroundColor: 'var(--background)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-          <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.5rem', textTransform: 'uppercase' }}>
+          <h2 style={{ fontFamily: 'var(--font-titulo)', fontSize: '1.9rem', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
             <span style={{ color: 'var(--accent)' }}>/</span> {t('home.seccionTitulo')}
           </h2>
           <Link to="/archivo" style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', textDecoration: 'none', letterSpacing: '0.1em' }}>{t('home.verTodo')}</Link>
@@ -118,30 +112,15 @@ const Explora = () => {
   return (
   <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
     {/* Hero de Explora */}
-    <section style={{ 
-      position: 'relative', 
-      height: '50vh', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      justifyContent: 'center',
-      padding: '60px',
-      overflow: 'hidden',
-      borderBottom: '1px solid var(--accent)'
-    }}>
-      <div style={{
-        position: 'absolute',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundImage: `url(${imgProjects})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        filter: 'brightness(0.3) grayscale(0.5)',
-        zIndex: -1
-      }}></div>
+    <section className="portada">
+      <div className="portada__marco portada__marco--seccion">
+      <div className="portada__foto" style={{ backgroundImage: `url(${imgProjects})`, filter: 'brightness(0.26) contrast(1.1) grayscale(0.35)' }} />
+      <div className="portada__velo" />
       
-      <div style={{ maxWidth: '800px', borderLeft: '4px solid var(--accent)', paddingLeft: '24px' }}>
+      <div className="portada__texto portada__texto--marcado">
         <h1 style={{ 
-          fontSize: '3.5rem', 
-          fontFamily: 'var(--font-ibm-mono)',
+          fontSize: '4.2rem', 
+          fontFamily: 'var(--font-titulo)',
           textTransform: 'uppercase',
           margin: '0 0 16px 0',
           textShadow: '0 4px 20px rgba(0,0,0,0.8)'
@@ -158,12 +137,13 @@ const Explora = () => {
           {t('explora.heroTexto')}
         </p>
       </div>
+      </div>
     </section>
 
     {/* Contenido de Explora ahora es puramente dinámico a través de CMS */}
     <section className="responsive-section" style={{ backgroundColor: 'var(--background)', padding: '0 60px 60px 60px' }}>
       <div style={{ marginBottom: '40px' }}>
-        <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.5rem', textTransform: 'uppercase' }}>
+        <h2 style={{ fontFamily: 'var(--font-titulo)', fontSize: '1.9rem', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
           <span style={{ color: 'var(--accent)' }}>/</span> {t('explora.seccionTitulo')}
         </h2>
       </div>
@@ -177,30 +157,15 @@ const Descubre = () => {
   const { t } = useLanguage();
   return (
   <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
-    <section style={{
-      position: 'relative',
-      height: '50vh',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      padding: '60px',
-      overflow: 'hidden',
-      borderBottom: '1px solid var(--accent)'
-    }}>
-      <div style={{
-        position: 'absolute',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundImage: `url(${imgProjects})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        filter: 'brightness(0.3) grayscale(0.5)',
-        zIndex: -1
-      }}></div>
-      <div style={{ maxWidth: '800px', borderLeft: '4px solid var(--accent)', paddingLeft: '24px' }}>
+    <section className="portada">
+      <div className="portada__marco portada__marco--seccion">
+      <div className="portada__foto" style={{ backgroundImage: `url(${imgProjects})`, filter: 'brightness(0.26) contrast(1.1) grayscale(0.35)' }} />
+      <div className="portada__velo" />
+      <div className="portada__texto portada__texto--marcado">
         <span className="eyebrow eyebrow--hero" style={{ textTransform: 'uppercase' }}>{t('descubre.eyebrow')}</span>
         <h1 style={{
           fontSize: '3.5rem',
-          fontFamily: 'var(--font-ibm-mono)',
+          fontFamily: 'var(--font-titulo)',
           textTransform: 'uppercase',
           margin: '8px 0 16px 0',
           textShadow: '0 4px 20px rgba(0,0,0,0.8)'
@@ -217,12 +182,13 @@ const Descubre = () => {
           {t('descubre.heroTexto')}
         </p>
       </div>
+      </div>
     </section>
 
     {/* Contenido de Descubre ahora es dinámico a través de CMS */}
     <section className="responsive-section" style={{ backgroundColor: 'var(--background)', padding: '0 60px 60px 60px' }}>
       <div style={{ marginBottom: '40px' }}>
-        <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.5rem', textTransform: 'uppercase' }}>
+        <h2 style={{ fontFamily: 'var(--font-titulo)', fontSize: '1.9rem', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
           <span style={{ color: 'var(--accent)' }}>/</span> {t('descubre.seccionTitulo')}
         </h2>
       </div>
@@ -236,31 +202,15 @@ const Conecta = () => {
   const { t } = useLanguage();
   return (
   <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
-    <section style={{
-      position: 'relative',
-      height: '50vh',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      padding: '60px',
-      overflow: 'hidden',
-      borderBottom: '1px solid var(--accent)'
-    }}>
-      <div style={{
-        position: 'absolute',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundImage: `url(${imgMembers})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        filter: 'brightness(0.3) grayscale(0.5)',
-        zIndex: -1,
-        animation: 'kenBurns 20s infinite alternate ease-in-out'
-      }}></div>
-      <div style={{ maxWidth: '800px', borderLeft: '4px solid var(--accent)', paddingLeft: '24px' }}>
+    <section className="portada">
+      <div className="portada__marco portada__marco--seccion">
+      <div className="portada__foto" style={{ backgroundImage: `url(${imgMembers})`, filter: 'brightness(0.26) contrast(1.1) grayscale(0.35)', animation: 'kenBurns 20s infinite alternate ease-in-out' }} />
+      <div className="portada__velo" />
+      <div className="portada__texto portada__texto--marcado">
         <span className="eyebrow eyebrow--hero" style={{ textTransform: 'uppercase' }}>{t('conecta.eyebrow')}</span>
         <h1 style={{
           fontSize: '3.5rem',
-          fontFamily: 'var(--font-ibm-mono)',
+          fontFamily: 'var(--font-titulo)',
           textTransform: 'uppercase',
           margin: '8px 0 16px 0',
           textShadow: '0 4px 20px rgba(0,0,0,0.8)'
@@ -279,12 +229,13 @@ const Conecta = () => {
           {t('conecta.heroTexto')}
         </p>
       </div>
+      </div>
     </section>
 
     {/* Contenido de Conecta ahora es dinámico a través de CMS */}
     <section className="responsive-section" style={{ backgroundColor: 'var(--background)', padding: '0 60px 60px 60px' }}>
       <div style={{ marginBottom: '40px' }}>
-        <h2 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '1.5rem', textTransform: 'uppercase' }}>
+        <h2 style={{ fontFamily: 'var(--font-titulo)', fontSize: '1.9rem', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
           <span style={{ color: 'var(--accent)' }}>/</span> {t('conecta.seccionTitulo')}
         </h2>
       </div>
@@ -307,7 +258,7 @@ const Footer = () => {
   }}>
     <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '40px', marginBottom: '40px' }}>
       <div>
-        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', marginBottom: '20px', letterSpacing: '0.1em' }}>{t('footer.contacto')}</h4>
+        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-titulo)', marginBottom: '20px', letterSpacing: '0.1em' }}>{t('footer.contacto')}</h4>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0' }}>
           <MapPin size={18} style={{ flexShrink: 0 }} /> <span style={{ fontSize: '0.9rem', lineHeight: '1.4' }}>México 45, Los Encinos, 34307 Dgo., México</span>
         </div>
@@ -320,13 +271,13 @@ const Footer = () => {
         </div>
       </div>
       <div>
-        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', marginBottom: '20px', letterSpacing: '0.1em' }}>{t('footer.legal')}</h4>
+        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-titulo)', marginBottom: '20px', letterSpacing: '0.1em' }}>{t('footer.legal')}</h4>
         <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>{t('footer.avisoPrivacidad')}</Link></p>
         <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>{t('footer.terminos')}</Link></p>
         <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>{t('footer.cookies')}</Link></p>
       </div>
       <div>
-        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', marginBottom: '20px', letterSpacing: '0.1em' }}>{t('footer.social')}</h4>
+        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-titulo)', marginBottom: '20px', letterSpacing: '0.1em' }}>{t('footer.social')}</h4>
         <div style={{ display: 'flex', gap: '20px' }}>
           <Link to="/coming-soon" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '1.2rem', fontWeight: 'bold' }}>𝕏</Link>
           <Link to="/coming-soon" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '1.2rem', fontWeight: 'bold' }}>in</Link>
@@ -351,6 +302,10 @@ const LandingLayout = () => {
 
   return (
     <div className="app-shell" style={{ position: 'relative' }}>
+      {/* Flota sobre el contenido de las páginas públicas. Va aquí y no en el
+          router para que nunca aparezca en el espectador —quien ya está viendo
+          la transmisión no necesita que le inviten— ni en el panel. */}
+      <InvitacionEnVivo />
       
       {/* Navegación Superior */}
       {!isPublication && (
@@ -487,7 +442,7 @@ const ComingSoon = () => {
     textAlign: 'center',
     padding: '40px'
   }}>
-    <h1 style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '3rem', color: 'var(--accent)', marginBottom: '20px' }}>{t('comingSoon.titulo')}</h1>
+    <h1 style={{ fontFamily: 'var(--font-titulo)', fontSize: '3.6rem', color: 'var(--accent)', marginBottom: '20px' }}>{t('comingSoon.titulo')}</h1>
     <p style={{ color: 'var(--muted)', fontSize: '1.2rem', maxWidth: '600px', lineHeight: '1.6' }}>
       {t('comingSoon.texto')}
     </p>

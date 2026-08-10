@@ -5,7 +5,7 @@
   color: var(--accent);
   background: var(--accent-bg);
   border: 2px solid transparent;
-  transition: border-color 0.3s;
+  transition: border-color var(--mov-medio);
   margin-bottom: 24px;
 
   &:hover {
@@ -125,7 +125,7 @@
     align-items: center;
     gap: 8px;
     text-decoration: none;
-    transition: box-shadow 0.3s;
+    transition: box-shadow var(--mov-medio);
 
     &:hover {
       box-shadow: var(--shadow);
@@ -200,7 +200,7 @@
 }
 
 .logo-text-default, .logo-text-hover {
-  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+  transition: transform var(--mov-medio) cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
   width: 100%;
 }
 
@@ -226,7 +226,7 @@
 }
 
 .logo-img-default, .logo-img-hover {
-  transition: opacity 0.4s ease;
+  transition: opacity var(--mov-medio) ease;
   position: absolute;
   top: 0;
   left: 0;
@@ -239,9 +239,11 @@
   opacity: 0;
 }
 
-.social-icon:hover {
-  background: var(--surface-strong);
-  transform: translateY(-2px);
+@media (hover: hover) {
+  .social-icon:hover {
+    background: var(--surface-strong);
+    transform: translateY(-2px);
+  }
 }
 
 .responsive-section {
@@ -253,9 +255,11 @@
   }
 }
 
-.logo-card:hover .logo-text-default {
-  transform: translateY(-100%) !important;
-  opacity: 0 !important;
+@media (hover: hover) {
+  .logo-card:hover .logo-text-default {
+    transform: translateY(-100%) !important;
+    opacity: 0 !important;
+  }
 }
 
 .logo-card:hover .logo-text-hover {
@@ -264,8 +268,10 @@
   color: var(--background) !important;
 }
 
-.logo-card:hover .logo-img-default {
-  opacity: 0 !important;
+@media (hover: hover) {
+  .logo-card:hover .logo-img-default {
+    opacity: 0 !important;
+  }
 }
 
 .logo-card:hover .logo-img-hover {
@@ -278,12 +284,16 @@
 .logo-card .logo-img-default { animation: fadeOutAnim 19.1s infinite; }
 .logo-card .logo-img-hover { animation: fadeInAnim 19.1s infinite; }
 
-.logo-card:hover .logo-text-default,
-.logo-card:hover .logo-text-hover,
-.logo-card:hover .logo-img-default,
-.logo-card:hover .logo-img-hover,
-.logo-card:hover::after {
-  animation: none !important;
+/* El selector ocupa varias líneas y solo la última llevaba el `{`, así que
+   al proteger los hover del táctil se partió por la mitad. Envuelto entero. */
+@media (hover: hover) {
+  .logo-card:hover .logo-text-default,
+  .logo-card:hover .logo-text-hover,
+  .logo-card:hover .logo-img-default,
+  .logo-card:hover .logo-img-hover,
+  .logo-card:hover::after {
+    animation: none !important;
+  }
 }
 
 .logo-card::after {
@@ -329,5 +339,134 @@
     transform: scale(0.9);
     box-shadow: 0 0 0 0 transparent;
     opacity: 1;
+  }
+}
+
+/* ==================================================================
+   Portada contenida
+   ------------------------------------------------------------------
+   La foto de portada iba a sangre: tocaba los cuatro bordes de la
+   ventana y el resto de la página empezaba justo debajo, contra un
+   margen de 60px que la foto no respetaba. Eso partía la página en dos
+   piezas que no se hablaban — una imagen suelta arriba y un documento
+   maquetado debajo.
+
+   Ahora la foto vive dentro del mismo margen que todo lo demás, así que
+   su borde izquierdo cae exactamente donde caen "/ ÚLTIMAS
+   PUBLICACIONES" y las tarjetas. Es lo que da la sensación de que la
+   imagen pertenece a la página en vez de estar pegada encima.
+   ================================================================== */
+
+.portada {
+  /* Mismo padding que .responsive-section: la alineación es el punto. */
+  padding: 60px 60px 0;
+}
+
+.portada__marco {
+  position: relative;
+  overflow: hidden;
+  /* Sin borde y sin esquinas redondeadas. Con ellos la foto se leía como
+     una ventana flotando por encima de la página, con su propio contorno
+     y su propia sombra; la idea es lo contrario, que la imagen sea parte
+     del fondo y se disuelva en él. Todo el trabajo lo hacen el velo y la
+     viñeta de abajo — ninguna línea encierra la foto. */
+  /* Alta pero nunca a pantalla completa: si ocupa todo el alto, nada
+     indica que hay más página debajo y el visitante no baja. */
+  height: min(66vh, 620px);
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 48px;
+}
+
+/* Difumina los cuatro cantos contra el fondo de la página. Sin esto, al
+   quitar el borde queda un corte a cuchillo —la foto termina de golpe en
+   mitad de la nada— que se nota más que el propio borde. Una sombra
+   interior del color del fondo es la forma más compatible de lograrlo:
+   no depende de mask-composite, que aún se comporta distinto según el
+   navegador. */
+.portada__marco::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 64px 24px var(--background);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Variante de las portadas de sección (Explora, Descubre, Conecta,
+   Archivo): más bajas, y el texto centrado en vez de apoyado abajo. */
+.portada__marco--seccion {
+  height: min(46vh, 420px);
+  min-height: 280px;
+  justify-content: center;
+}
+
+/* La foto, recortada por el marco. Es un elemento aparte y no un
+   background del marco porque hace zoom con el scroll: escalar el
+   contenedor arrastraría también al texto. */
+.portada__foto {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  /* Un punto más apagada de lo que estaba: el titular va encima y en
+     Bebas Neue, que es de trazo fino en pantalla y se pierde sobre una
+     camisa clara. */
+  filter: brightness(0.42) contrast(1.15);
+}
+
+/* Oscurece solo la mitad de abajo, que es donde va el texto. Apagar la
+   foto entera para que se lea el titular desperdicia la foto; el
+   degradado deja las caras a plena luz y oscurece únicamente donde hace
+   falta. */
+.portada__velo {
+  position: absolute;
+  inset: 0;
+  /* Llega hasta el color de fondo OPACO en la última parada. Ahí está la
+     diferencia entre una imagen recortada y una imagen que continúa: el
+     canto inferior no existe, la foto se convierte en la página. */
+  background: linear-gradient(
+    to top,
+    var(--background) 0%,
+    rgba(2, 7, 19, .82) 18%,
+    rgba(2, 7, 19, .5) 42%,
+    rgba(2, 7, 19, .12) 72%,
+    rgba(2, 7, 19, 0) 100%
+  );
+}
+
+.portada__texto {
+  position: relative;
+  z-index: 2;   /* por encima de foto, velo y viñeta */
+  max-width: 800px;
+}
+
+/* El filete ámbar que marca el texto en las portadas de sección. */
+.portada__texto--marcado {
+  border-left: 4px solid var(--accent);
+  padding-left: 24px;
+}
+
+@media (max-width: 768px) {
+  .portada {
+    /* Mismos 16px que .responsive-section en móvil. */
+    padding: 16px 16px 0;
+  }
+
+  .portada__marco {
+    height: min(72vh, 540px);
+    padding: 24px;
+  }
+
+  .portada__marco--seccion {
+    height: min(42vh, 340px);
+  }
+
+  /* La viñeta se encoge con el margen: 24px de difuminado sobre una foto
+     de 400px de ancho se comerían media imagen. */
+  .portada__marco::after {
+    box-shadow: inset 0 0 32px 10px var(--background);
   }
 }

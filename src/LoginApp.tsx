@@ -13,6 +13,7 @@ const PanelTransmision = lazy(() => import("./controller/PanelTransmision").then
 import { apiFetch } from "./lib/apiClient";
 import { sanitizeHtml } from "./lib/sanitizeHtml";
 import { useLanguage } from "./lib/i18n";
+import { Ayuda } from "./components/Ayuda";
 
 const ControllerApp = lazy(() => import("./controller/ControllerApp"));
 
@@ -255,8 +256,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
         <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <button className="back-link" onClick={onBack}>{t('adminPublicaciones.volverMenu')}</button>
           <div>
-            <span className="panel-label">{t('adminPublicaciones.administrador')}</span>
-            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{t('adminPublicaciones.titulo')}</h2>
+            <h2 className="titulo-panel">{t('adminPublicaciones.titulo')}</h2>
           </div>
         </div>
         
@@ -274,8 +274,10 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
           >
             <div style={{ fontSize: '3rem', fontWeight: '100', marginBottom: '16px', lineHeight: 1 }}>+</div>
             <div>
-              <div style={{ fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', letterSpacing: '1px' }}>{t('adminPublicaciones.crearNuevaTitulo')}</div>
-              <div style={{ fontSize: '0.85rem', marginTop: '8px', opacity: 0.8 }}>{t('adminPublicaciones.crearNuevaDescripcion')}</div>
+              <div style={{ fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {t('adminPublicaciones.crearNuevaTitulo')}
+                <Ayuda texto={t('adminPublicaciones.crearNuevaDescripcion')} />
+              </div>
             </div>
           </div>
 
@@ -293,15 +295,25 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
             const BadgeIcon = isAviso ? TriangleAlert : isEvento ? Star : null;
 
             return (
-            <div key={post.id} style={{ 
-              border: `2px solid ${borderColor}`, 
-              borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-              background: bgColor, 
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease', 
-              minHeight: '280px'
-            }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+            <motion.div
+              key={post.id}
+              layout
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 120, damping: 18 }}
+              /* Se eleva y se acerca al pasar por encima; al pulsar se hunde,
+                 que es la respuesta que espera un dedo en una tablet. Con
+                 transformaciones, no con `top`: las resuelve la tarjeta
+                 gráfica sin recalcular la rejilla entera. */
+              whileHover={{ y: -6, boxShadow: '0 18px 36px rgba(0,0,0,0.5)' }}
+              whileTap={{ scale: 0.99 }}
+              style={{
+                border: '1px solid var(--border)',
+                borderTop: `2px solid ${borderColor}`,
+                borderRadius: '4px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+                background: 'var(--surface)',
+                minHeight: '280px'
+              }}
             >
               <div style={{ height: '140px', width: '100%', background: 'var(--surface-strong)', backgroundImage: post.image ? `url(${post.image})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
                 <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: '4px', background: badgeBg, padding: '4px 10px', borderRadius: '4px', border: (isAviso || isEvento) ? 'none' : '1px solid var(--accent)', color: badgeColor, fontSize: '0.7rem', fontFamily: 'var(--font-ibm-mono)', fontWeight: (isAviso || isEvento) ? 'bold' : 'normal' }}>
@@ -310,13 +322,13 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
               </div>
               <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
-                  <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', fontFamily: 'var(--font-ibm-sans)', color: titleColor }}>{post.title}</h3>
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '1.15rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', lineHeight: 1.25 }}>{post.title}</h3>
                   <div style={{ display: 'inline-block', background: 'var(--surface-strong)', color: 'var(--muted)', fontSize: '0.7rem', fontFamily: 'var(--font-ibm-mono)', padding: '2px 6px', borderRadius: '4px', marginBottom: '8px', border: '1px solid var(--border)' }}>
                     {t('adminPublicaciones.destino')}: {(post.category || 'landing').toUpperCase()}
                   </div>
-                  <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.85rem' }}>
-                    {post.type === 'magazine' ? t('adminPublicaciones.tipoRevista') : isAviso ? t('adminPublicaciones.tipoAviso') : isEvento ? t('adminPublicaciones.tipoEvento') : post.type === '3d_model' ? t('adminPublicaciones.tipoModelo3d') : t('adminPublicaciones.tipoSimple')}
-                  </p>
+                  {/* La explicación del tipo, dentro de una interrogación: se
+                      consulta una vez y deja de ocupar sitio para siempre. */}
+                  <Ayuda texto={post.type === 'magazine' ? t('adminPublicaciones.tipoRevista') : isAviso ? t('adminPublicaciones.tipoAviso') : isEvento ? t('adminPublicaciones.tipoEvento') : post.type === '3d_model' ? t('adminPublicaciones.tipoModelo3d') : t('adminPublicaciones.tipoSimple')} />
                 </div>
                 
                 <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
@@ -340,7 +352,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           )})}
         </div>
       </div>
@@ -353,8 +365,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <button className="back-link" onClick={() => setViewMode('list')} style={{ marginBottom: '16px', alignSelf: 'flex-start' }}>{t('adminPublicaciones.cancelarVolver')}</button>
         <div>
-          <span className="panel-label">{t('adminPublicaciones.administrador')}</span>
-          <h2 style={{ fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>{viewMode === 'edit' ? t('adminPublicaciones.editar') : t('adminPublicaciones.crear')}</h2>
+          <h2 className="titulo-panel titulo-panel--acento">{viewMode === 'edit' ? t('adminPublicaciones.editar') : t('adminPublicaciones.crear')}</h2>
         </div>
 
         <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -413,8 +424,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
       {/* Editor Principal */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '32px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto' }}>
         <div>
-          <span className="panel-label">{t('adminPublicaciones.administrador')}</span>
-          <h2 style={{ fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>{t('adminPublicaciones.contenidoHtml')}</h2>
+          <h2 className="titulo-panel titulo-panel--acento">{t('adminPublicaciones.contenidoHtml')}</h2>
         </div>
 
         {/* La linea de que ya viene estilado se queda siempre visible (es
@@ -528,7 +538,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
                   const newPages = [...pages];
                   newPages[idx] = { ...newPages[idx], content: e.target.value };
                   setPages(newPages);
-                }} placeholder={`<div style="padding: 40px;">\n  <h1>Página ${idx + 1}</h1>\n</div>`} style={{ padding: '20px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', width: '100%', minHeight: '300px', resize: 'vertical', fontFamily: 'var(--font-ibm-mono)' }}></textarea>
+                }} placeholder={`<div style="padding: 40px;">\n  <h1>Página ${idx + 1}</h1>\n</div>`} style={{ padding: '20px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', width: '100%', minHeight: '300px', resize: 'vertical', fontFamily: 'var(--font-titulo)' }}></textarea>
               </div>
             ))}
             <button type="button" onClick={() => setPages([...pages, { content: '', image: '' }])} style={{ padding: '16px', background: 'transparent', color: 'var(--accent)', border: '1px dashed var(--accent)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '1rem', width: '100%' }}>
@@ -1035,7 +1045,6 @@ export default function App() {
           {view === "login" && (
             <motion.section key="login" className="login-panel" {...pageTransition}>
               <div className="panel-header">
-                <span className="panel-label">{t('login.completarDatos')}</span>
                 <h1>{t('login.titulo')}</h1>
               </div>
               <form onSubmit={handleLogin} autoComplete="off">
@@ -1288,15 +1297,6 @@ export default function App() {
                         </div>
                       </motion.div>
 
-                      <motion.p
-                        className="user-welcome"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        {t('dashboard.modulosDelSistema')}
-                      </motion.p>
-                      
                       <motion.div className="action-grid" layout style={{ alignItems: 'start' }}>
                         {(() => {
                           let actions: any[] = [];
@@ -1380,8 +1380,7 @@ export default function App() {
                   {mainContext === "edit_profile" && (
                     <motion.div key="edit_profile" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                       <div className="panel-header" style={{ marginBottom: '32px' }}>
-                        <span className="panel-label">{t('perfil.identidad')}</span>
-                        <h2 style={{ margin: 0, fontSize: '2rem', color: 'var(--accent)' }}>{t('perfil.titulo')}</h2>
+                        <h2 className="titulo-panel titulo-panel--acento">{t('perfil.titulo')}</h2>
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', maxWidth: '800px' }}>
@@ -1584,7 +1583,7 @@ export default function App() {
               <Suspense fallback={
                 <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
                   <Loader2 className="animate-spin" size={64} style={{ marginBottom: '24px' }} />
-                  <h2 style={{ fontFamily: 'var(--font-ibm-mono)', margin: 0 }}>{t('dashboard.inicializandoConsola')}</h2>
+                  <h2 style={{ fontFamily: 'var(--font-titulo)', margin: 0 }}>{t('dashboard.inicializandoConsola')}</h2>
                 </div>
               }>
                 <ControllerApp
@@ -1608,8 +1607,7 @@ export default function App() {
             <motion.section key="admin_users" className="dashboard-card" {...pageTransition} style={{ marginTop: '120px', marginBottom: '60px' }}>
               <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
-                  <span className="panel-label">{t('adminUsuarios.administrador')}</span>
-                  <h2 style={{margin: '0', fontSize: '1.25rem'}}>{t('adminUsuarios.titulo')}</h2>
+                  <h2 className="titulo-panel">{t('adminUsuarios.titulo')}</h2>
                 </div>
                 {!isCreatingUser && (
                   <button onClick={() => setIsCreatingUser(true)} style={{ background: 'var(--accent)', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>{t('adminUsuarios.crearUsuario')}</button>
@@ -1706,7 +1704,7 @@ export default function App() {
             <motion.section key="admin_logs" className="full-container" style={{ maxWidth: '1200px', padding: '0 20px' }} {...pageTransition}>
               <div className="panel-header" style={{ marginBottom: '24px' }}>
               
-                <h2 style={{margin: '0', fontSize: '1.5rem'}}>{t('adminLogs.titulo')}</h2>
+                <h2 className="titulo-panel">{t('adminLogs.titulo')}</h2>
               </div>
 
               {crowdsecMetrics ? (
@@ -1826,7 +1824,7 @@ export default function App() {
                 {editingRobot && (
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}>
                         <div style={{ background: 'var(--background)', border: '1px solid var(--accent)', borderRadius: '8px', padding: '32px', width: '100%', maxWidth: '600px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
-                            <h3 style={{ marginTop: 0, marginBottom: '24px', fontFamily: 'var(--font-ibm-mono)', fontSize: '1.1rem', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
+                            <h3 style={{ marginTop: 0, marginBottom: '24px', fontFamily: 'var(--font-titulo)', fontSize: '1.1rem', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 400 }}>
                                 {editingRobot.isNew ? t('adminRobots.registrarNuevaUnidad') : t('adminRobots.editarUnidad')}
                             </h3>
                             <form onSubmit={handleSaveRobot} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1907,7 +1905,6 @@ export default function App() {
           {view === "settings_menu" && (
             <motion.section key="settings_menu" className="dashboard-card" {...pageTransition}>
               <div className="panel-header">
-                <span className="panel-label">{t('ajustes.configuracion')}</span>
                 <h2 style={{margin: '0', fontSize: '1.25rem'}}>{t('ajustes.menuAjustes')}</h2>
               </div>
               <p className="user-welcome">{t('ajustes.seleccionaApartado')}</p>
@@ -1928,7 +1925,6 @@ export default function App() {
           {view === "accessibility" && (
             <motion.section key="accessibility" className="dashboard-card" {...pageTransition}>
               <div className="panel-header">
-                <span className="panel-label">{t('ajustes.ajustesLabel')}</span>
                 <h2 style={{margin: '0', fontSize: '1.25rem'}}>{t('ajustes.accesibilidad')}</h2>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left' }}>

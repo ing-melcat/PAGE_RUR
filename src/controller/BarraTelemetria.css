@@ -56,6 +56,11 @@
 /* La lectura protagonista de un módulo: blanco, mono, bold. Deliberadamente
    más chica que antes (era 2rem) -- un HUD se lee de reojo, no se declama. */
 .telemetria__valor {
+  /* Roboto no es de paso fijo. Sin cifras tabulares, un valor que pasa
+     de 1 a 8 cambia de ancho y arrastra todo lo que tiene al lado: en un
+     instrumento que se refresca varias veces por segundo eso se ve como
+     un temblor constante. */
+  font-variant-numeric: tabular-nums;
   font-family: var(--font-ibm-mono), monospace;
   font-size: 1.25rem;
   font-weight: 700;

@@ -504,6 +504,9 @@ export const en: Dictionary = {
 
   envivo: {
     etiqueta: 'Live',
+    invitacion: 'A unit is broadcasting right now. You can watch it live.',
+    ver: 'Watch live',
+    cerrar: 'Dismiss',
   },
 
   ajustes: {

@@ -214,7 +214,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
             {/* HEADER */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '48px', borderBottom: '1px solid var(--border)', paddingBottom: '24px' }}>
                 <div style={{ flex: 1, paddingRight: '40px' }}>
-                    <h2 style={{ margin: '16px 0', fontSize: '3.5rem', fontFamily: 'var(--font-ibm-mono)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: '1', fontWeight: 500 }}>
+                    <h2 style={{ margin: '16px 0', fontSize: '3.5rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: '1', fontWeight: 400 }}>
                         {t('operador.seleccion.titulo')}
                     </h2>
                 </div>
@@ -287,7 +287,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                     >
                         <Robot3DPreview status={robot.status} modelUrl={robot.modelUrl} />
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
-                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontFamily: 'var(--font-ibm-mono)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>{robot.name}</h3>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 400 }}>{robot.name}</h3>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: enLinea ? 'var(--success)' : 'var(--error)' }} />
                                 <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', letterSpacing: '0.05em', color: enLinea ? 'var(--success)' : 'var(--error)' }}>

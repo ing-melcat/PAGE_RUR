@@ -504,6 +504,9 @@ export const es = {
 
   envivo: {
     etiqueta: 'En vivo',
+    invitacion: 'Hay una unidad transmitiendo ahora mismo. Puedes verla en directo.',
+    ver: 'Ver transmisión',
+    cerrar: 'Cerrar aviso',
   },
 
   ajustes: {
