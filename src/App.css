@@ -471,3 +471,69 @@
     box-shadow: inset 0 36px 30px -24px var(--background);
   }
 }
+
+/* ==================================================================
+   La barra superior no se mueve cuando aparece un aviso
+   ------------------------------------------------------------------
+   Los chips de "en vivo", "aviso" y "evento" aparecen solos: salen de un
+   sondeo cada 30 segundos, así que pueden materializarse mientras alguien
+   está leyendo la página. La barra era un flex con space-between y tres
+   bloques, de modo que al crecer el bloque de la derecha el centro se
+   corría hacia la izquierda y los enlaces de navegación se desplazaban
+   bajo el cursor de quien iba a pulsarlos.
+
+   La solución es que el centro no dependa de lo que midan los lados: los
+   dos laterales se reparten a partes iguales todo el espacio libre
+   (flex: 1 1 0), así que el bloque de enlaces queda clavado en el centro
+   geométrico de la barra y se queda ahí, haya chip o no.
+
+   Y sin ajuste de línea: con flex-wrap: wrap, el chip de más era capaz de
+   empujar un bloque entero a una segunda fila y hacer crecer la barra de
+   golpe, desplazando la página entera hacia abajo.
+   ================================================================== */
+
+@media (min-width: 769px) {
+  .topbar {
+    flex-wrap: nowrap;
+    /* Alto estable: aunque algo dentro crezca unos píxeles, la barra mide
+       siempre lo mismo y nada de lo que hay debajo se mueve. */
+    min-height: 92px;
+  }
+
+  .topbar-left,
+  .topbar-right {
+    flex: 1 1 0;
+    min-width: 0;   /* deja que se encojan antes que desbordar la barra */
+  }
+
+  .topbar .main-nav {
+    flex: 0 0 auto;
+  }
+}
+
+/* En móvil la barra sí puede envolver: el menú central está oculto tras el
+   botón de hamburguesa y los chips son lo único que puede pasar a una
+   segunda línea. */
+@media (max-width: 768px) {
+  .topbar {
+    flex-wrap: wrap;
+  }
+}
+
+/* Los chips entran fundiéndose, no apareciendo de golpe. Es un cambio que
+   ocurre sin que nadie lo haya pedido, y algo que aparece de golpe en una
+   barra de navegación se lee como un fallo de carga. */
+.estados {
+  animation: estados-entrada var(--mov-medio) var(--mov-curva) both;
+}
+
+@keyframes estados-entrada {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .estados {
+    animation: none;
+  }
+}

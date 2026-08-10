@@ -307,13 +307,14 @@ const LandingLayout = () => {
           la transmisión no necesita que le inviten— ni en el panel. */}
       <InvitacionEnVivo />
       
-      {/* Navegación Superior */}
+      {/* Navegación Superior. El reparto en tres columnas y el ajuste de
+          línea los lleva App.css: dependen del ancho de la pantalla, y un
+          style en línea no puede tener media queries. */}
       {!isPublication && (
-      <header className="topbar" style={{ 
-        borderBottom: '1px solid var(--border)', 
+      <header className="topbar" style={{
+        borderBottom: '1px solid var(--border)',
         padding: '20px 40px',
         display: 'flex',
-        flexWrap: 'wrap',
         justifyContent: 'space-between',
         alignItems: 'center',
         gap: '20px'
