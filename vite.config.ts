@@ -15,6 +15,17 @@ export default defineConfig({
     }
   },
   build: {
+    // Sin esto, el minificador reescribe TODAS las media queries a la
+    // sintaxis de Media Queries nivel 4 —`@media (width<=768px)` en vez de
+    // `@media (max-width:768px)`—, que es equivalente pero solo la entienden
+    // Chrome 104+, Safari 16.4+ y Firefox 102+. Un navegador anterior no la
+    // interpreta mal: descarta el bloque entero. O sea, en un iPhone con iOS
+    // 16.3 el sitio se veía con el diseño de escritorio, sin ninguna de las
+    // 12 reglas responsive, y sin ningún error que lo delatara.
+    //
+    // safari14 es el objetivo más antiguo que cubre los móviles reales que
+    // se ven en la universidad sin renunciar a nada que el sitio use.
+    cssTarget: 'safari14',
     rollupOptions: {
       // @pmndrs/xr (usado por @react-three/xr) trae de fábrica un emulador
       // de visor para desarrollo local (iwer/@iwer/sem/@iwer/devui), cargado
