@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useLanguage } from './lib/i18n';
+import { RedesMiembro } from './components/RedesMiembro';
 import './Miembros.css';
 
 /**
@@ -32,22 +33,9 @@ type Miembro = {
   generacion: string;
   bio: string;
   foto: string;
-  github: string;
-  linkedin: string;
-  instagram: string;
+  redes: Record<string, string>;
   proyectos: Proyecto[];
 };
-
-// github: 'Ing-melcat' y github: 'https://github.com/Ing-melcat' conviven en
-// la base, porque el campo se rellenó a mano y en su día no pedía una URL.
-// Aquí se acepta cualquiera de las dos formas en vez de mostrar un enlace
-// roto a quien escribió solo su usuario.
-function enlaceRed(base: string, valor: string) {
-  const v = valor.trim();
-  if (!v) return '';
-  if (/^https?:\/\//i.test(v)) return v;
-  return base + v.replace(/^@/, '');
-}
 
 function Iniciales({ nombre }: { nombre: string }) {
   const iniciales = nombre
@@ -153,45 +141,27 @@ export function Miembros() {
 
                     {m.bio && <p className="miembro__bio">{m.bio}</p>}
 
-                    {/* El historial. Va después del nombre pero es lo que de
-                        verdad sostiene la ficha, así que lleva su propia
-                        etiqueta y sus enlaces son reales: llevan a la
-                        publicación del proyecto. */}
+                    {/* Los tres últimos y cuántos más. La tarjeta es una
+                        presentación, no un currículum: quien quiera el
+                        recorrido completo entra en los proyectos. */}
                     {m.proyectos.length > 0 && (
-                      <div className="miembro__proyectos">
-                        <p className="miembro__etiqueta">{t('miembros.proyectos')}</p>
-                        <ul>
-                          {m.proyectos.map((p) => (
-                            <li key={p.id}>
-                              <Link to={`/publicacion/${p.id}`} className="miembro__proyecto">
-                                <span className="miembro__proyecto-titulo">{p.titulo}</span>
-                                {p.papel && <span className="miembro__papel">{p.papel}</span>}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                      <ul className="miembro__proyectos">
+                        {m.proyectos.slice(0, 3).map((p) => (
+                          <li key={p.id}>
+                            <Link to={`/publicacion/${p.id}`} className="miembro__proyecto">
+                              {p.titulo}
+                            </Link>
+                          </li>
+                        ))}
+                        {m.proyectos.length > 3 && (
+                          <li className="miembro__mas">
+                            {t('miembros.mas').replace('{n}', String(m.proyectos.length - 3))}
+                          </li>
+                        )}
+                      </ul>
                     )}
 
-                    {(m.github || m.linkedin || m.instagram) && (
-                      <footer className="miembro__redes">
-                        {m.linkedin && (
-                          <a href={enlaceRed('https://www.linkedin.com/in/', m.linkedin)}
-                             target="_blank" rel="noopener noreferrer"
-                             aria-label={`LinkedIn de ${m.nombre}`}>in</a>
-                        )}
-                        {m.github && (
-                          <a href={enlaceRed('https://github.com/', m.github)}
-                             target="_blank" rel="noopener noreferrer"
-                             aria-label={`GitHub de ${m.nombre}`}>gh</a>
-                        )}
-                        {m.instagram && (
-                          <a href={enlaceRed('https://instagram.com/', m.instagram)}
-                             target="_blank" rel="noopener noreferrer"
-                             aria-label={`Instagram de ${m.nombre}`}>ig</a>
-                        )}
-                      </footer>
-                    )}
+                    <RedesMiembro redes={m.redes} nombre={m.nombre} />
                   </motion.article>
                 ))}
               </div>

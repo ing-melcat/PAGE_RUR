@@ -313,7 +313,7 @@ app.get('/api/miembros', async (req, res) => {
   const { rows } = await pool.query(`
     SELECT u.id, u.nombre, u.alias, u.show_alias, u.bio, u.foto,
            u.rol_publico, u.area, u.generacion,
-           u.github, u.linkedin, u.instagram,
+           u.github, u.linkedin, u.instagram, u.facebook, u.reddit,
            COALESCE(
              (SELECT json_agg(json_build_object('id', p.id, 'titulo', p.title, 'papel', pm.papel)
                               ORDER BY p.date DESC)
@@ -341,9 +341,16 @@ app.get('/api/miembros', async (req, res) => {
     generacion: r.generacion ?? '',
     bio: r.bio ?? '',
     foto: r.foto ?? '',
-    github: r.github ?? '',
-    linkedin: r.linkedin ?? '',
-    instagram: r.instagram ?? '',
+    // Las redes que cada quien haya puesto en su perfil, y solo esas: la
+    // tarjeta es el único canal de contacto público, en lugar del teléfono
+    // o el correo institucional.
+    redes: {
+      github: r.github ?? '',
+      linkedin: r.linkedin ?? '',
+      instagram: r.instagram ?? '',
+      facebook: r.facebook ?? '',
+      reddit: r.reddit ?? '',
+    },
     proyectos: r.proyectos ?? [],
   })));
 });

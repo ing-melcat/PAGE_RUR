@@ -43,41 +43,38 @@
 
 .miembros__rejilla {
   display: grid;
-  /* 340px es lo que necesita la ficha para que un título de proyecto
-     quepa en una línea. Por debajo, los títulos se parten en tres
-     renglones y la lista deja de leerse de un vistazo. */
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  /* 280px: lo justo para el retrato junto al nombre. Los proyectos van
+     como etiquetas de una línea, así que ya no piden ancho. */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
 }
 
 .miembro {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 24px;
+  gap: 12px;
+  padding: 20px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 2px;
-  transition: border-color var(--mov-rapido) ease,
-              transform var(--mov-medio) var(--mov-curva);
+  transition: border-color var(--mov-rapido) ease;
 }
 
 @media (hover: hover) {
   .miembro:hover {
     border-color: var(--accent);
-    transform: translateY(-2px);
   }
 }
 
 .miembro__cabecera {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .miembro__retrato {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
@@ -93,26 +90,26 @@
   object-fit: cover;
 }
 
-/* Quien no ha subido foto sale con sus iniciales, no con un icono de
-   persona genérico: el hueco gris idéntico repetido por toda la rejilla
-   es justo lo que hace que una sección de equipo parezca sin terminar. */
+/* Quien no ha subido foto sale con sus iniciales. El hueco gris idéntico
+   repetido por toda la rejilla es lo que hace que una sección de equipo
+   parezca sin terminar. */
 .miembro__iniciales {
   font-family: var(--font-titulo), sans-serif;
-  font-size: var(--t-md);
+  font-size: var(--t-base);
   letter-spacing: .04em;
   color: var(--accent);
 }
 
 .miembro__identidad {
-  min-width: 0;   /* deja que el nombre largo se recorte en vez de desbordar */
+  min-width: 0;
 }
 
 .miembro__nombre {
   font-family: var(--font-titulo), sans-serif;
-  font-size: var(--t-lg);
+  font-size: var(--t-md);
   font-weight: 400;
   letter-spacing: .02em;
-  line-height: 1.1;
+  line-height: 1.15;
   margin: 0;
   color: var(--text);
 }
@@ -121,7 +118,7 @@
   font-family: var(--font-etiqueta), sans-serif;
   font-size: var(--t-sm);
   color: var(--accent);
-  margin: 4px 0 0;
+  margin: 3px 0 0;
 }
 
 .miembro__generacion {
@@ -130,59 +127,53 @@
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--muted);
-  margin: 4px 0 0;
+  margin: 3px 0 0;
 }
 
+/* Dos líneas y corta. Una biografía larga convierte la rejilla en un muro
+   de texto donde ya no se distingue una persona de otra. */
 .miembro__bio {
   font-size: var(--t-sm);
-  line-height: 1.6;
+  line-height: 1.5;
   color: var(--muted);
   margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .miembro__proyectos {
-  border-top: 1px solid var(--border);
-  padding-top: 16px;
-  margin-top: auto;   /* pega el historial al fondo: todas las fichas de
-                         una fila alinean su lista, aunque las biografías
-                         midan distinto */
-}
-
-.miembro__etiqueta {
-  font-family: var(--font-etiqueta), sans-serif;
-  font-size: var(--t-xs);
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 0 0 10px;
-}
-
-.miembro__proyectos ul {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
+/* Los proyectos como etiquetas y no como lista: ocupan una o dos líneas en
+   vez de estirar la tarjeta, y siguen siendo enlaces a la publicación. */
 .miembro__proyecto {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+  display: inline-block;
+  max-width: 100%;
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-xs);
+  line-height: 1.3;
   text-decoration: none;
-  color: var(--text);
-  font-size: var(--t-sm);
-  line-height: 1.4;
-  border-left: 2px solid var(--border);
-  padding-left: 10px;
+  color: var(--bone);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 4px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: border-color var(--mov-rapido) ease, color var(--mov-rapido) ease;
 }
 
 @media (hover: hover) {
   .miembro__proyecto:hover {
-    border-left-color: var(--accent);
+    border-color: var(--accent);
     color: var(--accent);
   }
 }
@@ -192,29 +183,29 @@
   outline-offset: 2px;
 }
 
-.miembro__papel {
+.miembro__mas {
   font-family: var(--font-etiqueta), sans-serif;
   font-size: var(--t-xs);
   color: var(--muted);
-  white-space: nowrap;
-  flex-shrink: 0;
+  align-self: center;
+  padding: 4px 2px;
 }
 
 .miembro__redes {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 4px;
 }
 
 .miembro__redes a {
-  font-family: var(--font-etiqueta), sans-serif;
-  font-size: var(--t-xs);
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  text-decoration: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
   color: var(--muted);
   border: 1px solid var(--border);
   border-radius: 2px;
-  padding: 5px 10px;
   transition: color var(--mov-rapido) ease, border-color var(--mov-rapido) ease;
 }
 
@@ -239,8 +230,6 @@
 
 @media (max-width: 768px) {
   .miembros__rejilla {
-    /* Una sola columna: a 340px mínimos, dos columnas en un móvil dejan
-       cada ficha demasiado estrecha para su lista de proyectos. */
     grid-template-columns: 1fr;
   }
 

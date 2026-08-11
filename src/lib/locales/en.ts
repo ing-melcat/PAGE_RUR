@@ -549,6 +549,7 @@ export const en: Dictionary = {
   miembros: {
     titulo: 'Members',
     proyectos: 'Has worked on',
+    mas: '+{n} more',
     desde: 'Since {a}',
     cargando: 'Loading…',
     vacio: 'No public profiles yet.',

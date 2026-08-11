@@ -549,6 +549,7 @@ export const es = {
   miembros: {
     titulo: 'Miembros',
     proyectos: 'Ha desarrollado',
+    mas: '+{n} más',
     desde: 'Desde {a}',
     cargando: 'Cargando…',
     vacio: 'Sin perfiles públicos todavía.',
