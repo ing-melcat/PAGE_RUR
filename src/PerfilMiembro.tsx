@@ -77,49 +77,56 @@ export function PerfilMiembro() {
     >
       <Link to="/miembros" className="perfil__volver">{t('miembros.volver')}</Link>
 
-      <header className="perfil__cabecera">
-        <div className="perfil__retrato">
-          {miembro.foto
-            ? <img src={miembro.foto} alt="" />
-            : <span className="miembro__iniciales">{iniciales}</span>}
-        </div>
+      <div className="perfil__columnas">
+        {/* Quién es: se queda a la vista mientras se recorre lo que ha hecho.
+            Con un historial largo, tener que subir para recordar de quién es
+            la lista es lo que rompe la lectura. */}
+        <aside className="perfil__ficha">
+          <div className="perfil__retrato">
+            {miembro.foto
+              ? <img src={miembro.foto} alt="" />
+              : <span className="miembro__iniciales">{iniciales}</span>}
+          </div>
 
-        <div className="perfil__identidad">
           <h1 className="perfil__nombre">{miembro.nombre}</h1>
           {miembro.rol && <p className="perfil__rol">{miembro.rol}</p>}
 
-          <p className="perfil__meta">
-            {miembro.area}
-            {miembro.area && miembro.generacion && <span className="perfil__sep">·</span>}
-            {miembro.generacion && t('miembros.desde').replace('{a}', miembro.generacion)}
-          </p>
+          {(miembro.area || miembro.generacion) && (
+            <p className="perfil__meta">
+              {miembro.area}
+              {miembro.area && miembro.generacion && <span className="perfil__sep">·</span>}
+              {miembro.generacion && t('miembros.desde').replace('{a}', miembro.generacion)}
+            </p>
+          )}
 
           <RedesMiembro redes={miembro.redes} nombre={miembro.nombre} />
+        </aside>
+
+        <div className="perfil__cuerpo">
+          {miembro.bio && <p className="perfil__bio">{miembro.bio}</p>}
+
+          <section className="perfil__seccion">
+            <h2 className="miembros__area-titulo">
+              <span className="miembros__barra">/</span> {t('miembros.proyectos')}
+            </h2>
+
+            {miembro.proyectos.length === 0 ? (
+              <p className="miembros__vacio">{t('miembros.sinProyectos')}</p>
+            ) : (
+              <ul className="perfil__proyectos">
+                {miembro.proyectos.map((p) => (
+                  <li key={p.id}>
+                    <Link to={`/publicacion/${p.id}`} className="perfil__proyecto">
+                      <span className="perfil__proyecto-titulo">{p.titulo}</span>
+                      {p.papel && <span className="perfil__papel">{p.papel}</span>}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
-      </header>
-
-      {miembro.bio && <p className="perfil__bio">{miembro.bio}</p>}
-
-      <section className="perfil__seccion">
-        <h2 className="miembros__area-titulo">
-          <span className="miembros__barra">/</span> {t('miembros.proyectos')}
-        </h2>
-
-        {miembro.proyectos.length === 0 ? (
-          <p className="miembros__vacio">{t('miembros.sinProyectos')}</p>
-        ) : (
-          <ul className="perfil__proyectos">
-            {miembro.proyectos.map((p) => (
-              <li key={p.id}>
-                <Link to={`/publicacion/${p.id}`} className="perfil__proyecto">
-                  <span className="perfil__proyecto-titulo">{p.titulo}</span>
-                  {p.papel && <span className="perfil__papel">{p.papel}</span>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      </div>
     </motion.div>
   );
 }
