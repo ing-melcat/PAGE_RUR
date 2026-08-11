@@ -91,14 +91,42 @@ const ANCHO_MAXIMO = 1800;
 const CALIDAD_WEBP = 82;
 const CONVERTIBLES = /\.(jpe?g|png|webp)$/i;
 
+// Un cartel no es una foto.
+//
+// La compresión con pérdida está pensada para degradados suaves: en una foto
+// nadie nota que se pierda algo. En un gráfico plano con texto grande —un
+// cartel, una captura, un diagrama— hace lo contrario: deja un halo sucio
+// alrededor de cada letra que se ve como si la imagen estuviera desenfocada.
+// Se midió: el mismo recorte del titular pasaba de 12 KB a 53 KB al
+// recomprimirlo sin pérdida, y todo ese peso de más era ruido inventado por
+// el compresor.
+//
+// La pista para distinguirlos es el formato de origen. Nadie exporta una foto
+// de cámara a PNG; sí exporta a PNG un cartel de Figma o una captura de
+// pantalla. Así que los PNG van sin pérdida y las fotos siguen igual que
+// hasta ahora.
+const SIN_PERDIDA = /\.png$/i;
+// Techo de seguridad: si alguien sube una foto guardada como PNG, sin pérdida
+// pesaría muchísimo. Por encima de esto se rehace con pérdida.
+const TOPE_SIN_PERDIDA = 1.5 * 1024 * 1024;
+
 async function reducirImagen(rutaOriginal, nombreOriginal) {
   const destino = rutaOriginal.replace(/\.[^.]+$/, '') + '.webp';
-
-  await sharp(rutaOriginal)
+  const base = () => sharp(rutaOriginal)
     .rotate()                       // respeta la orientación EXIF de la cámara
-    .resize({ width: ANCHO_MAXIMO, withoutEnlargement: true })
-    .webp({ quality: CALIDAD_WEBP })
-    .toFile(destino);
+    .resize({ width: ANCHO_MAXIMO, withoutEnlargement: true });
+
+  const esGrafico = SIN_PERDIDA.test(nombreOriginal || rutaOriginal);
+
+  if (esGrafico) {
+    await base().webp({ lossless: true, effort: 5 }).toFile(destino);
+    const { size } = await fs.promises.stat(destino);
+    if (size > TOPE_SIN_PERDIDA) {
+      await base().webp({ quality: CALIDAD_WEBP }).toFile(destino);
+    }
+  } else {
+    await base().webp({ quality: CALIDAD_WEBP }).toFile(destino);
+  }
 
   await fs.promises.unlink(rutaOriginal).catch(() => {});
   return path.basename(destino);
