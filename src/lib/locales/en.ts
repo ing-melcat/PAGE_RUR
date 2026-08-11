@@ -369,6 +369,15 @@ export const en: Dictionary = {
     inicializandoConsola: 'INITIALIZING CONSOLE...',
   },
   perfil: {
+    linkedin: 'LINKEDIN',
+    aparecer: 'Appear on the public site',
+    aparecerNota: 'Publishes your photo, name, bio, links and the projects you are credited on. Never your student ID or phone number.',
+    rolPublico: 'WHAT YOU DO',
+    rolPublicoPlaceholder: 'Electronics and power',
+    area: 'AREA',
+    areaSinElegir: 'No area',
+    generacion: 'YEAR JOINED',
+
     identidad: 'IDENTITY',
     titulo: 'Customize Your Profile',
     alias: 'Alias / Nickname',

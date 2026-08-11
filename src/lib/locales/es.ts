@@ -369,6 +369,15 @@ export const es = {
     inicializandoConsola: 'INICIALIZANDO CONSOLA...',
   },
   perfil: {
+    linkedin: 'LINKEDIN',
+    aparecer: 'Aparecer en la web pública',
+    aparecerNota: 'Publica tu foto, nombre, biografía, redes y los proyectos que hayas firmado. Nunca tu matrícula ni tu teléfono.',
+    rolPublico: 'A QUÉ TE DEDICAS',
+    rolPublicoPlaceholder: 'Electrónica y potencia',
+    area: 'ÁREA',
+    areaSinElegir: 'Sin área',
+    generacion: 'AÑO DE INGRESO',
+
     identidad: 'IDENTIDAD',
     titulo: 'Personaliza tu Perfil',
     alias: 'Alias / Apodo',

@@ -113,6 +113,12 @@ function getRoles(user: any): string[] {
   return user?.rol ? [user.rol] : [];
 }
 
+// Las áreas del grupo, cerradas a propósito: son lo que agrupa la página
+// pública de miembros, y con texto libre la misma área acaba escrita de tres
+// formas distintas —en la base ya convivían "Software & Mechanical" y
+// "Software  & Hardware", con dos espacios— y la agrupación se rompe.
+const AREAS = ['Hardware', 'Software', 'Control', 'Mecánica', 'Diseño', 'Difusión'];
+
 // Devuelve true si el usuario tiene AL MENOS uno de los roles pedidos.
 function hasRole(user: any, ...roles: string[]): boolean {
   const owned = getRoles(user);
@@ -638,7 +644,13 @@ export default function App() {
   // el mismo error del que ya se migró al pasar el JWT a una cookie httpOnly.
   // Al recargar se vuelve a pedir al backend, que es barato y siempre correcto.
   const [livekitToken, setLivekitToken] = useState<any>("");
-  const [profileForm, setProfileForm] = useState({ alias: '', bio: '', foto: '', github: '', instagram: '', reddit: '', facebook: '' });
+  const [profileForm, setProfileForm] = useState({
+    alias: '', bio: '', foto: '',
+    github: '', linkedin: '', instagram: '', reddit: '', facebook: '',
+    // Perfil público: lo que se ve en /miembros. Apagado hasta que su dueño
+    // lo encienda — tener cuenta no publica a nadie.
+    perfil_publico: false, rol_publico: '', area: '', generacion: '',
+  });
   
   const [showAlias, setShowAlias] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(false);
@@ -961,9 +973,14 @@ export default function App() {
       bio: user?.bio || '',
       foto: user?.foto || '',
       github: user?.github || '',
+      linkedin: user?.linkedin || '',
       instagram: user?.instagram || '',
       reddit: user?.reddit || '',
-      facebook: user?.facebook || ''
+      facebook: user?.facebook || '',
+      perfil_publico: Boolean(user?.perfil_publico),
+      rol_publico: user?.rol_publico || '',
+      area: user?.area || '',
+      generacion: user?.generacion || '',
     });
     // El editor vive dentro del dashboard, así que hay que aterrizar ahí
     // primero cuando se entra desde el menú suelto de Ajustes.
@@ -1451,6 +1468,10 @@ export default function App() {
                             <input type="text" placeholder="https://github.com/..." value={profileForm.github} onChange={e => setProfileForm({...profileForm, github: e.target.value})} />
                           </div>
                           <div className="input-group">
+                            <label>{t('perfil.linkedin')}</label>
+                            <input type="text" placeholder="https://linkedin.com/in/..." value={profileForm.linkedin} onChange={e => setProfileForm({...profileForm, linkedin: e.target.value})} />
+                          </div>
+                          <div className="input-group">
                             <label>{t('perfil.instagram')}</label>
                             <input type="text" placeholder="https://instagram.com/..." value={profileForm.instagram} onChange={e => setProfileForm({...profileForm, instagram: e.target.value})} />
                           </div>
@@ -1462,6 +1483,47 @@ export default function App() {
                             <label>{t('perfil.facebook')}</label>
                             <input type="text" placeholder="https://facebook.com/..." value={profileForm.facebook} onChange={e => setProfileForm({...profileForm, facebook: e.target.value})} />
                           </div>
+                          {/* Perfil público. Va junto y antes de las
+                              preferencias porque es la decisión que gobierna
+                              todo lo de arriba: mientras esté apagado, nada de
+                              esto sale de aquí. */}
+                          <div className="perfil-publico">
+                            <label className="perfil-publico__interruptor">
+                              <span>
+                                <span className="perfil-publico__titulo">{t('perfil.aparecer')}</span>
+                                <span className="perfil-publico__nota">{t('perfil.aparecerNota')}</span>
+                              </span>
+                              <input
+                                type="checkbox"
+                                checked={profileForm.perfil_publico}
+                                onChange={(e) => setProfileForm({ ...profileForm, perfil_publico: e.target.checked })}
+                                style={{ width: 'auto', cursor: 'pointer' }}
+                              />
+                            </label>
+
+                            {/* Los campos solo cuando sirven de algo: pedirlos
+                                con el perfil apagado es pedir datos para nada. */}
+                            {profileForm.perfil_publico && (
+                              <div className="perfil-publico__campos">
+                                <div className="input-group">
+                                  <label>{t('perfil.rolPublico')}</label>
+                                  <input type="text" maxLength={80} placeholder={t('perfil.rolPublicoPlaceholder')} value={profileForm.rol_publico} onChange={e => setProfileForm({...profileForm, rol_publico: e.target.value})} />
+                                </div>
+                                <div className="input-group">
+                                  <label>{t('perfil.area')}</label>
+                                  <select value={profileForm.area} onChange={e => setProfileForm({...profileForm, area: e.target.value})}>
+                                    <option value="">{t('perfil.areaSinElegir')}</option>
+                                    {AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+                                  </select>
+                                </div>
+                                <div className="input-group">
+                                  <label>{t('perfil.generacion')}</label>
+                                  <input type="text" inputMode="numeric" maxLength={20} placeholder="2024" value={profileForm.generacion} onChange={e => setProfileForm({...profileForm, generacion: e.target.value})} />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
                             <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', border: '1px solid var(--border)', background: 'var(--background)', cursor: 'pointer' }}>
                               <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>{t('perfil.mostrarAlias')}</span>

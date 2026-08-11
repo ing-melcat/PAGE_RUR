@@ -1371,3 +1371,70 @@ textarea:focus-visible {
   visibility: visible;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ==================================================================
+   Perfil público, en el editor de perfil
+   ------------------------------------------------------------------
+   El bloque va enmarcado y separado del resto del formulario porque
+   gobierna todo lo demás: mientras el interruptor esté apagado, nada de
+   lo que hay arriba sale del panel. Mezclarlo con los otros campos
+   haría que se pareciera a una preferencia más.
+   ================================================================== */
+
+.perfil-publico {
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  background: var(--accent-muted);
+  padding: 16px;
+  margin-top: 8px;
+}
+
+.perfil-publico__interruptor {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  cursor: pointer;
+}
+
+.perfil-publico__titulo {
+  display: block;
+  font-family: var(--font-etiqueta), sans-serif;
+  font-weight: 500;
+  font-size: var(--t-sm);
+  color: var(--text);
+}
+
+/* Qué se publica exactamente, dicho antes de encender y no después. */
+.perfil-publico__nota {
+  display: block;
+  font-size: var(--t-xs);
+  line-height: 1.5;
+  color: var(--muted);
+  margin-top: 6px;
+  max-width: 46ch;
+}
+
+.perfil-publico__campos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.perfil-publico__campos select {
+  width: 100%;
+  padding: 12px;
+  background: var(--background);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-etiqueta), sans-serif;
+}
+
+.perfil-publico__campos select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
