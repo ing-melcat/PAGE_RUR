@@ -1050,7 +1050,7 @@ button:active::after {
   display: none !important;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   /* Show hamburger */
   .mobile-menu-btn {
     display: flex !important;
@@ -1720,4 +1720,36 @@ textarea:focus-visible {
 .excelencia__acciones button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* ==================================================================
+   La barra con cuatro secciones
+   ------------------------------------------------------------------
+   Al entrar MIEMBROS, el bloque central creció lo justo para que dejara
+   de caber: el chip de estado y el botón de idioma se metían debajo de
+   los enlaces. No era un fallo de la barra, era que ya no había sitio.
+
+   Dos medidas, en este orden:
+   1. Entre 1025 y 1300px, los chips se quedan en puntos: la etiqueta
+      ("EVENTO ACTIVO") es lo primero que sobra cuando falta espacio,
+      porque el punto ya avisa y el destino sigue a un clic.
+   2. Por debajo de 1024px el menú entero pasa a la hamburguesa, que es
+      donde estaba el problema real: cuatro secciones más logo, chips y
+      dos botones no caben en un portátil pequeño.
+   ================================================================== */
+
+@media (max-width: 1300px) {
+  /* La etiqueta de los chips se recoge en EstadosActivos.css, no aquí: su
+     regla base vive en ese archivo y se carga DESPUÉS de este, así que un
+     display:none puesto aquí lo anulaba la cascada. Un fallo que no da
+     ningún error: simplemente no pasa nada. */
+
+  .topbar {
+    padding: 20px 24px;
+    gap: 12px;
+  }
+
+  .topbar .main-nav {
+    gap: 12px !important;
+  }
 }

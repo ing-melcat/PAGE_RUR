@@ -159,3 +159,13 @@
     transition: none;
   }
 }
+
+/* Con cuatro secciones en la barra, la etiqueta es lo primero que sobra
+   cuando falta sitio: el punto ya avisa de que pasa algo y el destino sigue
+   estando a un clic. Sin esto, "EVENTO ACTIVO" se metía por debajo de los
+   enlaces en cuanto la ventana bajaba de 1300px. */
+@media (max-width: 1300px) {
+  .estados__texto {
+    display: none;
+  }
+}
