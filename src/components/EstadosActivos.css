@@ -19,37 +19,34 @@
 .estados {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.estado {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 14px;
+  gap: 4px;
+  padding: 5px 12px 5px 8px;
   border: 1px solid var(--border);
   border-radius: 2px;
   background: rgba(245, 243, 233, .04);
-  font-family: var(--font-ibm-mono), monospace;
-  font-size: var(--t-xs);
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: var(--bone);
-  transition: border-color var(--mov-rapido) ease, background-color .2s ease;
+  transition: border-color var(--mov-rapido) ease;
 }
 
 @media (hover: hover) {
-  .estado:hover {
+  .estados:hover {
     border-color: var(--accent);
-    background: var(--accent-muted);
   }
+}
+
+/* Cada punto es un enlace. El punto mide 8px pero el enlace lleva 7px de
+   relleno alrededor, que es lo que lo hace pulsable con el dedo. */
+.estado {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px;
+  border-radius: 2px;
+  text-decoration: none;
+  color: var(--bone);
 }
 
 .estado:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
 .estado__punto {
@@ -58,10 +55,47 @@
   border-radius: 50%;
   flex-shrink: 0;
   background: currentColor;
+  opacity: .45;
+  transition: opacity var(--mov-medio) var(--mov-curva),
+              transform var(--mov-medio) var(--mov-curva);
 }
 
-.estado__etiqueta {
+/* El punto de la etiqueta que está desplegada se enciende. Es lo que ata
+   el texto a su punto: sin eso, con dos puntos y una sola etiqueta no se
+   sabe de cuál de los dos habla. */
+.estado--en-turno .estado__punto {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+/* Zona de texto: una sola, compartida, de ancho fijo. Las etiquetas se
+   apilan en la misma celda, así que mide siempre lo que la más larga y el
+   relevo no empuja nada. */
+.estados__texto {
+  display: grid;
+  text-decoration: none;
+  overflow: hidden;
+}
+
+.estados__etiqueta {
+  grid-area: 1 / 1;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--t-xs);
   font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--bone);
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity var(--mov-medio) var(--mov-curva),
+              transform var(--mov-medio) var(--mov-curva);
+}
+
+/* Sale desde el punto, no cae del cielo. */
+.estados__etiqueta--visible {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 /* El chip dice SOLO qué ocurre. Llevaba también el nombre de la unidad o el
@@ -93,24 +127,35 @@
   color: var(--accent);
 }
 
+/* Solo el halo. La opacidad del punto ya significa otra cosa —si esta es
+   la etiqueta desplegada— y dos cosas peleando por el mismo canal acaban
+   en un parpadeo que no se entiende. */
 @keyframes estado-latido {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(248, 81, 73, .55); }
-  50% { opacity: .5; box-shadow: 0 0 0 5px rgba(248, 81, 73, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, .55); }
+  50%      { box-shadow: 0 0 0 5px rgba(248, 81, 73, 0); }
 }
 
 @media (max-width: 900px) {
-  .estado {
-    /* Mismo paso de la escala; lo que se reduce es el aire, no la letra.
-       Bajar del paso más pequeño obligaría a inventar un valor suelto, que
-       es justo lo que la escala viene a evitar. */
-    padding: 6px 10px;
-    gap: 7px;
+  /* Se reduce el aire, nunca la letra ni el área pulsable del punto. */
+  .estados {
+    padding: 4px 10px 4px 6px;
   }
-
 }
 
 @media (prefers-reduced-motion: reduce) {
   .estado--directo .estado__punto {
     animation: none;
+  }
+
+  /* Sin relevos y sin deslizamiento: la etiqueta en turno simplemente
+     está. El componente ya no arranca el temporizador en este modo, así
+     que lo que se ve es el estado más urgente, fijo. */
+  .estados__etiqueta {
+    transition: none;
+    transform: none;
+  }
+
+  .estado__punto {
+    transition: none;
   }
 }

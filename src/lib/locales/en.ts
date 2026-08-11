@@ -547,12 +547,10 @@ export const en: Dictionary = {
     advertenciaLivekitPing: 'Warning: Could not establish a connection with the LiveKit Cloud server (ping failed). Do you want to save it anyway?',
   },
   miembros: {
-    eyebrow: 'THE TEAM',
-    titulo: 'Who builds it',
-    entradilla: "Each profile leads with what that person has actually built. Projects come from the site's own publications: if it shows up here, it is published.",
+    titulo: 'Members',
     proyectos: 'Has worked on',
     desde: 'Since {a}',
     cargando: 'Loading…',
-    vacio: 'No public profiles yet. Each member chooses whether to appear, from their own profile.',
+    vacio: 'No public profiles yet.',
   },
 };

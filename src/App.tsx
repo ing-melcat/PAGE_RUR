@@ -22,6 +22,7 @@ import './App.css';
 import { Landing, PublicationPage, ArchiveDashboard } from './Landing';
 import { Miembros } from './Miembros';
 import { useLanguage } from './lib/i18n';
+import { useHayMiembros } from './lib/useHayMiembros';
 import { EstadosActivos } from './components/EstadosActivos';
 import { InvitacionEnVivo } from './components/InvitacionEnVivo';
 
@@ -297,6 +298,7 @@ const Footer = () => {
 const LandingLayout = () => {
   const { t, lang, setLang } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const hayMiembros = useHayMiembros();
   const location = useLocation();
   const isPublication = location.pathname.startsWith('/publicacion/');
 
@@ -379,8 +381,12 @@ const LandingLayout = () => {
           <Link to="/descubre" className="nav-link" data-text={t('nav.descubre')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.descubre')}</Link>
           <span className="nav-separator" style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
           <Link to="/conecta" className="nav-link" data-text={t('nav.conecta')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.conecta')}</Link>
-          <span className="nav-separator" style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
-          <Link to="/miembros" className="nav-link" data-text={t('nav.miembros')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.miembros')}</Link>
+          {hayMiembros && (
+            <>
+              <span className="nav-separator" style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
+              <Link to="/miembros" className="nav-link" data-text={t('nav.miembros')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.miembros')}</Link>
+            </>
+          )}
 
           {/* Mismos chips que en la barra de escritorio, no una variante
               propia: es la misma información y no tiene por qué verse de dos

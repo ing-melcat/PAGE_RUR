@@ -97,9 +97,7 @@ export function Miembros() {
           <div className="portada__velo" />
 
           <div className="portada__texto portada__texto--marcado">
-            <span className="eyebrow eyebrow--hero">{t('miembros.eyebrow')}</span>
             <h1>{t('miembros.titulo')}</h1>
-            <p className="miembros__entradilla">{t('miembros.entradilla')}</p>
           </div>
         </div>
       </section>
