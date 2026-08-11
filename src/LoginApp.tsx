@@ -1956,12 +1956,17 @@ export default function App() {
                           <td style={{ padding: '12px', color: 'var(--text)' }}>{u.nombre}</td>
                           <td style={{ padding: '12px', color: 'var(--accent)' }}>{u.roles?.join(', ')}</td>
                           <td style={{ padding: '12px', textAlign: 'right' }}>
-                            {u.matricula !== user?.matricula && (
-                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => { setEditingUser(u); setMotivoExcelencia(u.excelencia || ''); }}>{t('adminUsuarios.editar')}</button>
+                            {/* Editar sí, también la propia cuenta: antes se
+                                ocultaban los dos botones y eso dejaba sin poder
+                                cambiarse ni el nombre. Lo que no se puede es
+                                borrarse —ni quitarse la gestión de usuarios,
+                                que lo impide el servidor—. */}
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                              <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => { setEditingUser(u); setMotivoExcelencia(u.excelencia || ''); }}>{t('adminUsuarios.editar')}</button>
+                              {u.matricula !== user?.matricula && (
                                 <button className="logout-btn-small" style={{borderColor: 'var(--error)', color: 'var(--error)'}} onClick={() => handleDeleteUser(u.matricula)}>{t('adminUsuarios.revocar')}</button>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}

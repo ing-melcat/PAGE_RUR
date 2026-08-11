@@ -18,7 +18,7 @@ import {
   IS_PRODUCTION,
 } from '../shared/auth.js';
 import { generateCsrfToken, csrfProtection } from '../shared/csrf.js';
-import { PERMISOS, ES_PERMISO, ROL_TOTAL } from '../shared/permisos.js';
+import { PERMISOS, ES_PERMISO, ROL_TOTAL, permisosEfectivos } from '../shared/permisos.js';
 import { MEDALLAS, medallasDe } from '../shared/medallas.js';
 import { loginIpLimiter, isLocked, lockedRemainingMs, recordFailure, recordSuccess } from '../shared/loginProtection.js';
 import { saveLog } from '../shared/logs.js';
@@ -606,6 +606,25 @@ app.put('/api/users/:matricula', verifyToken, requirePermiso('usuarios.gestionar
   const permisosExtra = req.body.permisos_extra !== undefined
     ? [...new Set((req.body.permisos_extra ?? []).filter(ES_PERMISO))]
     : (existingUser.permisos_extra ?? []);
+
+  // Nadie puede quitarse a sí mismo la llave de casa.
+  //
+  // Borrarse ya estaba impedido; esto cierra el otro camino, que era peor
+  // porque no lo parecía: bastaba con desmarcar la casilla de tu propio rol
+  // para dejar el sistema sin nadie capaz de repartir permisos, y sin ninguna
+  // forma de volver a entrar salvo editando Postgres a mano.
+  //
+  // Solo se comprueba sobre uno mismo: quitarle la administración a OTRO
+  // administrador es una decisión legítima.
+  if (matricula === req.user.matricula) {
+    const seguira = permisosEfectivos(roles, await rolesDefinidos(), permisosExtra);
+    if (!seguira.has('usuarios.gestionar')) {
+      return res.status(400).json({
+        success: false,
+        message: 'No puedes quitarte a ti mismo la gestión de usuarios: te quedarías sin poder volver a entrar. Pídeselo a otro administrador.',
+      });
+    }
+  }
 
   await pool.query(
     `UPDATE users SET nombre = $1, roles = $2::jsonb, grupo = $3, alias = $4, password_hash = $5,
