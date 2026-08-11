@@ -106,7 +106,51 @@ async function reducirImagen(rutaOriginal, nombreOriginal) {
 
 const KNOWN_POST_FIELDS = new Set([
   'title', 'type', 'content', 'image', 'videoUrl', 'modelUrl', 'category', 'isHidden', 'pages',
+  // No es una columna de `posts` —vive en post_miembros— pero sí un campo
+  // conocido: sin declararlo aquí, splitExtra lo tomaría por un campo
+  // desconocido y lo guardaría dentro de la columna `extra`.
+  'autores',
 ]);
+
+/**
+ * Reescribe quién desarrolló una publicación.
+ *
+ * Se borra y se vuelve a insertar en lugar de calcular altas y bajas: la
+ * lista completa es lo que manda el editor, y con dos o tres personas por
+ * publicación el diff no compensa el riesgo de dejar a alguien colgado.
+ *
+ * Va en una transacción para que no exista un instante en el que la
+ * publicación no tenga autores; si algo falla, se queda como estaba.
+ */
+async function guardarAutores(postId, autores) {
+  if (!Array.isArray(autores)) return;   // no venía en el cuerpo: no se toca
+
+  const limpios = autores
+    .map((a) => ({
+      userId: Number.parseInt(a?.userId, 10),
+      papel: typeof a?.papel === 'string' ? a.papel.trim().slice(0, 80) || null : null,
+    }))
+    .filter((a) => Number.isInteger(a.userId));
+
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    await cliente.query('DELETE FROM post_miembros WHERE post_id = $1', [postId]);
+    for (const a of limpios) {
+      await cliente.query(
+        `INSERT INTO post_miembros (post_id, user_id, papel) VALUES ($1, $2, $3)
+         ON CONFLICT (post_id, user_id) DO UPDATE SET papel = EXCLUDED.papel`,
+        [postId, a.userId, a.papel]
+      );
+    }
+    await cliente.query('COMMIT');
+  } catch (e) {
+    await cliente.query('ROLLBACK');
+    throw e;
+  } finally {
+    cliente.release();
+  }
+}
 
 function rowToPost(row) {
   return {
@@ -146,10 +190,25 @@ app.get('/api/posts', sesionOpcional, async (req, res) => {
 
   // Con sesión se ven todas, incluidas las ocultas: es lo que el panel
   // necesita para poder listarlas y volver a mostrarlas.
+  // Los autores llegan en la misma consulta, no en una por publicación.
+  // Solo se enlazan los que tienen perfil público: a quien no ha querido
+  // aparecer se le nombra igual, pero sin llevar a una página que no existe.
+  const AUTORES = `,
+    COALESCE(
+      (SELECT json_agg(json_build_object(
+                'id', u.id, 'nombre',
+                CASE WHEN u.show_alias AND u.alias <> '' THEN u.alias ELSE u.nombre END,
+                'papel', pm.papel, 'publico', u.perfil_publico)
+              ORDER BY u.nombre)
+         FROM post_miembros pm JOIN users u ON u.id = pm.user_id
+        WHERE pm.post_id = posts.id),
+      '[]'::json
+    ) AS autores`;
+
   const { rows } = req.user
-    ? await pool.query('SELECT * FROM posts ORDER BY date DESC')
-    : await pool.query('SELECT * FROM posts WHERE is_hidden IS NOT TRUE ORDER BY date DESC');
-  const posts = rows.map(rowToPost);
+    ? await pool.query(`SELECT *${AUTORES} FROM posts ORDER BY date DESC`)
+    : await pool.query(`SELECT *${AUTORES} FROM posts WHERE is_hidden IS NOT TRUE ORDER BY date DESC`);
+  const posts = rows.map((r) => ({ ...rowToPost(r), autores: r.autores ?? [] }));
 
   // 'es' es el idioma nativo del contenido -- nada que traducir. Cualquier
   // otro valor de ?lang= se sirve de post_translations, que ya está lleno
@@ -221,6 +280,10 @@ app.post('/api/posts', verifyToken, requireRole('admin', 'redactor'), csrfProtec
       JSON.stringify(extra),
     ]
   );
+  // Firmar solo lo puede hacer quien administra: un redactor escribe, pero
+  // no decide a quién se le atribuye el trabajo.
+  if (req.user.roles?.includes('admin')) await guardarAutores(id, body.autores);
+
   await saveLog('info', `${req.user.matricula} creó la publicación ${id}.`);
 
   // Traducirla ahora, no cuando llegue el primer visitante que la pida en
@@ -258,6 +321,8 @@ app.put('/api/posts/:id', verifyToken, requireRole('admin', 'redactor'), csrfPro
       req.params.id,
     ]
   );
+  if (req.user.roles?.includes('admin')) await guardarAutores(req.params.id, updateData.autores);
+
   await saveLog('info', `${req.user.matricula} modificó la publicación ${req.params.id}.`);
 
   // La traducción vieja ya no corresponde al texto nuevo: se tira y se

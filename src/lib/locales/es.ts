@@ -71,6 +71,7 @@ export const es = {
     leerAhora: 'LEER AHORA →',
   },
   publicacion: {
+    desarrolladoPor: 'Desarrollado por',
     volver: '← VOLVER',
     anterior: '← ANTERIOR',
     pagina: 'PÁGINA',
@@ -278,6 +279,13 @@ export const es = {
     articulo: 'ARTÍCULO',
   },
   adminPublicaciones: {
+    desarrolladoPor: 'DESARROLLADO POR',
+    desarrolladoPorAyuda: 'Quién trabajó en este proyecto. Aparece en la publicación con enlace a su perfil, y en el perfil de cada persona como parte de su historial. Solo se enlaza a quien tenga el perfil público activado.',
+    elegirPersona: 'Elegir persona…',
+    papelPlaceholder: 'Qué hizo (electrónica, control…)',
+    agregarPersona: 'Añadir persona',
+    quitarPersona: 'Quitar persona',
+
     volverMenu: '← Volver al Menú Principal',
     administrador: 'ADMINISTRADOR',
     titulo: 'Gestión de Publicaciones',

@@ -384,6 +384,20 @@ app.get('/api/miembros/:id', async (req, res) => {
   res.json(aMiembroPublico(rows[0]));
 });
 
+// A quién se puede firmar en una publicación.
+//
+// No vale /api/users: ese es de administración y devuelve matrícula, grupo y
+// roles. Aquí hace falta lo mínimo para poner un nombre en una lista, y nada
+// más. Requiere sesión de administración porque enumera todas las cuentas,
+// incluidas las que no han querido perfil público.
+app.get('/api/personas', verifyToken, requireRole('admin'), noStore, async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT id, CASE WHEN show_alias AND alias <> '' THEN alias ELSE nombre END AS nombre
+       FROM users ORDER BY nombre`
+  );
+  res.json(rows);
+});
+
 app.get('/api/users', verifyToken, requireRole('admin'), noStore, async (req, res) => {
   const { rows } = await pool.query(
     'SELECT matricula, nombre, grupo, roles, alias FROM users ORDER BY matricula'

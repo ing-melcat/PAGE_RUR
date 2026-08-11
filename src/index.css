@@ -1438,3 +1438,137 @@ textarea:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
+
+/* Quién desarrolló una publicación, en el editor. */
+.autores {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--background);
+}
+
+.autores__titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  letter-spacing: .1em;
+  color: var(--muted);
+}
+
+.autores__fila {
+  display: grid;
+  /* Persona, papel y el botón de quitar. La persona manda: sin ella la fila
+     no significa nada, así que se lleva el espacio. */
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.autores__fila select,
+.autores__fila input {
+  padding: 9px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: var(--t-xs);
+  min-width: 0;
+}
+
+.autores__quitar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--mov-rapido) ease, border-color var(--mov-rapido) ease;
+}
+
+@media (hover: hover) {
+  .autores__quitar:hover {
+    color: var(--error);
+    border-color: var(--error);
+  }
+}
+
+.autores__agregar {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  color: var(--accent);
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: border-color var(--mov-rapido) ease;
+}
+
+@media (hover: hover) {
+  .autores__agregar:hover { border-color: var(--accent); }
+}
+
+.autores__quitar:focus-visible,
+.autores__agregar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Créditos de una publicación. Discretos: acompañan al contenido, no
+   compiten con él, pero cada nombre es un enlace real al perfil. */
+.creditos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-xs);
+  color: var(--muted);
+  margin: 0 0 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.creditos__etiqueta {
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.creditos__persona {
+  color: var(--bone);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color var(--mov-rapido) ease, border-color var(--mov-rapido) ease;
+}
+
+@media (hover: hover) {
+  a.creditos__persona:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+}
+
+.creditos__persona:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Sin perfil público: se nombra, pero no lleva a ninguna parte. */
+.creditos__persona--sin-perfil {
+  color: var(--muted);
+}
+
+.creditos__papel {
+  color: var(--muted);
+}
+
+.creditos__coma {
+  color: var(--muted);
+}

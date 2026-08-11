@@ -71,6 +71,7 @@ export const en: Dictionary = {
     leerAhora: 'READ NOW →',
   },
   publicacion: {
+    desarrolladoPor: 'Developed by',
     volver: '← BACK',
     anterior: '← PREVIOUS',
     pagina: 'PAGE',
@@ -278,6 +279,13 @@ export const en: Dictionary = {
     articulo: 'ARTICLE',
   },
   adminPublicaciones: {
+    desarrolladoPor: 'DEVELOPED BY',
+    desarrolladoPorAyuda: 'Who worked on this project. Shows on the publication linking to their profile, and on each profile as part of their history. Only people with a public profile are linked.',
+    elegirPersona: 'Choose person…',
+    papelPlaceholder: 'What they did (electronics, control…)',
+    agregarPersona: 'Add person',
+    quitarPersona: 'Remove person',
+
     volverMenu: '← Back to Main Menu',
     administrador: 'ADMIN',
     titulo: 'Post Management',

@@ -286,6 +286,26 @@ export const PublicationPage = () => {
           position: 'relative',
           display: 'block'
         }}>
+           {/* Quién lo desarrolló. El perfil ya llevaba a sus proyectos; esto
+               cierra el circuito en el otro sentido, que era lo que faltaba:
+               desde el proyecto se llega a las personas. Quien no tiene
+               perfil público se nombra igual, pero sin enlace a una página
+               que no existe. */}
+           {post.autores?.length > 0 && (
+             <p className="creditos">
+               <span className="creditos__etiqueta">{t('publicacion.desarrolladoPor')}</span>
+               {post.autores.map((a: any, i: number) => (
+                 <span key={a.id}>
+                   {i > 0 && <span className="creditos__coma">, </span>}
+                   {a.publico
+                     ? <Link to={`/miembros/${a.id}`} className="creditos__persona">{a.nombre}</Link>
+                     : <span className="creditos__persona creditos__persona--sin-perfil">{a.nombre}</span>}
+                   {a.papel && <span className="creditos__papel"> · {a.papel}</span>}
+                 </span>
+               ))}
+             </p>
+           )}
+
            {isSpecial && post.countdownDate && (
              <div style={{ position: 'fixed', bottom: '40px', right: '40px', zIndex: 50 }}>
                <Countdown targetDate={post.countdownDate} />

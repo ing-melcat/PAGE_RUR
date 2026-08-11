@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
-import { Loader2, CheckCircle, ChevronDown, ChevronUp, Globe, Lock, Upload, TriangleAlert, Star, Eye, EyeOff, Languages } from "lucide-react";
+import { Loader2, CheckCircle, ChevronDown, ChevronUp, Globe, Lock, Upload, TriangleAlert, Star, Eye, EyeOff, Languages, X } from "lucide-react";
 import "./index.css";
 import { ModeSelect } from "./controller/ModeSelect";
 // Carga diferida: arrastra Robot3DPreview -> @react-three/fiber/drei ->
@@ -140,6 +140,10 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   const [countdownDate, setCountdownDate] = useState('');
   const [category, setCategory] = useState('landing');
   const [modelUrl, setModelUrl] = useState('');
+  // Quién desarrolló esto. `personas` es el catálogo para elegir; `autores`,
+  // los elegidos con su papel en ESTE proyecto.
+  const [personas, setPersonas] = useState<any[]>([]);
+  const [autores, setAutores] = useState<{ userId: number; papel: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -161,6 +165,16 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   useEffect(() => {
     if (viewMode === 'list') fetchPosts();
   }, [viewMode]);
+
+  // El catálogo de personas solo lo pide quien puede firmar: para un redactor
+  // sería una petición que va a devolver 403.
+  useEffect(() => {
+    if (!hasRole(user, 'admin')) return;
+    apiFetch('/api/personas')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((datos) => setPersonas(Array.isArray(datos) ? datos : []))
+      .catch(() => {});
+  }, [user]);
 
   const handleDelete = async (id: string) => {
     if(!window.confirm(t('alertas.confirmarEliminarPublicacion'))) return;
@@ -195,6 +209,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
     setImage(post.image || '');
     setCountdownDate(post.countdownDate || '');
     setModelUrl(post.modelUrl || '');
+    setAutores((post.autores || []).map((a: any) => ({ userId: a.id, papel: a.papel || '' })));
     setViewMode('edit');
   };
 
@@ -207,6 +222,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
     setCountdownDate('');
     setPages([{ content: '', image: '' }]);
     setModelUrl('');
+    setAutores([]);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
@@ -235,7 +251,10 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
       title, type, image, category, modelUrl,
       content: (type === 'simple' || type === 'aviso' || type === 'evento' || type === '3d_model') ? content : 'Contenido Multi-página',
       pages: type === 'magazine' ? pages : [],
-      countdownDate: (type === 'aviso' || type === 'evento') ? countdownDate : undefined
+      countdownDate: (type === 'aviso' || type === 'evento') ? countdownDate : undefined,
+      // Solo se manda si esta cuenta puede firmar. El servidor lo vuelve a
+      // comprobar; esto evita mandar un campo que va a ignorar.
+      autores: hasRole(user, 'admin') ? autores.filter(a => a.userId) : undefined,
     };
 
     try {
@@ -421,6 +440,65 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
           </div>
           <input type="text" value={image} onChange={(e) => setImage(e.target.value)} placeholder={t('adminPublicaciones.urlPlaceholder')} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px' }} />
         </div>
+
+        {/* Quién desarrolló esto. Va aquí, junto al título y la portada, y no
+            en una pantalla aparte: se firma al publicar, que es cuando se
+            sabe. Lo que se escriba aparece en la publicación con enlace al
+            perfil de cada persona, y en su perfil como parte de su
+            historial. */}
+        {hasRole(user, 'admin') && (
+          <div className="autores">
+            <label className="autores__titulo">
+              {t('adminPublicaciones.desarrolladoPor')}
+              <Ayuda texto={t('adminPublicaciones.desarrolladoPorAyuda')} />
+            </label>
+
+            {autores.map((a, i) => (
+              <div key={i} className="autores__fila">
+                <select
+                  value={a.userId || ''}
+                  onChange={(e) => {
+                    const copia = [...autores];
+                    copia[i] = { ...copia[i], userId: Number(e.target.value) };
+                    setAutores(copia);
+                  }}
+                >
+                  <option value="">{t('adminPublicaciones.elegirPersona')}</option>
+                  {personas.map((p) => (
+                    <option key={p.id} value={p.id}>{p.nombre}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  maxLength={80}
+                  placeholder={t('adminPublicaciones.papelPlaceholder')}
+                  value={a.papel}
+                  onChange={(e) => {
+                    const copia = [...autores];
+                    copia[i] = { ...copia[i], papel: e.target.value };
+                    setAutores(copia);
+                  }}
+                />
+                <button
+                  type="button"
+                  className="autores__quitar"
+                  aria-label={t('adminPublicaciones.quitarPersona')}
+                  onClick={() => setAutores(autores.filter((_, j) => j !== i))}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              className="autores__agregar"
+              onClick={() => setAutores([...autores, { userId: 0, papel: '' }])}
+            >
+              + {t('adminPublicaciones.agregarPersona')}
+            </button>
+          </div>
+        )}
 
         <button onClick={handleSubmit} disabled={isSubmitting} className="action-card" style={{ background: 'var(--accent)', color: 'black', padding: '16px', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', marginTop: 'auto', fontSize: '1rem' }}>
           {isSubmitting ? t('adminPublicaciones.guardando') : (viewMode === 'edit' ? t('adminPublicaciones.guardarCambios') : t('adminPublicaciones.publicarAhora'))}
