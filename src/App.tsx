@@ -21,10 +21,12 @@ const LoginApp = lazyConRecarga(() => import('./LoginApp'));
 import './App.css';
 import { Landing, PublicationPage, ArchiveDashboard } from './Landing';
 import { Miembros } from './Miembros';
+import { PerfilMiembro } from './PerfilMiembro';
 import { useLanguage } from './lib/i18n';
 import { useHayMiembros } from './lib/useHayMiembros';
 import { EstadosActivos } from './components/EstadosActivos';
 import { InvitacionEnVivo } from './components/InvitacionEnVivo';
+import { PortadaSeccion } from './components/PortadaSeccion';
 
 // --- ANIMACIONES DE TRANSICIÓN ---
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
@@ -113,34 +115,11 @@ const Explora = () => {
   const { t } = useLanguage();
   return (
   <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
-    {/* Hero de Explora */}
-    <section className="portada">
-      <div className="portada__marco portada__marco--seccion">
-      <div className="portada__foto" style={{ backgroundImage: `url(${imgProjects})`, filter: 'brightness(0.26) contrast(1.1) grayscale(0.35)' }} />
-      <div className="portada__velo" />
-      
-      <div className="portada__texto portada__texto--marcado">
-        <h1 style={{ 
-          fontSize: '4.2rem', 
-          fontFamily: 'var(--font-titulo)',
-          textTransform: 'uppercase',
-          margin: '0 0 16px 0',
-          textShadow: '0 4px 20px rgba(0,0,0,0.8)'
-        }}>
-          {t('explora.heroTitulo')}
-        </h1>
-        <p style={{
-          fontSize: '1.2rem',
-          color: 'var(--bone)',
-          opacity: 0.9,
-          maxWidth: '600px',
-          lineHeight: '1.6'
-        }}>
-          {t('explora.heroTexto')}
-        </p>
-      </div>
-      </div>
-    </section>
+    <PortadaSeccion
+      imagen={imgProjects}
+      titulo={t('explora.heroTitulo')}
+      texto={t('explora.heroTexto')}
+    />
 
     {/* Contenido de Explora ahora es puramente dinámico a través de CMS */}
     <section className="responsive-section" style={{ backgroundColor: 'var(--background)', padding: '0 60px 60px 60px' }}>
@@ -159,33 +138,11 @@ const Descubre = () => {
   const { t } = useLanguage();
   return (
   <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
-    <section className="portada">
-      <div className="portada__marco portada__marco--seccion">
-      <div className="portada__foto" style={{ backgroundImage: `url(${imgProjects})`, filter: 'brightness(0.26) contrast(1.1) grayscale(0.35)' }} />
-      <div className="portada__velo" />
-      <div className="portada__texto portada__texto--marcado">
-        <span className="eyebrow eyebrow--hero" style={{ textTransform: 'uppercase' }}>{t('descubre.eyebrow')}</span>
-        <h1 style={{
-          fontSize: '3.5rem',
-          fontFamily: 'var(--font-titulo)',
-          textTransform: 'uppercase',
-          margin: '8px 0 16px 0',
-          textShadow: '0 4px 20px rgba(0,0,0,0.8)'
-        }}>
-          {t('descubre.heroTitulo')}
-        </h1>
-        <p style={{
-          fontSize: '1.2rem',
-          color: 'var(--bone)',
-          opacity: 0.9,
-          maxWidth: '600px',
-          lineHeight: '1.6'
-        }}>
-          {t('descubre.heroTexto')}
-        </p>
-      </div>
-      </div>
-    </section>
+    <PortadaSeccion
+      imagen={imgProjects}
+      titulo={t('descubre.heroTitulo')}
+      texto={t('descubre.heroTexto')}
+    />
 
     {/* Contenido de Descubre ahora es dinámico a través de CMS */}
     <section className="responsive-section" style={{ backgroundColor: 'var(--background)', padding: '0 60px 60px 60px' }}>
@@ -204,35 +161,13 @@ const Conecta = () => {
   const { t } = useLanguage();
   return (
   <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
-    <section className="portada">
-      <div className="portada__marco portada__marco--seccion">
-      <div className="portada__foto" style={{ backgroundImage: `url(${imgMembers})`, filter: 'brightness(0.26) contrast(1.1) grayscale(0.35)', animation: 'kenBurns 20s infinite alternate ease-in-out' }} />
-      <div className="portada__velo" />
-      <div className="portada__texto portada__texto--marcado">
-        <span className="eyebrow eyebrow--hero" style={{ textTransform: 'uppercase' }}>{t('conecta.eyebrow')}</span>
-        <h1 style={{
-          fontSize: '3.5rem',
-          fontFamily: 'var(--font-titulo)',
-          textTransform: 'uppercase',
-          margin: '8px 0 16px 0',
-          textShadow: '0 4px 20px rgba(0,0,0,0.8)'
-        }}>
-          <span className="text-reveal-mask">
-            <span>{t('conecta.heroTitulo')}</span>
-          </span>
-        </h1>
-        <p style={{
-          fontSize: '1.2rem',
-          color: 'var(--bone)',
-          opacity: 0.9,
-          maxWidth: '600px',
-          lineHeight: '1.6'
-        }}>
-          {t('conecta.heroTexto')}
-        </p>
-      </div>
-      </div>
-    </section>
+    <PortadaSeccion
+      imagen={imgMembers}
+      titulo={t('conecta.heroTitulo')}
+      texto={t('conecta.heroTexto')}
+      fotoAnimada
+      tituloRevelado
+    />
 
     {/* Contenido de Conecta ahora es dinámico a través de CMS */}
     <section className="responsive-section" style={{ backgroundColor: 'var(--background)', padding: '0 60px 60px 60px' }}>
@@ -510,6 +445,7 @@ function App() {
           <Route path="/descubre" element={<PageTransition><Descubre /></PageTransition>} />
           <Route path="/conecta" element={<PageTransition><Conecta /></PageTransition>} />
           <Route path="/miembros" element={<PageTransition><Miembros /></PageTransition>} />
+          <Route path="/miembros/:id" element={<PageTransition><PerfilMiembro /></PageTransition>} />
           <Route path="/archivo" element={<PageTransition><ArchiveDashboard /></PageTransition>} />
           <Route path="/coming-soon" element={<PageTransition><ComingSoon /></PageTransition>} />
           <Route path="/publicacion/:id" element={<PageTransition><PublicationPage /></PageTransition>} />

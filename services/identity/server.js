@@ -309,31 +309,29 @@ app.put('/api/profile/mappings', verifyToken, csrfProtection, noStore, async (re
 // De paso trae los proyectos de cada uno, que es lo que hace de esto un
 // historial de trabajo y no un listado de gente. Solo publicaciones
 // visibles: una firmada en algo aún oculto no lo destapa.
-app.get('/api/miembros', async (req, res) => {
-  const { rows } = await pool.query(`
-    SELECT u.id, u.nombre, u.alias, u.show_alias, u.bio, u.foto,
-           u.rol_publico, u.area, u.generacion,
-           u.github, u.linkedin, u.instagram, u.facebook, u.reddit,
-           COALESCE(
-             (SELECT json_agg(json_build_object('id', p.id, 'titulo', p.title, 'papel', pm.papel)
-                              ORDER BY p.date DESC)
-                FROM post_miembros pm
-                JOIN posts p ON p.id = pm.post_id
-               WHERE pm.user_id = u.id AND p.is_hidden IS NOT TRUE),
-             '[]'::json
-           ) AS proyectos
-      FROM users u
-     WHERE u.perfil_publico IS TRUE
-     ORDER BY u.area NULLS LAST, u.nombre
-  `);
+const SELECT_MIEMBRO = `
+  SELECT u.id, u.nombre, u.alias, u.show_alias, u.bio, u.foto,
+         u.rol_publico, u.area, u.generacion,
+         u.github, u.linkedin, u.instagram, u.facebook, u.reddit,
+         COALESCE(
+           (SELECT json_agg(json_build_object('id', p.id, 'titulo', p.title, 'papel', pm.papel)
+                            ORDER BY p.date DESC)
+              FROM post_miembros pm
+              JOIN posts p ON p.id = pm.post_id
+             WHERE pm.user_id = u.id AND p.is_hidden IS NOT TRUE),
+           '[]'::json
+         ) AS proyectos
+    FROM users u
+`;
 
-  // El nombre que se muestra lo decide quien lo lleva: si activó el alias,
-  // manda el alias.
-  //
-  // Como identificador de la tarjeta va el id interno, NO la matrícula: la
-  // matrícula es el usuario con el que se inicia sesión, así que publicarla
-  // sería regalar la mitad de las credenciales de cada miembro.
-  res.json(rows.map((r) => ({
+// El nombre que se muestra lo decide quien lo lleva: si activó el alias,
+// manda el alias.
+//
+// Como identificador va el id interno, NO la matrícula: la matrícula es el
+// usuario con el que se inicia sesión, así que publicarla sería regalar la
+// mitad de las credenciales de cada miembro.
+function aMiembroPublico(r) {
+  return {
     id: r.id,
     nombre: r.show_alias && r.alias ? r.alias : r.nombre,
     rol: r.rol_publico ?? '',
@@ -341,9 +339,8 @@ app.get('/api/miembros', async (req, res) => {
     generacion: r.generacion ?? '',
     bio: r.bio ?? '',
     foto: r.foto ?? '',
-    // Las redes que cada quien haya puesto en su perfil, y solo esas: la
-    // tarjeta es el único canal de contacto público, en lugar del teléfono
-    // o el correo institucional.
+    // Solo las redes que cada quien haya puesto en su perfil: son el único
+    // canal de contacto público, en lugar del teléfono o el correo.
     redes: {
       github: r.github ?? '',
       linkedin: r.linkedin ?? '',
@@ -352,7 +349,39 @@ app.get('/api/miembros', async (req, res) => {
       reddit: r.reddit ?? '',
     },
     proyectos: r.proyectos ?? [],
-  })));
+  };
+}
+
+app.get('/api/miembros', async (req, res) => {
+  const { rows } = await pool.query(
+    `${SELECT_MIEMBRO} WHERE u.perfil_publico IS TRUE ORDER BY u.area NULLS LAST, u.nombre`
+  );
+  res.json(rows.map(aMiembroPublico));
+});
+
+// El perfil de una sola persona, con su historial completo.
+//
+// Mismo filtro que la lista: si alguien apaga su perfil, su página deja de
+// existir aunque tuvieran el enlace guardado. Y el id se fuerza a entero
+// para que un ':id' cualquiera no llegue a la consulta.
+app.get('/api/miembros/:id', async (req, res) => {
+  // Solo dígitos. parseInt es demasiado indulgente —"1abc" y "1;DROP" le
+  // valen como 1—, y aunque la consulta va parametrizada y no hay inyección
+  // posible, eso haría que media docena de URLs distintas sirvieran el mismo
+  // perfil.
+  if (!/^\d+$/.test(req.params.id)) {
+    return res.status(404).json({ success: false, message: 'Miembro no encontrado' });
+  }
+  const id = Number.parseInt(req.params.id, 10);
+
+  const { rows } = await pool.query(
+    `${SELECT_MIEMBRO} WHERE u.perfil_publico IS TRUE AND u.id = $1`,
+    [id]
+  );
+  if (!rows[0]) {
+    return res.status(404).json({ success: false, message: 'Miembro no encontrado' });
+  }
+  res.json(aMiembroPublico(rows[0]));
 });
 
 app.get('/api/users', verifyToken, requireRole('admin'), noStore, async (req, res) => {

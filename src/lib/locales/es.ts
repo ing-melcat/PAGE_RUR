@@ -36,13 +36,11 @@ export const es = {
     seccionTitulo: 'Más Novedades de Exploración',
   },
   descubre: {
-    eyebrow: 'LABORATORIO VIRTUAL',
     heroTitulo: 'Prototipos 3D',
     heroTexto: 'Interactúa con los modelos tridimensionales de nuestros desarrollos. Arrastra para rotar y usa el scroll para acercar.',
     seccionTitulo: 'Bitácora del Laboratorio',
   },
   conecta: {
-    eyebrow: 'ALIANZAS GLOBALES',
     heroTitulo: 'Conecta con el Mundo',
     heroTexto: 'Nuestra red de colaboraciones internacionales impulsa el desarrollo tecnológico más allá de las fronteras.',
     seccionTitulo: 'Actualizaciones de la Red',
@@ -549,7 +547,11 @@ export const es = {
   miembros: {
     titulo: 'Miembros',
     proyectos: 'Ha desarrollado',
-    mas: '+{n} más',
+    unProyecto: '1 proyecto',
+    nProyectos: '{n} proyectos',
+    sinProyectos: 'Todavía sin proyectos publicados.',
+    noExiste: 'Este perfil no está disponible.',
+    volver: '← Miembros',
     desde: 'Desde {a}',
     cargando: 'Cargando…',
     vacio: 'Sin perfiles públicos todavía.',

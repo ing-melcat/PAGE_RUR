@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useLanguage } from './lib/i18n';
 import { RedesMiembro } from './components/RedesMiembro';
+import { PortadaSeccion } from './components/PortadaSeccion';
 import './Miembros.css';
 
 /**
@@ -79,16 +80,7 @@ export function Miembros() {
 
   return (
     <div className="miembros-pagina">
-      <section className="portada">
-        <div className="portada__marco portada__marco--seccion">
-          <div className="portada__foto miembros__fondo" />
-          <div className="portada__velo" />
-
-          <div className="portada__texto portada__texto--marcado">
-            <h1>{t('miembros.titulo')}</h1>
-          </div>
-        </div>
-      </section>
+      <PortadaSeccion claseFoto="miembros__fondo" titulo={t('miembros.titulo')} />
 
       <section className="responsive-section">
         {cargando ? (
@@ -129,7 +121,11 @@ export function Miembros() {
                       </div>
 
                       <div className="miembro__identidad">
-                        <h3 className="miembro__nombre">{m.nombre}</h3>
+                        <h3 className="miembro__nombre">
+                          <Link to={`/miembros/${m.id}`} className="miembro__enlace">
+                            {m.nombre}
+                          </Link>
+                        </h3>
                         {m.rol && <p className="miembro__rol">{m.rol}</p>}
                         {m.generacion && (
                           <p className="miembro__generacion">
@@ -141,27 +137,18 @@ export function Miembros() {
 
                     {m.bio && <p className="miembro__bio">{m.bio}</p>}
 
-                    {/* Los tres últimos y cuántos más. La tarjeta es una
-                        presentación, no un currículum: quien quiera el
-                        recorrido completo entra en los proyectos. */}
+                    {/* Cuánto ha hecho, no qué. El detalle está en su
+                        perfil; aquí solo el dato que invita a entrar. */}
                     {m.proyectos.length > 0 && (
-                      <ul className="miembro__proyectos">
-                        {m.proyectos.slice(0, 3).map((p) => (
-                          <li key={p.id}>
-                            <Link to={`/publicacion/${p.id}`} className="miembro__proyecto">
-                              {p.titulo}
-                            </Link>
-                          </li>
-                        ))}
-                        {m.proyectos.length > 3 && (
-                          <li className="miembro__mas">
-                            {t('miembros.mas').replace('{n}', String(m.proyectos.length - 3))}
-                          </li>
-                        )}
-                      </ul>
+                      <p className="miembro__cuenta">
+                        {t(m.proyectos.length === 1 ? 'miembros.unProyecto' : 'miembros.nProyectos')
+                          .replace('{n}', String(m.proyectos.length))}
+                      </p>
                     )}
 
-                    <RedesMiembro redes={m.redes} nombre={m.nombre} />
+                    <div className="miembro__pie">
+                      <RedesMiembro redes={m.redes} nombre={m.nombre} />
+                    </div>
                   </motion.article>
                 ))}
               </div>

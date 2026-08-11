@@ -36,13 +36,11 @@ export const en: Dictionary = {
     seccionTitulo: 'More Exploration News',
   },
   descubre: {
-    eyebrow: 'VIRTUAL LAB',
     heroTitulo: '3D Prototypes',
     heroTexto: 'Interact with the three-dimensional models of our developments. Drag to rotate and scroll to zoom.',
     seccionTitulo: 'Lab Logbook',
   },
   conecta: {
-    eyebrow: 'GLOBAL PARTNERSHIPS',
     heroTitulo: 'Connect with the World',
     heroTexto: 'Our network of international collaborations drives technological development beyond borders.',
     seccionTitulo: 'Network Updates',
@@ -549,7 +547,11 @@ export const en: Dictionary = {
   miembros: {
     titulo: 'Members',
     proyectos: 'Has worked on',
-    mas: '+{n} more',
+    unProyecto: '1 project',
+    nProyectos: '{n} projects',
+    sinProyectos: 'No published projects yet.',
+    noExiste: 'This profile is not available.',
+    volver: '← Members',
     desde: 'Since {a}',
     cargando: 'Loading…',
     vacio: 'No public profiles yet.',
