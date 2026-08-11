@@ -164,7 +164,11 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
                     alt={post.title}
                     loading="lazy"
                     decoding="async"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: isSpecial ? 0.7 : 1 }}
+                    /* A plena luz. El 0.7 venía de cuando el título iba ENCIMA de la
+                        imagen y había que apagarla para leerlo; ahora el texto vive
+                        en su propia mitad de la tarjeta, así que velar la foto no
+                        protege nada — solo la deslustra. */
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
                     whileHover={{ scale: 1.05 }}
                     transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
                   />
@@ -488,7 +492,7 @@ export const ArchiveDashboard = () => {
                       alt={post.title}
                       loading="lazy"
                       decoding="async"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: isSpecial ? 0.8 : 1 }}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
                       whileHover={{ scale: 1.05 }}
                       transition={{ duration: 0.4 }}
                     />
