@@ -415,6 +415,11 @@ export const es = {
     errorConexion: 'Error de conexión.',
   },
   adminUsuarios: {
+    sinRol: 'SIN ROL',
+    sinRolAyuda: 'Esta cuenta no tiene ningún rol: puede iniciar sesión, pero no entra a ninguna parte del panel.',
+    sinRolConfirmar: 'Esta cuenta se quedará sin ningún rol: podrá iniciar sesión pero no entrará a ninguna parte. ¿Continuar?',
+    rolInvalidoAyuda: 'Este rol ya no existe en la lista de roles, así que no concede ningún permiso. Viene de la base antigua. Quítalo y asigna uno de los válidos.',
+
     excelencia: 'MEDALLA DE EXCELENCIA',
     excelenciaAyuda: 'La única medalla que no se calcula sola. Queda registrado quién la otorgó y cuándo, y eso se muestra en el perfil público: es lo que hace que valga algo.',
     excelenciaMotivo: 'Por qué se la merece. Se lee en su perfil.',

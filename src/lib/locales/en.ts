@@ -415,6 +415,11 @@ export const en: Dictionary = {
     errorConexion: 'Connection error.',
   },
   adminUsuarios: {
+    sinRol: 'NO ROLE',
+    sinRolAyuda: 'This account has no role: it can sign in, but cannot reach any part of the panel.',
+    sinRolConfirmar: 'This account will be left with no role: it will be able to sign in but reach nothing. Continue?',
+    rolInvalidoAyuda: 'This role no longer exists in the roles list, so it grants nothing. It comes from the old database. Remove it and assign a valid one.',
+
     excelencia: 'EXCELLENCE MEDAL',
     excelenciaAyuda: 'The only medal that is not calculated. Who awarded it and when is recorded and shown on the public profile: that is what makes it mean something.',
     excelenciaMotivo: 'Why they deserve it. It shows on their profile.',

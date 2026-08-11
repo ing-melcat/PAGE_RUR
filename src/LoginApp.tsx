@@ -877,12 +877,17 @@ export default function App() {
     e.preventDefault();
     const formData = new FormData(e.target);
     const rolesArr = formData.getAll('roles') as string[];
+    // Antes, no marcar ninguna casilla asignaba 'operador' por su cuenta:
+    // quien quería dejar una cuenta sin permisos acababa dándole acceso a la
+    // consola del robot sin enterarse. Ahora se respeta lo que se marcó y se
+    // avisa de lo que implica.
+    if (rolesArr.length === 0 && !window.confirm(t('adminUsuarios.sinRolConfirmar'))) return;
     const permisosExtra = formData.getAll('permisos_extra') as string[];
     const userData = {
       matricula: formData.get('matricula'),
       password: formData.get('password'),
       nombre: formData.get('nombre'),
-      roles: rolesArr.length > 0 ? rolesArr : ['operador'],
+      roles: rolesArr,
       permisos_extra: permisosExtra,
       grupo: formData.get('grupo'),
       alias: formData.get('alias')
@@ -908,11 +913,16 @@ export default function App() {
     e.preventDefault();
     const formData = new FormData(e.target);
     const rolesArr = formData.getAll('roles') as string[];
+    // Antes, no marcar ninguna casilla asignaba 'operador' por su cuenta:
+    // quien quería dejar una cuenta sin permisos acababa dándole acceso a la
+    // consola del robot sin enterarse. Ahora se respeta lo que se marcó y se
+    // avisa de lo que implica.
+    if (rolesArr.length === 0 && !window.confirm(t('adminUsuarios.sinRolConfirmar'))) return;
     const permisosExtra = formData.getAll('permisos_extra') as string[];
     const userData = {
       password: formData.get('password'),
       nombre: formData.get('nombre'),
-      roles: rolesArr.length > 0 ? rolesArr : ['operador'],
+      roles: rolesArr,
       permisos_extra: permisosExtra,
       alias: formData.get('alias')
     };
@@ -1864,6 +1874,22 @@ export default function App() {
                       <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem', gridColumn: '1 / -1' }}>
                         {t('adminUsuarios.rolesAsignados')}
                         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', padding: '12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px' }}>
+                          {/* Primero los roles que esta persona tiene pero que
+                              YA NO EXISTEN en la tabla. Sin esto no salía su
+                              casilla, y como el formulario manda solo lo
+                              marcado, abrir la ficha y guardar se lo quitaba
+                              en silencio. Aparece marcado y en rojo: quitarlo
+                              tiene que ser una decisión, no un descuido. */}
+                          {(editingUser?.roles ?? [])
+                            .filter((n: string) => !rolesDisponibles.some(r => r.nombre === n))
+                            .map((nombre: string) => (
+                              <label key={nombre} title={t('adminUsuarios.rolInvalidoAyuda')} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--error)', cursor: 'pointer', flexDirection: 'row' }}>
+                                <input type="checkbox" name="roles" value={nombre} defaultChecked style={{ width: 'auto', margin: 0, cursor: 'pointer' }} />
+                                <span style={{ textTransform: 'uppercase', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.78rem', letterSpacing: '0.08em' }}>
+                                  {nombre} ⚠
+                                </span>
+                              </label>
+                            ))}
                           {rolesDisponibles.map(rol => (
                             <label key={rol.nombre} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: rol.color, cursor: 'pointer', flexDirection: 'row' }}>
                               <input
@@ -1954,7 +1980,36 @@ export default function App() {
                         <tr key={u.matricula} style={{ borderBottom: '1px dashed var(--border)' }}>
                           <td style={{ padding: '12px', color: 'var(--text)' }}>{u.matricula}</td>
                           <td style={{ padding: '12px', color: 'var(--text)' }}>{u.nombre}</td>
-                          <td style={{ padding: '12px', color: 'var(--accent)' }}>{u.roles?.join(', ')}</td>
+                          {/* Insignias con el color de cada rol, no texto con
+                              comas: el color se elige al crear el rol
+                              precisamente para reconocerlo de un vistazo, y
+                              aquí se estaba desperdiciando. Y una lista vacía
+                              deja de ser una celda en blanco —que se lee como
+                              un fallo de carga— para decir lo que es. */}
+                          <td style={{ padding: '12px' }}>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                              {(u.roles ?? []).length === 0 && (
+                                <span className="roles__insignia roles__insignia--sin" title={t('adminUsuarios.sinRolAyuda')}>
+                                  {t('adminUsuarios.sinRol')}
+                                </span>
+                              )}
+                              {(u.roles ?? []).map((nombre: string) => {
+                                const rol = rolesDisponibles.find((r) => r.nombre === nombre);
+                                // Un rol que ya no existe en la tabla: se
+                                // enseña en rojo en lugar de desaparecer sin
+                                // más, que es lo que pasaba antes.
+                                return rol ? (
+                                  <span key={nombre} className="roles__insignia" style={{ borderColor: rol.color, color: rol.color }}>
+                                    {nombre}
+                                  </span>
+                                ) : (
+                                  <span key={nombre} className="roles__insignia roles__insignia--invalido" title={t('adminUsuarios.rolInvalidoAyuda')}>
+                                    {nombre}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </td>
                           <td style={{ padding: '12px', textAlign: 'right' }}>
                             {/* Editar sí, también la propia cuenta: antes se
                                 ocultaban los dos botones y eso dejaba sin poder

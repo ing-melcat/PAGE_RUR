@@ -261,3 +261,19 @@
   font-family: var(--font-ibm-mono);
   cursor: pointer;
 }
+
+/* Una cuenta sin ningún rol. En gris y con su texto: la celda vacía que
+   había antes se leía como un fallo de carga, no como "esta persona no
+   puede entrar a ninguna parte". */
+.roles__insignia--sin {
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+/* Un rol que ya no existe en la tabla. Se enseña en vez de ignorarlo: si
+   desaparece de la vista, desaparece también de la cabeza de quien
+   administra, y luego nadie entiende por qué esa cuenta no entra. */
+.roles__insignia--invalido {
+  border-color: var(--error);
+  color: var(--error);
+}
