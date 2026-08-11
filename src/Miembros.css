@@ -476,3 +476,19 @@
     gap: 4px;
   }
 }
+
+.perfil__medallas {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* Las redes y las medallas comparten el pie de la tarjeta: contacto a la
+   izquierda, logros a la derecha. */
+.miembro__pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}

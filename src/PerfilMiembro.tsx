@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useLanguage } from './lib/i18n';
 import { RedesMiembro } from './components/RedesMiembro';
+import { Medallas } from './components/Medallas';
 import './Miembros.css';
 
 /**
@@ -25,6 +26,7 @@ type Miembro = {
   bio: string;
   foto: string;
   redes: Record<string, string>;
+  medallas: any[];
   proyectos: Proyecto[];
 };
 
@@ -100,6 +102,13 @@ export function PerfilMiembro() {
           )}
 
           <RedesMiembro redes={miembro.redes} nombre={miembro.nombre} />
+
+          {miembro.medallas?.length > 0 && (
+            <div className="perfil__medallas">
+              <p className="miembro__etiqueta">{t('miembros.medallas')}</p>
+              <Medallas medallas={miembro.medallas} />
+            </div>
+          )}
         </aside>
 
         <div className="perfil__cuerpo">

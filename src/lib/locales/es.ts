@@ -279,6 +279,9 @@ export const es = {
     articulo: 'ARTÍCULO',
   },
   adminPublicaciones: {
+    lidero: 'Lideró',
+    lideroAyuda: 'Marca a quien dirigió este proyecto. Le da la medalla de Líder en su perfil.',
+
     desarrolladoPor: 'DESARROLLADO POR',
     desarrolladoPorAyuda: 'Quién trabajó en este proyecto. Aparece en la publicación con enlace a su perfil, y en el perfil de cada persona como parte de su historial. Solo se enlaza a quien tenga el perfil público activado.',
     elegirPersona: 'Elegir persona…',
@@ -412,6 +415,15 @@ export const es = {
     errorConexion: 'Error de conexión.',
   },
   adminUsuarios: {
+    excelencia: 'MEDALLA DE EXCELENCIA',
+    excelenciaAyuda: 'La única medalla que no se calcula sola. Queda registrado quién la otorgó y cuándo, y eso se muestra en el perfil público: es lo que hace que valga algo.',
+    excelenciaMotivo: 'Por qué se la merece. Se lee en su perfil.',
+    excelenciaOtorgar: 'Otorgar',
+    excelenciaRetirar: 'Retirar',
+    excelenciaHecha: 'Medalla otorgada.',
+    excelenciaRetirada: 'Medalla retirada.',
+    excelenciaError: 'No se pudo cambiar la medalla.',
+
     pestanaPersonas: 'PERSONAS',
     pestanaRoles: 'ROLES',
     permisosExtra: 'PERMISOS ADICIONALES DE ESTA PERSONA',
@@ -568,6 +580,8 @@ export const es = {
   miembros: {
     titulo: 'Miembros',
     proyectos: 'Ha desarrollado',
+    medallas: 'Medallas',
+    otorgadaPor: 'otorgada por {quien}',
     unProyecto: '1 proyecto',
     nProyectos: '{n} proyectos',
     sinProyectos: 'Todavía sin proyectos publicados.',

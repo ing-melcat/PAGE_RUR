@@ -19,6 +19,7 @@ import {
 } from '../shared/auth.js';
 import { generateCsrfToken, csrfProtection } from '../shared/csrf.js';
 import { PERMISOS, ES_PERMISO, ROL_TOTAL } from '../shared/permisos.js';
+import { MEDALLAS, medallasDe } from '../shared/medallas.js';
 import { loginIpLimiter, isLocked, lockedRemainingMs, recordFailure, recordSuccess } from '../shared/loginProtection.js';
 import { saveLog } from '../shared/logs.js';
 
@@ -323,13 +324,20 @@ const SELECT_MIEMBRO = `
          u.rol_publico, u.area, u.generacion,
          u.github, u.linkedin, u.instagram, u.facebook, u.reddit,
          COALESCE(
-           (SELECT json_agg(json_build_object('id', p.id, 'titulo', p.title, 'papel', pm.papel)
+           (SELECT json_agg(json_build_object('id', p.id, 'titulo', p.title,
+                                              'papel', pm.papel, 'lider', pm.lider)
                             ORDER BY p.date DESC)
               FROM post_miembros pm
               JOIN posts p ON p.id = pm.post_id
              WHERE pm.user_id = u.id AND p.is_hidden IS NOT TRUE),
            '[]'::json
-         ) AS proyectos
+         ) AS proyectos,
+         COALESCE(
+           (SELECT json_agg(json_build_object('clave', m.clave, 'motivo', m.motivo,
+                                              'otorgada_por', m.otorgada_por, 'fecha', m.fecha))
+              FROM medallas_otorgadas m WHERE m.user_id = u.id),
+           '[]'::json
+         ) AS otorgadas
     FROM users u
 `;
 
@@ -358,6 +366,9 @@ function aMiembroPublico(r) {
       reddit: r.reddit ?? '',
     },
     proyectos: r.proyectos ?? [],
+    // Se calculan aquí y no en el navegador: si el frontend las dedujera por
+    // su cuenta, dos pantallas podrían discrepar sobre quién tiene qué.
+    medallas: medallasDe(r.proyectos ?? [], r.otorgadas ?? []),
   };
 }
 
@@ -490,6 +501,39 @@ app.delete('/api/roles/:nombre', verifyToken, requirePermiso('roles.gestionar'),
   res.json({ success: true });
 });
 
+// Otorgar o retirar Excelencia.
+//
+// Es la única medalla que no sale de los datos, así que se guarda quién la
+// dio: sin ese nombre detrás, una medalla que cualquiera puede repartir no
+// vale más que un adorno.
+app.put('/api/miembros/:id/excelencia', verifyToken, requirePermiso('usuarios.gestionar'), csrfProtection, async (req, res) => {
+  if (!/^\d+$/.test(req.params.id)) {
+    return res.status(404).json({ success: false, message: 'Miembro no encontrado' });
+  }
+  const id = Number.parseInt(req.params.id, 10);
+  const motivo = String(req.body?.motivo ?? '').trim().slice(0, 500);
+
+  if (req.body?.otorgar === false) {
+    await pool.query('DELETE FROM medallas_otorgadas WHERE user_id = $1 AND clave = $2', [id, 'excelencia']);
+    await saveLog('info', `${req.user.matricula} retiró la medalla de excelencia al usuario ${id}.`);
+    return res.json({ success: true, otorgada: false });
+  }
+
+  if (!motivo) {
+    return res.status(400).json({ success: false, message: 'Hace falta el motivo: una medalla sin motivo no se puede leer.' });
+  }
+
+  await pool.query(
+    `INSERT INTO medallas_otorgadas (user_id, clave, motivo, otorgada_por)
+     VALUES ($1, 'excelencia', $2, $3)
+     ON CONFLICT (user_id, clave) DO UPDATE SET motivo = EXCLUDED.motivo,
+       otorgada_por = EXCLUDED.otorgada_por, fecha = now()`,
+    [id, motivo, req.user.nombre || req.user.matricula]
+  );
+  await saveLog('success', `${req.user.matricula} otorgó la medalla de excelencia al usuario ${id}.`);
+  res.json({ success: true, otorgada: true });
+});
+
 // A quién se puede firmar en una publicación.
 //
 // No vale /api/users: ese es de administración y devuelve matrícula, grupo y
@@ -498,15 +542,20 @@ app.delete('/api/roles/:nombre', verifyToken, requirePermiso('roles.gestionar'),
 // incluidas las que no han querido perfil público.
 app.get('/api/personas', verifyToken, requirePermiso('publicaciones.firmar'), noStore, async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT id, CASE WHEN show_alias AND alias <> '' THEN alias ELSE nombre END AS nombre
-       FROM users ORDER BY nombre`
+    `SELECT u.id, CASE WHEN u.show_alias AND u.alias <> '' THEN u.alias ELSE u.nombre END AS nombre,
+            (SELECT motivo FROM medallas_otorgadas m
+              WHERE m.user_id = u.id AND m.clave = 'excelencia') AS excelencia
+       FROM users u ORDER BY nombre`
   );
   res.json(rows);
 });
 
 app.get('/api/users', verifyToken, requirePermiso('usuarios.gestionar'), noStore, async (req, res) => {
   const { rows } = await pool.query(
-    'SELECT matricula, nombre, grupo, roles, alias, permisos_extra FROM users ORDER BY matricula'
+    `SELECT u.id, u.matricula, u.nombre, u.grupo, u.roles, u.alias, u.permisos_extra,
+            (SELECT motivo FROM medallas_otorgadas m
+              WHERE m.user_id = u.id AND m.clave = 'excelencia') AS excelencia
+       FROM users u ORDER BY u.matricula`
   );
   res.json(rows);
 });

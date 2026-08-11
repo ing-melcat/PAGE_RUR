@@ -163,7 +163,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   // Quién desarrolló esto. `personas` es el catálogo para elegir; `autores`,
   // los elegidos con su papel en ESTE proyecto.
   const [personas, setPersonas] = useState<any[]>([]);
-  const [autores, setAutores] = useState<{ userId: number; papel: string }[]>([]);
+  const [autores, setAutores] = useState<{ userId: number; papel: string; lider: boolean }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -229,7 +229,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
     setImage(post.image || '');
     setCountdownDate(post.countdownDate || '');
     setModelUrl(post.modelUrl || '');
-    setAutores((post.autores || []).map((a: any) => ({ userId: a.id, papel: a.papel || '' })));
+    setAutores((post.autores || []).map((a: any) => ({ userId: a.id, papel: a.papel || '', lider: Boolean(a.lider) })));
     setViewMode('edit');
   };
 
@@ -499,6 +499,21 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
                     setAutores(copia);
                   }}
                 />
+                {/* Marcar líder aquí, y no en su perfil, es lo que hace que
+                    la medalla sea un hecho registrado y no una opinión: se
+                    decide en el mismo sitio donde se firma el trabajo. */}
+                <label className="autores__lider" title={t('adminPublicaciones.lideroAyuda')}>
+                  <input
+                    type="checkbox"
+                    checked={a.lider}
+                    onChange={(e) => {
+                      const copia = [...autores];
+                      copia[i] = { ...copia[i], lider: e.target.checked };
+                      setAutores(copia);
+                    }}
+                  />
+                  {t('adminPublicaciones.lidero')}
+                </label>
                 <button
                   type="button"
                   className="autores__quitar"
@@ -513,7 +528,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
             <button
               type="button"
               className="autores__agregar"
-              onClick={() => setAutores([...autores, { userId: 0, papel: '' }])}
+              onClick={() => setAutores([...autores, { userId: 0, papel: '', lider: false }])}
             >
               + {t('adminPublicaciones.agregarPersona')}
             </button>
@@ -745,6 +760,7 @@ export default function App() {
   // Pestaña del panel de personal: las personas y los roles se administran
   // en el mismo sitio porque es donde los roles se asignan.
   const [pestanaPersonal, setPestanaPersonal] = useState<'personas'|'roles'>('personas');
+  const [motivoExcelencia, setMotivoExcelencia] = useState('');
   // Los roles ya no son una lista fija en el código: salen de la tabla, con
   // su color, para que un rol nuevo aparezca aquí sin desplegar nada.
   const [rolesDisponibles, setRolesDisponibles] = useState<any[]>([]);
@@ -1090,6 +1106,19 @@ export default function App() {
       })
       .catch(() => {});
   }, [view, pestanaPersonal]);
+
+  const otorgarExcelencia = async (otorgar: boolean) => {
+    if (!editingUser?.id) return;
+    const res = await apiFetch(`/api/miembros/${editingUser.id}/excelencia`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otorgar, motivo: motivoExcelencia }),
+    });
+    const datos = await res.json().catch(() => null);
+    if (!res.ok) return alert(datos?.message || t('adminUsuarios.excelenciaError'));
+    alert(otorgar ? t('adminUsuarios.excelenciaHecha') : t('adminUsuarios.excelenciaRetirada'));
+    setEditingUser({ ...editingUser, excelencia: otorgar ? motivoExcelencia : null });
+  };
 
   const openProfileEditor = () => {
     setProfileForm({
@@ -1873,6 +1902,36 @@ export default function App() {
                         </div>
                       </label>
                     </div>
+                    {/* La única medalla que no sale de los datos. Se pide el
+                        motivo a propósito: sin él no se puede leer por qué la
+                        tiene, y una medalla que no se explica es un adorno.
+                        Queda registrado quién la dio. */}
+                    {editingUser && (
+                      <div className="excelencia">
+                        <label className="excelencia__titulo">
+                          {t('adminUsuarios.excelencia')}
+                          <Ayuda texto={t('adminUsuarios.excelenciaAyuda')} />
+                        </label>
+                        <textarea
+                          value={motivoExcelencia}
+                          onChange={(e) => setMotivoExcelencia(e.target.value)}
+                          placeholder={t('adminUsuarios.excelenciaMotivo')}
+                          maxLength={500}
+                          rows={2}
+                        />
+                        <div className="excelencia__acciones">
+                          <button type="button" onClick={() => otorgarExcelencia(true)}>
+                            {t('adminUsuarios.excelenciaOtorgar')}
+                          </button>
+                          {editingUser.excelencia && (
+                            <button type="button" className="excelencia__retirar" onClick={() => otorgarExcelencia(false)}>
+                              {t('adminUsuarios.excelenciaRetirar')}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
                       <button type="submit" style={{ flex: 1, background: 'var(--accent)', color: 'black', border: 'none', padding: '12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>{editingUser ? t('adminUsuarios.actualizarUsuario') : t('adminUsuarios.guardarUsuario')}</button>
                       <button type="button" onClick={() => { setIsCreatingUser(false); setEditingUser(null); }} style={{ flex: 1, background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)', padding: '12px', borderRadius: '4px', cursor: 'pointer' }}>{t('adminUsuarios.cancelar')}</button>
@@ -1899,7 +1958,7 @@ export default function App() {
                           <td style={{ padding: '12px', textAlign: 'right' }}>
                             {u.matricula !== user?.matricula && (
                               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => setEditingUser(u)}>{t('adminUsuarios.editar')}</button>
+                                <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => { setEditingUser(u); setMotivoExcelencia(u.excelencia || ''); }}>{t('adminUsuarios.editar')}</button>
                                 <button className="logout-btn-small" style={{borderColor: 'var(--error)', color: 'var(--error)'}} onClick={() => handleDeleteUser(u.matricula)}>{t('adminUsuarios.revocar')}</button>
                               </div>
                             )}

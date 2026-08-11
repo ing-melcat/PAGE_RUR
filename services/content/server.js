@@ -129,6 +129,7 @@ async function guardarAutores(postId, autores) {
     .map((a) => ({
       userId: Number.parseInt(a?.userId, 10),
       papel: typeof a?.papel === 'string' ? a.papel.trim().slice(0, 80) || null : null,
+      lider: Boolean(a?.lider),
     }))
     .filter((a) => Number.isInteger(a.userId));
 
@@ -138,9 +139,9 @@ async function guardarAutores(postId, autores) {
     await cliente.query('DELETE FROM post_miembros WHERE post_id = $1', [postId]);
     for (const a of limpios) {
       await cliente.query(
-        `INSERT INTO post_miembros (post_id, user_id, papel) VALUES ($1, $2, $3)
-         ON CONFLICT (post_id, user_id) DO UPDATE SET papel = EXCLUDED.papel`,
-        [postId, a.userId, a.papel]
+        `INSERT INTO post_miembros (post_id, user_id, papel, lider) VALUES ($1, $2, $3, $4)
+         ON CONFLICT (post_id, user_id) DO UPDATE SET papel = EXCLUDED.papel, lider = EXCLUDED.lider`,
+        [postId, a.userId, a.papel, a.lider]
       );
     }
     await cliente.query('COMMIT');
@@ -198,7 +199,7 @@ app.get('/api/posts', sesionOpcional, async (req, res) => {
       (SELECT json_agg(json_build_object(
                 'id', u.id, 'nombre',
                 CASE WHEN u.show_alias AND u.alias <> '' THEN u.alias ELSE u.nombre END,
-                'papel', pm.papel, 'publico', u.perfil_publico)
+                'papel', pm.papel, 'lider', pm.lider, 'publico', u.perfil_publico)
               ORDER BY u.nombre)
          FROM post_miembros pm JOIN users u ON u.id = pm.user_id
         WHERE pm.post_id = posts.id),

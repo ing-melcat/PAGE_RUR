@@ -279,6 +279,9 @@ export const en: Dictionary = {
     articulo: 'ARTICLE',
   },
   adminPublicaciones: {
+    lidero: 'Led',
+    lideroAyuda: 'Mark whoever led this project. It grants the Leader medal on their profile.',
+
     desarrolladoPor: 'DEVELOPED BY',
     desarrolladoPorAyuda: 'Who worked on this project. Shows on the publication linking to their profile, and on each profile as part of their history. Only people with a public profile are linked.',
     elegirPersona: 'Choose person…',
@@ -412,6 +415,15 @@ export const en: Dictionary = {
     errorConexion: 'Connection error.',
   },
   adminUsuarios: {
+    excelencia: 'EXCELLENCE MEDAL',
+    excelenciaAyuda: 'The only medal that is not calculated. Who awarded it and when is recorded and shown on the public profile: that is what makes it mean something.',
+    excelenciaMotivo: 'Why they deserve it. It shows on their profile.',
+    excelenciaOtorgar: 'Award',
+    excelenciaRetirar: 'Withdraw',
+    excelenciaHecha: 'Medal awarded.',
+    excelenciaRetirada: 'Medal withdrawn.',
+    excelenciaError: 'Could not change the medal.',
+
     pestanaPersonas: 'PEOPLE',
     pestanaRoles: 'ROLES',
     permisosExtra: 'EXTRA PERMISSIONS FOR THIS PERSON',
@@ -568,6 +580,8 @@ export const en: Dictionary = {
   miembros: {
     titulo: 'Members',
     proyectos: 'Has worked on',
+    medallas: 'Medals',
+    otorgadaPor: 'awarded by {quien}',
     unProyecto: '1 project',
     nProyectos: '{n} projects',
     sinProyectos: 'No published projects yet.',

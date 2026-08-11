@@ -1,0 +1,90 @@
+/* ==================================================================
+   Medallas
+   ------------------------------------------------------------------
+   Cada una tiene su forma además de su color. Distinguirlas solo por el
+   tono dejaría fuera a quien no separa el ámbar del verde — y aquí hay
+   cuatro conviviendo, que es justo donde eso falla.
+
+   No hay dorado, plateado ni relieve: el sitio no tiene esa textura en
+   ninguna otra parte, y una medalla brillante sobre una interfaz plana
+   se lee como algo pegado encima.
+   ================================================================== */
+
+.medallas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.medallas--compactas {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+/* --- compacta: solo el signo, en la tarjeta --- */
+
+.medalla {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  line-height: 1;
+  cursor: help;
+}
+
+/* --- detalle: en el perfil --- */
+
+.medalla-detalle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.medalla-detalle__icono {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.medalla-detalle__nombre {
+  display: block;
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.medalla-detalle__nota {
+  display: block;
+  font-size: var(--t-xs);
+  line-height: 1.5;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* Quién la dio y cuándo. Solo aparece en la otorgada, que es la única que
+   no se puede comprobar mirando los datos. */
+.medalla-detalle__firma {
+  color: var(--bone);
+  opacity: .8;
+}
+
+/* --- tonos --- */
+
+.medalla--proyecto { color: var(--muted); }
+.medalla--aportes  { color: var(--success); }
+.medalla--lider    { color: var(--accent); }
+.medalla--excelencia { color: var(--warning); }

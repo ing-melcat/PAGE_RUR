@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useLanguage } from './lib/i18n';
 import { RedesMiembro } from './components/RedesMiembro';
+import { Medallas } from './components/Medallas';
 import { PortadaSeccion } from './components/PortadaSeccion';
 import './Miembros.css';
 
@@ -35,6 +36,7 @@ type Miembro = {
   bio: string;
   foto: string;
   redes: Record<string, string>;
+  medallas: any[];
   proyectos: Proyecto[];
 };
 
@@ -148,6 +150,7 @@ export function Miembros() {
 
                     <div className="miembro__pie">
                       <RedesMiembro redes={m.redes} nombre={m.nombre} />
+                      <Medallas medallas={m.medallas} compactas />
                     </div>
                   </motion.article>
                 ))}
