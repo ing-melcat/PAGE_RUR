@@ -23,7 +23,6 @@ import { Landing, PublicationPage, ArchiveDashboard } from './Landing';
 import { Miembros } from './Miembros';
 import { PerfilMiembro } from './PerfilMiembro';
 import { useLanguage } from './lib/i18n';
-import { useHayMiembros } from './lib/useHayMiembros';
 import { EstadosActivos } from './components/EstadosActivos';
 import { InvitacionEnVivo } from './components/InvitacionEnVivo';
 import { PortadaSeccion } from './components/PortadaSeccion';
@@ -233,7 +232,6 @@ const Footer = () => {
 const LandingLayout = () => {
   const { t, lang, setLang } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const hayMiembros = useHayMiembros();
   const location = useLocation();
   const isPublication = location.pathname.startsWith('/publicacion/');
 
@@ -316,12 +314,13 @@ const LandingLayout = () => {
           <Link to="/descubre" className="nav-link" data-text={t('nav.descubre')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.descubre')}</Link>
           <span className="nav-separator" style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
           <Link to="/conecta" className="nav-link" data-text={t('nav.conecta')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.conecta')}</Link>
-          {hayMiembros && (
-            <>
-              <span className="nav-separator" style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
-              <Link to="/miembros" className="nav-link" data-text={t('nav.miembros')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.miembros')}</Link>
-            </>
-          )}
+          {/* Siempre presente, sin esperar a saber si hay alguien publicado.
+              La condición se puso cuando no había ni un perfil y el enlace
+              llevaba a una página vacía; ahora solo servía para que MIEMBROS
+              apareciera un segundo tarde y empujara la barra, que es
+              exactamente lo que acabábamos de arreglar. */}
+          <span className="nav-separator" style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
+          <Link to="/miembros" className="nav-link" data-text={t('nav.miembros')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.miembros')}</Link>
 
           {/* Mismos chips que en la barra de escritorio, no una variante
               propia: es la misma información y no tiene por qué verse de dos
