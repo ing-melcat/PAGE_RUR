@@ -73,6 +73,7 @@
 }
 
 .miembro__retrato {
+  position: relative;
   width: 48px;
   height: 48px;
   flex-shrink: 0;
@@ -84,7 +85,16 @@
   place-items: center;
 }
 
-.miembro__retrato img {
+/* Absoluta y pegada a los cuatro lados, en vez de width/height al 100%.
+   El contenedor es un grid con place-items:center —lo que centra las
+   iniciales de quien no tiene foto— y eso impide que la imagen se estire:
+   el height:100% se quedaba sin referencia y la foto salía con su alto
+   natural (130x184 dentro de un hueco de 132x132), desbordando el círculo
+   y descentrando el recorte. */
+.miembro__retrato img,
+.perfil__retrato img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -324,6 +334,7 @@
 }
 
 .perfil__retrato {
+  position: relative;
   width: 132px;
   height: 132px;
   flex-shrink: 0;
@@ -333,12 +344,6 @@
   border: 1px solid var(--border);
   display: grid;
   place-items: center;
-}
-
-.perfil__retrato img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .perfil__retrato .miembro__iniciales {
