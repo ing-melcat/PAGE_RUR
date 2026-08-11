@@ -1381,20 +1381,24 @@ textarea:focus-visible {
    haría que se pareciera a una preferencia más.
    ================================================================== */
 
+/* Solo el contorno, igual que los bloques del panel: el fondo se queda en el
+   azul de la ventana. */
 .perfil-publico {
   border: 1px solid var(--accent);
   border-radius: 2px;
-  background: var(--accent-muted);
+  background: var(--background);
   padding: 16px;
   margin-top: 8px;
 }
 
-.perfil-publico__interruptor {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  cursor: pointer;
+/* Sin publicar, el recuadro pierde el acento: el borde de color anuncia algo
+   que está a la vista de cualquiera, y mientras no lo esté, mentiría. */
+.perfil-publico--oculto {
+  border-color: var(--border);
+}
+
+.perfil-publico__estado {
+  margin: 0;
 }
 
 .perfil-publico__titulo {
@@ -1662,6 +1666,62 @@ textarea:focus-visible {
 }
 
 /* Otorgar la medalla de excelencia, en el editor de usuario. */
+/* Visibilidad en MIEMBROS, dentro del editor de una persona.
+   Solo el contorno: el fondo se queda en el azul de la ventana. Un relleno
+   ámbar translúcido detrás de texto pequeño ensucia el color de la letra y no
+   añade nada que el borde no diga ya. */
+.visibilidad {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--background);
+  text-align: left;
+}
+
+/* La casilla pegada a su texto, no al otro extremo de la fila: el editor es
+   ancho y un space-between deja el interruptor a un palmo de lo que activa. */
+.visibilidad__interruptor {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.visibilidad__titulo {
+  display: block;
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.visibilidad__nota {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-xs);
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 52ch;
+}
+
+.visibilidad__aviso {
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-xs);
+  line-height: 1.5;
+  color: var(--warning);
+}
+
 .excelencia {
   display: flex;
   flex-direction: column;
@@ -1670,7 +1730,9 @@ textarea:focus-visible {
   padding: 16px;
   border: 1px solid var(--warning);
   border-radius: 4px;
-  background: rgba(251, 191, 36, .08);
+  /* Solo el contorno, sin relleno tintado: el ámbar translúcido apagaba el
+     azul de la ventana y dejaba el bloque como una mancha. */
+  background: var(--background);
   text-align: left;
 }
 
@@ -1720,6 +1782,67 @@ textarea:focus-visible {
 .excelencia__acciones button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Una medalla otorgable dentro del bloque. Van separadas por una línea y no
+   por tarjetas: son cuatro seguidas, y cuatro cajas dentro de otra caja
+   convierten el editor en un acordeón de bordes. */
+.medalla-otorgar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.medalla-otorgar:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.medalla-otorgar__nombre {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--font-etiqueta), sans-serif;
+  font-weight: 500;
+  font-size: var(--t-sm);
+  color: var(--text);
+}
+
+/* Ya concedida. En ámbar, el mismo tono del bloque: se busca de un vistazo
+   cuál tiene puesta sin leer los cuatro nombres. */
+.medalla-otorgar__puesta {
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--warning);
+  border: 1px solid var(--warning);
+  border-radius: 2px;
+  padding: 2px 8px;
+}
+
+/* El criterio, a la vista al concederla: es lo que evita que la misma medalla
+   acabe significando cosas distintas según quién la dé. */
+.medalla-otorgar__criterio {
+  margin: 0;
+  font-size: var(--t-xs);
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.medalla-otorgar textarea {
+  width: 100%;
+  padding: 10px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-sm);
+  resize: vertical;
 }
 
 /* ==================================================================

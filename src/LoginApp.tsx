@@ -760,11 +760,18 @@ export default function App() {
   // Pestaña del panel de personal: las personas y los roles se administran
   // en el mismo sitio porque es donde los roles se asignan.
   const [pestanaPersonal, setPestanaPersonal] = useState<'personas'|'roles'>('personas');
-  const [motivoExcelencia, setMotivoExcelencia] = useState('');
+  // Las medallas especiales de quien se está editando: { clave: motivo }. Se
+  // arranca con lo que ya tenga concedido, para poder corregir el motivo sin
+  // volver a escribirlo entero.
+  const [motivosMedallas, setMotivosMedallas] = useState<Record<string,string>>({});
   // Los roles ya no son una lista fija en el código: salen de la tabla, con
   // su color, para que un rol nuevo aparezca aquí sin desplegar nada.
   const [rolesDisponibles, setRolesDisponibles] = useState<any[]>([]);
   const [catalogoPermisos, setCatalogoPermisos] = useState<Record<string,string>>({});
+  // Las medallas que se otorgan a mano, tal y como las define el servidor.
+  // Escribirlas aquí también sería tener dos listas que un día dirían cosas
+  // distintas, y solo una de las dos sería la que manda.
+  const [medallasEspeciales, setMedallasEspeciales] = useState<Record<string, {nombre: string; descripcion: string}>>({});
 
   const [profileForm, setProfileForm] = useState({
     alias: '', bio: '', foto: '',
@@ -856,6 +863,10 @@ export default function App() {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  // Controlado, al revés que el resto del formulario: hace falta saber si está
+  // marcado mientras se edita para avisar de que se va a publicar una ficha sin
+  // rellenar.
+  const [perfilPublicoEdit, setPerfilPublicoEdit] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -924,7 +935,8 @@ export default function App() {
       nombre: formData.get('nombre'),
       roles: rolesArr,
       permisos_extra: permisosExtra,
-      alias: formData.get('alias')
+      alias: formData.get('alias'),
+      perfil_publico: perfilPublicoEdit
     };
 
     try {
@@ -1115,19 +1127,33 @@ export default function App() {
         setCatalogoPermisos(d.catalogo ?? {});
       })
       .catch(() => {});
+    apiFetch('/api/medallas')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setMedallasEspeciales(d.especiales ?? {}); })
+      .catch(() => {});
   }, [view, pestanaPersonal]);
 
-  const otorgarExcelencia = async (otorgar: boolean) => {
+  // Se aplica al instante, sin esperar a "Actualizar usuario": una medalla no
+  // es un campo del formulario, es un acto con fecha y firma. Mezclarla con el
+  // guardado haría que cambiar un apellido y conceder un reconocimiento fueran
+  // el mismo clic.
+  const otorgarMedalla = async (clave: string, otorgar: boolean) => {
     if (!editingUser?.id) return;
-    const res = await apiFetch(`/api/miembros/${editingUser.id}/excelencia`, {
+    const motivo = motivosMedallas[clave] ?? '';
+    const res = await apiFetch(`/api/miembros/${editingUser.id}/medallas/${clave}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ otorgar, motivo: motivoExcelencia }),
+      body: JSON.stringify({ otorgar, motivo }),
     });
     const datos = await res.json().catch(() => null);
-    if (!res.ok) return alert(datos?.message || t('adminUsuarios.excelenciaError'));
-    alert(otorgar ? t('adminUsuarios.excelenciaHecha') : t('adminUsuarios.excelenciaRetirada'));
-    setEditingUser({ ...editingUser, excelencia: otorgar ? motivoExcelencia : null });
+    if (!res.ok) return alert(datos?.message || t('adminUsuarios.medallaError'));
+    alert(otorgar ? t('adminUsuarios.medallaHecha') : t('adminUsuarios.medallaRetirada'));
+    const yaTiene = { ...(editingUser.medallas ?? {}) };
+    if (otorgar) yaTiene[clave] = motivo; else delete yaTiene[clave];
+    setEditingUser({ ...editingUser, medallas: yaTiene });
+    // La lista de detrás también, para no tener que recargar el panel entero
+    // solo por ver la medalla puesta.
+    setUsersList((lista) => lista.map((u) => (u.id === editingUser.id ? { ...u, medallas: yaTiene } : u)));
   };
 
   const openProfileEditor = () => {
@@ -1642,45 +1668,38 @@ export default function App() {
                             <label>{t('perfil.facebook')}</label>
                             <input type="text" placeholder="https://facebook.com/..." value={profileForm.facebook} onChange={e => setProfileForm({...profileForm, facebook: e.target.value})} />
                           </div>
-                          {/* Perfil público. Va junto y antes de las
-                              preferencias porque es la decisión que gobierna
-                              todo lo de arriba: mientras esté apagado, nada de
-                              esto sale de aquí. */}
-                          <div className="perfil-publico">
-                            <label className="perfil-publico__interruptor">
-                              <span>
-                                <span className="perfil-publico__titulo">{t('perfil.aparecer')}</span>
-                                <span className="perfil-publico__nota">{t('perfil.aparecerNota')}</span>
+                          {/* Perfil público. Aparecer o no en MIEMBROS lo
+                              decide quien administra, así que aquí es un
+                              estado que se lee, no un interruptor: los datos
+                              se escriben igual, publicados o no, para que
+                              estén listos el día que se publiquen. */}
+                          <div className={`perfil-publico${profileForm.perfil_publico ? '' : ' perfil-publico--oculto'}`}>
+                            <p className="perfil-publico__estado">
+                              <span className="perfil-publico__titulo">
+                                {profileForm.perfil_publico ? t('perfil.visible') : t('perfil.noVisible')}
                               </span>
-                              <input
-                                type="checkbox"
-                                checked={profileForm.perfil_publico}
-                                onChange={(e) => setProfileForm({ ...profileForm, perfil_publico: e.target.checked })}
-                                style={{ width: 'auto', cursor: 'pointer' }}
-                              />
-                            </label>
+                              <span className="perfil-publico__nota">
+                                {profileForm.perfil_publico ? t('perfil.aparecerNota') : t('perfil.noVisibleNota')}
+                              </span>
+                            </p>
 
-                            {/* Los campos solo cuando sirven de algo: pedirlos
-                                con el perfil apagado es pedir datos para nada. */}
-                            {profileForm.perfil_publico && (
-                              <div className="perfil-publico__campos">
-                                <div className="input-group">
-                                  <label>{t('perfil.rolPublico')}</label>
-                                  <input type="text" maxLength={80} placeholder={t('perfil.rolPublicoPlaceholder')} value={profileForm.rol_publico} onChange={e => setProfileForm({...profileForm, rol_publico: e.target.value})} />
-                                </div>
-                                <div className="input-group">
-                                  <label>{t('perfil.area')}</label>
-                                  <select value={profileForm.area} onChange={e => setProfileForm({...profileForm, area: e.target.value})}>
-                                    <option value="">{t('perfil.areaSinElegir')}</option>
-                                    {AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
-                                  </select>
-                                </div>
-                                <div className="input-group">
-                                  <label>{t('perfil.generacion')}</label>
-                                  <input type="text" inputMode="numeric" maxLength={20} placeholder="2024" value={profileForm.generacion} onChange={e => setProfileForm({...profileForm, generacion: e.target.value})} />
-                                </div>
+                            <div className="perfil-publico__campos">
+                              <div className="input-group">
+                                <label>{t('perfil.rolPublico')}</label>
+                                <input type="text" maxLength={80} placeholder={t('perfil.rolPublicoPlaceholder')} value={profileForm.rol_publico} onChange={e => setProfileForm({...profileForm, rol_publico: e.target.value})} />
                               </div>
-                            )}
+                              <div className="input-group">
+                                <label>{t('perfil.area')}</label>
+                                <select value={profileForm.area} onChange={e => setProfileForm({...profileForm, area: e.target.value})}>
+                                  <option value="">{t('perfil.areaSinElegir')}</option>
+                                  {AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+                                </select>
+                              </div>
+                              <div className="input-group">
+                                <label>{t('perfil.generacion')}</label>
+                                <input type="text" inputMode="numeric" maxLength={20} placeholder="2024" value={profileForm.generacion} onChange={e => setProfileForm({...profileForm, generacion: e.target.value})} />
+                              </div>
+                            </div>
                           </div>
 
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
@@ -1699,11 +1718,15 @@ export default function App() {
                               // Un solo guardado para todo el perfil: los datos
                               // públicos del formulario y las dos preferencias,
                               // que antes vivían en una pantalla aparte.
+                              // perfil_publico se queda fuera: el servidor lo
+                              // ignora en esta ruta y mandarlo daría a entender
+                              // que se puede cambiar desde aquí.
+                              const { perfil_publico: _visible, ...datosPerfil } = profileForm;
                               const res = await apiFetch('/api/profile', {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
-                                  ...profileForm,
+                                  ...datosPerfil,
                                   show_alias: showAlias,
                                   push_notifications: pushNotifications
                                 })
@@ -1928,33 +1951,79 @@ export default function App() {
                         </div>
                       </label>
                     </div>
-                    {/* La única medalla que no sale de los datos. Se pide el
+                    {/* Si esta persona sale en MIEMBROS. Antes lo decidía cada
+                        quien desde su propio perfil; se movió aquí porque
+                        publicar a alguien en la web del laboratorio es una
+                        decisión de la unidad. Lo que se publica —a qué se
+                        dedica, área, generación, foto— lo sigue escribiendo la
+                        persona. Solo al editar: en un alta no hay todavía nada
+                        que publicar. */}
+                    {editingUser && (
+                      <div className="visibilidad">
+                        <label className="visibilidad__interruptor">
+                          <span>
+                            <span className="visibilidad__titulo">{t('adminUsuarios.perfilPublico')}</span>
+                            <span className="visibilidad__nota">{t('adminUsuarios.perfilPublicoAyuda')}</span>
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={perfilPublicoEdit}
+                            onChange={(e) => setPerfilPublicoEdit(e.target.checked)}
+                            style={{ width: 'auto', cursor: 'pointer' }}
+                          />
+                        </label>
+                        {/* Publicar a alguien que no ha rellenado su perfil deja
+                            una ficha con el nombre y nada más. Se avisa aquí,
+                            que es cuando se puede evitar. */}
+                        {perfilPublicoEdit && !editingUser.rol_publico && (
+                          <p className="visibilidad__aviso">{t('adminUsuarios.perfilPublicoVacio')}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Las medallas que no salen de los datos. Se pide el
                         motivo a propósito: sin él no se puede leer por qué la
                         tiene, y una medalla que no se explica es un adorno.
-                        Queda registrado quién la dio. */}
+                        Queda registrado quién la dio.
+
+                        Las otras tres —proyecto terminado, grandes aportes,
+                        líder— no están aquí porque no se conceden: se cumplen
+                        solas con los proyectos firmados. */}
                     {editingUser && (
                       <div className="excelencia">
                         <label className="excelencia__titulo">
-                          {t('adminUsuarios.excelencia')}
-                          <Ayuda texto={t('adminUsuarios.excelenciaAyuda')} />
+                          {t('adminUsuarios.medallas')}
+                          <Ayuda texto={t('adminUsuarios.medallasAyuda')} />
                         </label>
-                        <textarea
-                          value={motivoExcelencia}
-                          onChange={(e) => setMotivoExcelencia(e.target.value)}
-                          placeholder={t('adminUsuarios.excelenciaMotivo')}
-                          maxLength={500}
-                          rows={2}
-                        />
-                        <div className="excelencia__acciones">
-                          <button type="button" onClick={() => otorgarExcelencia(true)}>
-                            {t('adminUsuarios.excelenciaOtorgar')}
-                          </button>
-                          {editingUser.excelencia && (
-                            <button type="button" className="excelencia__retirar" onClick={() => otorgarExcelencia(false)}>
-                              {t('adminUsuarios.excelenciaRetirar')}
-                            </button>
-                          )}
-                        </div>
+                        {Object.entries(medallasEspeciales).map(([clave, medalla]) => {
+                          const tiene = editingUser.medallas?.[clave] !== undefined;
+                          return (
+                            <div key={clave} className={`medalla-otorgar${tiene ? ' medalla-otorgar--puesta' : ''}`}>
+                              <p className="medalla-otorgar__nombre">
+                                {medalla.nombre}
+                                {tiene && <span className="medalla-otorgar__puesta">{t('adminUsuarios.medallaPuesta')}</span>}
+                              </p>
+                              <p className="medalla-otorgar__criterio">{medalla.descripcion}</p>
+                              <textarea
+                                value={motivosMedallas[clave] ?? ''}
+                                onChange={(e) => setMotivosMedallas({ ...motivosMedallas, [clave]: e.target.value })}
+                                placeholder={t('adminUsuarios.excelenciaMotivo')}
+                                maxLength={500}
+                                rows={2}
+                              />
+                              <div className="excelencia__acciones">
+                                <button type="button" onClick={() => otorgarMedalla(clave, true)}>
+                                  {tiene ? t('adminUsuarios.medallaActualizar') : t('adminUsuarios.excelenciaOtorgar')}
+                                </button>
+                                {tiene && (
+                                  <button type="button" className="excelencia__retirar" onClick={() => otorgarMedalla(clave, false)}>
+                                    {t('adminUsuarios.excelenciaRetirar')}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
@@ -2017,7 +2086,7 @@ export default function App() {
                                 borrarse —ni quitarse la gestión de usuarios,
                                 que lo impide el servidor—. */}
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                              <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => { setEditingUser(u); setMotivoExcelencia(u.excelencia || ''); }}>{t('adminUsuarios.editar')}</button>
+                              <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => { setEditingUser(u); setMotivosMedallas({ ...(u.medallas ?? {}) }); setPerfilPublicoEdit(!!u.perfil_publico); }}>{t('adminUsuarios.editar')}</button>
                               {u.matricula !== user?.matricula && (
                                 <button className="logout-btn-small" style={{borderColor: 'var(--error)', color: 'var(--error)'}} onClick={() => handleDeleteUser(u.matricula)}>{t('adminUsuarios.revocar')}</button>
                               )}

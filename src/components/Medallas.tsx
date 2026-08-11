@@ -8,9 +8,9 @@ import './Medallas.css';
  * solo el icono —la tarjeta se recortó a propósito y no puede volver a
  * llenarse—, y en el perfil el nombre y por qué se tiene.
  *
- * Las tres calculadas se explican solas con su regla. La de Excelencia lleva
- * además quién la dio y cuándo: es la única que no se puede comprobar en los
- * datos, así que lo que la sostiene es que alguien puso su nombre detrás.
+ * Las automáticas se explican solas con su regla. Las especiales llevan además
+ * quién las dio y cuándo: son las que no se pueden comprobar en los datos, así
+ * que lo que las sostiene es que alguien puso su nombre detrás.
  */
 
 type Medalla = {
@@ -25,10 +25,15 @@ type Medalla = {
 // Formas, no solo colores: una medalla que solo se distingue por su tono deja
 // fuera a quien no separa el ámbar del verde, y aquí hay cuatro a la vez.
 const ICONOS: Record<string, string> = {
+  // Automáticas: se cumplen con los proyectos firmados.
   proyecto: '▲',
   aportes: '◆',
   lider: '★',
+  // Especiales: las otorga la coordinación.
   excelencia: '✦',
+  innovacion: '◈',
+  mentoria: '❖',
+  representacion: '◉',
 };
 
 export function Medallas({ medallas, compactas = false }: { medallas: Medalla[]; compactas?: boolean }) {

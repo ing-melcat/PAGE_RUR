@@ -2,8 +2,8 @@
    Medallas
    ------------------------------------------------------------------
    Cada una tiene su forma además de su color. Distinguirlas solo por el
-   tono dejaría fuera a quien no separa el ámbar del verde — y aquí hay
-   cuatro conviviendo, que es justo donde eso falla.
+   tono dejaría fuera a quien no separa el ámbar del verde — y pueden
+   convivir varias en la misma tarjeta, que es justo donde eso falla.
 
    No hay dorado, plateado ni relieve: el sitio no tiene esa textura en
    ninguna otra parte, y una medalla brillante sobre una interfaz plana
@@ -75,8 +75,8 @@
   margin-top: 2px;
 }
 
-/* Quién la dio y cuándo. Solo aparece en la otorgada, que es la única que
-   no se puede comprobar mirando los datos. */
+/* Quién la dio y cuándo. Solo aparece en las otorgadas, que son las que no se
+   pueden comprobar mirando los datos. */
 .medalla-detalle__firma {
   color: var(--bone);
   opacity: .8;
@@ -84,7 +84,16 @@
 
 /* --- tonos --- */
 
+/* Las automáticas, en los tonos del sitio: son parte del funcionamiento
+   normal, no un premio. */
 .medalla--proyecto { color: var(--muted); }
 .medalla--aportes  { color: var(--success); }
 .medalla--lider    { color: var(--accent); }
-.medalla--excelencia { color: var(--warning); }
+
+/* Las especiales comparten el ámbar. Que se distingan entre sí es tarea de la
+   forma —hay cuatro— y que se distingan de las automáticas, del color: lo que
+   importa de un vistazo es si algo lo concedió alguien o lo dicen los datos. */
+.medalla--excelencia,
+.medalla--innovacion,
+.medalla--mentoria,
+.medalla--representacion { color: var(--warning); }

@@ -19,7 +19,7 @@ import {
 } from '../shared/auth.js';
 import { generateCsrfToken, csrfProtection } from '../shared/csrf.js';
 import { PERMISOS, ES_PERMISO, ROL_TOTAL, permisosEfectivos } from '../shared/permisos.js';
-import { MEDALLAS, medallasDe } from '../shared/medallas.js';
+import { MEDALLAS_AUTOMATICAS, MEDALLAS_ESPECIALES, esMedallaEspecial, medallasDe } from '../shared/medallas.js';
 import { loginIpLimiter, isLocked, lockedRemainingMs, recordFailure, recordSuccess } from '../shared/loginProtection.js';
 import { saveLog } from '../shared/logs.js';
 
@@ -174,9 +174,13 @@ const PROFILE_FIELDS = {
   instagram: { kind: 'link', maxLength: 255 },
   reddit: { kind: 'link', maxLength: 255 },
   facebook: { kind: 'link', maxLength: 255 },
-  // Perfil público. Cada quien decide si sale en la web y con qué palabras;
-  // nadie más lo edita por él, igual que el resto de este bloque.
-  perfil_publico: { kind: 'boolean' },
+  // Datos del perfil público: cada quien escribe los suyos, estén publicados
+  // o no. Se rellenan antes de que la cuenta sea visible, no después.
+  //
+  // `perfil_publico` NO está aquí a propósito: quién sale en MIEMBROS lo
+  // decide quien administra, desde el panel de personal. La lista blanca es
+  // lo que lo impide de verdad — un PUT con {"perfil_publico":true} se ignora
+  // igual que uno con {"roles":["admin"]}.
   rol_publico: { kind: 'text', maxLength: 80 },
   area: { kind: 'text', maxLength: 80 },
   generacion: { kind: 'text', maxLength: 20 },
@@ -501,21 +505,36 @@ app.delete('/api/roles/:nombre', verifyToken, requirePermiso('roles.gestionar'),
   res.json({ success: true });
 });
 
-// Otorgar o retirar Excelencia.
+// El catálogo de medallas, para que el panel no lo lleve escrito por su
+// cuenta: si lo duplicara, un día la lista de allí y la de aquí dirían cosas
+// distintas y solo esta sería la verdadera.
+app.get('/api/medallas', verifyToken, noStore, (req, res) => {
+  res.json({ automaticas: MEDALLAS_AUTOMATICAS, especiales: MEDALLAS_ESPECIALES });
+});
+
+// Otorgar o retirar una medalla especial.
 //
-// Es la única medalla que no sale de los datos, así que se guarda quién la
-// dio: sin ese nombre detrás, una medalla que cualquiera puede repartir no
-// vale más que un adorno.
-app.put('/api/miembros/:id/excelencia', verifyToken, requirePermiso('usuarios.gestionar'), csrfProtection, async (req, res) => {
+// Solo las especiales pasan por aquí: las automáticas salen de los proyectos
+// firmados y no hay nada que conceder — otorgar "Líder" a mano sería poder
+// mentir sobre un dato que está en la base.
+//
+// Se guarda quién la dio: sin ese nombre detrás, una medalla que cualquiera
+// puede repartir no vale más que un adorno.
+app.put('/api/miembros/:id/medallas/:clave', verifyToken, requirePermiso('usuarios.gestionar'), csrfProtection, async (req, res) => {
   if (!/^\d+$/.test(req.params.id)) {
     return res.status(404).json({ success: false, message: 'Miembro no encontrado' });
   }
   const id = Number.parseInt(req.params.id, 10);
+  const { clave } = req.params;
+  if (!esMedallaEspecial(clave)) {
+    return res.status(400).json({ success: false, message: 'Esa medalla no se otorga: o no existe, o se calcula sola desde los proyectos.' });
+  }
+  const nombreMedalla = MEDALLAS_ESPECIALES[clave].nombre;
   const motivo = String(req.body?.motivo ?? '').trim().slice(0, 500);
 
   if (req.body?.otorgar === false) {
-    await pool.query('DELETE FROM medallas_otorgadas WHERE user_id = $1 AND clave = $2', [id, 'excelencia']);
-    await saveLog('info', `${req.user.matricula} retiró la medalla de excelencia al usuario ${id}.`);
+    await pool.query('DELETE FROM medallas_otorgadas WHERE user_id = $1 AND clave = $2', [id, clave]);
+    await saveLog('info', `${req.user.matricula} retiró la medalla de ${nombreMedalla} al usuario ${id}.`);
     return res.json({ success: true, otorgada: false });
   }
 
@@ -525,12 +544,12 @@ app.put('/api/miembros/:id/excelencia', verifyToken, requirePermiso('usuarios.ge
 
   await pool.query(
     `INSERT INTO medallas_otorgadas (user_id, clave, motivo, otorgada_por)
-     VALUES ($1, 'excelencia', $2, $3)
+     VALUES ($1, $2, $3, $4)
      ON CONFLICT (user_id, clave) DO UPDATE SET motivo = EXCLUDED.motivo,
        otorgada_por = EXCLUDED.otorgada_por, fecha = now()`,
-    [id, motivo, req.user.nombre || req.user.matricula]
+    [id, clave, motivo, req.user.nombre || req.user.matricula]
   );
-  await saveLog('success', `${req.user.matricula} otorgó la medalla de excelencia al usuario ${id}.`);
+  await saveLog('success', `${req.user.matricula} otorgó la medalla de ${nombreMedalla} al usuario ${id}.`);
   res.json({ success: true, otorgada: true });
 });
 
@@ -542,9 +561,7 @@ app.put('/api/miembros/:id/excelencia', verifyToken, requirePermiso('usuarios.ge
 // incluidas las que no han querido perfil público.
 app.get('/api/personas', verifyToken, requirePermiso('publicaciones.firmar'), noStore, async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT u.id, CASE WHEN u.show_alias AND u.alias <> '' THEN u.alias ELSE u.nombre END AS nombre,
-            (SELECT motivo FROM medallas_otorgadas m
-              WHERE m.user_id = u.id AND m.clave = 'excelencia') AS excelencia
+    `SELECT u.id, CASE WHEN u.show_alias AND u.alias <> '' THEN u.alias ELSE u.nombre END AS nombre
        FROM users u ORDER BY nombre`
   );
   res.json(rows);
@@ -553,8 +570,16 @@ app.get('/api/personas', verifyToken, requirePermiso('publicaciones.firmar'), no
 app.get('/api/users', verifyToken, requirePermiso('usuarios.gestionar'), noStore, async (req, res) => {
   const { rows } = await pool.query(
     `SELECT u.id, u.matricula, u.nombre, u.grupo, u.roles, u.alias, u.permisos_extra,
-            (SELECT motivo FROM medallas_otorgadas m
-              WHERE m.user_id = u.id AND m.clave = 'excelencia') AS excelencia
+            u.perfil_publico, u.rol_publico,
+            -- Las especiales que ya tiene, con su motivo: { clave: motivo }.
+            -- Así el editor puede abrirse con lo que hay escrito en vez de
+            -- pedirlo persona a persona. Las automáticas no vienen: no se
+            -- otorgan desde aquí, así que no hay nada que editar.
+            COALESCE(
+              (SELECT json_object_agg(m.clave, COALESCE(m.motivo, ''))
+                 FROM medallas_otorgadas m WHERE m.user_id = u.id),
+              '{}'::json
+            ) AS medallas
        FROM users u ORDER BY u.matricula`
   );
   res.json(rows);
@@ -607,6 +632,14 @@ app.put('/api/users/:matricula', verifyToken, requirePermiso('usuarios.gestionar
     ? [...new Set((req.body.permisos_extra ?? []).filter(ES_PERMISO))]
     : (existingUser.permisos_extra ?? []);
 
+  // Si esta cuenta aparece o no en MIEMBROS. Vive aquí y no en /api/profile
+  // porque publicar a alguien en la web del laboratorio es una decisión de la
+  // unidad, no del interesado. Los textos que se publican (a qué se dedica,
+  // área, generación) los sigue escribiendo cada quien.
+  const perfilPublico = req.body.perfil_publico !== undefined
+    ? Boolean(req.body.perfil_publico)
+    : existingUser.perfil_publico;
+
   // Nadie puede quitarse a sí mismo la llave de casa.
   //
   // Borrarse ya estaba impedido; esto cierra el otro camino, que era peor
@@ -628,11 +661,17 @@ app.put('/api/users/:matricula', verifyToken, requirePermiso('usuarios.gestionar
 
   await pool.query(
     `UPDATE users SET nombre = $1, roles = $2::jsonb, grupo = $3, alias = $4, password_hash = $5,
-       permisos_extra = $6::jsonb
-     WHERE matricula = $7`,
-    [nombre, JSON.stringify(roles), grupo, alias, passwordHash, JSON.stringify(permisosExtra), matricula]
+       permisos_extra = $6::jsonb, perfil_publico = $7
+     WHERE matricula = $8`,
+    [nombre, JSON.stringify(roles), grupo, alias, passwordHash, JSON.stringify(permisosExtra), perfilPublico, matricula]
   );
   await saveLog('info', `Administrador ${req.user.matricula} modificó el usuario ${matricula}.`);
+  // Se registra aparte: publicar o retirar a alguien de la web es lo único de
+  // esta ruta que cambia lo que ve un visitante, y conviene poder rastrearlo
+  // sin releer la fila.
+  if (perfilPublico !== existingUser.perfil_publico) {
+    await saveLog('info', `Administrador ${req.user.matricula} ${perfilPublico ? 'publicó' : 'retiró'} el perfil de ${matricula} en MIEMBROS.`);
+  }
   res.json({ success: true, message: 'Usuario actualizado correctamente' });
 });
 

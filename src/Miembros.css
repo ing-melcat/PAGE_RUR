@@ -20,25 +20,230 @@
   background-color: var(--surface-strong);
 }
 
-.miembros__area {
-  margin-bottom: 64px;
+/* ------------------------------------------------------------------
+   Barra de búsqueda y filtros
+   ------------------------------------------------------------------
+   Sustituye a los títulos por área. Ocupa una línea y no un bloque:
+   por encima de la rejilla va el contenido, no el aparato para
+   recorrerlo.
+   ------------------------------------------------------------------ */
+
+.miembros__barra-util {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
 }
 
-.miembros__area:last-child {
-  margin-bottom: 0;
+/* Cerrada es un botón cuadrado con la lupa; se abre al pasar el ratón, al
+   recibir el foco o mientras tenga texto. La transición va en el ancho y no en
+   la visibilidad para que no dé un salto: 40px es exactamente el alto, así que
+   cerrada es un cuadrado. */
+.buscador {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  width: 40px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--surface);
+  overflow: hidden;
+  transition: width var(--mov-medio) cubic-bezier(.25, 1, .5, 1), border-color var(--mov-rapido) ease;
 }
 
-.miembros__area-titulo {
-  font-family: var(--font-titulo), sans-serif;
-  font-size: var(--t-xl);
-  letter-spacing: .03em;
-  text-transform: uppercase;
-  margin: 0 0 28px;
-  color: var(--text);
+.buscador:hover,
+.buscador:focus-within,
+.buscador--fija {
+  width: min(320px, 60vw);
+  border-color: var(--accent);
 }
 
-.miembros__barra {
+.buscador__icono {
+  position: absolute;
+  left: 12px;
+  color: var(--muted);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.buscador:focus-within .buscador__icono {
   color: var(--accent);
+}
+
+/* Ocupa toda la caja aunque esté cerrada: así al tocar la lupa en un móvil
+   —donde no hay hover— el foco cae en el campo y la caja se abre sola. */
+.buscador__campo {
+  width: 100%;
+  height: 100%;
+  padding: 0 12px 0 38px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-sm);
+}
+
+.buscador__campo::placeholder {
+  color: var(--muted);
+}
+
+/* La cruz nativa de type=search: en algunos navegadores sale con el color del
+   sistema, que sobre este fondo es un cuadrado blanco. */
+.buscador__campo::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.filtros {
+  position: relative;
+}
+
+.filtros__boton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--text);
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color var(--mov-rapido) ease, color var(--mov-rapido) ease;
+}
+
+@media (hover: hover) {
+  .filtros__boton:hover { border-color: var(--accent); color: var(--accent); }
+}
+
+.filtros__boton--activo {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Cuántos filtros hay puestos. Sin este número, un filtro olvidado dentro del
+   desplegable explica por qué falta gente y no se ve desde fuera. */
+.filtros__cuenta {
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: black;
+  font-size: .68rem;
+  line-height: 1;
+}
+
+.filtros__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  min-width: 260px;
+  max-height: min(70vh, 480px);
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .45);
+  text-align: left;
+}
+
+.filtros__grupo + .filtros__grupo {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.filtros__titulo {
+  margin: 0 0 10px;
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.filtros__opcion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-sm);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.filtros__opcion input {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.filtros__pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.filtros__limpiar,
+.filtros__cerrar {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--muted);
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: border-color var(--mov-rapido) ease, color var(--mov-rapido) ease;
+}
+
+.filtros__cerrar {
+  display: grid;
+  place-items: center;
+  padding: 7px;
+}
+
+@media (hover: hover) {
+  .filtros__limpiar:hover,
+  .filtros__cerrar:hover { border-color: var(--accent); color: var(--accent); }
+}
+
+.buscador__campo:focus-visible,
+.filtros__boton:focus-visible,
+.filtros__limpiar:focus-visible,
+.filtros__cerrar:focus-visible,
+.filtros__opcion input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* A la derecha del todo, en gris: es una referencia, no un encabezado. */
+.miembros__cuenta {
+  margin: 0 0 0 auto;
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .miembros__rejilla {
@@ -245,8 +450,29 @@
     grid-template-columns: 1fr;
   }
 
-  .miembros__area {
-    margin-bottom: 44px;
+  /* En móvil la búsqueda nace abierta y ocupa la línea entera: sin hover, una
+     caja de 40px con una lupa es un botón que no parece un buscador. */
+  .miembros__barra-util {
+    flex-wrap: wrap;
+  }
+
+  .buscador {
+    width: 100%;
+    order: 1;
+    flex-basis: 100%;
+  }
+
+  .filtros { order: 2; }
+  .miembros__cuenta { order: 3; }
+
+  /* Se abre desde el borde izquierdo del botón, que en esta disposición es
+     también el de la página: anclarlo a la derecha lo mandaba fuera de la
+     pantalla, porque el botón mide 120px y el panel 280. */
+  .filtros__panel {
+    left: 0;
+    right: auto;
+    min-width: 0;
+    width: min(280px, calc(100vw - 48px));
   }
 }
 
