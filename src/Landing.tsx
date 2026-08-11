@@ -121,7 +121,27 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
               }}
               onClick={() => handlePostClick(post)}
             >
-              <div style={{ flex: isSpecial ? '1 1 300px' : 'none', minWidth: isSpecial ? '280px' : '100%', height: isSpecial ? '100%' : '300px', minHeight: '300px', backgroundColor: 'var(--surface-strong)', position: 'relative', overflow: 'hidden' }}>
+              <div style={{
+                /* Proporción fija, no alto fijo.
+                   Antes esto era `height: 300px` con el ancho a merced del
+                   texto de al lado (flex: 1 1 300px), así que el hueco iba de
+                   358 a 904 px de ancho manteniendo 300 de alto: la misma foto
+                   se recortaba distinto en cada pantalla y era imposible
+                   encuadrarla. Con 16:9 el hueco cambia de TAMAÑO pero nunca
+                   de FORMA, así que una foto 16:9 encaja siempre igual. */
+                flex: isSpecial ? '1 1 340px' : 'none',
+                minWidth: isSpecial ? '280px' : '100%',
+                aspectRatio: '16 / 9',
+                /* Nada de `stretch`: estiraba la imagen para igualar el alto
+                   del texto de al lado y rompía la proporción justo en los
+                   anchos donde el título ocupa dos líneas (1.56:1 medido a
+                   1024px). La forma manda; si sobra alto, lo ocupa el fondo
+                   de la tarjeta. */
+                alignSelf: isSpecial ? 'flex-start' : undefined,
+                backgroundColor: 'var(--surface-strong)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}>
                 {post.type === '3d_model' && post.modelUrl ? (
                   <div style={{ width: '100%', height: '100%', backgroundColor: '#101525', cursor: 'grab' }} onClick={(e) => e.stopPropagation()}>
                     <Suspense fallback={null}>
@@ -459,7 +479,7 @@ export const ArchiveDashboard = () => {
                   }}
                   onClick={() => handlePostClick(post)}
                 >
-                  <div style={{ width: '100%', height: '180px', backgroundColor: 'var(--surface-strong)', position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ width: '100%', aspectRatio: '16 / 9', backgroundColor: 'var(--surface-strong)', position: 'relative', overflow: 'hidden' }}>
                     {/* Mismo motivo que en la portada: con background-image el
                         navegador se descarga la imagen de cada tarjeta del
                         archivo aunque estén muy por debajo del pliegue. */}

@@ -4,69 +4,80 @@ Medido sobre el sitio en producción con un navegador real, a siete anchos de
 ventana (1920, 1440, 1280, 1024, 820, 480 y 390 px). No son medidas del diseño:
 son las que salen al renderizar.
 
-## Lo primero, dos reglas que lo explican casi todo
+## Resumen
 
-**1. El alto es fijo; el ancho cambia.** En todos los huecos el alto está
-clavado en el CSS y el ancho depende de la ventana, de cuántas columnas quepan
-y de la longitud del título. Por eso una misma foto se ve más o menos recortada
-**por los lados** según el dispositivo, nunca por arriba y abajo.
+| Dónde | Sube | ¿Se recorta? |
+|---|---|---|
+| **Portada de una publicación** (tarjetas y archivo) | **1800 × 1013** (16:9) | **No**, si respetas 16:9 |
+| **Portada de la página de inicio** | **1800 × 658** | Sí, por los lados |
+| **Foto de perfil** | **400 × 400** | Sí, las esquinas (es un círculo) |
 
-**2. Todas recortan** (`object-fit: cover`): la imagen se amplía hasta cubrir el
-hueco y lo que sobra se corta, sin deformarse nunca. La consecuencia práctica:
+Solo hay **tres tamaños** que recordar, y el primero cubre todas las
+publicaciones.
 
-> **Deja aire a los lados y pon lo importante en el centro.** Una cara pegada al
-> borde izquierdo desaparece en cuanto la tarjeta se estrecha.
+## Portadas de publicación — 16:9, y ya está
 
-## Tamaños
+Todas las portadas de publicación —la tarjeta grande de la portada, las de la
+rejilla y las del archivo— tienen la **proporción fija en 16:9**. El hueco
+cambia de tamaño según la pantalla, pero **nunca de forma**.
 
-| Dónde | Alto fijo | Ancho (mín – máx) | Proporción | **Sube** |
-|---|---|---|---|---|
-| Portada de la página de inicio | 702 px (560 en móvil) | 390 – 1920 | ~2,7:1 | **1800 × 658** |
-| Portada en tarjeta destacada | 300 px | 358 – 904 | ~3:1 | **1800 × 600** |
-| Portada en tarjeta de rejilla | 180 px | 332 – 446 | ~2,5:1 | **900 × 360** |
-| Foto de perfil | 130 px (46 en la tarjeta) | cuadrada | 1:1 | **400 × 400** |
+Consecuencia práctica: **si subes una imagen 16:9, se ve entera siempre**, en
+cualquier dispositivo. No hay nada que encuadrar ni zona segura que respetar.
+1800 × 1013 es 16:9 al ancho máximo que acepta el servidor.
 
-Notas de cada una:
+> Esto no era así. Hasta el 10 de agosto de 2026 estos huecos tenían el **alto
+> fijo** y el ancho a merced del texto de al lado (`flex: 1 1 300px`), de modo
+> que iban de 358 a 904 px de ancho manteniendo 300 de alto: la misma foto se
+> recortaba de manera distinta en cada pantalla y era imposible encuadrarla.
+> Ahora la forma manda y el recorte desapareció.
 
-- **Portada de inicio**: es la única a sangre, de borde a borde de la ventana.
-  En móvil baja a 560 px de alto y se estrecha muchísimo, así que el sujeto
-  tiene que estar centrado o se pierde.
-- **Tarjeta destacada**: su ancho es el que más baila —de 358 a 904 px— porque
-  comparte fila con el texto. Es donde más se nota el recorte lateral.
-- **Tarjeta de rejilla**: la más pequeña. Un 900 × 360 ya va sobrado.
-- **Foto de perfil**: cuadrada, y se ve dentro de un círculo. Las esquinas se
-  pierden siempre: encuadra la cara centrada y sin apurar los bordes.
+## Portada de la página de inicio — aquí sí hay que encuadrar
+
+Es la única que va a sangre, de borde a borde de la ventana, y por eso su forma
+**sí cambia**: de 2,74:1 en un monitor a 0,70:1 en un móvil vertical. No se
+puede fijar sin romper la página, porque tiene que llenar la ventana sea cual
+sea.
+
+Lo que implica al elegir la foto:
+
+- Sube **1800 × 658**.
+- **En móvil solo se ve el 25% central del ancho.** Lo importante, centrado.
+- Nunca se recorta por arriba ni por abajo, solo por los lados.
+
+## Foto de perfil — cuadrada
+
+400 × 400. Se muestra dentro de un círculo, así que las cuatro esquinas se
+pierden siempre: encuadra la cara centrada y sin apurar los bordes.
 
 ## El tope del servidor
 
 Al subir, el servidor **reduce cualquier imagen a 1800 px de ancho** y la
 convierte a WebP con calidad 82, quitando de paso los metadatos de la cámara
-(incluida la ubicación GPS). Así que:
+(incluida la ubicación GPS).
 
 - **Subir más de 1800 px de ancho no sirve de nada**: se reduce igual.
-- No hace falta que conviertas nada a mano: sube el JPG o PNG tal cual.
-- El límite de subida es de 25 MB, pero una foto de 2 MB ya es de sobra.
-- Nunca se amplía una imagen pequeña. Si subes 400 px de ancho para la portada
-  de inicio, se verá borrosa; el servidor no la arregla.
+- No conviertas nada a mano: sube el JPG o PNG tal cual.
+- El límite es 25 MB, pero con 2 MB vas sobrado.
+- **Nunca se amplía una imagen pequeña.** Si subes 400 px de ancho para la
+  portada de inicio, se verá borrosa; el servidor no la arregla.
 
-## Por qué los tamaños recomendados son el doble
+## Plantillas
 
-Una pantalla de móvil o un portátil moderno pinta dos píxeles físicos por cada
-píxel de CSS. Una imagen de exactamente 904 px para un hueco de 904 px se ve
-suave en un monitor viejo y algo borrosa en cualquier pantalla actual. De ahí el
-doble — salvo cuando eso pasa de 1800 y el servidor lo recorta igual.
+Hay marcos listos en Figma, en el archivo RUR, página **«Plantillas de imagen ·
+Web»**: arrastras la foto dentro, la ajustas y exportas.
 
 ## Cómo comprobarlo tú
 
 Las medidas salen de un script que abre el sitio real y mide cada hueco a
 distintos anchos. Si cambia un diseño, se vuelve a medir en vez de suponer:
+abre la web en el navegador, `F12`, y en la consola:
 
-```bash
-# Con el navegador headless que ya se usa para revisar la web
-docker run --rm --network host \
-  -v "$PWD/medir.js:/usr/src/app/medir.js:ro" \
-  --entrypoint node zenika/alpine-chrome:with-puppeteer /usr/src/app/medir.js
+```js
+// Proporción de cada hueco de imagen en la página actual
+[...document.querySelectorAll('img, [style*="aspect-ratio"]')]
+  .map(e => { const b = e.getBoundingClientRect();
+    return `${Math.round(b.width)}x${Math.round(b.height)} → ${(b.width/b.height).toFixed(2)}:1`; });
 ```
 
-Lo que mide de cada hueco: ancho y alto renderizados a cada resolución, si
-recorta o no, y si la imagen llega a cargar.
+Repítelo estrechando la ventana. Si un hueco cambia de proporción, esa imagen
+necesita encuadre; si no cambia, basta con subirla en su proporción.
