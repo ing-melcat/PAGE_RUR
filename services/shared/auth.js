@@ -72,3 +72,82 @@ export const noStore = (req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 };
+
+// ---------------------------------------------------------------------------
+// Permisos
+//
+// Se resuelven contra Postgres en CADA petición, no desde el JWT. Es lo que
+// hace que quitarle un permiso a alguien surta efecto ya, en lugar de esperar
+// a que le caduque la sesión de 24 horas: un permiso que tarda un día en
+// revocarse no es un permiso, es una sugerencia.
+//
+// Para no consultar la tabla en cada request, las filas de roles se guardan
+// unos segundos. Esa ventana es el retardo máximo entre revocar un permiso y
+// que deje de valer DE VERDAD en los otros dos servicios, que tienen su propia
+// caché y no se enteran de que alguien tocó un rol.
+//
+// Cinco segundos, no treinta: medido en dev, con treinta un permiso retirado
+// seguía funcionando media docena de peticiones después. La tabla tiene cinco
+// filas y solo se consulta en rutas autenticadas de escritura, así que releerla
+// cada cinco segundos no le cuesta nada a nadie.
+// ---------------------------------------------------------------------------
+import { getPool } from './db.js';
+import { permisosEfectivos, ROL_TOTAL } from './permisos.js';
+
+const CACHE_MS = 5_000;
+let cacheRoles = null;
+let cacheExpira = 0;
+
+export async function rolesDefinidos() {
+  const ahora = Date.now();
+  if (cacheRoles && ahora < cacheExpira) return cacheRoles;
+
+  const { rows } = await getPool().query('SELECT nombre, color, permisos, del_sistema FROM roles');
+  cacheRoles = rows;
+  cacheExpira = ahora + CACHE_MS;
+  return rows;
+}
+
+// Tras crear o editar un rol hay que tirar la caché, o el propio administrador
+// vería su cambio "no aplicarse" durante medio minuto y volvería a guardarlo.
+//
+// Solo vacía la de ESTE proceso. Los otros dos servicios tienen la suya y se
+// enteran cuando les caduque: hasta 30 segundos de desfase entre cambiar un
+// rol y que la consola del robot lo respete. Es el precio de no montar un
+// canal de invalidación entre servicios para algo que se toca dos veces al
+// año; si algún día molesta, la salida es escuchar NOTIFY de Postgres.
+export function invalidarCacheRoles() {
+  cacheRoles = null;
+  cacheExpira = 0;
+}
+
+export async function permisosDe(user) {
+  if (!user) return new Set();
+  // Camino corto para el administrador: no hace falta ni consultar.
+  if (user.roles?.includes(ROL_TOTAL)) return permisosEfectivos(user.roles, [], []);
+
+  const [roles, extra] = await Promise.all([
+    rolesDefinidos(),
+    getPool()
+      .query('SELECT permisos_extra FROM users WHERE matricula = $1', [user.matricula])
+      .then((r) => r.rows[0]?.permisos_extra ?? [])
+      .catch(() => []),
+  ]);
+  return permisosEfectivos(user.roles, roles, extra);
+}
+
+// requirePermiso: sustituto de requireRole. Se pregunta por lo que hay que
+// poder hacer, no por quién hay que ser — que es lo que permite que un
+// administrador reparta capacidades sin tocar el código.
+export const requirePermiso = (...permisos) => async (req, res, next) => {
+  try {
+    const tiene = await permisosDe(req.user);
+    if (permisos.some((p) => tiene.has(p))) return next();
+    return res.status(403).json({ success: false, message: 'Sin permisos' });
+  } catch (e) {
+    // Ante un fallo al resolver permisos se deniega. Un error de base de datos
+    // no puede acabar concediendo acceso.
+    console.error('[auth] no se pudieron resolver los permisos:', e.message);
+    return res.status(403).json({ success: false, message: 'Sin permisos' });
+  }
+};

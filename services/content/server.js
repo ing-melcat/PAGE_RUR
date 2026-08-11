@@ -8,7 +8,7 @@ import multer from 'multer';
 import sharp from 'sharp';
 import rateLimit from 'express-rate-limit';
 import { getPool } from '../shared/db.js';
-import { verifyToken, requireRole, sesionOpcional, IS_PRODUCTION } from '../shared/auth.js';
+import { verifyToken, requireRole, requirePermiso, sesionOpcional, IS_PRODUCTION } from '../shared/auth.js';
 import { csrfProtection } from '../shared/csrf.js';
 import { saveLog } from '../shared/logs.js';
 import {
@@ -254,7 +254,7 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-app.post('/api/posts', verifyToken, requireRole('admin', 'redactor'), csrfProtection, async (req, res) => {
+app.post('/api/posts', verifyToken, requirePermiso('publicaciones.editar'), csrfProtection, async (req, res) => {
   const body = req.body ?? {};
   if (!body.title) {
     return res.status(400).json({ message: 'title es requerido' });
@@ -294,7 +294,7 @@ app.post('/api/posts', verifyToken, requireRole('admin', 'redactor'), csrfProtec
   res.status(201).json(creada);
 });
 
-app.put('/api/posts/:id', verifyToken, requireRole('admin', 'redactor'), csrfProtection, async (req, res) => {
+app.put('/api/posts/:id', verifyToken, requirePermiso('publicaciones.editar'), csrfProtection, async (req, res) => {
   const { rows: existingRows } = await pool.query('SELECT * FROM posts WHERE id = $1', [req.params.id]);
   const existing = existingRows[0];
   if (!existing) return res.status(404).json({ message: 'Publicación no encontrada' });
@@ -334,7 +334,7 @@ app.put('/api/posts/:id', verifyToken, requireRole('admin', 'redactor'), csrfPro
   res.json(modificada);
 });
 
-app.delete('/api/posts/:id', verifyToken, requireRole('admin'), csrfProtection, async (req, res) => {
+app.delete('/api/posts/:id', verifyToken, requirePermiso('publicaciones.borrar'), csrfProtection, async (req, res) => {
   const { rowCount } = await pool.query('DELETE FROM posts WHERE id = $1', [req.params.id]);
   if (rowCount === 0) return res.status(404).json({ message: 'Publicación no encontrada' });
   await invalidarTraducciones(req.params.id);

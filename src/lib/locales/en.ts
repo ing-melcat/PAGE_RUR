@@ -412,6 +412,10 @@ export const en: Dictionary = {
     errorConexion: 'Connection error.',
   },
   adminUsuarios: {
+    pestanaPersonas: 'PEOPLE',
+    pestanaRoles: 'ROLES',
+    permisosExtra: 'EXTRA PERMISSIONS FOR THIS PERSON',
+
     administrador: 'ADMIN',
     titulo: 'User Management',
     crearUsuario: '+ Create User',
@@ -572,5 +576,22 @@ export const en: Dictionary = {
     desde: 'Since {a}',
     cargando: 'Loading…',
     vacio: 'No public profiles yet.',
+  },
+  roles: {
+    nuevo: 'New role',
+    editando: 'Editing {r}',
+    nombre: 'NAME',
+    nombreNota: 'No spaces or accents: letters, numbers, hyphen and underscore. This is what gets stored on each account.',
+    color: 'COLOR',
+    permisos: 'WHAT IT CAN DO',
+    guardar: 'Save role',
+    cancelar: 'Cancel',
+    editar: 'Edit',
+    borrar: 'Delete',
+    nPermisos: '{n} permissions',
+    todosLosPermisos: 'All permissions. Cannot be edited or deleted.',
+    confirmarBorrar: 'Delete the role {r}?',
+    errorGuardar: 'Could not save the role.',
+    errorBorrar: 'Could not delete the role.',
   },
 };

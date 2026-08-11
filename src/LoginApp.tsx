@@ -14,6 +14,7 @@ import { apiFetch } from "./lib/apiClient";
 import { sanitizeHtml } from "./lib/sanitizeHtml";
 import { useLanguage } from "./lib/i18n";
 import { Ayuda } from "./components/Ayuda";
+import { PanelRoles } from "./components/PanelRoles";
 
 const ControllerApp = lazy(() => import("./controller/ControllerApp"));
 
@@ -125,6 +126,25 @@ function hasRole(user: any, ...roles: string[]): boolean {
   return roles.some((role) => owned.includes(role));
 }
 
+/**
+ * Si esta persona puede hacer algo.
+ *
+ * Los permisos llegan ya resueltos desde /api/me: el panel no vuelve a
+ * calcular qué implica cada rol, porque hacerlo por su cuenta es la forma
+ * segura de acabar discrepando del servidor —enseñando un botón que luego
+ * devuelve 403, o escondiendo uno que sí funcionaba—.
+ *
+ * Esto decide qué se VE. Lo que se PUEDE lo decide el servidor, que vuelve a
+ * comprobarlo en cada petición. Ocultar un botón es cortesía, no seguridad.
+ */
+function puede(user: any, ...permisos: string[]): boolean {
+  const suyos: string[] = Array.isArray(user?.permisos) ? user.permisos : [];
+  // Mientras /api/me no haya respondido todavía, un admin sigue viéndolo
+  // todo: sin esto, el panel parpadea vacío en cada recarga.
+  if (suyos.length === 0 && hasRole(user, 'admin')) return true;
+  return permisos.some((p) => suyos.includes(p));
+}
+
 
 const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   const { t } = useLanguage();
@@ -169,7 +189,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   // El catálogo de personas solo lo pide quien puede firmar: para un redactor
   // sería una petición que va a devolver 403.
   useEffect(() => {
-    if (!hasRole(user, 'admin')) return;
+    if (!puede(user, 'publicaciones.firmar')) return;
     apiFetch('/api/personas')
       .then((res) => (res.ok ? res.json() : []))
       .then((datos) => setPersonas(Array.isArray(datos) ? datos : []))
@@ -254,7 +274,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
       countdownDate: (type === 'aviso' || type === 'evento') ? countdownDate : undefined,
       // Solo se manda si esta cuenta puede firmar. El servidor lo vuelve a
       // comprobar; esto evita mandar un campo que va a ignorar.
-      autores: hasRole(user, 'admin') ? autores.filter(a => a.userId) : undefined,
+      autores: puede(user, 'publicaciones.firmar') ? autores.filter(a => a.userId) : undefined,
     };
 
     try {
@@ -401,11 +421,11 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
               <option value="magazine">{t('adminPublicaciones.tipoMagazineOption')}</option>
               <option value="aviso">{t('adminPublicaciones.tipoAvisoOption')}</option>
               <option value="evento">{t('adminPublicaciones.tipoEventoOption')}</option>
-              {hasRole(user, 'admin') && <option value="3d_model">{t('adminPublicaciones.tipoModelo3dOption')}</option>}
+              {puede(user, 'publicaciones.firmar') && <option value="3d_model">{t('adminPublicaciones.tipoModelo3dOption')}</option>}
             </select>
           </div>
 
-          {hasRole(user, 'admin') && (
+          {puede(user, 'publicaciones.firmar') && (
             <div style={{ flex: 1 }}>
               <label style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)', display: 'block', marginBottom: '8px' }}>{t('adminPublicaciones.destinoLabel')}</label>
               <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: '100%', padding: '12px', background: 'var(--background)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-sans)' }}>
@@ -446,7 +466,7 @@ const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
             sabe. Lo que se escriba aparece en la publicación con enlace al
             perfil de cada persona, y en su perfil como parte de su
             historial. */}
-        {hasRole(user, 'admin') && (
+        {puede(user, 'publicaciones.firmar') && (
           <div className="autores">
             <label className="autores__titulo">
               {t('adminPublicaciones.desarrolladoPor')}
@@ -722,6 +742,14 @@ export default function App() {
   // el mismo error del que ya se migró al pasar el JWT a una cookie httpOnly.
   // Al recargar se vuelve a pedir al backend, que es barato y siempre correcto.
   const [livekitToken, setLivekitToken] = useState<any>("");
+  // Pestaña del panel de personal: las personas y los roles se administran
+  // en el mismo sitio porque es donde los roles se asignan.
+  const [pestanaPersonal, setPestanaPersonal] = useState<'personas'|'roles'>('personas');
+  // Los roles ya no son una lista fija en el código: salen de la tabla, con
+  // su color, para que un rol nuevo aparezca aquí sin desplegar nada.
+  const [rolesDisponibles, setRolesDisponibles] = useState<any[]>([]);
+  const [catalogoPermisos, setCatalogoPermisos] = useState<Record<string,string>>({});
+
   const [profileForm, setProfileForm] = useState({
     alias: '', bio: '', foto: '',
     github: '', linkedin: '', instagram: '', reddit: '', facebook: '',
@@ -824,7 +852,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (view === 'admin_users' && hasRole(user, 'admin')) {
+    if (view === 'admin_users' && puede(user, 'usuarios.gestionar')) {
       fetchUsers();
     }
   }, [view, user]);
@@ -833,11 +861,13 @@ export default function App() {
     e.preventDefault();
     const formData = new FormData(e.target);
     const rolesArr = formData.getAll('roles') as string[];
+    const permisosExtra = formData.getAll('permisos_extra') as string[];
     const userData = {
       matricula: formData.get('matricula'),
       password: formData.get('password'),
       nombre: formData.get('nombre'),
       roles: rolesArr.length > 0 ? rolesArr : ['operador'],
+      permisos_extra: permisosExtra,
       grupo: formData.get('grupo'),
       alias: formData.get('alias')
     };
@@ -862,10 +892,12 @@ export default function App() {
     e.preventDefault();
     const formData = new FormData(e.target);
     const rolesArr = formData.getAll('roles') as string[];
+    const permisosExtra = formData.getAll('permisos_extra') as string[];
     const userData = {
       password: formData.get('password'),
       nombre: formData.get('nombre'),
       roles: rolesArr.length > 0 ? rolesArr : ['operador'],
+      permisos_extra: permisosExtra,
       alias: formData.get('alias')
     };
 
@@ -1045,6 +1077,20 @@ export default function App() {
   // distintas ("Personalizar Perfil" en la barra lateral y "Perfil de Usuario"
   // en el menú de Ajustes) que editaban campos diferentes del mismo usuario
   // contra el mismo endpoint; ahora las dos llegan aquí.
+  // El catálogo de roles se pide al entrar al panel de personal: sirve para
+  // las casillas del editor de usuario y para pintar las insignias.
+  useEffect(() => {
+    if (view !== 'admin_users') return;
+    apiFetch('/api/roles')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d) return;
+        setRolesDisponibles(d.roles ?? []);
+        setCatalogoPermisos(d.catalogo ?? {});
+      })
+      .catch(() => {});
+  }, [view, pestanaPersonal]);
+
   const openProfileEditor = () => {
     setProfileForm({
       alias: user?.alias || '',
@@ -1394,25 +1440,21 @@ export default function App() {
 
                       <motion.div className="action-grid" layout style={{ alignItems: 'start' }}>
                         {(() => {
-                          let actions: any[] = [];
-                          if (hasRole(user, 'admin')) {
-                            actions = [
-                              { title: t('dashboard.gestionPublicaciones'), view: "admin_content" },
-                              { title: t('dashboard.gestionUsuarios'), view: "admin_users" },
-                              { title: t('dashboard.logsGenerales'), view: "admin_logs" },
-                              { title: t('dashboard.administracionRobots'), view: "admin_config" },
-                              { title: t('dashboard.consolaOperador'), view: "controles" },
-                              { title: t('dashboard.transmision'), view: "transmision" }
-                            ];
-                          } else {
-                            if (hasRole(user, 'redactor', 'editor')) {
-                              actions.push({ title: t('dashboard.gestionPublicaciones'), view: "admin_content" });
-                            }
-                            if (hasRole(user, 'operador')) {
-                              actions.push({ title: t('dashboard.consolaOperador'), view: "controles" });
-                              actions.push({ title: t('dashboard.transmision'), view: "transmision" });
-                            }
-                          }
+                          // Cada panel pide el permiso que de verdad
+                          // necesita para funcionar, el mismo que comprueba
+                          // el servidor en sus rutas. Antes esto era una
+                          // lista fija para "admin" y otra para el resto:
+                          // crear un rol nuevo no cambiaba nada aquí, así
+                          // que un rol a medida no servía para nada.
+                          const PANELES = [
+                            { permiso: 'publicaciones.editar',  title: t('dashboard.gestionPublicaciones'),   view: 'admin_content' },
+                            { permiso: 'usuarios.gestionar',    title: t('dashboard.gestionUsuarios'),        view: 'admin_users' },
+                            { permiso: 'logs.ver',              title: t('dashboard.logsGenerales'),          view: 'admin_logs' },
+                            { permiso: 'robots.gestionar',      title: t('dashboard.administracionRobots'),   view: 'admin_config' },
+                            { permiso: 'robots.operar',         title: t('dashboard.consolaOperador'),        view: 'controles' },
+                            { permiso: 'transmision.gestionar', title: t('dashboard.transmision'),            view: 'transmision' },
+                          ];
+                          const actions: any[] = PANELES.filter((p) => puede(user, p.permiso));
 
                           if (actions.length === 0) {
                             return <p style={{ color: 'var(--muted)', fontSize: '0.9rem', fontStyle: 'italic' }}>{t('dashboard.sinHerramientas')}</p>;
@@ -1651,7 +1693,7 @@ export default function App() {
               </main>
             </motion.section>
           )}
-          {view === "transmision" && user && hasRole(user, "operador", "admin") && (
+          {view === "transmision" && user && puede(user, "transmision.gestionar") && (
             <motion.section key="transmision" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
               <Suspense fallback={
                 <div style={{ height: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
@@ -1666,7 +1708,7 @@ export default function App() {
             </motion.section>
           )}
           {(() => {
-            return view === "robot_selection" && user && hasRole(user, "operador", "admin") && (
+            return view === "robot_selection" && user && puede(user, "robots.operar") && (
               <motion.section key="robot_selection" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
                 <Suspense fallback={
                   <div style={{ height: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
@@ -1706,7 +1748,7 @@ export default function App() {
             );
           })()}
 
-          {view === "modo_control" && user && hasRole(user, "operador", "admin") && (
+          {view === "modo_control" && user && puede(user, "robots.operar") && (
             <motion.section key="modo_control" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
               <ModeSelect
                 onBack={() => setView("robot_selection")}
@@ -1748,13 +1790,29 @@ export default function App() {
               <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
                   <h2 className="titulo-panel">{t('adminUsuarios.titulo')}</h2>
+                  <div className="pestanas">
+                    <button
+                      className={`pestanas__boton${pestanaPersonal === 'personas' ? ' pestanas__boton--activa' : ''}`}
+                      onClick={() => setPestanaPersonal('personas')}
+                    >
+                      {t('adminUsuarios.pestanaPersonas')}
+                    </button>
+                    <button
+                      className={`pestanas__boton${pestanaPersonal === 'roles' ? ' pestanas__boton--activa' : ''}`}
+                      onClick={() => { setPestanaPersonal('roles'); setIsCreatingUser(false); setEditingUser(null); }}
+                    >
+                      {t('adminUsuarios.pestanaRoles')}
+                    </button>
+                  </div>
                 </div>
-                {!isCreatingUser && (
+                {pestanaPersonal === 'personas' && !isCreatingUser && (
                   <button onClick={() => setIsCreatingUser(true)} style={{ background: 'var(--accent)', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>{t('adminUsuarios.crearUsuario')}</button>
                 )}
               </div>
 
-              {(isCreatingUser || editingUser) ? (
+              {pestanaPersonal === 'roles' ? (
+                <PanelRoles />
+              ) : (isCreatingUser || editingUser) ? (
                 <div style={{ textAlign: 'left', marginBottom: '16px', padding: '20px', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px' }}>
                   <form onSubmit={editingUser ? handleUpdateUser : handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -1777,16 +1835,39 @@ export default function App() {
                       <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem', gridColumn: '1 / -1' }}>
                         {t('adminUsuarios.rolesAsignados')}
                         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', padding: '12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px' }}>
-                          {['admin', 'redactor', 'operador', 'hardware'].map(role => (
-                            <label key={role} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'white', cursor: 'pointer', flexDirection: 'row' }}>
-                              <input 
-                                type="checkbox" 
-                                name="roles" 
-                                value={role} 
-                                defaultChecked={editingUser ? editingUser.roles?.includes(role) : role === 'operador'} 
+                          {rolesDisponibles.map(rol => (
+                            <label key={rol.nombre} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: rol.color, cursor: 'pointer', flexDirection: 'row' }}>
+                              <input
+                                type="checkbox"
+                                name="roles"
+                                value={rol.nombre}
+                                defaultChecked={editingUser ? editingUser.roles?.includes(rol.nombre) : rol.nombre === 'operador'}
                                 style={{ width: 'auto', margin: 0, cursor: 'pointer' }}
                               />
-                              <span style={{ textTransform: 'capitalize' }}>{role}</span>
+                              <span style={{ textTransform: 'uppercase', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.78rem', letterSpacing: '0.08em' }}>{rol.nombre}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </label>
+
+                      {/* Permisos sueltos de esta persona, además de los que le
+                          den sus roles. Es lo que evita inventar un rol entero
+                          para una excepción de una sola persona. */}
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--muted)', fontSize: '0.85rem', gridColumn: '1 / -1' }}>
+                        {t('adminUsuarios.permisosExtra')}
+                        <div className="permisos-extra">
+                          {Object.entries(catalogoPermisos).map(([clave, descripcion]) => (
+                            <label key={clave} className="permisos-extra__uno">
+                              <input
+                                type="checkbox"
+                                name="permisos_extra"
+                                value={clave}
+                                defaultChecked={editingUser?.permisos_extra?.includes(clave)}
+                              />
+                              <span>
+                                <span className="permisos-extra__nombre">{descripcion}</span>
+                                <code>{clave}</code>
+                              </span>
                             </label>
                           ))}
                         </div>

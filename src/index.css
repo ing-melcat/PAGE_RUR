@@ -1572,3 +1572,73 @@ textarea:focus-visible {
 .creditos__coma {
   color: var(--muted);
 }
+
+/* Pestañas del panel de personal. */
+.pestanas {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.pestanas__boton {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  letter-spacing: .12em;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: color var(--mov-rapido) ease, border-color var(--mov-rapido) ease;
+}
+
+.pestanas__boton--activa {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.pestanas__boton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Permisos sueltos de una persona, en el editor de usuario. */
+.permisos-extra {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.permisos-extra__uno {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  flex-direction: row !important;
+}
+
+.permisos-extra__uno input {
+  width: auto;
+  margin: 2px 0 0;
+  cursor: pointer;
+}
+
+.permisos-extra__nombre {
+  display: block;
+  color: var(--text);
+  font-size: var(--t-sm);
+  line-height: 1.4;
+}
+
+.permisos-extra code {
+  display: block;
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  color: var(--muted);
+  margin-top: 2px;
+}

@@ -412,6 +412,10 @@ export const es = {
     errorConexion: 'Error de conexión.',
   },
   adminUsuarios: {
+    pestanaPersonas: 'PERSONAS',
+    pestanaRoles: 'ROLES',
+    permisosExtra: 'PERMISOS ADICIONALES DE ESTA PERSONA',
+
     administrador: 'ADMINISTRADOR',
     titulo: 'Gestión de Usuarios',
     crearUsuario: '+ Crear Usuario',
@@ -572,6 +576,23 @@ export const es = {
     desde: 'Desde {a}',
     cargando: 'Cargando…',
     vacio: 'Sin perfiles públicos todavía.',
+  },
+  roles: {
+    nuevo: 'Nuevo rol',
+    editando: 'Editando {r}',
+    nombre: 'NOMBRE',
+    nombreNota: 'Sin espacios ni acentos: letras, números, guion y guion bajo. Es lo que se guarda en cada cuenta.',
+    color: 'COLOR',
+    permisos: 'QUÉ PUEDE HACER',
+    guardar: 'Guardar rol',
+    cancelar: 'Cancelar',
+    editar: 'Editar',
+    borrar: 'Borrar',
+    nPermisos: '{n} permisos',
+    todosLosPermisos: 'Todos los permisos. No se puede editar ni borrar.',
+    confirmarBorrar: '¿Borrar el rol {r}?',
+    errorGuardar: 'No se pudo guardar el rol.',
+    errorBorrar: 'No se pudo borrar el rol.',
   },
 };
 

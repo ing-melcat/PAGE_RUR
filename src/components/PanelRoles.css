@@ -1,0 +1,263 @@
+/* ==================================================================
+   Roles, dentro del panel de personal
+   ------------------------------------------------------------------
+   Cada rol se identifica por su color, que es para lo que sirve: en la
+   lista de personas se ven insignias, no nombres largos que hay que leer
+   uno a uno. El color vive solo aquí y en el panel — un rol dice quién
+   puede entrar dónde, y eso no se publica nunca.
+   ================================================================== */
+
+.roles {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.roles__error {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--error);
+  border-radius: 4px;
+  background: var(--error-muted);
+  color: var(--text);
+  font-size: var(--t-sm);
+  line-height: 1.5;
+}
+
+.roles__crear {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  color: var(--accent);
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: border-color var(--mov-rapido) ease;
+}
+
+@media (hover: hover) {
+  .roles__crear:hover { border-color: var(--accent); }
+}
+
+.roles__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.roles__fila {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+/* La insignia se pinta con el color del rol en el borde y el texto, no en
+   el fondo: un relleno saturado detrás de texto pequeño es exactamente
+   donde el contraste se pierde, y los colores los elige quien crea el
+   rol sin saber sobre qué fondo caerán. */
+.roles__insignia {
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  border: 1px solid;
+  border-radius: 2px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.roles__cuenta {
+  flex: 1;
+  font-size: var(--t-xs);
+  color: var(--muted);
+}
+
+.roles__acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.roles__acciones button {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: border-color var(--mov-rapido) ease, color var(--mov-rapido) ease;
+}
+
+@media (hover: hover) {
+  .roles__acciones button:hover { border-color: var(--accent); color: var(--accent); }
+  .roles__borrar:hover { border-color: var(--error) !important; color: var(--error) !important; }
+}
+
+.roles__acciones button:focus-visible,
+.roles__crear:focus-visible,
+.roles__guardar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --- editor --- */
+
+.roles__editor {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.roles__editor-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.roles__editor-cabecera h3 {
+  margin: 0;
+  font-family: var(--font-titulo), sans-serif;
+  font-weight: 400;
+  font-size: var(--t-lg);
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.roles__editor-cabecera button {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  padding: 6px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.roles__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.roles__campo input[type="text"],
+.roles__campo > input {
+  padding: 12px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-sm);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.roles__nota {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: var(--t-xs);
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.roles__colores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.roles__color {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.roles__color--elegido {
+  border-color: var(--text);
+}
+
+.roles__color:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.roles__permisos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+}
+
+.roles__permiso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.roles__permiso input {
+  width: auto;
+  margin: 2px 0 0;
+  cursor: pointer;
+}
+
+.roles__permiso-nombre {
+  display: block;
+  color: var(--text);
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-sm);
+  line-height: 1.4;
+}
+
+/* La clave técnica, debajo y en pequeño: es lo que se ve en el código y en
+   los registros, y tenerla a la vista evita adivinar a qué permiso
+   corresponde una descripción. */
+.roles__permiso code {
+  display: block;
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.roles__guardar {
+  align-self: flex-start;
+  background: var(--accent);
+  color: black;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 20px;
+  font-weight: bold;
+  font-family: var(--font-ibm-mono);
+  cursor: pointer;
+}

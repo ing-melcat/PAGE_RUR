@@ -4,7 +4,7 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import { getPool } from '../shared/db.js';
-import { verifyToken, requireRole, noStore, IS_PRODUCTION } from '../shared/auth.js';
+import { verifyToken, requireRole, noStore, IS_PRODUCTION, requirePermiso } from '../shared/auth.js';
 import { csrfProtection } from '../shared/csrf.js';
 import { encryptSecret, decryptSecret, maskSecret } from '../shared/crypto.js';
 import { saveLog } from '../shared/logs.js';
@@ -144,7 +144,7 @@ app.get('/api/robots', verifyToken, noStore, async (req, res) => {
   res.json(augmented.map((row) => rowToRobot(row, { includeAdminFields: isAdmin })));
 });
 
-app.post('/api/robots', verifyToken, requireRole('admin'), csrfProtection, async (req, res) => {
+app.post('/api/robots', verifyToken, requirePermiso('robots.gestionar'), csrfProtection, async (req, res) => {
   const body = req.body ?? {};
   const { id, name, status, room, modelUrl, livekitUrl, livekitApiKey, livekitApiSecret, isPublicEvent, ...settings } = body;
 
@@ -166,7 +166,7 @@ app.post('/api/robots', verifyToken, requireRole('admin'), csrfProtection, async
   res.json({ success: true, message: 'Robot creado', robot: rowToRobot(rows[0], { includeAdminFields: true }) });
 });
 
-app.put('/api/robots/:id', verifyToken, requireRole('admin'), csrfProtection, async (req, res) => {
+app.put('/api/robots/:id', verifyToken, requirePermiso('robots.gestionar'), csrfProtection, async (req, res) => {
   const { rows: existingRows } = await pool.query('SELECT * FROM robots WHERE id = $1', [req.params.id]);
   const existing = existingRows[0];
   if (!existing) return res.status(404).json({ message: 'Robot no encontrado' });
@@ -201,7 +201,7 @@ app.put('/api/robots/:id', verifyToken, requireRole('admin'), csrfProtection, as
   res.json({ success: true, message: 'Robot actualizado', robot: rowToRobot(rows[0], { includeAdminFields: true }) });
 });
 
-app.delete('/api/robots/:id', verifyToken, requireRole('admin'), csrfProtection, async (req, res) => {
+app.delete('/api/robots/:id', verifyToken, requirePermiso('robots.gestionar'), csrfProtection, async (req, res) => {
   await pool.query('DELETE FROM robots WHERE id = $1', [req.params.id]);
   await saveLog('warning', `Administrador ${req.user.matricula} eliminó el robot ${req.params.id}.`);
   res.json({ success: true, message: 'Robot eliminado' });
@@ -294,12 +294,12 @@ app.post('/api/livekit/public-token', publicTokenLimiter, async (req, res) => {
   }
 });
 
-app.get('/api/logs', verifyToken, requireRole('admin'), noStore, async (req, res) => {
+app.get('/api/logs', verifyToken, requirePermiso('logs.ver'), noStore, async (req, res) => {
   const { rows } = await pool.query('SELECT type, message, date FROM logs ORDER BY date DESC LIMIT 200');
   res.json(rows);
 });
 
-app.get('/api/crowdsec/metrics', verifyToken, requireRole('admin'), async (req, res) => {
+app.get('/api/crowdsec/metrics', verifyToken, requirePermiso('logs.ver'), async (req, res) => {
   try {
     // Mismo tope que fetchRealStatus para LiveKit: sin esto, un CrowdSec que
     // no responde deja la petición colgada hasta que expire el socket.

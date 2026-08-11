@@ -8,12 +8,17 @@ import {
   CSRF_COOKIE,
   verifyToken,
   requireRole,
+  requirePermiso,
+  permisosDe,
+  rolesDefinidos,
+  invalidarCacheRoles,
   signSessionToken,
   baseCookieOptions,
   noStore,
   IS_PRODUCTION,
 } from '../shared/auth.js';
 import { generateCsrfToken, csrfProtection } from '../shared/csrf.js';
+import { PERMISOS, ES_PERMISO, ROL_TOTAL } from '../shared/permisos.js';
 import { loginIpLimiter, isLocked, lockedRemainingMs, recordFailure, recordSuccess } from '../shared/loginProtection.js';
 import { saveLog } from '../shared/logs.js';
 
@@ -148,7 +153,11 @@ app.get('/api/me', verifyToken, noStore, async (req, res) => {
     res.clearCookie(CSRF_COOKIE, { path: '/' });
     return res.status(401).json({ success: false, message: 'La cuenta ya no existe' });
   }
-  res.json({ success: true, user: toPublicUser(row) });
+  // Los permisos van resueltos: el panel no tiene que saber qué implica cada
+  // rol, ni volver a calcularlo por su cuenta y arriesgarse a discrepar del
+  // servidor.
+  const permisos = await permisosDe({ matricula: row.matricula, roles: row.roles ?? [] });
+  res.json({ success: true, user: { ...toPublicUser(row), permisos: [...permisos] } });
 });
 
 // Cada campo declara cómo validarse. La lista blanca por sí sola evita la
@@ -384,13 +393,110 @@ app.get('/api/miembros/:id', async (req, res) => {
   res.json(aMiembroPublico(rows[0]));
 });
 
+// ---------------------------------------------------------------------------
+// Roles
+//
+// Se administran desde el panel de personal, que es donde ya se asignan. El
+// catálogo de permisos, en cambio, es fijo: viene de shared/permisos.js,
+// porque cada permiso corresponde a una comprobación real y uno inventado no
+// abriría ninguna puerta.
+// ---------------------------------------------------------------------------
+
+app.get('/api/roles', verifyToken, noStore, async (req, res) => {
+  // Cualquier sesión puede leerlos: el panel necesita los colores y los
+  // nombres para pintar a las personas, y saber que existe un rol no da
+  // acceso a nada. Crearlos y editarlos sí exige permiso.
+  res.json({ roles: await rolesDefinidos(), catalogo: PERMISOS });
+});
+
+function permisosLimpios(lista) {
+  return Array.isArray(lista) ? [...new Set(lista.filter(ES_PERMISO))] : [];
+}
+
+const COLOR_VALIDO = /^#[0-9a-fA-F]{6}$/;
+
+app.post('/api/roles', verifyToken, requirePermiso('roles.gestionar'), csrfProtection, async (req, res) => {
+  const nombre = String(req.body?.nombre ?? '').trim().toLowerCase();
+  // Sin espacios ni mayúsculas: el nombre viaja dentro de users.roles y se
+  // compara en veinte sitios. "Software & Mechanical" como rol ya demostró
+  // adónde lleva permitir texto libre aquí.
+  if (!/^[a-z0-9_-]{2,40}$/.test(nombre)) {
+    return res.status(400).json({ success: false, message: 'Nombre inválido: solo letras, números, guion y guion bajo.' });
+  }
+  const color = COLOR_VALIDO.test(req.body?.color) ? req.body.color : '#8c9bb0';
+
+  try {
+    const { rows } = await pool.query(
+      'INSERT INTO roles (nombre, color, permisos) VALUES ($1, $2, $3::jsonb) RETURNING *',
+      [nombre, color, JSON.stringify(permisosLimpios(req.body?.permisos))]
+    );
+    invalidarCacheRoles();
+    await saveLog('info', `${req.user.matricula} creó el rol ${nombre}.`);
+    res.status(201).json(rows[0]);
+  } catch (e) {
+    if (e.code === '23505') return res.status(409).json({ success: false, message: 'Ese rol ya existe' });
+    throw e;
+  }
+});
+
+app.put('/api/roles/:nombre', verifyToken, requirePermiso('roles.gestionar'), csrfProtection, async (req, res) => {
+  const nombre = req.params.nombre;
+
+  // admin no se toca. Es la red de seguridad: si alguien le quitara permisos,
+  // nadie podría volver a entrar a arreglarlo. (permisosEfectivos ya lo trata
+  // como total pase lo que pase, pero conviene no dejar la fila mintiendo.)
+  if (nombre === ROL_TOTAL) {
+    return res.status(403).json({ success: false, message: 'El rol de administración no se puede modificar' });
+  }
+
+  const color = COLOR_VALIDO.test(req.body?.color) ? req.body.color : null;
+  const { rows } = await pool.query(
+    `UPDATE roles SET permisos = $1::jsonb, color = COALESCE($2, color)
+      WHERE nombre = $3 RETURNING *`,
+    [JSON.stringify(permisosLimpios(req.body?.permisos)), color, nombre]
+  );
+  if (!rows[0]) return res.status(404).json({ success: false, message: 'Rol no encontrado' });
+
+  invalidarCacheRoles();
+  await saveLog('info', `${req.user.matricula} modificó el rol ${nombre}.`);
+  res.json(rows[0]);
+});
+
+app.delete('/api/roles/:nombre', verifyToken, requirePermiso('roles.gestionar'), csrfProtection, async (req, res) => {
+  const nombre = req.params.nombre;
+
+  const { rows: filas } = await pool.query('SELECT del_sistema FROM roles WHERE nombre = $1', [nombre]);
+  if (!filas[0]) return res.status(404).json({ success: false, message: 'Rol no encontrado' });
+  if (filas[0].del_sistema) {
+    return res.status(403).json({ success: false, message: 'Ese rol es del sistema y no se puede borrar' });
+  }
+
+  // Borrar un rol que alguien lleva puesto lo dejaría con un permiso fantasma
+  // en su fila: un nombre que ya no existe y que nadie resuelve. Se dice a
+  // quién hay que quitárselo antes, en vez de romperlo en silencio.
+  const { rows: enUso } = await pool.query(
+    `SELECT nombre FROM users WHERE roles ? $1 ORDER BY nombre`, [nombre]
+  );
+  if (enUso.length > 0) {
+    return res.status(409).json({
+      success: false,
+      message: `Todavía lo tienen ${enUso.length} persona(s): ${enUso.map((u) => u.nombre).join(', ')}`,
+    });
+  }
+
+  await pool.query('DELETE FROM roles WHERE nombre = $1', [nombre]);
+  invalidarCacheRoles();
+  await saveLog('warning', `${req.user.matricula} borró el rol ${nombre}.`);
+  res.json({ success: true });
+});
+
 // A quién se puede firmar en una publicación.
 //
 // No vale /api/users: ese es de administración y devuelve matrícula, grupo y
 // roles. Aquí hace falta lo mínimo para poner un nombre en una lista, y nada
 // más. Requiere sesión de administración porque enumera todas las cuentas,
 // incluidas las que no han querido perfil público.
-app.get('/api/personas', verifyToken, requireRole('admin'), noStore, async (req, res) => {
+app.get('/api/personas', verifyToken, requirePermiso('publicaciones.firmar'), noStore, async (req, res) => {
   const { rows } = await pool.query(
     `SELECT id, CASE WHEN show_alias AND alias <> '' THEN alias ELSE nombre END AS nombre
        FROM users ORDER BY nombre`
@@ -398,14 +504,14 @@ app.get('/api/personas', verifyToken, requireRole('admin'), noStore, async (req,
   res.json(rows);
 });
 
-app.get('/api/users', verifyToken, requireRole('admin'), noStore, async (req, res) => {
+app.get('/api/users', verifyToken, requirePermiso('usuarios.gestionar'), noStore, async (req, res) => {
   const { rows } = await pool.query(
-    'SELECT matricula, nombre, grupo, roles, alias FROM users ORDER BY matricula'
+    'SELECT matricula, nombre, grupo, roles, alias, permisos_extra FROM users ORDER BY matricula'
   );
   res.json(rows);
 });
 
-app.post('/api/users', verifyToken, requireRole('admin'), csrfProtection, async (req, res) => {
+app.post('/api/users', verifyToken, requirePermiso('usuarios.gestionar'), csrfProtection, async (req, res) => {
   const { matricula, password, nombre, roles, grupo, alias } = req.body ?? {};
   if (!matricula || !password || !nombre) {
     return res.status(400).json({ message: 'matricula, password y nombre son requeridos' });
@@ -430,7 +536,7 @@ app.post('/api/users', verifyToken, requireRole('admin'), csrfProtection, async 
   res.json({ success: true, message: 'Usuario creado' });
 });
 
-app.put('/api/users/:matricula', verifyToken, requireRole('admin'), csrfProtection, async (req, res) => {
+app.put('/api/users/:matricula', verifyToken, requirePermiso('usuarios.gestionar'), csrfProtection, async (req, res) => {
   const { matricula } = req.params;
   const { rows } = await pool.query('SELECT * FROM users WHERE matricula = $1', [matricula]);
   const existingUser = rows[0];
@@ -445,16 +551,24 @@ app.put('/api/users/:matricula', verifyToken, requireRole('admin'), csrfProtecti
       ? await bcrypt.hash(req.body.password, 10)
       : existingUser.password_hash;
 
+  // Permisos sueltos de esta persona, además de los que le den sus roles. Se
+  // filtran contra el catálogo: uno inventado no abriría nada, pero quedaría
+  // guardado dando a entender lo contrario.
+  const permisosExtra = req.body.permisos_extra !== undefined
+    ? [...new Set((req.body.permisos_extra ?? []).filter(ES_PERMISO))]
+    : (existingUser.permisos_extra ?? []);
+
   await pool.query(
-    `UPDATE users SET nombre = $1, roles = $2::jsonb, grupo = $3, alias = $4, password_hash = $5
-     WHERE matricula = $6`,
-    [nombre, JSON.stringify(roles), grupo, alias, passwordHash, matricula]
+    `UPDATE users SET nombre = $1, roles = $2::jsonb, grupo = $3, alias = $4, password_hash = $5,
+       permisos_extra = $6::jsonb
+     WHERE matricula = $7`,
+    [nombre, JSON.stringify(roles), grupo, alias, passwordHash, JSON.stringify(permisosExtra), matricula]
   );
   await saveLog('info', `Administrador ${req.user.matricula} modificó el usuario ${matricula}.`);
   res.json({ success: true, message: 'Usuario actualizado correctamente' });
 });
 
-app.delete('/api/users/:matricula', verifyToken, requireRole('admin'), csrfProtection, async (req, res) => {
+app.delete('/api/users/:matricula', verifyToken, requirePermiso('usuarios.gestionar'), csrfProtection, async (req, res) => {
   const { matricula } = req.params;
   if (matricula === req.user.matricula) {
     return res.status(400).json({ message: 'No puedes eliminarte a ti mismo' });
