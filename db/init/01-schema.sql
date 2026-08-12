@@ -43,6 +43,16 @@ CREATE TABLE IF NOT EXISTS users (
     large_text BOOLEAN NOT NULL DEFAULT false,
     reduce_animations BOOLEAN NOT NULL DEFAULT false,
     control_mappings JSONB NOT NULL DEFAULT '{}'::jsonb,
+    -- Permisos sueltos de esta persona, además de los que le den sus roles.
+    -- Es lo que evita inventar un rol entero para una excepción de una sola
+    -- persona. Los nombres válidos son los de services/shared/permisos.js.
+    permisos_extra JSONB NOT NULL DEFAULT '[]'::jsonb,
+    -- Contraseñas. La que pone un administrador nace temporal y con fecha de
+    -- caducidad: sirve para entrar y para cambiarla, nada más. Sin esto, la
+    -- provisional se queda puesta para siempre y la saben dos personas.
+    password_temporal BOOLEAN NOT NULL DEFAULT false,
+    password_expira TIMESTAMPTZ,
+    password_changed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -116,6 +126,10 @@ CREATE TABLE IF NOT EXISTS post_miembros (
     -- "documentación". La misma persona tiene papeles distintos en
     -- proyectos distintos, así que no puede vivir en su fila de users.
     papel    VARCHAR(80),
+    -- Quién lideró ese proyecto. Es lo que convierte "líder" en un hecho
+    -- registrado en vez de en una opinión: sostiene una medalla que se
+    -- calcula sola.
+    lider    BOOLEAN     NOT NULL DEFAULT false,
     PRIMARY KEY (post_id, user_id)
 );
 
@@ -132,3 +146,57 @@ CREATE TABLE IF NOT EXISTS post_translations (
     translated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (post_id, lang)
 );
+
+
+-- ---------------------------------------------------------------------------
+-- Roles administrables desde el panel, con color y permisos propios.
+--
+-- `users.roles` sigue siendo el array de nombres de rol: es la clave foránea
+-- lógica hacia roles.nombre. No hay FK real porque es un array JSONB.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS roles (
+    nombre      VARCHAR(40) PRIMARY KEY,
+    -- Para distinguirlos de un vistazo en el panel. Es del panel, nunca de la
+    -- web pública: los roles del sistema dicen quién puede entrar dónde y eso
+    -- no se publica.
+    color       VARCHAR(7)  NOT NULL DEFAULT '#8c9bb0',
+    -- Qué puede hacer quien lo tenga. Los nombres válidos son los del catálogo
+    -- de services/shared/permisos.js: inventarse uno aquí no da acceso a nada.
+    permisos    JSONB       NOT NULL DEFAULT '[]'::jsonb,
+    -- Los del sistema no se pueden borrar ni renombrar desde el panel.
+    del_sistema BOOLEAN     NOT NULL DEFAULT false
+);
+
+-- Los cuatro roles de partida. Sin ellos, una base recién creada no tendría
+-- ningún rol con el que administrar nada, y el panel arrancaría vacío.
+INSERT INTO roles (nombre, color, permisos, del_sistema) VALUES
+  ('admin',    '#FBCA01', '["usuarios.gestionar","roles.gestionar","publicaciones.editar","publicaciones.borrar","publicaciones.firmar","robots.operar","robots.gestionar","transmision.gestionar","logs.ver"]'::jsonb, true),
+  ('redactor', '#2ecc71', '["publicaciones.editar"]'::jsonb, false),
+  ('operador', '#8c9bb0', '["robots.operar"]'::jsonb, false),
+  ('hardware', '#fbbf24', '[]'::jsonb, false)
+ON CONFLICT (nombre) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- Medallas que no se calculan solas.
+--
+-- Las automáticas (proyecto terminado, grandes aportes, líder) salen de
+-- post_miembros y no se guardan en ninguna parte. Aquí solo viven las
+-- especiales, que otorga la coordinación: se registra quién y por qué, que es
+-- lo que las hace valer algo.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS medallas_otorgadas (
+    id           SERIAL PRIMARY KEY,
+    user_id      INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    -- Del catálogo de services/shared/medallas.js (MEDALLAS_ESPECIALES).
+    clave        VARCHAR(40) NOT NULL,
+    -- Una medalla sin motivo es un adorno; con motivo es un reconocimiento
+    -- que se puede leer.
+    motivo       TEXT,
+    -- Quién la dio. Va a la vista en el perfil público: alguien pone su
+    -- nombre detrás, y eso es lo que impide que se repartan a la ligera.
+    otorgada_por VARCHAR(50) NOT NULL,
+    fecha        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (user_id, clave)
+);
+
+CREATE INDEX IF NOT EXISTS idx_medallas_user ON medallas_otorgadas (user_id);

@@ -20,7 +20,8 @@ import {
 import { generateCsrfToken, csrfProtection } from '../shared/csrf.js';
 import { PERMISOS, ES_PERMISO, ROL_TOTAL, permisosEfectivos } from '../shared/permisos.js';
 import { MEDALLAS_AUTOMATICAS, MEDALLAS_ESPECIALES, esMedallaEspecial, medallasDe } from '../shared/medallas.js';
-import { loginIpLimiter, isLocked, lockedRemainingMs, recordFailure, recordSuccess } from '../shared/loginProtection.js';
+import { validarPassword, generarPasswordTemporal } from '../shared/password.js';
+import { loginIpLimiter, cambioPasswordLimiter, isLocked, lockedRemainingMs, recordFailure, recordSuccess } from '../shared/loginProtection.js';
 import { saveLog } from '../shared/logs.js';
 
 const app = express();
@@ -34,6 +35,11 @@ const pool = getPool();
 // que deja enumerar matrículas válidas sin necesidad del log de auditoría.
 // Calculado una sola vez al arrancar el proceso, no en cada request.
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync('sin-cuenta-que-comparar', 10);
+
+// Cuánto vale una contraseña provisional. 72 horas: lo bastante para que
+// alguien la reciba un viernes y la use el lunes, y lo bastante poco para que
+// no se quede viva en un chat durante meses.
+const VIGENCIA_PROVISIONAL = '72 hours';
 
 app.use(cors({ origin: IS_PRODUCTION ? (process.env.CORS_ORIGIN || false) : true, credentials: true }));
 app.use(express.json());
@@ -67,6 +73,19 @@ app.post('/api/login', loginIpLimiter, async (req, res) => {
   const passwordMatch = await bcrypt.compare(password, userRecord ? userRecord.password_hash : DUMMY_PASSWORD_HASH);
   const isMatch = Boolean(userRecord) && passwordMatch;
 
+  // Una contraseña provisional caducada no entra. Si siguiera valiendo, dejar
+  // de caducar sería el comportamiento por defecto y la columna no serviría
+  // de nada.
+  if (userRecord && isMatch && userRecord.password_temporal
+      && userRecord.password_expira && new Date(userRecord.password_expira) < new Date()) {
+    recordFailure(matricula);
+    await saveLog('warning', `Contraseña provisional caducada para ${matricula}.`);
+    return res.status(401).json({
+      success: false,
+      message: 'Tu contraseña provisional caducó. Pídele otra a un administrador.',
+    });
+  }
+
   if (userRecord && isMatch) {
     recordSuccess(matricula);
     // Misma forma exacta que /api/me. Antes /api/login armaba su propio objeto
@@ -83,6 +102,9 @@ app.post('/api/login', loginIpLimiter, async (req, res) => {
       nombre: user.nombre,
       roles: user.roles,
       grupo: user.grupo,
+      // Marca la sesión como "solo sirve para cambiar la contraseña". Va en el
+      // token para que los tres servicios la respeten sin consultar la base.
+      ...(userRecord.password_temporal ? { tmp: true } : {}),
     });
     const csrfToken = generateCsrfToken();
 
@@ -129,6 +151,10 @@ function toPublicUser(row) {
     instagram: row.instagram ?? '',
     reddit: row.reddit ?? '',
     facebook: row.facebook ?? '',
+    // Lo que el panel necesita para llevarle directo a la pantalla de cambio.
+    // No es lo que lo impone —eso lo hace verifyToken con la marca del token—,
+    // es para que se lo encuentre explicado en vez de a golpe de error.
+    debe_cambiar_password: row.password_temporal ?? false,
     perfil_publico: row.perfil_publico ?? false,
     rol_publico: row.rol_publico ?? '',
     area: row.area ?? '',
@@ -184,11 +210,16 @@ const PROFILE_FIELDS = {
   rol_publico: { kind: 'text', maxLength: 80 },
   area: { kind: 'text', maxLength: 80 },
   generacion: { kind: 'text', maxLength: 20 },
+  // De estos tres, y solo de estos tres, un administrador también puede
+  // escribir los de otra persona (PUT /api/users/:matricula). Es lo que se ve
+  // en su ficha pública; el resto de este bloque sigue siendo suyo y nada más.
   show_alias: { kind: 'boolean' },
   push_notifications: { kind: 'boolean' },
   large_text: { kind: 'boolean' },
   reduce_animations: { kind: 'boolean' },
 };
+
+const CAMPOS_FICHA_PUBLICA = ['rol_publico', 'area', 'generacion'];
 
 // Los mapeos son JSON libre (su forma la decide el frontend), así que el
 // límite es de tamaño: sin tope, un usuario puede empujar megabytes a su fila
@@ -280,6 +311,63 @@ app.put('/api/profile', verifyToken, csrfProtection, noStore, async (req, res) =
   const row = rows[0];
   if (!row) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
   res.json({ success: true, user: toPublicUser(row) });
+});
+
+// Cambiar la propia contraseña.
+//
+// La razón de que exista: hasta ahora la única forma era pedírsela a un
+// administrador, que la escribía y por tanto la sabía. Aquí no la sabe nadie
+// más que su dueño.
+//
+// Pide siempre la actual, incluso a quien acaba de entrar con una provisional
+// —la acaba de teclear, no le cuesta nada—: sin eso, una sesión robada podría
+// cambiar la contraseña y quedarse la cuenta.
+app.put('/api/profile/password', verifyToken, cambioPasswordLimiter, csrfProtection, noStore, async (req, res) => {
+  const actual = String(req.body?.actual ?? '');
+  const nueva = String(req.body?.nueva ?? '');
+
+  const { rows } = await pool.query('SELECT * FROM users WHERE matricula = $1', [req.user.matricula]);
+  const fila = rows[0];
+  if (!fila) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+
+  if (!actual || !(await bcrypt.compare(actual, fila.password_hash))) {
+    await saveLog('warning', `Cambio de contraseña rechazado para ${req.user.matricula}: la actual no coincide.`);
+    return res.status(400).json({ success: false, message: 'Tu contraseña actual no es correcta.' });
+  }
+
+  const revisada = validarPassword(nueva, {
+    matricula: fila.matricula, nombre: fila.nombre, alias: fila.alias,
+  });
+  if (!revisada.ok) return res.status(400).json({ success: false, message: revisada.error });
+
+  // Cambiarla por la misma deja la sensación de haberla cambiado sin haberlo
+  // hecho, que es peor que no dejar hacerlo.
+  if (await bcrypt.compare(nueva, fila.password_hash)) {
+    return res.status(400).json({ success: false, message: 'La contraseña nueva es igual a la actual.' });
+  }
+
+  const hash = await bcrypt.hash(nueva, 10);
+  const { rows: actualizado } = await pool.query(
+    `UPDATE users SET password_hash = $1, password_temporal = false, password_expira = NULL,
+       password_changed_at = now()
+     WHERE matricula = $2 RETURNING *`,
+    [hash, req.user.matricula]
+  );
+
+  // Token nuevo sin la marca `tmp`, o quien acaba de cambiar una provisional
+  // seguiría bloqueado en la pantalla de cambio con todo ya hecho. Se renueva
+  // también el de CSRF: la sesión es otra a partir de aquí.
+  const user = toPublicUser(actualizado[0]);
+  const token = signSessionToken({
+    id: user.id, matricula: user.matricula, nombre: user.nombre,
+    roles: user.roles, grupo: user.grupo,
+  });
+  res.cookie(SESSION_COOKIE, token, { ...baseCookieOptions(), httpOnly: true });
+  res.cookie(CSRF_COOKIE, generateCsrfToken(), { ...baseCookieOptions(), httpOnly: false });
+
+  await saveLog('success', `${req.user.matricula} cambió su contraseña.`);
+  const permisos = await permisosDe({ matricula: user.matricula, roles: user.roles });
+  res.json({ success: true, user: { ...user, permisos: [...permisos] } });
 });
 
 app.put('/api/profile/mappings', verifyToken, csrfProtection, noStore, async (req, res) => {
@@ -570,7 +658,7 @@ app.get('/api/personas', verifyToken, requirePermiso('publicaciones.firmar'), no
 app.get('/api/users', verifyToken, requirePermiso('usuarios.gestionar'), noStore, async (req, res) => {
   const { rows } = await pool.query(
     `SELECT u.id, u.matricula, u.nombre, u.grupo, u.roles, u.alias, u.permisos_extra,
-            u.perfil_publico, u.rol_publico,
+            u.perfil_publico, u.rol_publico, u.area, u.generacion,
             -- Las especiales que ya tiene, con su motivo: { clave: motivo }.
             -- Así el editor puede abrirse con lo que hay escrito en vez de
             -- pedirlo persona a persona. Las automáticas no vienen: no se
@@ -592,15 +680,19 @@ app.post('/api/users', verifyToken, requirePermiso('usuarios.gestionar'), csrfPr
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
+  // La primera contraseña de una cuenta nace provisional, siempre: la escribió
+  // otra persona, así que hasta que su dueño la cambie hay dos que la saben.
   // ON CONFLICT DO NOTHING + comprobar rowCount en vez de un SELECT previo
   // seguido de INSERT: dos altas concurrentes con la misma matrícula ya no
   // pueden colarse entre el chequeo y el INSERT.
   const { rows } = await pool.query(
-    `INSERT INTO users (matricula, password_hash, nombre, roles, grupo, alias)
-     VALUES ($1, $2, $3, $4::jsonb, $5, $6)
+    `INSERT INTO users (matricula, password_hash, nombre, roles, grupo, alias,
+                        password_temporal, password_expira)
+     VALUES ($1, $2, $3, $4::jsonb, $5, $6, true, now() + $7::interval)
      ON CONFLICT (matricula) DO NOTHING
      RETURNING matricula`,
-    [matricula, passwordHash, nombre, JSON.stringify(roles || []), grupo || 'GENERAL', alias || '']
+    [matricula, passwordHash, nombre, JSON.stringify(roles || []), grupo || 'GENERAL', alias || '',
+     VIGENCIA_PROVISIONAL]
   );
   if (rows.length === 0) {
     return res.status(400).json({ message: 'La matrícula ya existe' });
@@ -620,10 +712,13 @@ app.put('/api/users/:matricula', verifyToken, requirePermiso('usuarios.gestionar
   const roles = req.body.roles ?? existingUser.roles;
   const grupo = req.body.grupo ?? existingUser.grupo;
   const alias = req.body.alias !== undefined ? req.body.alias : existingUser.alias;
-  const passwordHash =
-    req.body.password && req.body.password.trim() !== ''
-      ? await bcrypt.hash(req.body.password, 10)
-      : existingUser.password_hash;
+  // Si el admin escribe una contraseña, nace provisional y con caducidad. Si
+  // deja el campo en blanco, no se toca nada de esto: editar el nombre de
+  // alguien no puede echarlo a la pantalla de cambiar contraseña.
+  const cambiaPassword = Boolean(req.body.password && req.body.password.trim() !== '');
+  const passwordHash = cambiaPassword
+    ? await bcrypt.hash(req.body.password, 10)
+    : existingUser.password_hash;
 
   // Permisos sueltos de esta persona, además de los que le den sus roles. Se
   // filtran contra el catálogo: uno inventado no abriría nada, pero quedaría
@@ -634,11 +729,36 @@ app.put('/api/users/:matricula', verifyToken, requirePermiso('usuarios.gestionar
 
   // Si esta cuenta aparece o no en MIEMBROS. Vive aquí y no en /api/profile
   // porque publicar a alguien en la web del laboratorio es una decisión de la
-  // unidad, no del interesado. Los textos que se publican (a qué se dedica,
-  // área, generación) los sigue escribiendo cada quien.
+  // unidad, no del interesado.
   const perfilPublico = req.body.perfil_publico !== undefined
     ? Boolean(req.body.perfil_publico)
     : existingUser.perfil_publico;
+
+  // Los textos de la ficha pública (a qué se dedica, área, generación).
+  //
+  // Los escribe cada quien desde su perfil, y esa sigue siendo la vía
+  // normal. Pero solo desde ahí dejaba a quien administra en una posición
+  // absurda: podía publicar a alguien en MIEMBROS y no tenía forma de
+  // rellenarle la ficha, así que salía con el nombre y un hueco donde va el
+  // rol hasta que su dueño entrara a escribirlo. Quien publica tiene que
+  // poder completar lo que publica.
+  //
+  // Pasan por el mismo saneado y los mismos topes que en /api/profile: es la
+  // misma columna, no puede admitir más por venir de un administrador. Y solo
+  // se tocan las que vengan en el cuerpo — guardar el formulario del editor
+  // no puede borrar lo que la persona escribió por su cuenta.
+  const ficha = {};
+  for (const campo of CAMPOS_FICHA_PUBLICA) {
+    if (req.body[campo] === undefined) {
+      ficha[campo] = existingUser[campo];
+      continue;
+    }
+    const checked = sanitizeProfileField(PROFILE_FIELDS[campo], req.body[campo]);
+    if (!checked.ok) {
+      return res.status(400).json({ success: false, message: `${campo}: ${checked.error}` });
+    }
+    ficha[campo] = checked.value;
+  }
 
   // Nadie puede quitarse a sí mismo la llave de casa.
   //
@@ -661,10 +781,18 @@ app.put('/api/users/:matricula', verifyToken, requirePermiso('usuarios.gestionar
 
   await pool.query(
     `UPDATE users SET nombre = $1, roles = $2::jsonb, grupo = $3, alias = $4, password_hash = $5,
-       permisos_extra = $6::jsonb, perfil_publico = $7
-     WHERE matricula = $8`,
-    [nombre, JSON.stringify(roles), grupo, alias, passwordHash, JSON.stringify(permisosExtra), perfilPublico, matricula]
+       permisos_extra = $6::jsonb, perfil_publico = $7,
+       rol_publico = $8, area = $9, generacion = $10,
+       password_temporal = CASE WHEN $11 THEN true ELSE password_temporal END,
+       password_expira   = CASE WHEN $11 THEN now() + $12::interval ELSE password_expira END
+     WHERE matricula = $13`,
+    [nombre, JSON.stringify(roles), grupo, alias, passwordHash, JSON.stringify(permisosExtra), perfilPublico,
+     ficha.rol_publico, ficha.area, ficha.generacion,
+     cambiaPassword, VIGENCIA_PROVISIONAL, matricula]
   );
+  if (cambiaPassword) {
+    await saveLog('warning', `Administrador ${req.user.matricula} puso una contraseña provisional a ${matricula}.`);
+  }
   await saveLog('info', `Administrador ${req.user.matricula} modificó el usuario ${matricula}.`);
   // Se registra aparte: publicar o retirar a alguien de la web es lo único de
   // esta ruta que cambia lo que ve un visitante, y conviene poder rastrearlo
@@ -672,7 +800,47 @@ app.put('/api/users/:matricula', verifyToken, requirePermiso('usuarios.gestionar
   if (perfilPublico !== existingUser.perfil_publico) {
     await saveLog('info', `Administrador ${req.user.matricula} ${perfilPublico ? 'publicó' : 'retiró'} el perfil de ${matricula} en MIEMBROS.`);
   }
+  // Y por el mismo motivo, si le reescribió los textos de la ficha: son datos
+  // de una persona, escritos por otra. Que quede quién lo hizo.
+  // Los dos lados normalizados: en la base, "sin rellenar" es NULL en unas
+  // filas y '' en otras, y compararlos en crudo daría por modificado un campo
+  // que nadie tocó.
+  const fichaCambiada = CAMPOS_FICHA_PUBLICA.filter(
+    (c) => (ficha[c] ?? '') !== (existingUser[c] ?? '')
+  );
+  if (fichaCambiada.length > 0) {
+    await saveLog('info', `Administrador ${req.user.matricula} editó la ficha pública de ${matricula} (${fichaCambiada.join(', ')}).`);
+  }
   res.json({ success: true, message: 'Usuario actualizado correctamente' });
+});
+
+// Reiniciar la contraseña de otra persona.
+//
+// Es el reemplazo de "invéntate una y pásasela". La genera el servidor, se
+// devuelve UNA vez para dictarla, y quien la recibe está obligado a cambiarla
+// al entrar. Nunca se guarda en claro: lo que queda en la base es su bcrypt,
+// igual que cualquier otra.
+//
+// Que la escoja el servidor no es capricho: las que se teclean a mano acaban
+// siendo la misma para todo el mundo, y esa se queda circulando.
+app.post('/api/users/:matricula/password-temporal', verifyToken, requirePermiso('usuarios.gestionar'), csrfProtection, noStore, async (req, res) => {
+  const { matricula } = req.params;
+  const { rows } = await pool.query('SELECT matricula FROM users WHERE matricula = $1', [matricula]);
+  if (!rows[0]) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+
+  const temporal = generarPasswordTemporal();
+  await pool.query(
+    `UPDATE users SET password_hash = $1, password_temporal = true,
+       password_expira = now() + $2::interval
+     WHERE matricula = $3`,
+    [await bcrypt.hash(temporal, 10), VIGENCIA_PROVISIONAL, matricula]
+  );
+
+  // El texto en claro sale de aquí y no vuelve a existir en ninguna parte: ni
+  // en la base, ni en el registro de actividad. Del log queda el hecho, no la
+  // contraseña.
+  await saveLog('warning', `Administrador ${req.user.matricula} reinició la contraseña de ${matricula}.`);
+  res.json({ success: true, password: temporal, horas: 72 });
 });
 
 app.delete('/api/users/:matricula', verifyToken, requirePermiso('usuarios.gestionar'), csrfProtection, async (req, res) => {

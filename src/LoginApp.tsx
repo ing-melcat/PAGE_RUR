@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { Loader2, CheckCircle, ChevronDown, ChevronUp, Globe, Lock, Upload, TriangleAlert, Star, Eye, EyeOff, Languages, X } from "lucide-react";
+import { CambiarPassword } from "./components/CambiarPassword";
 import "./index.css";
 import { ModeSelect } from "./controller/ModeSelect";
 // Carga diferida: arrastra Robot3DPreview -> @react-three/fiber/drei ->
@@ -867,6 +868,9 @@ export default function App() {
   // marcado mientras se edita para avisar de que se va a publicar una ficha sin
   // rellenar.
   const [perfilPublicoEdit, setPerfilPublicoEdit] = useState(false);
+  // Los textos de la ficha pública. Controlados también: el aviso de "ficha
+  // vacía" tiene que apagarse en cuanto se escribe el rol, no al guardar.
+  const [fichaEdit, setFichaEdit] = useState({ rol_publico: '', area: '', generacion: '' });
 
   const fetchUsers = async () => {
     try {
@@ -936,7 +940,8 @@ export default function App() {
       roles: rolesArr,
       permisos_extra: permisosExtra,
       alias: formData.get('alias'),
-      perfil_publico: perfilPublicoEdit
+      perfil_publico: perfilPublicoEdit,
+      ...fichaEdit
     };
 
     try {
@@ -953,6 +958,21 @@ export default function App() {
         alert(d.message);
       }
     } catch(e) {
+      alert(t('alertas.errorConexionGenerico'));
+    }
+  };
+
+  // Reiniciar la contraseña de otra persona. La genera el servidor y se
+  // enseña UNA vez, aquí, para dictarla: no se guarda en claro en ninguna
+  // parte, así que si se cierra este aviso sin copiarla hay que generar otra.
+  const reiniciarPassword = async (u: any) => {
+    if (!window.confirm(t('adminUsuarios.reiniciarConfirmar').replace('{quien}', u.nombre))) return;
+    try {
+      const res = await apiFetch(`/api/users/${u.matricula}/password-temporal`, { method: 'POST' });
+      const datos = await res.json().catch(() => null);
+      if (!res.ok || !datos?.success) return alert(datos?.message || t('adminUsuarios.reiniciarError'));
+      window.prompt(t('adminUsuarios.reiniciarListo').replace('{quien}', u.nombre), datos.password);
+    } catch {
       alert(t('alertas.errorConexionGenerico'));
     }
   };
@@ -1137,6 +1157,16 @@ export default function App() {
   // es un campo del formulario, es un acto con fecha y firma. Mezclarla con el
   // guardado haría que cambiar un apellido y conceder un reconocimiento fueran
   // el mismo clic.
+  // Con una contraseña provisional no se va a ninguna otra parte. Se desvía
+  // aquí en vez de esconder botones uno a uno: `view` es un solo estado, así
+  // que ponerlo en esta pantalla apaga todas las demás de golpe. Lo que de
+  // verdad lo impide sigue estando en el servidor.
+  useEffect(() => {
+    if (user?.debe_cambiar_password && view !== 'login' && view !== 'cambiar_password') {
+      setView('cambiar_password');
+    }
+  }, [user, view]);
+
   const otorgarMedalla = async (clave: string, otorgar: boolean) => {
     if (!editingUser?.id) return;
     const motivo = motivosMedallas[clave] ?? '';
@@ -1334,6 +1364,18 @@ export default function App() {
             </motion.section>
           )}
 
+          {/* Contraseña provisional: no hay más pantalla que esta.
+              El servidor ya niega el resto de rutas con esa sesión (la marca
+              `tmp` del token); esto es para que se encuentre la explicación y
+              el formulario, en vez de un panel lleno de errores. */}
+          {view === "cambiar_password" && user && (
+            <CambiarPassword
+              key="password-forzado"
+              forzado
+              alTerminar={(u) => { setUser(u); setView("dashboard"); setMainContext("modules"); }}
+            />
+          )}
+
           {view === "welcome" && user && (
             <motion.section 
               key="welcome" 
@@ -1484,6 +1526,17 @@ export default function App() {
                     onClick={openProfileEditor}
                   >
                     {t('dashboard.personalizarPerfil')}
+                  </button>
+
+                  {/* Junto a personalizar el perfil, no escondido en Ajustes:
+                      es la razón por la que hoy se le pide la contraseña nueva
+                      a un administrador — porque no había dónde cambiarla. */}
+                  <button
+                    className="logout-btn-small"
+                    style={{ width: '100%', marginTop: '8px' }}
+                    onClick={() => setMainContext("cambiar_password")}
+                  >
+                    {t('password.titulo')}
                   </button>
                 </motion.div>
               </aside>
@@ -1751,6 +1804,15 @@ export default function App() {
                       <button className="back-link" style={{ marginTop: '32px' }} onClick={() => setMainContext("modules")}>{t('perfil.cancelarVolver')}</button>
                     </motion.div>
                   )}
+
+                  {mainContext === "cambiar_password" && (
+                    <motion.div key="cambiar_password" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                      <CambiarPassword
+                        alTerminar={(u) => { setUser(u); alert(t('password.listo')); setMainContext("modules"); }}
+                        alCancelar={() => setMainContext("modules")}
+                      />
+                    </motion.div>
+                  )}
                 </AnimatePresence>
               </main>
             </motion.section>
@@ -1973,11 +2035,57 @@ export default function App() {
                           />
                         </label>
                         {/* Publicar a alguien que no ha rellenado su perfil deja
-                            una ficha con el nombre y nada más. Se avisa aquí,
-                            que es cuando se puede evitar. */}
-                        {perfilPublicoEdit && !editingUser.rol_publico && (
+                            una ficha con el nombre y nada más. Antes esto solo
+                            se avisaba, y el aviso era un callejón sin salida:
+                            señalaba el hueco desde la única pantalla que no
+                            podía taparlo. Ahora se escribe aquí mismo. */}
+                        {perfilPublicoEdit && !fichaEdit.rol_publico.trim() && (
                           <p className="visibilidad__aviso">{t('adminUsuarios.perfilPublicoVacio')}</p>
                         )}
+
+                        <div className="visibilidad__ficha">
+                          <p className="visibilidad__nota">{t('adminUsuarios.fichaAyuda')}</p>
+                          <div className="input-group">
+                            <label>{t('perfil.rolPublico')}</label>
+                            <input
+                              type="text"
+                              maxLength={80}
+                              placeholder={t('perfil.rolPublicoPlaceholder')}
+                              value={fichaEdit.rol_publico}
+                              onChange={(e) => setFichaEdit({ ...fichaEdit, rol_publico: e.target.value })}
+                            />
+                          </div>
+                          <div className="input-group">
+                            <label>{t('perfil.area')}</label>
+                            <select
+                              value={fichaEdit.area}
+                              onChange={(e) => setFichaEdit({ ...fichaEdit, area: e.target.value })}
+                            >
+                              <option value="">{t('perfil.areaSinElegir')}</option>
+                              {AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+                              {/* Un área que no esté en la lista —escrita antes
+                                  de que existiera, o desde otra pantalla— se
+                                  conserva como opción propia. Sin esto el
+                                  desplegable se abre en blanco y guardar el
+                                  formulario le borra el área a esa persona sin
+                                  que nadie la haya tocado. */}
+                              {fichaEdit.area && !AREAS.includes(fichaEdit.area) && (
+                                <option value={fichaEdit.area}>{fichaEdit.area}</option>
+                              )}
+                            </select>
+                          </div>
+                          <div className="input-group">
+                            <label>{t('perfil.generacion')}</label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={20}
+                              placeholder="2024"
+                              value={fichaEdit.generacion}
+                              onChange={(e) => setFichaEdit({ ...fichaEdit, generacion: e.target.value })}
+                            />
+                          </div>
+                        </div>
                       </div>
                     )}
 
@@ -2086,7 +2194,8 @@ export default function App() {
                                 borrarse —ni quitarse la gestión de usuarios,
                                 que lo impide el servidor—. */}
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                              <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => { setEditingUser(u); setMotivosMedallas({ ...(u.medallas ?? {}) }); setPerfilPublicoEdit(!!u.perfil_publico); }}>{t('adminUsuarios.editar')}</button>
+                              <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => { setEditingUser(u); setMotivosMedallas({ ...(u.medallas ?? {}) }); setPerfilPublicoEdit(!!u.perfil_publico); setFichaEdit({ rol_publico: u.rol_publico ?? '', area: u.area ?? '', generacion: u.generacion ?? '' }); }}>{t('adminUsuarios.editar')}</button>
+                              <button className="logout-btn-small" onClick={() => reiniciarPassword(u)}>{t('adminUsuarios.reiniciar')}</button>
                               {u.matricula !== user?.matricula && (
                                 <button className="logout-btn-small" style={{borderColor: 'var(--error)', color: 'var(--error)'}} onClick={() => handleDeleteUser(u.matricula)}>{t('adminUsuarios.revocar')}</button>
                               )}

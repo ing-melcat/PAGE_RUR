@@ -28,6 +28,19 @@ export function baseCookieOptions() {
   };
 }
 
+// Lo único que puede hacer quien entró con una contraseña temporal: mirar
+// quién es, cambiarla y salir. Todo lo demás se le niega.
+//
+// La marca viaja en el propio JWT (`tmp`) y no se consulta a la base, que es
+// lo que permite que los tres servicios apliquen el bloqueo sin que
+// svc-content y svc-robots tengan que leer la tabla users ni enterarse de
+// nada. El token se firma de nuevo, ya sin la marca, en cuanto la cambia.
+export const RUTAS_CON_PASSWORD_TEMPORAL = new Set([
+  '/api/me',
+  '/api/logout',
+  '/api/profile/password',
+]);
+
 // verifyToken: exige sesión válida. Sustituye al middleware que leía
 // "Authorization: Bearer <token>" — ahora el token viaja en una cookie
 // httpOnly que el navegador adjunta solo, sin que JS del frontend lo toque.
@@ -36,6 +49,16 @@ export const verifyToken = (req, res, next) => {
   if (!token) return res.status(403).json({ success: false, message: 'Se requiere sesión activa' });
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) return res.status(401).json({ success: false, message: 'Sesión inválida o expirada' });
+    // Se corta aquí y no en el frontend: una pantalla que "obliga" a cambiar
+    // la contraseña no obliga a nada si la API sigue atendiendo al resto de
+    // rutas. Con el corte aquí, la contraseña provisional no abre nada.
+    if (decoded?.tmp && !RUTAS_CON_PASSWORD_TEMPORAL.has(req.path)) {
+      return res.status(403).json({
+        success: false,
+        codigo: 'password_temporal',
+        message: 'Tienes una contraseña provisional: cámbiala para poder seguir.',
+      });
+    }
     req.user = decoded;
     next();
   });
@@ -53,7 +76,11 @@ export const sesionOpcional = (req, res, next) => {
   const token = req.cookies?.[SESSION_COOKIE];
   if (!token) return next();
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (!err) req.user = decoded;
+    // Una sesión provisional cuenta como visitante anónimo, no como sesión.
+    // Estas rutas enseñan de más a quien tiene sesión —/api/posts devuelve
+    // también las publicaciones ocultas—, y una contraseña que puso otra
+    // persona no debe abrir eso: medido en dev, 7 publicaciones en vez de 5.
+    if (!err && !decoded?.tmp) req.user = decoded;
     next();
   });
 };

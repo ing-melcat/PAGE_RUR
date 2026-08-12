@@ -46,4 +46,20 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     GRANT USAGE, SELECT ON SEQUENCE logs_id_seq TO svc_identity_role;
     GRANT INSERT ON logs TO svc_content_role;
     GRANT USAGE, SELECT ON SEQUENCE logs_id_seq TO svc_content_role;
+
+    -- Los tres servicios resuelven permisos en cada petición, así que los tres
+    -- necesitan leer los roles. Escribirlos es cosa de identity, que es quien
+    -- administra personal.
+    GRANT SELECT ON roles TO svc_identity_role, svc_content_role, svc_robots_role;
+    GRANT INSERT, UPDATE, DELETE ON roles TO svc_identity_role;
+
+    -- Resolver permisos mira también los sueltos de la persona, que viven en
+    -- users. svc-content ya lee esa tabla entera; a svc-robots se le conceden
+    -- las dos columnas que necesita y ninguna más.
+    GRANT SELECT (matricula, permisos_extra) ON users TO svc_robots_role;
+
+    -- identity sirve los perfiles con sus medallas y es quien las otorga desde
+    -- el panel de personal.
+    GRANT SELECT, INSERT, UPDATE, DELETE ON medallas_otorgadas TO svc_identity_role;
+    GRANT USAGE, SELECT ON SEQUENCE medallas_otorgadas_id_seq TO svc_identity_role;
 EOSQL

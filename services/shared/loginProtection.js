@@ -25,6 +25,24 @@ export const loginIpLimiter = rateLimit({
   }),
 });
 
+// Cambiar la contraseña exige acertar la actual, así que esa ruta es otro sitio
+// donde se puede adivinar a base de intentos — con la ventaja para el atacante
+// de que ahí no hay bloqueo por cuenta que lo delate. Límite propio y más
+// estrecho que el del login: nadie cambia su contraseña diez veces en un rato.
+//
+// No se reutiliza el bloqueo por matrícula a propósito: dejaría que quien tiene
+// una sesión robada cerrara al dueño fuera del login fallando aposta.
+export const cambioPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => res.status(429).json({
+    success: false,
+    message: 'Demasiados intentos de cambio de contraseña. Espera unos minutos.',
+  }),
+});
+
 const attempts = new Map(); // matricula -> { failCount, lockedUntil, lastFailureAt }
 const MAX_FAILS_BEFORE_LOCK = 5;
 const BASE_LOCK_MS = 30 * 1000; // 30s, se duplica por cada fallo adicional

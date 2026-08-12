@@ -1722,6 +1722,29 @@ textarea:focus-visible {
   color: var(--warning);
 }
 
+/* Los textos que se publican de esa persona. Separados del interruptor por una
+   línea porque son otra cosa: arriba se decide si sale, aquí qué se lee de
+   ella. */
+.visibilidad__ficha {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.visibilidad__ficha .visibilidad__nota {
+  margin: 0;
+}
+
+/* Con aviso delante, la línea ya la puso él: el aviso presenta estos campos
+   ("puedes escribirlo aquí abajo"), así que separarlos con otra los partiría
+   en dos cosas distintas. */
+.visibilidad__aviso + .visibilidad__ficha {
+  padding-top: 0;
+  border-top: none;
+}
+
 .excelencia {
   display: flex;
   flex-direction: column;
