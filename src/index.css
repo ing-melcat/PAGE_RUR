@@ -609,7 +609,7 @@ h1 {
   letter-spacing: 0.05em;
 }
 
-input {
+input, select, textarea {
   width: 100%;
   padding: 14px 16px;
   border: 1px solid var(--border);
@@ -621,7 +621,7 @@ input {
   transition: color var(--mov-rapido) ease, background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-input:focus {
+input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: inset 2px 0 0 var(--accent);
@@ -813,9 +813,9 @@ button[type="submit"]:disabled {
   width: 100%;
   padding: 16px;
   border-radius: 2px;
-  border: 1px solid var(--error);
+  border: 1px solid var(--muted);
   background: transparent;
-  color: var(--error);
+  color: var(--muted);
   font-family: var(--font-ibm-mono), monospace;
   font-weight: 700;
   text-transform: uppercase;
@@ -828,8 +828,8 @@ button[type="submit"]:disabled {
 
 @media (hover: hover) {
   .logout-btn:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--error);
+    background: rgba(140, 155, 176, 0.1);
+    color: var(--text);
   }
 }
 
@@ -1515,26 +1515,28 @@ textarea:focus-visible {
 
 @media (hover: hover) {
   .autores__quitar:hover {
-    color: var(--error);
-    border-color: var(--error);
+    color: var(--muted);
+    border-color: var(--muted);
   }
 }
 
 .autores__agregar {
-  align-self: flex-start;
+  width: 100%;
   background: transparent;
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--accent);
   border-radius: 4px;
   color: var(--accent);
   font-family: var(--font-ibm-mono);
-  font-size: var(--t-xs);
-  padding: 8px 12px;
+  font-size: var(--t-sm);
+  padding: 12px;
   cursor: pointer;
-  transition: border-color var(--mov-rapido) ease;
+  transition: all var(--mov-rapido) ease;
 }
 
 @media (hover: hover) {
-  .autores__agregar:hover { border-color: var(--accent); }
+  .autores__agregar:hover { 
+    background: var(--accent-muted); 
+  }
 }
 
 .autores__quitar:focus-visible,

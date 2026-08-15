@@ -103,7 +103,7 @@ function Home() {
           <Link to="/archivo" style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', textDecoration: 'none', letterSpacing: '0.1em' }}>{t('home.verTodo')}</Link>
         </div>
 
-        <Landing />
+        <Landing category="all" limit={6} />
       </section>
     </>
   );

@@ -19,12 +19,13 @@ import {
 } from '../shared/auth.js';
 import { generateCsrfToken, csrfProtection } from '../shared/csrf.js';
 import { PERMISOS, ES_PERMISO, ROL_TOTAL, permisosEfectivos } from '../shared/permisos.js';
-import { MEDALLAS_AUTOMATICAS, MEDALLAS_ESPECIALES, esMedallaEspecial, medallasDe } from '../shared/medallas.js';
+import { medallasDe } from '../shared/medallas.js';
 import { validarPassword, generarPasswordTemporal } from '../shared/password.js';
 import { loginIpLimiter, cambioPasswordLimiter, isLocked, lockedRemainingMs, recordFailure, recordSuccess } from '../shared/loginProtection.js';
 import { saveLog } from '../shared/logs.js';
 
 const app = express();
+app.set('trust proxy', 1); // Caddy es el único proxy delante
 const PORT = process.env.PORT || 3001;
 const pool = getPool();
 
@@ -439,7 +440,7 @@ const SELECT_MIEMBRO = `
 // Como identificador va el id interno, NO la matrícula: la matrícula es el
 // usuario con el que se inicia sesión, así que publicarla sería regalar la
 // mitad de las credenciales de cada miembro.
-function aMiembroPublico(r) {
+function aMiembroPublico(r, catalogo) {
   return {
     id: r.id,
     nombre: r.show_alias && r.alias ? r.alias : r.nombre,
@@ -460,7 +461,7 @@ function aMiembroPublico(r) {
     proyectos: r.proyectos ?? [],
     // Se calculan aquí y no en el navegador: si el frontend las dedujera por
     // su cuenta, dos pantallas podrían discrepar sobre quién tiene qué.
-    medallas: medallasDe(r.proyectos ?? [], r.otorgadas ?? []),
+    medallas: medallasDe(r.proyectos ?? [], r.otorgadas ?? [], catalogo),
   };
 }
 
@@ -468,7 +469,9 @@ app.get('/api/miembros', async (req, res) => {
   const { rows } = await pool.query(
     `${SELECT_MIEMBRO} WHERE u.perfil_publico IS TRUE ORDER BY u.area NULLS LAST, u.nombre`
   );
-  res.json(rows.map(aMiembroPublico));
+  // Una sola lectura del catálogo para toda la lista, no una por persona.
+  const catalogo = await catalogoMedallas();
+  res.json(rows.map((r) => aMiembroPublico(r, catalogo)));
 });
 
 // El perfil de una sola persona, con su historial completo.
@@ -493,7 +496,7 @@ app.get('/api/miembros/:id', async (req, res) => {
   if (!rows[0]) {
     return res.status(404).json({ success: false, message: 'Miembro no encontrado' });
   }
-  res.json(aMiembroPublico(rows[0]));
+  res.json(aMiembroPublico(rows[0], await catalogoMedallas()));
 });
 
 // ---------------------------------------------------------------------------
@@ -593,11 +596,134 @@ app.delete('/api/roles/:nombre', verifyToken, requirePermiso('roles.gestionar'),
   res.json({ success: true });
 });
 
-// El catálogo de medallas, para que el panel no lo lleve escrito por su
-// cuenta: si lo duplicara, un día la lista de allí y la de aquí dirían cosas
-// distintas y solo esta sería la verdadera.
-app.get('/api/medallas', verifyToken, noStore, (req, res) => {
-  res.json({ automaticas: MEDALLAS_AUTOMATICAS, especiales: MEDALLAS_ESPECIALES });
+// El catálogo de medallas. Sale de la tabla, no de una lista en el código:
+// crear una medalla nueva es cosa del panel, no de un despliegue.
+//
+// Se guarda unos segundos porque se pide en cada perfil público, que es la
+// página más visitada de la sección.
+const CACHE_MEDALLAS_MS = 5_000;
+let cacheMedallas = null;
+let cacheMedallasExpira = 0;
+
+async function catalogoMedallas() {
+  const ahora = Date.now();
+  if (cacheMedallas && ahora < cacheMedallasExpira) return cacheMedallas;
+  const { rows } = await pool.query(
+    'SELECT clave, nombre, descripcion, icono, color, automatica, del_sistema, orden FROM medallas ORDER BY orden, nombre'
+  );
+  cacheMedallas = rows;
+  cacheMedallasExpira = ahora + CACHE_MEDALLAS_MS;
+  return rows;
+}
+
+function invalidarCacheMedallas() {
+  cacheMedallas = null;
+  cacheMedallasExpira = 0;
+}
+
+// Cualquier sesión puede leerlo: el editor de usuario necesita los nombres y
+// los criterios para conceder. Crearlas y editarlas sí exige permiso.
+app.get('/api/medallas', verifyToken, noStore, async (req, res) => {
+  res.json({ medallas: await catalogoMedallas() });
+});
+
+const CLAVE_MEDALLA = /^[a-z0-9_-]{2,40}$/;
+const COLOR_MEDALLA = /^#[0-9a-fA-F]{6}$/;
+
+// El icono es un solo símbolo. Se limita a un puñado de caracteres porque va
+// dentro de un círculo de 22px: un emoji a color o un texto de tres letras se
+// salen del círculo y rompen la fila de medallas de la tarjeta.
+const ICONOS_VALIDOS = ['▲','◆','★','✦','◈','❖','◉','●','■','⬟','✚','⚑','☗','◐','✱','⬤'];
+
+function medallaDelCuerpo(body) {
+  const nombre = String(body?.nombre ?? '').trim().slice(0, 80);
+  if (!nombre) return { ok: false, error: 'La medalla necesita un nombre.' };
+  const icono = ICONOS_VALIDOS.includes(body?.icono) ? body.icono : ICONOS_VALIDOS[3];
+  const color = COLOR_MEDALLA.test(body?.color) ? body.color : '#fbbf24';
+  const descripcion = String(body?.descripcion ?? '').trim().slice(0, 300);
+  if (!descripcion) {
+    return { ok: false, error: 'Escribe qué reconoce: es el criterio que se lee al concederla.' };
+  }
+  const orden = Number.isInteger(body?.orden) ? body.orden : 100;
+  return { ok: true, valor: { nombre, icono, color, descripcion, orden } };
+}
+
+app.post('/api/medallas', verifyToken, requirePermiso('medallas.gestionar'), csrfProtection, async (req, res) => {
+  const clave = String(req.body?.clave ?? '').trim().toLowerCase();
+  // Misma regla que los roles: la clave se guarda en medallas_otorgadas y se
+  // compara en varios sitios, así que nada de texto libre con espacios.
+  if (!CLAVE_MEDALLA.test(clave)) {
+    return res.status(400).json({ success: false, message: 'Clave inválida: solo letras, números, guion y guion bajo.' });
+  }
+  const revisada = medallaDelCuerpo(req.body);
+  if (!revisada.ok) return res.status(400).json({ success: false, message: revisada.error });
+  const { nombre, icono, color, descripcion, orden } = revisada.valor;
+
+  // Las que se crean desde el panel son siempre otorgables. Una automática
+  // necesita una regla escrita en código; marcarla aquí produciría una medalla
+  // que no se le concede nunca a nadie y que nadie entendería por qué falta.
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO medallas (clave, nombre, descripcion, icono, color, automatica, del_sistema, orden)
+       VALUES ($1, $2, $3, $4, $5, false, false, $6) RETURNING *`,
+      [clave, nombre, descripcion, icono, color, orden]
+    );
+    invalidarCacheMedallas();
+    await saveLog('info', `${req.user.matricula} creó la medalla ${nombre}.`);
+    res.status(201).json(rows[0]);
+  } catch (e) {
+    if (e.code === '23505') return res.status(409).json({ success: false, message: 'Ya existe una medalla con esa clave' });
+    throw e;
+  }
+});
+
+app.put('/api/medallas/:clave', verifyToken, requirePermiso('medallas.gestionar'), csrfProtection, async (req, res) => {
+  const revisada = medallaDelCuerpo(req.body);
+  if (!revisada.ok) return res.status(400).json({ success: false, message: revisada.error });
+  const { nombre, icono, color, descripcion, orden } = revisada.valor;
+
+  // `automatica` y `del_sistema` no se tocan desde aquí: dependen de si hay
+  // una regla en el código, no de lo que mande el cliente.
+  const { rows } = await pool.query(
+    `UPDATE medallas SET nombre = $1, descripcion = $2, icono = $3, color = $4, orden = $5
+      WHERE clave = $6 RETURNING *`,
+    [nombre, descripcion, icono, color, orden, req.params.clave]
+  );
+  if (!rows[0]) return res.status(404).json({ success: false, message: 'Medalla no encontrada' });
+
+  invalidarCacheMedallas();
+  await saveLog('info', `${req.user.matricula} modificó la medalla ${nombre}.`);
+  res.json(rows[0]);
+});
+
+app.delete('/api/medallas/:clave', verifyToken, requirePermiso('medallas.gestionar'), csrfProtection, async (req, res) => {
+  const { clave } = req.params;
+  const { rows: filas } = await pool.query('SELECT nombre, del_sistema FROM medallas WHERE clave = $1', [clave]);
+  if (!filas[0]) return res.status(404).json({ success: false, message: 'Medalla no encontrada' });
+  if (filas[0].del_sistema) {
+    return res.status(403).json({
+      success: false,
+      message: 'Esa medalla se calcula sola desde los proyectos: su regla está en el código y borrarla la dejaría a medias.',
+    });
+  }
+
+  // Borrarla mientras alguien la lleva puesta le quitaría un reconocimiento de
+  // paso. Se dice a cuántos hay que retirársela antes, en vez de un "no se
+  // pudo borrar" que no explica nada.
+  const { rows: cuenta } = await pool.query(
+    'SELECT count(*)::int AS n FROM medallas_otorgadas WHERE clave = $1', [clave]
+  );
+  if (cuenta[0].n > 0) {
+    return res.status(409).json({
+      success: false,
+      message: `No se puede borrar: ${cuenta[0].n} persona(s) la tienen otorgada. Retírasela primero desde su ficha.`,
+    });
+  }
+
+  await pool.query('DELETE FROM medallas WHERE clave = $1', [clave]);
+  invalidarCacheMedallas();
+  await saveLog('warning', `${req.user.matricula} borró la medalla ${filas[0].nombre}.`);
+  res.json({ success: true });
 });
 
 // Otorgar o retirar una medalla especial.
@@ -614,10 +740,13 @@ app.put('/api/miembros/:id/medallas/:clave', verifyToken, requirePermiso('usuari
   }
   const id = Number.parseInt(req.params.id, 10);
   const { clave } = req.params;
-  if (!esMedallaEspecial(clave)) {
+  // Contra la tabla, no contra una lista del código: si no, una medalla creada
+  // desde el panel no se podría conceder nunca.
+  const medalla = (await catalogoMedallas()).find((m) => m.clave === clave);
+  if (!medalla || medalla.automatica) {
     return res.status(400).json({ success: false, message: 'Esa medalla no se otorga: o no existe, o se calcula sola desde los proyectos.' });
   }
-  const nombreMedalla = MEDALLAS_ESPECIALES[clave].nombre;
+  const nombreMedalla = medalla.nombre;
   const motivo = String(req.body?.motivo ?? '').trim().slice(0, 500);
 
   if (req.body?.otorgar === false) {

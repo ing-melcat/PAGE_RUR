@@ -8,7 +8,7 @@ import multer from 'multer';
 import sharp from 'sharp';
 import rateLimit from 'express-rate-limit';
 import { getPool } from '../shared/db.js';
-import { verifyToken, requireRole, requirePermiso, sesionOpcional, IS_PRODUCTION } from '../shared/auth.js';
+import { verifyToken, requirePermiso, permisosDe, sesionOpcional, IS_PRODUCTION } from '../shared/auth.js';
 import { csrfProtection } from '../shared/csrf.js';
 import { saveLog } from '../shared/logs.js';
 import {
@@ -36,6 +36,7 @@ const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 const app = express();
+app.set('trust proxy', 1); // Caddy es el único proxy delante
 const PORT = process.env.PORT || 3001;
 const pool = getPool();
 
@@ -181,20 +182,30 @@ async function guardarAutores(postId, autores) {
   }
 }
 
-function rowToPost(row) {
-  return {
+function rowToPost(row, includeContent = true) {
+  const post = {
     id: row.id,
     title: row.title,
     type: row.type,
-    content: row.content,
     image: row.image,
     videoUrl: row.video_url,
     modelUrl: row.model_url,
     category: row.category,
     isHidden: row.is_hidden,
-    pages: row.pages,
     ...(row.extra ?? {}),
   };
+
+  if (includeContent) {
+    post.content = row.content;
+    post.pages = row.pages;
+  } else {
+    if (row.type === 'simple' && row.content) {
+      const stripped = row.content.replace(/<[^>]*>?/gm, '');
+      post.previewText = stripped.substring(0, 140) + (stripped.length > 140 ? '...' : '');
+    }
+  }
+
+  return post;
 }
 
 function splitExtra(body) {
@@ -237,7 +248,9 @@ app.get('/api/posts', sesionOpcional, async (req, res) => {
   const { rows } = req.user
     ? await pool.query(`SELECT *${AUTORES} FROM posts ORDER BY date DESC`)
     : await pool.query(`SELECT *${AUTORES} FROM posts WHERE is_hidden IS NOT TRUE ORDER BY date DESC`);
-  const posts = rows.map((r) => ({ ...rowToPost(r), autores: r.autores ?? [] }));
+  
+  const includeContent = req.query.full === 'true';
+  const posts = rows.map((r) => ({ ...rowToPost(r, includeContent), autores: r.autores ?? [] }));
 
   // 'es' es el idioma nativo del contenido -- nada que traducir. Cualquier
   // otro valor de ?lang= se sirve de post_translations, que ya está lleno
@@ -250,8 +263,40 @@ app.get('/api/posts', sesionOpcional, async (req, res) => {
   res.json(posts);
 });
 
+app.get('/api/posts/:id', sesionOpcional, async (req, res) => {
+  res.set('Vary', 'Cookie');
+  const AUTORES = `,
+    COALESCE(
+      (SELECT json_agg(json_build_object(
+                'id', u.id, 'nombre',
+                CASE WHEN u.show_alias AND u.alias <> '' THEN u.alias ELSE u.nombre END,
+                'papel', pm.papel, 'lider', pm.lider, 'publico', u.perfil_publico)
+              ORDER BY u.nombre)
+         FROM post_miembros pm JOIN users u ON u.id = pm.user_id
+        WHERE pm.post_id = posts.id),
+      '[]'::json
+    ) AS autores`;
+
+  const query = req.user
+    ? `SELECT *${AUTORES} FROM posts WHERE id = $1`
+    : `SELECT *${AUTORES} FROM posts WHERE id = $1 AND is_hidden IS NOT TRUE`;
+  const { rows } = await pool.query(query, [req.params.id]);
+
+  if (rows.length === 0) return res.status(404).json({ success: false, message: 'Publicación no encontrada' });
+  
+  const posts = [{ ...rowToPost(rows[0], true), autores: rows[0].autores ?? [] }];
+  
+  const lang = req.query.lang;
+  if (lang && lang !== 'es') {
+    const translated = await adjuntarTraducciones(posts, lang);
+    return res.json(translated[0]);
+  }
+
+  res.json(posts[0]);
+});
+
 app.post('/api/upload', verifyToken, uploadLimiter, csrfProtection, upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo.' });
+  if (!req.file) return res.status(400).json({ success: false, message: 'No se subió ningún archivo.' });
 
   let nombre = req.file.filename;
 
@@ -274,11 +319,11 @@ app.use((err, req, res, next) => {
   // decirle cuánto pesa el límite y qué hacer.
   if (err?.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({
-      error: `El archivo supera los ${Math.round(LIMITE_SUBIDA / 1024 / 1024)} MB. Reduce su tamaño e inténtalo de nuevo.`,
+      success: false, message: `El archivo supera los ${Math.round(LIMITE_SUBIDA / 1024 / 1024)} MB. Reduce su tamaño e inténtalo de nuevo.`,
     });
   }
   if (err instanceof multer.MulterError || err.message?.includes('Formato')) {
-    return res.status(400).json({ error: err.message });
+    return res.status(400).json({ success: false, message: err.message });
   }
   next(err);
 });
@@ -286,7 +331,7 @@ app.use((err, req, res, next) => {
 app.post('/api/posts', verifyToken, requirePermiso('publicaciones.editar'), csrfProtection, async (req, res) => {
   const body = req.body ?? {};
   if (!body.title) {
-    return res.status(400).json({ message: 'title es requerido' });
+    return res.status(400).json({ success: false, message: 'title es requerido' });
   }
   const id = body.id || Date.now().toString();
   const extra = splitExtra(body);
@@ -309,9 +354,9 @@ app.post('/api/posts', verifyToken, requirePermiso('publicaciones.editar'), csrf
       JSON.stringify(extra),
     ]
   );
-  // Firmar solo lo puede hacer quien administra: un redactor escribe, pero
-  // no decide a quién se le atribuye el trabajo.
-  if (req.user.roles?.includes('admin')) await guardarAutores(id, body.autores);
+  // Firmar lo puede hacer quien tenga el permiso, no solo el rol admin.
+  const permisos = await permisosDe(req.user);
+  if (permisos.has('publicaciones.firmar')) await guardarAutores(id, body.autores);
 
   await saveLog('info', `${req.user.matricula} creó la publicación ${id}.`);
 
@@ -326,7 +371,7 @@ app.post('/api/posts', verifyToken, requirePermiso('publicaciones.editar'), csrf
 app.put('/api/posts/:id', verifyToken, requirePermiso('publicaciones.editar'), csrfProtection, async (req, res) => {
   const { rows: existingRows } = await pool.query('SELECT * FROM posts WHERE id = $1', [req.params.id]);
   const existing = existingRows[0];
-  if (!existing) return res.status(404).json({ message: 'Publicación no encontrada' });
+  if (!existing) return res.status(404).json({ success: false, message: 'Publicación no encontrada' });
 
   const { id, ...updateData } = req.body ?? {};
   const merged = { ...rowToPost(existing), ...updateData };
@@ -350,7 +395,8 @@ app.put('/api/posts/:id', verifyToken, requirePermiso('publicaciones.editar'), c
       req.params.id,
     ]
   );
-  if (req.user.roles?.includes('admin')) await guardarAutores(req.params.id, updateData.autores);
+  const permisosUpdate = await permisosDe(req.user);
+  if (permisosUpdate.has('publicaciones.firmar')) await guardarAutores(req.params.id, updateData.autores);
 
   await saveLog('info', `${req.user.matricula} modificó la publicación ${req.params.id}.`);
 
@@ -365,7 +411,7 @@ app.put('/api/posts/:id', verifyToken, requirePermiso('publicaciones.editar'), c
 
 app.delete('/api/posts/:id', verifyToken, requirePermiso('publicaciones.borrar'), csrfProtection, async (req, res) => {
   const { rowCount } = await pool.query('DELETE FROM posts WHERE id = $1', [req.params.id]);
-  if (rowCount === 0) return res.status(404).json({ message: 'Publicación no encontrada' });
+  if (rowCount === 0) return res.status(404).json({ success: false, message: 'Publicación no encontrada' });
   await invalidarTraducciones(req.params.id);
   await saveLog('warning', `${req.user.matricula} eliminó la publicación ${req.params.id}.`);
   res.json({ success: true });

@@ -17,23 +17,14 @@ type Medalla = {
   clave: string;
   nombre: string;
   descripcion: string;
+  // Forma y color vienen de la tabla: las medallas se crean desde el panel, así
+  // que no puede haber un mapa de iconos escrito aquí — una recién creada no
+  // aparecería en él y saldría con el símbolo de relleno para siempre.
+  icono?: string;
+  color?: string;
   motivo?: string;
   otorgada_por?: string;
   fecha?: string;
-};
-
-// Formas, no solo colores: una medalla que solo se distingue por su tono deja
-// fuera a quien no separa el ámbar del verde, y aquí hay cuatro a la vez.
-const ICONOS: Record<string, string> = {
-  // Automáticas: se cumplen con los proyectos firmados.
-  proyecto: '▲',
-  aportes: '◆',
-  lider: '★',
-  // Especiales: las otorga la coordinación.
-  excelencia: '✦',
-  innovacion: '◈',
-  mentoria: '❖',
-  representacion: '◉',
 };
 
 export function Medallas({ medallas, compactas = false }: { medallas: Medalla[]; compactas?: boolean }) {
@@ -46,11 +37,12 @@ export function Medallas({ medallas, compactas = false }: { medallas: Medalla[];
         {medallas.map((m) => (
           <span
             key={m.clave}
-            className={`medalla medalla--${m.clave}`}
+            className="medalla"
+            style={{ color: m.color }}
             title={`${m.nombre}: ${m.descripcion}`}
             aria-label={m.nombre}
           >
-            {ICONOS[m.clave] ?? '●'}
+            {m.icono ?? '●'}
           </span>
         ))}
       </span>
@@ -60,8 +52,8 @@ export function Medallas({ medallas, compactas = false }: { medallas: Medalla[];
   return (
     <ul className="medallas">
       {medallas.map((m) => (
-        <li key={m.clave} className={`medalla-detalle medalla--${m.clave}`}>
-          <span className="medalla-detalle__icono" aria-hidden="true">{ICONOS[m.clave] ?? '●'}</span>
+        <li key={m.clave} className="medalla-detalle" style={{ color: m.color }}>
+          <span className="medalla-detalle__icono" aria-hidden="true">{m.icono ?? '●'}</span>
           <span>
             <span className="medalla-detalle__nombre">{m.nombre}</span>
             <span className="medalla-detalle__nota">

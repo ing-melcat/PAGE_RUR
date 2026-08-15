@@ -82,18 +82,7 @@
   opacity: .8;
 }
 
-/* --- tonos --- */
-
-/* Las automáticas, en los tonos del sitio: son parte del funcionamiento
-   normal, no un premio. */
-.medalla--proyecto { color: var(--muted); }
-.medalla--aportes  { color: var(--success); }
-.medalla--lider    { color: var(--accent); }
-
-/* Las especiales comparten el ámbar. Que se distingan entre sí es tarea de la
-   forma —hay cuatro— y que se distingan de las automáticas, del color: lo que
-   importa de un vistazo es si algo lo concedió alguien o lo dicen los datos. */
-.medalla--excelencia,
-.medalla--innovacion,
-.medalla--mentoria,
-.medalla--representacion { color: var(--warning); }
+/* --- tonos ---
+   Ya no hay una regla por medalla: el color lo trae cada una desde la tabla y
+   se aplica en línea. Una medalla creada desde el panel no podría tener aquí
+   su regla, así que tenerlas a medias sería peor que no tenerlas. */

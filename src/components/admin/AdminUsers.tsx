@@ -1,0 +1,369 @@
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { useLanguage } from "../../lib/i18n";
+import { apiFetch } from "../../lib/apiClient";
+import { Ayuda } from "../Ayuda";
+import { PanelRoles } from "../PanelRoles";
+import { PanelMedallas } from "../PanelMedallas";
+import { puede, AREAS } from "../../lib/authUtils";
+
+export const AdminUsers = ({
+  user,
+  pestanaPersonal,
+  setPestanaPersonal,
+  rolesDisponibles,
+  catalogoPermisos,
+  medallasEspeciales,
+  motivosMedallas,
+  setMotivosMedallas,
+  usersList,
+  setUsersList,
+  isCreatingUser,
+  setIsCreatingUser,
+  editingUser,
+  setEditingUser,
+  perfilPublicoEdit,
+  setPerfilPublicoEdit,
+  fichaEdit,
+  setFichaEdit,
+  handleCreateUser,
+  handleUpdateUser,
+  reiniciarPassword,
+  handleDeleteUser,
+  otorgarMedalla,
+  setView
+}: any) => {
+  const { t } = useLanguage();
+  const pageTransition = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 },
+    transition: { duration: 0.2 }
+  };
+  return (
+    <>
+            <motion.section key="admin_users" className="dashboard-card" {...pageTransition} style={{ marginTop: '120px', marginBottom: '60px' }}>
+              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <h2 className="titulo-panel">{t('adminUsuarios.titulo')}</h2>
+                  <div className="pestanas">
+                    <button
+                      className={`pestanas__boton${pestanaPersonal === 'personas' ? ' pestanas__boton--activa' : ''}`}
+                      onClick={() => setPestanaPersonal('personas')}
+                    >
+                      {t('adminUsuarios.pestanaPersonas')}
+                    </button>
+                    <button
+                      className={`pestanas__boton${pestanaPersonal === 'roles' ? ' pestanas__boton--activa' : ''}`}
+                      onClick={() => { setPestanaPersonal('roles'); setIsCreatingUser(false); setEditingUser(null); }}
+                    >
+                      {t('adminUsuarios.pestanaRoles')}
+                    </button>
+                    <button
+                      className={`pestanas__boton${pestanaPersonal === 'medallas' ? ' pestanas__boton--activa' : ''}`}
+                      onClick={() => { setPestanaPersonal('medallas'); setIsCreatingUser(false); setEditingUser(null); }}
+                    >
+                      {t('adminUsuarios.pestanaMedallas')}
+                    </button>
+                  </div>
+                </div>
+                {pestanaPersonal === 'personas' && !isCreatingUser && (
+                  <button onClick={() => setIsCreatingUser(true)} style={{ background: 'var(--accent)', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-ibm-mono)' }}>{t('adminUsuarios.crearUsuario')}</button>
+                )}
+      
+              </div>
+
+              {pestanaPersonal === 'roles' ? (
+                <PanelRoles />
+              ) : pestanaPersonal === 'medallas' ? (
+                <PanelMedallas />
+              ) : (isCreatingUser || editingUser) ? (
+                <div style={{ textAlign: 'left', marginBottom: '16px', padding: '20px', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                  <form onSubmit={editingUser ? handleUpdateUser : handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                      <div className="input-group">
+                        <label>{t('adminUsuarios.matriculaId')}</label>
+                        <input name="matricula" defaultValue={editingUser?.matricula} readOnly={!!editingUser} required style={{ opacity: editingUser ? 0.5 : 1 }} />
+                      </div>
+                      <div className="input-group">
+                        <label>{t('adminUsuarios.contrasena')} {editingUser && t('adminUsuarios.enBlanco')}</label>
+                        <input name="user_password_provisional" type="password" required={!editingUser} autoComplete="new-password" data-lpignore="true" />
+                      </div>
+                      <div className="input-group">
+                        <label>{t('adminUsuarios.nombreCompleto')}</label>
+                        <input name="nombre" defaultValue={editingUser?.nombre} required />
+                      </div>
+                      <div className="input-group">
+                        <label>{t('adminUsuarios.aliasNickname')}</label>
+                        <input name="alias" defaultValue={editingUser?.alias} />
+                      </div>
+                      <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+                        <label>{t('adminUsuarios.rolesAsignados')}</label>
+                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', padding: '12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px' }}>
+                          {/* Primero los roles que esta persona tiene pero que
+                              YA NO EXISTEN en la tabla. Sin esto no salía su
+                              casilla, y como el formulario manda solo lo
+                              marcado, abrir la ficha y guardar se lo quitaba
+                              en silencio. Aparece marcado y en rojo: quitarlo
+                              tiene que ser una decisión, no un descuido. */}
+                          {(editingUser?.roles ?? [])
+                            .filter((n: string) => !rolesDisponibles.some(r => r.nombre === n))
+                            .map((nombre: string) => (
+                              <label key={nombre} title={t('adminUsuarios.rolInvalidoAyuda')} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--error)', cursor: 'pointer', flexDirection: 'row' }}>
+                                <input type="checkbox" name="roles" value={nombre} defaultChecked style={{ width: 'auto', margin: 0, cursor: 'pointer' }} />
+                                <span style={{ textTransform: 'uppercase', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.78rem', letterSpacing: '0.08em' }}>
+                                  {nombre} ⚠
+                                </span>
+                              </label>
+                            ))}
+                          {rolesDisponibles.map(rol => (
+                            <label key={rol.nombre} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: rol.color, cursor: 'pointer', flexDirection: 'row' }}>
+                              <input
+                                type="checkbox"
+                                name="roles"
+                                value={rol.nombre}
+                                defaultChecked={editingUser ? editingUser.roles?.includes(rol.nombre) : rol.nombre === 'operador'}
+                                style={{ width: 'auto', margin: 0, cursor: 'pointer' }}
+                              />
+                              <span style={{ textTransform: 'uppercase', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.78rem', letterSpacing: '0.08em' }}>{rol.nombre}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Permisos sueltos de esta persona, además de los que le
+                          den sus roles. Es lo que evita inventar un rol entero
+                          para una excepción de una sola persona. */}
+                      <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+                        <label>{t('adminUsuarios.permisosExtra')}</label>
+                        <div className="permisos-extra">
+                          {Object.entries(catalogoPermisos).map(([clave, descripcion]) => (
+                            <label key={clave} className="permisos-extra__uno">
+                              <input
+                                type="checkbox"
+                                name="permisos_extra"
+                                value={clave}
+                                defaultChecked={editingUser?.permisos_extra?.includes(clave)}
+                              />
+                              <span>
+                                <span className="permisos-extra__nombre">{descripcion}</span>
+                                <code>{clave}</code>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Si esta persona sale en MIEMBROS. Antes lo decidía cada
+                        quien desde su propio perfil; se movió aquí porque
+                        publicar a alguien en la web del laboratorio es una
+                        decisión de la unidad. Lo que se publica —a qué se
+                        dedica, área, generación, foto— lo sigue escribiendo la
+                        persona. Solo al editar: en un alta no hay todavía nada
+                        que publicar. */}
+                    {editingUser && (
+                      <div className="visibilidad">
+                        <label className="visibilidad__interruptor">
+                          <span>
+                            <span className="visibilidad__titulo">{t('adminUsuarios.perfilPublico')}</span>
+                            <span className="visibilidad__nota">{t('adminUsuarios.perfilPublicoAyuda')}</span>
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={perfilPublicoEdit}
+                            onChange={(e) => setPerfilPublicoEdit(e.target.checked)}
+                            style={{ width: 'auto', cursor: 'pointer' }}
+                          />
+                        </label>
+                        {/* Publicar a alguien que no ha rellenado su perfil deja
+                            una ficha con el nombre y nada más. Antes esto solo
+                            se avisaba, y el aviso era un callejón sin salida:
+                            señalaba el hueco desde la única pantalla que no
+                            podía taparlo. Ahora se escribe aquí mismo. */}
+                        {perfilPublicoEdit && !fichaEdit.rol_publico.trim() && (
+                          <p className="visibilidad__aviso">{t('adminUsuarios.perfilPublicoVacio')}</p>
+                        )}
+              
+
+                        <div className="visibilidad__ficha">
+                          <p className="visibilidad__nota">{t('adminUsuarios.fichaAyuda')}</p>
+                          <div className="input-group">
+                            <label>{t('perfil.rolPublico')}</label>
+                            <input
+                              type="text"
+                              maxLength={80}
+                              placeholder={t('perfil.rolPublicoPlaceholder')}
+                              value={fichaEdit.rol_publico}
+                              onChange={(e) => setFichaEdit({ ...fichaEdit, rol_publico: e.target.value })}
+                            />
+                          </div>
+                          <div className="input-group">
+                            <label>{t('perfil.area')}</label>
+                            <select
+                              value={fichaEdit.area}
+                              onChange={(e) => setFichaEdit({ ...fichaEdit, area: e.target.value })}
+                            >
+                              <option value="">{t('perfil.areaSinElegir')}</option>
+                              {AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+                              {/* Un área que no esté en la lista —escrita antes
+                                  de que existiera, o desde otra pantalla— se
+                                  conserva como opción propia. Sin esto el
+                                  desplegable se abre en blanco y guardar el
+                                  formulario le borra el área a esa persona sin
+                                  que nadie la haya tocado. */}
+                              {fichaEdit.area && !AREAS.includes(fichaEdit.area) && (
+                                <option value={fichaEdit.area}>{fichaEdit.area}</option>
+                              )}
+                            </select>
+                          </div>
+                          <div className="input-group">
+                            <label>{t('perfil.generacion')}</label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={20}
+                              placeholder="2024"
+                              value={fichaEdit.generacion}
+                              onChange={(e) => setFichaEdit({ ...fichaEdit, generacion: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+          
+
+                    {/* Las medallas que no salen de los datos. Se pide el
+                        motivo a propósito: sin él no se puede leer por qué la
+                        tiene, y una medalla que no se explica es un adorno.
+                        Queda registrado quién la dio.
+
+                        Las otras tres —proyecto terminado, grandes aportes,
+                        líder— no están aquí porque no se conceden: se cumplen
+                        solas con los proyectos firmados. */}
+                    {editingUser && (
+                      <div className="excelencia">
+                        <label className="excelencia__titulo">
+                          {t('adminUsuarios.medallas')}
+                          <Ayuda texto={t('adminUsuarios.medallasAyuda')} />
+                        </label>
+                        {medallasEspeciales.map((medalla: any) => {
+                          const clave = medalla.clave;
+                          const tiene = editingUser.medallas?.[clave] !== undefined;
+                          return (
+                            <div key={clave} className={`medalla-otorgar${tiene ? ' medalla-otorgar--puesta' : ''}`}>
+                              <p className="medalla-otorgar__nombre">
+                                <span style={{ color: medalla.color }}>{medalla.icono}</span>
+                                {medalla.nombre}
+                                {tiene && <span className="medalla-otorgar__puesta">{t('adminUsuarios.medallaPuesta')}</span>}
+                              </p>
+                              <p className="medalla-otorgar__criterio">{medalla.descripcion}</p>
+                              <textarea
+                                value={motivosMedallas[clave] ?? ''}
+                                onChange={(e) => setMotivosMedallas({ ...motivosMedallas, [clave]: e.target.value })}
+                                placeholder={t('adminUsuarios.excelenciaMotivo')}
+                                maxLength={500}
+                                rows={2}
+                              />
+                              <div className="excelencia__acciones">
+                                <button type="button" onClick={() => otorgarMedalla(clave, true)}>
+                                  {tiene ? t('adminUsuarios.medallaActualizar') : t('adminUsuarios.excelenciaOtorgar')}
+                                </button>
+                                {tiene && (
+                                  <button type="button" className="excelencia__retirar" onClick={() => otorgarMedalla(clave, false)}>
+                                    {t('adminUsuarios.excelenciaRetirar')}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+          
+
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
+                      <button type="submit" style={{ flex: 1 }}>{editingUser ? t('adminUsuarios.actualizarUsuario') : t('adminUsuarios.guardarUsuario')}</button>
+                      <button type="button" className="logout-btn" onClick={() => { setIsCreatingUser(false); setEditingUser(null); }} style={{ flex: 1, padding: '16px', height: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('adminUsuarios.cancelar')}</button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'left', marginBottom: '16px', overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>
+                    <thead style={{ background: 'var(--background)' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--muted)' }}>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>{t('adminUsuarios.colMatricula')}</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>{t('adminUsuarios.colNombre')}</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>{t('adminUsuarios.colRoles')}</th>
+                        <th style={{ padding: '12px', textAlign: 'right' }}>{t('adminUsuarios.colAccion')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usersList.map(u => (
+                        <tr key={u.matricula} style={{ borderBottom: '1px dashed var(--border)' }}>
+                          <td style={{ padding: '12px', color: 'var(--text)' }}>{u.matricula}</td>
+                          <td style={{ padding: '12px', color: 'var(--text)' }}>{u.nombre}</td>
+                          {/* Insignias con el color de cada rol, no texto con
+                              comas: el color se elige al crear el rol
+                              precisamente para reconocerlo de un vistazo, y
+                              aquí se estaba desperdiciando. Y una lista vacía
+                              deja de ser una celda en blanco —que se lee como
+                              un fallo de carga— para decir lo que es. */}
+                          <td style={{ padding: '12px' }}>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                              {(u.roles ?? []).length === 0 && (
+                                <span className="roles__insignia roles__insignia--sin" title={t('adminUsuarios.sinRolAyuda')}>
+                                  {t('adminUsuarios.sinRol')}
+                                </span>
+                              )}
+                    
+                              {(u.roles ?? []).map((nombre: string) => {
+                                const rol = rolesDisponibles.find((r) => r.nombre === nombre);
+                                // Un rol que ya no existe en la tabla: se
+                                // enseña en rojo en lugar de desaparecer sin
+                                // más, que es lo que pasaba antes.
+                                return rol ? (
+                                  <span key={nombre} className="roles__insignia" style={{ borderColor: rol.color, color: rol.color }}>
+                                    {nombre}
+                                  </span>
+                                ) : (
+                                  <span key={nombre} className="roles__insignia roles__insignia--invalido" title={t('adminUsuarios.rolInvalidoAyuda')}>
+                                    {nombre}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'right' }}>
+                            {/* Editar sí, también la propia cuenta: antes se
+                                ocultaban los dos botones y eso dejaba sin poder
+                                cambiarse ni el nombre. Lo que no se puede es
+                                borrarse —ni quitarse la gestión de usuarios,
+                                que lo impide el servidor—. */}
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                              <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => { setEditingUser(u); setMotivosMedallas({ ...(u.medallas ?? {}) }); setPerfilPublicoEdit(!!u.perfil_publico); setFichaEdit({ rol_publico: u.rol_publico ?? '', area: u.area ?? '', generacion: u.generacion ?? '' }); }}>{t('adminUsuarios.editar')}</button>
+                              <button className="logout-btn-small" onClick={() => reiniciarPassword(u)}>{t('adminUsuarios.reiniciar')}</button>
+                              {u.matricula !== user?.matricula && (
+                                <button className="logout-btn-small" style={{borderColor: 'var(--muted)', color: 'var(--muted)'}} onClick={() => handleDeleteUser(u.matricula)}>{t('adminUsuarios.revocar')}</button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+    
+              <button className="back-link" onClick={() => {
+                if (isCreatingUser || editingUser) {
+                  setIsCreatingUser(false);
+                  setEditingUser(null);
+                } else {
+                  setView("dashboard");
+                }
+              }}>{t('adminUsuarios.volver')}</button>
+            </motion.section>
+    </>
+  );
+};

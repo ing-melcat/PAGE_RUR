@@ -101,7 +101,7 @@
 
 @media (hover: hover) {
   .roles__acciones button:hover { border-color: var(--accent); color: var(--accent); }
-  .roles__borrar:hover { border-color: var(--error) !important; color: var(--error) !important; }
+  .roles__borrar:hover { border-color: var(--muted) !important; color: var(--muted) !important; }
 }
 
 .roles__acciones button:focus-visible,
@@ -161,18 +161,7 @@
   color: var(--muted);
 }
 
-.roles__campo input[type="text"],
-.roles__campo > input {
-  padding: 12px;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-family: var(--font-etiqueta), sans-serif;
-  font-size: var(--t-sm);
-  letter-spacing: normal;
-  text-transform: none;
-}
+
 
 .roles__nota {
   text-transform: none;
@@ -276,4 +265,45 @@
 .roles__insignia--invalido {
   border-color: var(--error);
   color: var(--error);
+}
+
+.roles__permiso--quitar:hover {
+  border-color: var(--muted);
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------
+   Medallas (misma pestaña, mismo lenguaje visual)
+   ------------------------------------------------------------------ */
+
+/* El icono se elige viéndolo, no por su nombre. Van pintados ya con el color
+   escogido, que es como se verán en la tarjeta de quien reciba la medalla. */
+.medallas-panel__iconos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.medallas-panel__icono {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color var(--mov-rapido) ease;
+}
+
+.medallas-panel__icono--elegido {
+  border-color: var(--text);
+}
+
+.medallas-panel__icono:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

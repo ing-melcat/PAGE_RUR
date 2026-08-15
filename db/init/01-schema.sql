@@ -56,6 +56,10 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Cuando se borra un rol el servidor busca quién lo tiene con
+-- `WHERE roles ? $1`. Sin este índice, Postgres recorre la tabla entera.
+CREATE INDEX IF NOT EXISTS idx_users_roles ON users USING GIN (roles);
+
 CREATE TABLE IF NOT EXISTS posts (
     id TEXT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,

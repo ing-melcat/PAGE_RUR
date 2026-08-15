@@ -65,6 +65,9 @@ export function CambiarPassword({ forzado = false, alTerminar, alCancelar }: {
   return (
     <div className={`cambiar-pass${forzado ? ' cambiar-pass--forzado' : ''}`}>
       <form className="cambiar-pass__caja" onSubmit={enviar}>
+        {/* Campo oculto para accesibilidad de gestores de contraseñas */}
+        <input type="text" name="username" autoComplete="username" style={{ display: 'none' }} defaultValue="current-user" readOnly />
+
         <h2 className="cambiar-pass__titulo">
           <Lock size={18} aria-hidden="true" />
           {forzado ? t('password.tituloForzado') : t('password.titulo')}

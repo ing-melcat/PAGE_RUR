@@ -13,6 +13,7 @@
 export const PERMISOS = {
   'usuarios.gestionar': 'Crear, editar y borrar cuentas',
   'roles.gestionar': 'Crear roles y decidir qué puede cada uno',
+  'medallas.gestionar': 'Crear medallas y decidir qué reconocen',
   'publicaciones.editar': 'Crear y editar publicaciones',
   'publicaciones.borrar': 'Borrar publicaciones',
   'publicaciones.firmar': 'Decidir quién desarrolló cada proyecto',

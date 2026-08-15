@@ -50,7 +50,7 @@ export const Countdown = ({ targetDate }: { targetDate?: string }) => {
   );
 };
 
-export const Landing = ({ category = 'landing' }: { category?: string }) => {
+export const Landing = ({ category = 'landing', limit }: { category?: string, limit?: number }) => {
   const { t, lang } = useLanguage();
   const [posts, setPosts] = useState<any[]>([]);
   const navigate = useNavigate();
@@ -59,7 +59,7 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
     fetch(`/api/posts?lang=${lang}`)
       .then(res => res.json())
       .then(data => {
-        const filtered = data.filter((p: any) => (p.category || 'landing') === category && !p.isHidden);
+        const filtered = data.filter((p: any) => (category === 'all' || (p.category || 'landing') === category) && !p.isHidden);
         const sorted = filtered.sort((a: any, b: any) => {
           const aIsSpecial = a.type === 'aviso' || a.type === 'evento';
           const bIsSpecial = b.type === 'aviso' || b.type === 'evento';
@@ -67,7 +67,7 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
           if (!aIsSpecial && bIsSpecial) return 1;
           return 0;
         });
-        setPosts(sorted);
+        setPosts(limit ? sorted.slice(0, limit) : sorted);
       })
       .catch(console.error);
   }, [category, lang]);
@@ -76,25 +76,21 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
     navigate(`/publicacion/${post.id}`);
   };
 
-  const stripHtml = (html: string) => {
-    const tmp = document.createElement("DIV");
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || "";
-  };
-
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 500px), 1fr))', gap: '40px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 500px), 1fr))', gap: '40px' }}>
         {posts.map(post => {
           const previewText = post.type === 'simple'
-            ? stripHtml(post.content).substring(0, 140) + '...'
+            ? post.previewText || ''
             : t('landing.previewMagazine');
           const isAviso = post.type === 'aviso';
           const isEvento = post.type === 'evento';
           const isSpecial = isAviso || isEvento;
           const specialColor = isAviso ? 'var(--error)' : 'var(--accent)';
           const specialBg = isAviso ? 'rgba(255,68,68,0.3)' : 'rgba(251,202,1,0.3)';
-          const badgeText = isAviso ? t('landing.avisoImportante') : t('landing.eventoEspecial');
+          const isMagazine = post.type === 'magazine';
+          const is3D = post.type === '3d_model';
+          const badgeText = isAviso ? t('landing.avisoImportante') : isEvento ? t('landing.eventoEspecial') : isMagazine ? t('archivo.revista') : is3D ? '3D MODEL' : t('archivo.articulo');
 
           return (
             <motion.article 
@@ -130,14 +126,8 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
                    encuadrarla. Con 16:9 el hueco cambia de TAMAÑO pero nunca
                    de FORMA, así que una foto 16:9 encaja siempre igual. */
                 flex: isSpecial ? '1 1 340px' : 'none',
-                minWidth: isSpecial ? '280px' : '100%',
+                width: '100%',
                 aspectRatio: '16 / 9',
-                /* Nada de `stretch`: estiraba la imagen para igualar el alto
-                   del texto de al lado y rompía la proporción justo en los
-                   anchos donde el título ocupa dos líneas (1.56:1 medido a
-                   1024px). La forma manda; si sobra alto, lo ocupa el fondo
-                   de la tarjeta. */
-                alignSelf: isSpecial ? 'flex-start' : undefined,
                 backgroundColor: 'var(--surface-strong)',
                 position: 'relative',
                 overflow: 'hidden',
@@ -174,21 +164,20 @@ export const Landing = ({ category = 'landing' }: { category?: string }) => {
                   />
                   ) : null
                 )}
-                {post.type === 'magazine' && (
-                  <div style={{ position: 'absolute', top: 12, right: 12, background: 'var(--surface-strong)', padding: '6px 12px', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: '0.8rem', fontFamily: 'var(--font-ibm-mono)' }}>
-                    {t('landing.revistaMultipagina')}
-                  </div>
-                )}
-                {isSpecial && (
-                  <div style={{ position: 'absolute', top: 14, left: 14, background: specialColor, padding: '5px 11px', borderRadius: '2px', color: isAviso ? 'white' : 'black', fontSize: '0.68rem', letterSpacing: '0.1em', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {isSpecial ? (
+                  <div style={{ position: 'absolute', top: 14, left: 14, background: specialColor, padding: '5px 11px', borderRadius: '2px', color: isAviso ? 'white' : 'black', fontSize: '0.68rem', letterSpacing: '0.1em', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', zIndex: 10 }}>
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: isAviso ? 'white' : 'black', animation: 'pulse 1.5s infinite' }}></div>
+                    {badgeText}
+                  </div>
+                ) : (
+                  <div style={{ position: 'absolute', top: 0, left: 0, background: 'var(--accent)', padding: '6px 16px', color: 'black', fontSize: '0.75rem', letterSpacing: '0.15em', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', textTransform: 'uppercase', zIndex: 10 }}>
                     {badgeText}
                   </div>
                 )}
               </div>
-              <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', flex: isSpecial ? '2 1 400px' : 1, justifyContent: 'space-between', background: isAviso ? 'linear-gradient(to right, #1a0505, var(--surface))' : isEvento ? 'linear-gradient(to right, #1f1a05, var(--surface))' : 'transparent' }}>
+              <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', flex: isSpecial ? '2 1 400px' : 1, justifyContent: 'space-between', background: isAviso ? 'linear-gradient(to right, #1a0505, var(--surface))' : isEvento ? 'linear-gradient(to right, #1f1a05, var(--surface))' : 'var(--surface)' }}>
                 <div>
-                  <h3 style={{ fontSize: isSpecial ? '2.4rem' : '1.5rem', margin: '0 0 16px 0', fontFamily: 'var(--font-titulo)', color: 'var(--text)' }}>{post.title}</h3>
+                  <h3 style={{ fontSize: isSpecial ? '2.4rem' : '2.1rem', margin: '0 0 16px 0', fontFamily: 'var(--font-titulo)', color: 'var(--text)', lineHeight: '1.1', textTransform: 'uppercase' }}>{post.title}</h3>
                   
                   {isSpecial && post.countdownDate && (
                     <Countdown targetDate={post.countdownDate} />
@@ -217,18 +206,20 @@ export const PublicationPage = () => {
   const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
-    fetch(`/api/posts?lang=${lang}`)
-      .then(res => res.json())
-      .then(data => {
-        const found = data.find((p: any) => p.id.toString() === id?.toString());
-        if (found) {
-          if (found.type === 'simple' || found.type === 'aviso' || found.type === 'evento' || found.type === '3d_model') {
-            setPost({ ...found, pages: [{ content: found.content || t('publicacion.sinContenido'), image: found.image }] });
-          } else {
-            setPost(found);
+    if (id) {
+      fetch(`/api/posts/${id}?lang=${lang}`)
+        .then(res => res.json())
+        .then(found => {
+          if (!found.error) {
+            if (found.type === 'simple' || found.type === 'aviso' || found.type === 'evento' || found.type === '3d_model') {
+              setPost({ ...found, pages: [{ content: found.content || t('publicacion.sinContenido'), image: found.image }] });
+            } else {
+              setPost(found);
+            }
           }
-        }
-      });
+        })
+        .catch(console.error);
+    }
   }, [id, lang]);
 
   if (!post) {
@@ -277,18 +268,18 @@ export const PublicationPage = () => {
       )}
       
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, zIndex: 10, position: 'relative' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 60px', borderBottom: `1px solid ${isSpecial ? specialColor : 'var(--border)'}`, alignItems: 'center', background: isSpecial ? specialBg : 'rgba(5,16,37,0.8)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', gap: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '20px 40px', borderBottom: `1px solid ${isSpecial ? specialColor : 'var(--border)'}`, alignItems: 'center', background: isSpecial ? specialBg : 'rgba(5,16,37,0.8)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', gap: '20px' }}>
           <Link to="/" style={{ textDecoration: 'none' }}>
-            <div className="action-card logo-card" style={{ display: 'flex', alignItems: 'center', border: `0.6px solid ${isSpecial ? specialColor : 'var(--accent)'}`, padding: '4px 12px', gap: '12px', transition: 'all 0.3s ease' }}>
+            <div className="action-card logo-card" style={{ display: 'flex', alignItems: 'center', border: `0.6px solid ${isSpecial ? specialColor : 'var(--accent)'}`, padding: '8px 16px', gap: '12px', transition: 'all 0.3s ease' }}>
               <div className="logo-img-container">
                 <img src={logoUrl} alt="Logo" className="logo-img-default" />
                 <img src={logoBlancoUrl} alt="Logo Blanco" className="logo-img-hover" />
               </div>
-              <div className="logo-text-container" style={{ color: 'white', fontFamily: 'var(--font-ibm-sans)', fontWeight: 'bold', fontSize: '0.65rem', letterSpacing: '0.05em', lineHeight: 1.2, textAlign: 'left' }}>
+              <div className="logo-text-container" style={{ color: 'white', fontFamily: 'var(--font-ibm-sans)', fontWeight: 'bold', fontSize: '0.8rem', letterSpacing: '0.05em', lineHeight: 1.2, textAlign: 'left' }}>
                 <div className="logo-text-default">RESEARCH UNIT<br />OF ROBOTICS</div>
                 <div className="logo-text-hover" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', color: isSpecial ? specialColor : 'var(--accent)' }}>
                   <span style={{ display: 'flex', alignItems: 'center' }}>{t('nav.inicio')}</span>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: '1rem', transform: 'translateY(-2px)' }}>→</span>
+                  <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: '1.5rem', transform: 'translateY(-3px)' }}>→</span>
                 </div>
               </div>
             </div>
@@ -423,48 +414,51 @@ export const ArchiveDashboard = () => {
           }}>
             {t('archivo.subtitulo')}
           </p>
-          </div>
-        </div>
-      </section>
+          
+          <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px', WebkitOverflowScrolling: 'touch' }}>
+            <select 
+              value={category} 
+              onChange={(e) => setCategory(e.target.value)}
+              style={{ background: 'var(--surface-strong)', color: 'var(--text)', border: '1px solid var(--border)', padding: '10px 16px', borderRadius: '4px', fontFamily: 'var(--font-ibm-mono)', outline: 'none' }}
+            >
+              <option value="all">{t('archivo.todasLasAreas')}</option>
+              <option value="landing">{t('archivo.general')}</option>
+              <option value="explora">{t('archivo.explora')}</option>
+              <option value="descubre">{t('archivo.descubre')}</option>
+              <option value="conecta">{t('archivo.conecta')}</option>
+            </select>
 
-      <section className="responsive-section" style={{ backgroundColor: 'var(--background)' }}>
-        <div style={{ display: 'flex', gap: '24px', marginBottom: '40px', flexWrap: 'wrap' }}>
-          <input
-            type="text"
-            placeholder={t('archivo.buscarPlaceholder')}
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            style={{ flex: '1 1 300px', padding: '16px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-mono)', fontSize: '1rem' }}
-          />
-          <select
-            value={filterType}
-            onChange={e => setFilterType(e.target.value)}
-            style={{ flex: '0 1 250px', padding: '16px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-ibm-mono)', fontSize: '1rem' }}
-          >
-            <option value="todos">{t('archivo.todos')}</option>
-            <option value="magazine">{t('archivo.revistas')}</option>
-            <option value="simple">{t('archivo.articulosSimples')}</option>
-            <option value="evento">{t('archivo.eventosEspeciales')}</option>
-            <option value="aviso">{t('archivo.avisos')}</option>
-          </select>
+            <select 
+              value={typeFilter} 
+              onChange={(e) => setTypeFilter(e.target.value)}
+              style={{ background: 'var(--surface-strong)', color: 'var(--text)', border: '1px solid var(--border)', padding: '10px 16px', borderRadius: '4px', fontFamily: 'var(--font-ibm-mono)', outline: 'none' }}
+            >
+              <option value="all">{t('archivo.todosLosFormatos')}</option>
+              <option value="simple">{t('archivo.articulos')}</option>
+              <option value="magazine">{t('archivo.revistas')}</option>
+              <option value="evento">{t('archivo.eventosEspeciales')}</option>
+            </select>
+          </div>
+          </div>
         </div>
 
         {filteredPosts.length === 0 ? (
-          <div style={{ padding: '60px', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--font-ibm-mono)' }}>
-            {t('archivo.sinResultados')}
+          <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--surface)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <p style={{ color: 'var(--muted)', fontSize: '1.1rem', fontFamily: 'var(--font-ibm-mono)' }}>{t('archivo.sinResultados')}</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '32px' }}>
             {filteredPosts.map(post => {
               const previewText = post.type === 'simple'
-                ? stripHtml(post.content).substring(0, 100) + '...'
+                ? post.previewText || ''
                 : t('archivo.previewMagazine');
               const isAviso = post.type === 'aviso';
               const isEvento = post.type === 'evento';
               const isSpecial = isAviso || isEvento;
               const specialColor = isAviso ? 'var(--error)' : 'var(--accent)';
               const specialBg = isAviso ? 'rgba(255,68,68,0.05)' : 'rgba(251,202,1,0.05)';
-              const badgeText = post.type === 'magazine' ? t('archivo.revista') : isAviso ? t('archivo.aviso') : isEvento ? t('archivo.evento') : t('archivo.articulo');
+              const is3D = post.type === '3d_model';
+              const badgeText = post.type === 'magazine' ? t('archivo.revista') : isAviso ? t('archivo.aviso') : isEvento ? t('archivo.evento') : is3D ? '3D MODEL' : t('archivo.articulo');
               const BadgeIcon = isAviso ? TriangleAlert : isEvento ? Star : null;
 
               return (
@@ -478,8 +472,11 @@ export const ArchiveDashboard = () => {
                   whileTap={{ scale: 0.98 }} 
                   style={{ 
                     padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer',
-                    border: isSpecial ? `2px solid ${specialColor}` : '1px solid var(--border)',
-                    background: isSpecial ? specialBg : 'var(--surface)'
+                    border: 'none',
+                    borderTop: isSpecial ? `4px solid ${specialColor}` : '4px solid var(--accent)',
+                    borderRadius: '0px',
+                    background: isSpecial ? specialBg : 'var(--surface)',
+                    boxShadow: isSpecial ? 'none' : '0 10px 30px rgba(0,0,0,0.2)'
                   }}
                   onClick={() => handlePostClick(post)}
                 >
@@ -487,22 +484,36 @@ export const ArchiveDashboard = () => {
                     {/* Mismo motivo que en la portada: con background-image el
                         navegador se descarga la imagen de cada tarjeta del
                         archivo aunque estén muy por debajo del pliegue. */}
-                    <motion.img
-                      src={post.image || ''}
-                      alt={post.title}
-                      loading="lazy"
-                      decoding="async"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.4 }}
-                    />
-                    <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: '4px', background: isSpecial ? specialColor : 'rgba(5,7,15,0.8)', padding: '4px 10px', borderRadius: '4px', border: isSpecial ? 'none' : '1px solid var(--accent)', color: isSpecial ? (isAviso ? 'white' : 'black') : 'var(--accent)', fontSize: '0.7rem', fontFamily: 'var(--font-ibm-mono)', fontWeight: isSpecial ? 'bold' : 'normal' }}>
-                      {BadgeIcon && <BadgeIcon size={12} />} {badgeText}
-                    </div>
+                    {post.type === '3d_model' && post.modelUrl ? (
+                      <div style={{ width: '100%', height: '100%', backgroundColor: '#101525', cursor: 'grab' }} onClick={(e) => e.stopPropagation()}>
+                        <Suspense fallback={null}>
+                          <VisorModelo3D url={post.modelUrl} variante="tarjeta" />
+                        </Suspense>
+                      </div>
+                    ) : (
+                      <motion.img
+                        src={post.image || ''}
+                        alt={post.title}
+                        loading="lazy"
+                        decoding="async"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+                        whileHover={{ scale: 1.05 }}
+                        transition={{ duration: 0.4 }}
+                      />
+                    )}
+                    {isSpecial ? (
+                      <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: '4px', background: specialColor, padding: '4px 10px', borderRadius: '2px', border: 'none', color: isAviso ? 'white' : 'black', fontSize: '0.7rem', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                        {BadgeIcon && <BadgeIcon size={12} />} {badgeText}
+                      </div>
+                    ) : (
+                      <div style={{ position: 'absolute', top: 0, left: 0, background: 'var(--accent)', padding: '6px 14px', color: 'black', fontSize: '0.75rem', letterSpacing: '0.15em', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', textTransform: 'uppercase', zIndex: 10 }}>
+                        {badgeText}
+                      </div>
+                    )}
                   </div>
                   <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
                     <div>
-                      <h3 style={{ fontSize: '1.45rem', margin: '0 0 12px 0', fontFamily: 'var(--font-titulo)', color: isSpecial ? specialColor : 'var(--text)' }}>{post.title}</h3>
+                      <h3 style={{ fontSize: '1.85rem', margin: '0 0 12px 0', fontFamily: 'var(--font-titulo)', color: isSpecial ? specialColor : 'var(--text)', lineHeight: '1.1', textTransform: 'uppercase' }}>{post.title}</h3>
                       <p style={{ color: 'var(--muted)', fontSize: '0.9rem', lineHeight: '1.5' }}>{previewText}</p>
                     </div>
                   </div>

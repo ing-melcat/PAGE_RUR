@@ -55,6 +55,11 @@ services:
         limits:
           cpus: '1.0'
           memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   svc-content:
     build:
@@ -86,6 +91,11 @@ services:
         limits:
           cpus: '1.0'
           memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Traduccion automatica del contenido de publicaciones (Fase B del
   # selector de idioma). Autohospedado a proposito: sin costo recurrente ni
@@ -142,6 +152,11 @@ services:
         limits:
           cpus: '1.0'
           memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Postgres — reemplaza el almacenamiento en api/data/*.json. Instancia
   # propia de este proyecto (no se reutiliza el postgres-core de otro stack

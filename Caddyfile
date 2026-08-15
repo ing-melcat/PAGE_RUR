@@ -11,7 +11,7 @@ rur.unipolidgo.edu.mx {
 	# bruta, escaneo, etc), antes de que la petición llegue a un servicio.
 	crowdsec
 
-	@identity path /api/login /api/logout /api/me /api/users* /api/profile* /api/miembros* /api/personas /api/roles* /api/medallas
+	@identity path /api/login /api/logout /api/me /api/users* /api/profile* /api/miembros* /api/personas /api/roles* /api/medallas*
 	@content path /api/posts* /api/upload /api/uploads/*
 	@robots path /api/robots* /api/livekit* /api/crowdsec/* /api/logs
 
@@ -34,6 +34,10 @@ rur.unipolidgo.edu.mx {
 		Referrer-Policy "strict-origin-when-cross-origin"
 		# Nadie embebe el panel en un iframe ajeno.
 		X-Frame-Options "SAMEORIGIN"
+		# Restringe APIs del navegador que el sitio no necesita. Cámara y
+		# micrófono quedan habilitados para el propio dominio porque LiveKit
+		# los usa al operar un robot.
+		Permissions-Policy "geolocation=(), payment=(), usb=(), camera=(self), microphone=(self)"
 		# Caddy lo anuncia por defecto; no hace falta decir qué servidor somos.
 		-Server
 	}

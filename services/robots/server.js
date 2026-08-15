@@ -4,12 +4,13 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import { getPool } from '../shared/db.js';
-import { verifyToken, requireRole, noStore, IS_PRODUCTION, requirePermiso } from '../shared/auth.js';
+import { verifyToken, noStore, IS_PRODUCTION, requirePermiso, permisosDe } from '../shared/auth.js';
 import { csrfProtection } from '../shared/csrf.js';
 import { encryptSecret, decryptSecret, maskSecret } from '../shared/crypto.js';
 import { saveLog } from '../shared/logs.js';
 
 const app = express();
+app.set('trust proxy', 1); // Caddy es el único proxy delante
 const PORT = process.env.PORT || 3001;
 const pool = getPool();
 const TOKEN_TTL = '4h';
@@ -233,7 +234,8 @@ app.post('/api/livekit-token', verifyToken, livekitTokenLimiter, csrfProtection,
     return res.status(400).json({ success: false, message: 'El robot no tiene configuradas sus credenciales (API Key/Secret) de LiveKit.' });
   }
 
-  const isOperator = req.user.roles?.includes('admin') || req.user.roles?.includes('operador');
+  const permisosUsuario = await permisosDe(req.user);
+  const isOperator = permisosUsuario.has('robots.operar');
   const grantedRole = isOperator ? 'operador' : 'espectador';
   const participantName = `${isOperator ? 'operator' : 'viewer'}-${req.user.matricula}`;
 
