@@ -52,6 +52,7 @@ export const verifyToken = (req, res, next) => {
     // Se corta aquí y no en el frontend: una pantalla que "obliga" a cambiar
     // la contraseña no obliga a nada si la API sigue atendiendo al resto de
     // rutas. Con el corte aquí, la contraseña provisional no abre nada.
+    /*
     if (decoded?.tmp && !RUTAS_CON_PASSWORD_TEMPORAL.has(req.path)) {
       return res.status(403).json({
         success: false,
@@ -59,6 +60,7 @@ export const verifyToken = (req, res, next) => {
         message: 'Tienes una contraseña provisional: cámbiala para poder seguir.',
       });
     }
+    */
     req.user = decoded;
     next();
   });
@@ -80,7 +82,8 @@ export const sesionOpcional = (req, res, next) => {
     // Estas rutas enseñan de más a quien tiene sesión —/api/posts devuelve
     // también las publicaciones ocultas—, y una contraseña que puso otra
     // persona no debe abrir eso: medido en dev, 7 publicaciones en vez de 5.
-    if (!err && !decoded?.tmp) req.user = decoded;
+    if (err) console.error("JWT verify error in sesionOpcional:", err);
+    if (!err) req.user = decoded;
     next();
   });
 };

@@ -7,74 +7,48 @@ import { useLanguage } from "../../lib/i18n";
 import { Ayuda } from "../Ayuda";
 import { puede } from "../../lib/authUtils";
 
+import { usePosts, useMutatePost } from "../../hooks/queries/usePosts";
+import { usePersonas } from "../../hooks/queries/useUsers";
+
 export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   const { t } = useLanguage();
   const [viewMode, setViewMode] = useState<'list'|'create'|'edit'>('list');
-  const [postsList, setPostsList] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const { data: postsList = [], isLoading: postsLoading } = usePosts();
+  const { data: personas = [] } = usePersonas(puede(user, 'publicaciones.firmar'));
+  const mutatePost = useMutatePost();
 
   const [type, setType] = useState('simple');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [image, setImage] = useState('');
-  const [pages, setPages] = useState([{ content: '', image: '' }]);
+  const [pages, setPages] = useState([{ content: '', image: '', _key: Math.random().toString() }]);
   const [countdownDate, setCountdownDate] = useState('');
   const [category, setCategory] = useState('landing');
   const [modelUrl, setModelUrl] = useState('');
-  // Quién desarrolló esto. `personas` es el catálogo para elegir; `autores`,
-  // los elegidos con su papel en ESTE proyecto.
-  const [personas, setPersonas] = useState<any[]>([]);
-  const [autores, setAutores] = useState<{ userId: number; papel: string; lider: boolean }[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [autores, setAutores] = useState<{ _key?: string; userId: number; papel: string; lider: boolean }[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showEjemplos, setShowEjemplos] = useState(false);
 
-  const fetchPosts = async () => {
-    try {
-      const res = await apiFetch('/api/posts?full=true');
-      const data = await res.json();
-      const sorted = data.sort((a: any, b: any) => {
-        if (a.type === 'aviso' && b.type !== 'aviso') return -1;
-        if (a.type !== 'aviso' && b.type === 'aviso') return 1;
-        return 0;
-      });
-      setPostsList(sorted);
-    } catch(err) { console.error(err); }
-  };
-
-  useEffect(() => {
-    if (viewMode === 'list') fetchPosts();
-  }, [viewMode]);
-
-  // El catálogo de personas solo lo pide quien puede firmar: para un redactor
-  // sería una petición que va a devolver 403.
-  useEffect(() => {
-    if (!puede(user, 'publicaciones.firmar')) return;
-    apiFetch('/api/personas')
-      .then((res) => (res.ok ? res.json() : []))
-      .then((datos) => setPersonas(Array.isArray(datos) ? datos : []))
-      .catch(() => {});
-  }, [user]);
-
   const handleDelete = async (id: string) => {
     if(!window.confirm(t('alertas.confirmarEliminarPublicacion'))) return;
     try {
-      const res = await apiFetch(`/api/posts/${id}`, { method: 'DELETE' });
-      if (res.ok) fetchPosts();
+      await mutatePost.mutateAsync({ id, method: 'DELETE' });
+    } catch(err: any) { 
+      if (err.message.includes('Error al guardar')) alert(t('alertas.errorEliminar'));
       else alert(t('alertas.sinPermisos'));
-    } catch(err) { alert(t('alertas.errorEliminar')); }
+    }
   };
 
   const toggleVisibility = async (post: any) => {
     try {
-      const res = await apiFetch(`/api/posts/${post.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isHidden: !post.isHidden })
+      await mutatePost.mutateAsync({ 
+        id: post.id, 
+        method: 'PUT', 
+        postData: { isHidden: !post.isHidden } 
       });
-      if (res.ok) fetchPosts();
-      else alert(t('alertas.sinPermisos'));
     } catch(err) { alert(t('alertas.errorActualizarVisibilidad')); }
   };
 
@@ -83,14 +57,14 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
     if (post.type === 'simple' || post.type === 'aviso' || post.type === 'evento' || post.type === '3d_model') {
       setContent(post.content || '');
     } else {
-      setPages(post.pages && post.pages.length > 0 ? post.pages : [{ content: '', image: '' }]);
+      setPages(post.pages && post.pages.length > 0 ? post.pages.map((p: any) => ({ ...p, _key: Math.random().toString() })) : [{ content: '', image: '', _key: Math.random().toString() }]);
     }
     setType(post.type || 'simple');
     setTitle(post.title || '');
     setImage(post.image || '');
     setCountdownDate(post.countdownDate || '');
     setModelUrl(post.modelUrl || '');
-    setAutores((post.autores || []).map((a: any) => ({ userId: a.id, papel: a.papel || '', lider: Boolean(a.lider) })));
+    setAutores((post.autores || []).map((a: any) => ({ _key: Math.random().toString(), userId: a.id, papel: a.papel || '', lider: Boolean(a.lider) })));
     setViewMode('edit');
   };
 
@@ -101,7 +75,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
     setContent('');
     setImage('');
     setCountdownDate('');
-    setPages([{ content: '', image: '' }]);
+    setPages([{ content: '', image: '', _key: Math.random().toString() }]);
     setModelUrl('');
     setAutores([]);
   };
@@ -142,6 +116,12 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
         method: 'POST',
         body: formData,
       });
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+         alert('Error del servidor: Posiblemente la imagen es demasiado grande o hubo un error de red.');
+         setUploadingImage(false);
+         return;
+      }
       const data = await response.json();
       if (data.url) callback(data.url);
       else alert(t('alertas.errorSubirImagen'));
@@ -149,35 +129,29 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
     setUploadingImage(false);
   };
 
+  const isSubmitting = mutatePost.isPending;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     const postData = {
       title, type, image, category, modelUrl,
       content: (type === 'simple' || type === 'aviso' || type === 'evento' || type === '3d_model') ? content : 'Contenido Multi-página',
-      pages: type === 'magazine' ? pages : [],
+      pages: type === 'magazine' ? pages.map((p: any) => { const { _key, ...rest } = p; return rest; }) : [],
       countdownDate: (type === 'aviso' || type === 'evento') ? countdownDate : undefined,
-      // Solo se manda si esta cuenta puede firmar. El servidor lo vuelve a
-      // comprobar; esto evita mandar un campo que va a ignorar.
       autores: puede(user, 'publicaciones.firmar') ? autores.filter(a => a.userId) : undefined,
     };
 
     try {
-      const url = viewMode === 'edit' ? `/api/posts/${editingId}` : '/api/posts';
-      const method = viewMode === 'edit' ? 'PUT' : 'POST';
-      const res = await apiFetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(postData)
+      await mutatePost.mutateAsync({
+        id: viewMode === 'edit' ? editingId! : undefined,
+        method: viewMode === 'edit' ? 'PUT' : 'POST',
+        postData
       });
-      if (res.ok) {
-        alert(viewMode === 'edit' ? t('alertas.publicacionActualizada') : t('alertas.publicacionCreada'));
-        setViewMode('list');
-      } else {
-        alert(t('alertas.sinPermisosGuardar'));
-      }
-    } catch(err) { alert(t('alertas.errorConectarServidor')); }
-    setIsSubmitting(false);
+      alert(viewMode === 'edit' ? t('alertas.publicacionActualizada') : t('alertas.publicacionCreada'));
+      setViewMode('list');
+    } catch(err) { 
+      alert(t('alertas.errorConectarServidor')); 
+    }
   };
 
   if (viewMode === 'list') {
@@ -362,7 +336,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
             </label>
 
             {autores.map((a, i) => (
-              <div key={i} className="autores__fila">
+              <div key={a._key || i} className="autores__fila">
                 <select
                   value={a.userId || ''}
                   onChange={(e) => {
@@ -515,7 +489,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             {pages.map((page, idx) => (
-              <div key={idx} style={{ background: 'var(--background)', border: '1px dashed var(--accent)', padding: '24px', borderRadius: '8px' }}>
+              <div key={page._key || idx} style={{ background: 'var(--background)', border: '1px dashed var(--accent)', padding: '24px', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
                   <strong style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '1.1rem' }}>{t('adminPublicaciones.pagina')} {idx + 1}</strong>
                   {pages.length > 1 && (

@@ -177,8 +177,8 @@ app.put('/api/robots/:id', verifyToken, requirePermiso('robots.gestionar'), csrf
   // Solo se re-cifra el secreto si mandan un reemplazo real; nunca se acepta
   // de vuelta el valor enmascarado que el propio backend devolvió antes.
   const newEncryptedSecret =
-    livekitApiSecret && !livekitApiSecret.startsWith('••••')
-      ? encryptSecret(livekitApiSecret)
+    livekitApiSecret !== undefined && !livekitApiSecret.startsWith('••••')
+      ? (livekitApiSecret === '' ? null : encryptSecret(livekitApiSecret))
       : existing.livekit_api_secret_encrypted;
 
   const { rows } = await pool.query(

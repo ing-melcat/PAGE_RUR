@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useLanguage } from "../../lib/i18n";
 import { apiFetch } from "../../lib/apiClient";
@@ -7,33 +7,109 @@ import { PanelRoles } from "../PanelRoles";
 import { PanelMedallas } from "../PanelMedallas";
 import { puede, AREAS } from "../../lib/authUtils";
 
-export const AdminUsers = ({
-  user,
-  pestanaPersonal,
-  setPestanaPersonal,
-  rolesDisponibles,
-  catalogoPermisos,
-  medallasEspeciales,
-  motivosMedallas,
-  setMotivosMedallas,
-  usersList,
-  setUsersList,
-  isCreatingUser,
-  setIsCreatingUser,
-  editingUser,
-  setEditingUser,
-  perfilPublicoEdit,
-  setPerfilPublicoEdit,
-  fichaEdit,
-  setFichaEdit,
-  handleCreateUser,
-  handleUpdateUser,
-  reiniciarPassword,
-  handleDeleteUser,
-  otorgarMedalla,
-  setView
-}: any) => {
+import { useUsers, useRolesDisponibles, useCatalogoPermisos, useMedallasEspeciales, useMutateUser, useMutateMedalla } from "../../hooks/queries/useUsers";
+
+export const AdminUsers = ({ user, setView }: any) => {
   const { t } = useLanguage();
+
+  const [pestanaPersonal, setPestanaPersonal] = useState<'personas'|'roles'|'medallas'>('personas');
+  const [motivosMedallas, setMotivosMedallas] = useState<Record<string,string>>({});
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [perfilPublicoEdit, setPerfilPublicoEdit] = useState(false);
+  const [fichaEdit, setFichaEdit] = useState({ rol_publico: '', area: '', generacion: '' });
+
+  const { data: usersList = [] } = useUsers();
+  const { data: rolesDisponibles = [] } = useRolesDisponibles();
+  const { data: catalogoPermisos = {} } = useCatalogoPermisos();
+  const { data: medallasEspeciales = [] } = useMedallasEspeciales();
+  const mutateUser = useMutateUser();
+  const mutateMedalla = useMutateMedalla();
+
+  const isSubmitting = mutateUser.isPending;
+
+  const handleCreateUser = async (e: any) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const rolesArr = formData.getAll('roles') as string[];
+    if (rolesArr.length === 0 && !window.confirm(t('adminUsuarios.sinRolConfirmar'))) return;
+    const permisosExtra = formData.getAll('permisos_extra') as string[];
+    const userData = {
+      matricula: formData.get('matricula'),
+      password: formData.get('user_password_provisional'),
+      nombre: formData.get('nombre'),
+      roles: rolesArr,
+      permisos_extra: permisosExtra,
+      grupo: formData.get('grupo'),
+      alias: formData.get('alias')
+    };
+
+    try {
+      await mutateUser.mutateAsync({ method: 'POST', userData });
+      setIsCreatingUser(false);
+    } catch(err: any) { alert(err.message || t('alertas.errorConexionGenerico')); }
+  };
+
+  const handleUpdateUser = async (e: any) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const rolesArr = formData.getAll('roles') as string[];
+    if (rolesArr.length === 0 && !window.confirm(t('adminUsuarios.sinRolConfirmar'))) return;
+    const permisosExtra = formData.getAll('permisos_extra') as string[];
+    const userData = {
+      password: formData.get('user_password_provisional'),
+      nombre: formData.get('nombre'),
+      roles: rolesArr,
+      permisos_extra: permisosExtra,
+      alias: formData.get('alias'),
+      perfil_publico: perfilPublicoEdit,
+      ...fichaEdit
+    };
+
+    try {
+      await mutateUser.mutateAsync({ matricula: editingUser.matricula, method: 'PUT', userData });
+      setEditingUser(null);
+    } catch(err: any) { alert(err.message || t('alertas.errorConexionGenerico')); }
+  };
+
+  const reiniciarPassword = async (u: any) => {
+    const isSelf = u.matricula === user?.matricula;
+    const warningMsg = isSelf 
+      ? t('adminUsuarios.reiniciarConfirmarPropio') || '¡CUIDADO! Vas a restablecer TU PROPIA contraseña. Te quedarás sin permisos hasta que inicies sesión con la nueva contraseña temporal y la cambies. ¿Estás seguro?'
+      : t('adminUsuarios.reiniciarConfirmar').replace('{quien}', u.nombre);
+
+    if (!window.confirm(warningMsg)) return;
+    try {
+      const res = await apiFetch(`/api/users/${u.matricula}/password-temporal`, { method: 'POST' });
+      const datos = await res.json().catch(() => null);
+      if (!res.ok || !datos?.success) return alert(datos?.message || t('adminUsuarios.reiniciarError'));
+      window.prompt(t('adminUsuarios.reiniciarListo').replace('{quien}', u.nombre), datos.password);
+    } catch {
+      alert(t('alertas.errorConexionGenerico'));
+    }
+  };
+
+  const handleDeleteUser = async (matricula: string) => {
+    if (!window.confirm(t('adminUsuarios.confirmarEliminar'))) return;
+    try {
+      await mutateUser.mutateAsync({ matricula, method: 'DELETE' });
+    } catch(err: any) { alert(err.message); }
+  };
+
+  const otorgarMedalla = async (userId: number, clave: string, otorgar: boolean) => {
+    const motivo = motivosMedallas[clave] || '';
+    if (otorgar && !motivo) {
+      alert(t('alertas.errorMotivoMedalla'));
+      return;
+    }
+    try {
+      await mutateMedalla.mutateAsync({ userId, clave, method: otorgar ? 'PUT' : 'DELETE', motivo });
+      if (!otorgar) {
+        setMotivosMedallas(prev => { const n = { ...prev }; delete n[clave]; return n; });
+      }
+    } catch(err: any) { alert(err.message); }
+  };
+
   const pageTransition = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },

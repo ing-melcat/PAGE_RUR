@@ -51,6 +51,11 @@ export const ProfileEditor = ({
                                     method: 'POST',
                                     body: formData
                                   });
+                                  const contentType = res.headers.get('content-type');
+                                  if (!contentType || !contentType.includes('application/json')) {
+                                    alert('Error del servidor: Posiblemente la imagen es demasiado grande o hubo un error de red.');
+                                    return;
+                                  }
                                   const data = await res.json();
                                   if (res.ok && data.url) {
                                     setProfileForm({...profileForm, foto: data.url});

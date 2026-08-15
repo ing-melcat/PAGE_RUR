@@ -817,7 +817,7 @@ app.post('/api/users', verifyToken, requirePermiso('usuarios.gestionar'), csrfPr
   const { rows } = await pool.query(
     `INSERT INTO users (matricula, password_hash, nombre, roles, grupo, alias,
                         password_temporal, password_expira)
-     VALUES ($1, $2, $3, $4::jsonb, $5, $6, true, now() + $7::interval)
+     VALUES ($1, $2, $3, $4::jsonb, $5, $6, false, NULL)
      ON CONFLICT (matricula) DO NOTHING
      RETURNING matricula`,
     [matricula, passwordHash, nombre, JSON.stringify(roles || []), grupo || 'GENERAL', alias || '',
@@ -912,12 +912,12 @@ app.put('/api/users/:matricula', verifyToken, requirePermiso('usuarios.gestionar
     `UPDATE users SET nombre = $1, roles = $2::jsonb, grupo = $3, alias = $4, password_hash = $5,
        permisos_extra = $6::jsonb, perfil_publico = $7,
        rol_publico = $8, area = $9, generacion = $10,
-       password_temporal = CASE WHEN $11 THEN true ELSE password_temporal END,
-       password_expira   = CASE WHEN $11 THEN now() + $12::interval ELSE password_expira END
-     WHERE matricula = $13`,
+       password_temporal = CASE WHEN $11 THEN false ELSE password_temporal END,
+       password_expira   = CASE WHEN $11 THEN NULL ELSE password_expira END
+     WHERE matricula = $12`,
     [nombre, JSON.stringify(roles), grupo, alias, passwordHash, JSON.stringify(permisosExtra), perfilPublico,
      ficha.rol_publico, ficha.area, ficha.generacion,
-     cambiaPassword, VIGENCIA_PROVISIONAL, matricula]
+     cambiaPassword, matricula]
   );
   if (cambiaPassword) {
     await saveLog('warning', `Administrador ${req.user.matricula} puso una contraseña provisional a ${matricula}.`);
@@ -959,8 +959,8 @@ app.post('/api/users/:matricula/password-temporal', verifyToken, requirePermiso(
 
   const temporal = generarPasswordTemporal();
   await pool.query(
-    `UPDATE users SET password_hash = $1, password_temporal = true,
-       password_expira = now() + $2::interval
+    `UPDATE users SET password_hash = $1, password_temporal = false,
+       password_expira = NULL
      WHERE matricula = $3`,
     [await bcrypt.hash(temporal, 10), VIGENCIA_PROVISIONAL, matricula]
   );

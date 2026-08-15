@@ -24,6 +24,7 @@ import { AdminContent } from "./components/admin/AdminContent";
 import { AdminUsers } from "./components/admin/AdminUsers";
 import { AdminLogs } from "./components/admin/AdminLogs";
 import { ProfileEditor } from "./components/profile/ProfileEditor";
+import { useLogs, useMetrics } from "./hooks/queries/useLogs";
 import { DashboardSidebar } from "./components/dashboard/DashboardSidebar";
 import { DashboardMain } from "./components/dashboard/DashboardMain";
 import { getRoles, puede, hasRole, AREAS } from "./lib/authUtils";
@@ -128,36 +129,12 @@ export default function App() {
   // Nada de estado en el navegador, tampoco el de navegación: al recargar se
   // arranca en login y /api/me decide a dónde se va, según la sesión real.
   const [view, setView] = useState("login");
-  // Elegido en ModeSelect antes de entrar a la consola ("modo_control"),
-  // para que ControllerApp arranque ya configurada. 'manual' por defecto:
-  // modo VR todavía no es seleccionable (sin Vive físico para probarlo).
   const [controlMode, setControlMode] = useState("manual");
-  // El usuario no se cachea en el navegador: la fuente de verdad es la base y
-  // se pregunta por ella en /api/me. Antes se hidrataba desde localStorage
-  // para evitar el parpadeo inicial, pero eso dejaba una copia del perfil y
-  // los roles en texto plano, legible por cualquier script, y sobreviviendo
-  // entre sesiones aunque la cuenta hubiera cambiado.
   const [user, setUser] = useState<any>(null);
-  // Mientras no sepamos si hay sesión, no se puede decidir nada: sin esto la
-  // app rebotaría al login en el primer render, antes de que /api/me conteste.
   const [sessionChecked, setSessionChecked] = useState(false);
 
-  const [logsList, setLogsList] = useState<any[]>([]);
-  const [crowdsecMetrics, setCrowdsecMetrics] = useState<any>(null);
-
-  useEffect(() => {
-    if (view === 'admin_logs') {
-      apiFetch('/api/logs')
-        .then(r => r.json())
-        .then(data => setLogsList(data))
-        .catch(err => console.error(err));
-
-      apiFetch('/api/crowdsec/metrics')
-        .then(r => r.json())
-        .then(data => setCrowdsecMetrics(data))
-        .catch(err => console.error(err));
-    }
-  }, [view]);
+  const { data: logsList = [] } = useLogs({ refetchInterval: view === 'admin_logs' ? 10000 : undefined });
+  const { data: crowdsecMetrics = null } = useMetrics({ refetchInterval: view === 'admin_logs' ? 10000 : undefined });
 
   useEffect(() => {
     // Ya no hay token en localStorage que revisar: la sesión vive en una
@@ -299,6 +276,13 @@ export default function App() {
         method: 'POST',
         body: formData,
       });
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+         alert('Error del servidor: Posiblemente el archivo es demasiado grande.');
+         setUploadingRobotModel(false);
+         e.target.value = '';
+         return;
+      }
       const data = await response.json();
       if (data.url && robotModelInputRef.current) {
         robotModelInputRef.current.value = data.url;
@@ -998,7 +982,7 @@ export default function App() {
           )}
           {view === "admin_users" && (
             <motion.section key="admin_users" className="full-container" {...pageTransition} style={{ maxWidth: '1400px', margin: '40px auto', display: 'flex', flexDirection: 'column' }}>
-              <AdminUsers user={user} pestanaPersonal={pestanaPersonal} setPestanaPersonal={setPestanaPersonal} rolesDisponibles={rolesDisponibles} catalogoPermisos={catalogoPermisos} medallasEspeciales={medallasEspeciales} motivosMedallas={motivosMedallas} setMotivosMedallas={setMotivosMedallas} usersList={usersList} setUsersList={setUsersList} isCreatingUser={isCreatingUser} setIsCreatingUser={setIsCreatingUser} editingUser={editingUser} setEditingUser={setEditingUser} perfilPublicoEdit={perfilPublicoEdit} setPerfilPublicoEdit={setPerfilPublicoEdit} fichaEdit={fichaEdit} setFichaEdit={setFichaEdit} handleCreateUser={handleCreateUser} handleUpdateUser={handleUpdateUser} reiniciarPassword={reiniciarPassword} handleDeleteUser={handleDeleteUser} otorgarMedalla={otorgarMedalla} setView={setView} />
+              <AdminUsers user={user} setView={setView} />
             </motion.section>
           )}
 
