@@ -89,7 +89,6 @@ export const Landing = ({ category = 'landing', limit }: { category?: string, li
           const isEvento = post.type === 'evento';
           const isSpecial = isAviso || isEvento;
           const specialColor = isAviso ? 'var(--error)' : 'var(--accent)';
-          const specialBg = isAviso ? 'rgba(255,68,68,0.3)' : 'rgba(251,202,1,0.3)';
           const isMagazine = post.type === 'magazine';
           const is3D = post.type === '3d_model';
           const badgeText = isAviso ? t('landing.avisoImportante') : isEvento ? t('landing.eventoEspecial') : isMagazine ? t('archivo.revista') : is3D ? '3D MODEL' : t('archivo.articulo');
@@ -114,11 +113,19 @@ export const Landing = ({ category = 'landing', limit }: { category?: string, li
                 padding: 0, overflow: 'hidden', display: 'flex', flexDirection: isSpecial ? 'row' : 'column', flexWrap: 'wrap', cursor: 'pointer',
                 gridColumn: isSpecial ? '1 / -1' : 'auto',
                 border: isSpecial ? '1px solid var(--border)' : 'none',
-                borderTop: isSpecial ? `2px solid ${specialColor}` : 'none',
+                /* La raya superior ya no es un `border`: la pinta .linea-viva
+                   con la luz recorriéndola. Dejar los dos daría dos rayas,
+                   una encima de la otra. */
+                borderTop: 'none',
+                ...(isSpecial ? { '--linea-color': specialColor, '--linea-alto': '2px' } as React.CSSProperties : {}),
                 position: 'relative'
               }}
               onClick={() => handlePostClick(post)}
             >
+              {/* La raya superior de color, con la luz recorriéndola. Va como
+                  elemento y no como borde para poder animarla. */}
+              {isSpecial && <span className="linea-viva" aria-hidden="true" />}
+
               <div style={{
                 /* Proporción fija, no alto fijo.
                    Antes esto era `height: 300px` con el ancho a merced del
@@ -177,7 +184,7 @@ export const Landing = ({ category = 'landing', limit }: { category?: string, li
                   </div>
                 )}
               </div>
-              <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', flex: isSpecial ? '2 1 400px' : 1, justifyContent: 'space-between', background: isAviso ? 'linear-gradient(to right, #1a0505, var(--surface))' : isEvento ? 'linear-gradient(to right, #1f1a05, var(--surface))' : 'var(--surface)' }}>
+              <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', flex: isSpecial ? '2 1 400px' : 1, justifyContent: 'space-between', background: 'var(--surface)' }}>
                 <div>
                   <h3 style={{ fontSize: isSpecial ? '2.4rem' : '2.1rem', margin: '0 0 16px 0', fontFamily: 'var(--font-titulo)', color: 'var(--text)', lineHeight: '1.1', textTransform: 'uppercase' }}>{post.title}</h3>
                   
@@ -241,7 +248,6 @@ export const PublicationPage = () => {
   const isEvento = post.type === 'evento';
   const isSpecial = isAviso || isEvento;
   const specialColor = isAviso ? 'var(--error)' : 'var(--accent)';
-  const specialBg = isAviso ? 'rgba(255,68,68,0.1)' : 'rgba(251,202,1,0.1)';
 
   return (
     <div style={{ 
@@ -373,7 +379,11 @@ export const ArchiveDashboard = () => {
   const { t, lang } = useLanguage();
   const [posts, setPosts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('todos');
+  // 'all' y no 'todos': es el valor que llevan las <option> de los dos
+  // desplegables, y compararlo contra otra palabra dejaba el filtro activo
+  // desde el primer render, sin nada seleccionado que lo explicara.
+  const [filterType, setFilterType] = useState('all');
+  const [category, setCategory] = useState('all');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -400,8 +410,11 @@ export const ArchiveDashboard = () => {
 
   const filteredPosts = posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'todos' || post.type === filterType;
-    return matchesSearch && matchesType;
+    const matchesType = filterType === 'all' || post.type === filterType;
+    // El desplegable de área existía y no filtraba nada: elegir "EXPLORA"
+    // dejaba la misma lista de siempre.
+    const matchesCategory = category === 'all' || (post.category || 'landing') === category;
+    return matchesSearch && matchesType && matchesCategory;
   });
 
   return (
@@ -447,8 +460,8 @@ export const ArchiveDashboard = () => {
             </select>
 
             <select 
-              value={typeFilter} 
-              onChange={(e) => setTypeFilter(e.target.value)}
+              value={filterType} 
+              onChange={(e) => setFilterType(e.target.value)}
               style={{ background: 'var(--surface-strong)', color: 'var(--text)', border: '1px solid var(--border)', padding: '10px 16px', borderRadius: '4px', fontFamily: 'var(--font-ibm-mono)', outline: 'none' }}
             >
               <option value="all">{t('archivo.todosLosFormatos')}</option>
@@ -474,7 +487,6 @@ export const ArchiveDashboard = () => {
               const isEvento = post.type === 'evento';
               const isSpecial = isAviso || isEvento;
               const specialColor = isAviso ? 'var(--error)' : 'var(--accent)';
-              const specialBg = isAviso ? 'rgba(255,68,68,0.05)' : 'rgba(251,202,1,0.05)';
               const is3D = post.type === '3d_model';
               const badgeText = post.type === 'magazine' ? t('archivo.revista') : isAviso ? t('archivo.aviso') : isEvento ? t('archivo.evento') : is3D ? '3D MODEL' : t('archivo.articulo');
               const BadgeIcon = isAviso ? TriangleAlert : isEvento ? Star : null;
@@ -486,18 +498,22 @@ export const ArchiveDashboard = () => {
                   initial={{ opacity: 0, y: 20 }} 
                   whileInView={{ opacity: 1, y: 0 }} 
                   viewport={{ once: true, amount: 0.1 }} 
-                  whileHover={{ y: -5, boxShadow: isSpecial ? `0 10px 20px ${specialBg}` : '0 10px 20px rgba(0,0,0,0.5)' }}
+                  whileHover={{ y: -5, boxShadow: '0 10px 20px rgba(0,0,0,0.5)' }}
                   whileTap={{ scale: 0.98 }} 
                   style={{ 
                     padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer',
                     border: 'none',
-                    borderTop: isSpecial ? `4px solid ${specialColor}` : '4px solid var(--accent)',
+                    borderTop: isSpecial ? 'none' : '4px solid var(--accent)',
+                    ...(isSpecial ? { '--linea-color': specialColor, '--linea-alto': '4px' } as React.CSSProperties : {}),
                     borderRadius: '0px',
-                    background: isSpecial ? specialBg : 'var(--surface)',
-                    boxShadow: isSpecial ? 'none' : '0 10px 30px rgba(0,0,0,0.2)'
+                    background: 'var(--surface)',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+                    position: 'relative'
                   }}
                   onClick={() => handlePostClick(post)}
                 >
+                  {isSpecial && <span className="linea-viva" aria-hidden="true" />}
+
                   <div style={{ width: '100%', aspectRatio: '16 / 9', backgroundColor: 'var(--surface-strong)', position: 'relative', overflow: 'hidden' }}>
                     {/* Mismo motivo que en la portada: con background-image el
                         navegador se descarga la imagen de cada tarjeta del
