@@ -15,11 +15,17 @@ export const fetchRolesDisponibles = async () => {
   return Array.isArray(data.roles) ? data.roles : [];
 };
 
+// El catálogo de permisos NO tiene endpoint propio: viaja dentro de
+// /api/roles, junto a los roles, porque las casillas del editor de usuario
+// necesitan siempre los dos a la vez. Pedirlo a /api/permisos devolvía el
+// index.html del SPA con un 200, así que el `res.ok` de abajo pasaba y era
+// res.json() quien reventaba: la lista de permisos sueltos salía vacía en el
+// panel sin que nada indicara por qué.
 export const fetchCatalogoPermisos = async () => {
-  const res = await apiFetch('/api/permisos');
+  const res = await apiFetch('/api/roles');
   if (!res.ok) return {};
   const data = await res.json();
-  return data.permisos || {};
+  return data.catalogo || {};
 };
 
 export const fetchMedallasEspeciales = async () => {

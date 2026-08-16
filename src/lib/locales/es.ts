@@ -453,6 +453,7 @@ export const es = {
     matriculaId: 'Matrícula / ID',
     contrasena: 'Contraseña',
     enBlanco: '(En blanco para mantenerla)',
+    ponerContrasenaProvisional: 'Poner una contraseña provisional',
     nombreCompleto: 'Nombre Completo',
     aliasNickname: 'Alias / Nickname',
     rolesAsignados: 'Roles Asignados',

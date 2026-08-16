@@ -453,6 +453,7 @@ export const en: Dictionary = {
     matriculaId: 'Student ID',
     contrasena: 'Password',
     enBlanco: '(Leave blank to keep it)',
+    ponerContrasenaProvisional: 'Set a temporary password',
     nombreCompleto: 'Full Name',
     aliasNickname: 'Alias / Nickname',
     rolesAsignados: 'Assigned Roles',

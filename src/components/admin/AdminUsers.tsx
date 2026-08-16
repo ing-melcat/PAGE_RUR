@@ -19,6 +19,15 @@ export const AdminUsers = ({ user, setView }: any) => {
   const [perfilPublicoEdit, setPerfilPublicoEdit] = useState(false);
   const [fichaEdit, setFichaEdit] = useState({ rol_publico: '', area: '', generacion: '' });
   const [resetModal, setResetModal] = useState<{ show: boolean, password: '', userNombre: '', action: '2fa' | 'password' } | null>(null);
+  // Editando a alguien, el campo de contraseña no existe hasta que se pide.
+  //
+  // Cuando estaba siempre puesto, cualquier gestor de contraseñas lo
+  // autorrellenaba —ni `autoComplete="new-password"` ni `data-lpignore` lo
+  // impiden en todos— y guardar un rol acababa reiniciándole la contraseña a
+  // esa persona sin que nadie la hubiera escrito. El síntoma no señalaba a la
+  // causa: el rol se guardaba bien y era el dueño quien, al día siguiente, no
+  // podía entrar. Un campo que no está en el DOM no se autorrellena.
+  const [cambiarPassword, setCambiarPassword] = useState(false);
 
   const { data: usersList = [] } = useUsers();
   const { data: rolesDisponibles = [] } = useRolesDisponibles();
@@ -69,7 +78,7 @@ export const AdminUsers = ({ user, setView }: any) => {
 
     try {
       await mutateUser.mutateAsync({ matricula: editingUser.matricula, method: 'PUT', userData });
-      setEditingUser(null);
+      setEditingUser(null); setCambiarPassword(false);
     } catch(err: any) { alert(err.message || t('alertas.errorConexionGenerico')); }
   };
 
@@ -149,13 +158,13 @@ export const AdminUsers = ({ user, setView }: any) => {
                     </button>
                     <button
                       className={`pestanas__boton${pestanaPersonal === 'roles' ? ' pestanas__boton--activa' : ''}`}
-                      onClick={() => { setPestanaPersonal('roles'); setIsCreatingUser(false); setEditingUser(null); }}
+                      onClick={() => { setPestanaPersonal('roles'); setIsCreatingUser(false); setEditingUser(null); setCambiarPassword(false); }}
                     >
                       {t('adminUsuarios.pestanaRoles')}
                     </button>
                     <button
                       className={`pestanas__boton${pestanaPersonal === 'medallas' ? ' pestanas__boton--activa' : ''}`}
-                      onClick={() => { setPestanaPersonal('medallas'); setIsCreatingUser(false); setEditingUser(null); }}
+                      onClick={() => { setPestanaPersonal('medallas'); setIsCreatingUser(false); setEditingUser(null); setCambiarPassword(false); }}
                     >
                       {t('adminUsuarios.pestanaMedallas')}
                     </button>
@@ -180,8 +189,15 @@ export const AdminUsers = ({ user, setView }: any) => {
                         <input name="matricula" defaultValue={editingUser?.matricula} readOnly={!!editingUser} required style={{ opacity: editingUser ? 0.5 : 1 }} />
                       </div>
                       <div className="input-group">
-                        <label>{t('adminUsuarios.contrasena')} {editingUser && t('adminUsuarios.enBlanco')}</label>
-                        <input name="user_password_provisional" type="password" required={!editingUser} autoComplete="new-password" data-lpignore="true" />
+                        <label>{t('adminUsuarios.contrasena')}</label>
+                        {(!editingUser || cambiarPassword) ? (
+                          <input name="user_password_provisional" type="password" required={!editingUser} autoComplete="new-password" data-lpignore="true" />
+                        ) : (
+                          <button type="button" className="logout-btn-small" onClick={() => setCambiarPassword(true)}
+                            style={{ width: '100%', padding: '10px' }}>
+                            {t('adminUsuarios.ponerContrasenaProvisional')}
+                          </button>
+                        )}
                       </div>
                       <div className="input-group">
                         <label>{t('adminUsuarios.nombreCompleto')}</label>
@@ -377,7 +393,7 @@ export const AdminUsers = ({ user, setView }: any) => {
 
                     <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
                       <button type="submit" style={{ flex: 1 }}>{editingUser ? t('adminUsuarios.actualizarUsuario') : t('adminUsuarios.guardarUsuario')}</button>
-                      <button type="button" className="logout-btn" onClick={() => { setIsCreatingUser(false); setEditingUser(null); }} style={{ flex: 1, padding: '16px', height: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('adminUsuarios.cancelar')}</button>
+                      <button type="button" className="logout-btn" onClick={() => { setIsCreatingUser(false); setEditingUser(null); setCambiarPassword(false); }} style={{ flex: 1, padding: '16px', height: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('adminUsuarios.cancelar')}</button>
                     </div>
                   </form>
                 </div>
@@ -435,7 +451,7 @@ export const AdminUsers = ({ user, setView }: any) => {
                                 borrarse —ni quitarse la gestión de usuarios,
                                 que lo impide el servidor—. */}
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                              <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => { setEditingUser(u); setMotivosMedallas({ ...(u.medallas ?? {}) }); setPerfilPublicoEdit(!!u.perfil_publico); setFichaEdit({ rol_publico: u.rol_publico ?? '', area: u.area ?? '', generacion: u.generacion ?? '' }); }}>{t('adminUsuarios.editar')}</button>
+                              <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => { setEditingUser(u); setCambiarPassword(false); setMotivosMedallas({ ...(u.medallas ?? {}) }); setPerfilPublicoEdit(!!u.perfil_publico); setFichaEdit({ rol_publico: u.rol_publico ?? '', area: u.area ?? '', generacion: u.generacion ?? '' }); }}>{t('adminUsuarios.editar')}</button>
                               <button className="logout-btn-small" onClick={() => reiniciarPassword(u)}>{t('adminUsuarios.reiniciar')}</button>
                               {u.totp_enabled && (
                                 <button className="logout-btn-small" style={{borderColor: '#eab308', color: '#eab308'}} onClick={() => desvincular2FA(u)}>Quitar 2FA</button>
@@ -455,7 +471,7 @@ export const AdminUsers = ({ user, setView }: any) => {
               <button className="back-link" onClick={() => {
                 if (isCreatingUser || editingUser) {
                   setIsCreatingUser(false);
-                  setEditingUser(null);
+                  setEditingUser(null); setCambiarPassword(false);
                 } else {
                   setView("dashboard");
                 }
