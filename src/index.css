@@ -1925,3 +1925,68 @@ textarea:focus-visible {
   display: none !important;
 }
 
+
+/* ==================================================================
+   Línea viva
+   ------------------------------------------------------------------
+   La franja de color del borde superior de una tarjeta especial, con una
+   luz recorriéndola. Es el mismo lenguaje que el contorno del chip de la
+   barra, adaptado a una recta: allí la luz da la vuelta a un rectángulo,
+   aquí barre de un extremo al otro, que es el único recorrido que tiene
+   sentido en una línea.
+
+   Es un ELEMENTO propio y no un pseudo de la tarjeta: .dashboard-card ya
+   gasta sus dos pseudo-elementos en las esquinas en cruz, que son parte
+   de la identidad visual del sitio. Pintar aquí la línea se las comía.
+
+   El color lo pone quien la usa, en `--linea-color`, porque cambia según
+   lo que anuncie la tarjeta: rojo si es un aviso, ámbar de marca si es
+   un evento. El grosor va en `--linea-alto` por lo mismo: la portada la
+   lleva de 2px y el archivo de 4px.
+   ================================================================== */
+
+.linea-viva {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--linea-alto, 2px);
+  background: var(--linea-color, var(--accent));
+  /* Recorta el brillo en los extremos: sin esto se saldría por los lados
+     de la tarjeta y se vería un destello suelto flotando al margen. */
+  overflow: hidden;
+  /* Por encima de la imagen de la tarjeta, que lleva z-index propio. */
+  z-index: 12;
+  pointer-events: none;
+}
+
+/* La luz que la recorre. Es un tramo corto y translúcido: un brillo que
+   ocupara la línea entera se leería como un cambio de color, no como algo
+   que se mueve. */
+.linea-viva::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 32%;
+  background: linear-gradient(90deg,
+    transparent,
+    color-mix(in srgb, var(--bone) 85%, transparent),
+    transparent);
+  animation: linea-viva-barrido 3.6s linear infinite;
+}
+
+/* Sale por la izquierda y se va por la derecha. El 320% es el recorrido
+   medido en anchos del propio brillo (32% de la tarjeta), que es lo que
+   garantiza que salga del todo por el otro lado en vez de desvanecerse a
+   mitad de camino. */
+@keyframes linea-viva-barrido {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(320%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .linea-viva::after {
+    animation: none;
+    opacity: 0;
+  }
+}

@@ -23,6 +23,8 @@ export const en: Dictionary = {
     avisoActivo: 'ACTIVE NOTICE',
     eventoActivo: 'ACTIVE EVENT',
     variosActivos: '{n} active',
+    verActivos: 'See what is active now ({n})',
+    activosTitulo: 'Right now',
   },
   home: {
     heroTitulo: 'The Future of Technology',

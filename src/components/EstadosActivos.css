@@ -16,14 +16,38 @@
    desactivado.
    ================================================================== */
 
+/* La caja ancla la tarjeta al chip. Es `relative` y nada más: si llevara
+   fondo o borde se vería un segundo marco alrededor del que ya tiene el
+   chip. */
+.estados-caja {
+  position: relative;
+}
+
+/* El chip va sobre negro sólido, no sobre el velo translúcido de antes: el
+   contorno luminoso de abajo necesita algo oscuro y opaco detrás para leerse
+   como una luz y no como un borde de color. */
 .estados {
+  /* Es un <button>: sin esto trae el fondo, el borde y la tipografía del
+     sistema, que no se parecen a nada del resto de la barra. */
+  appearance: none;
+  font: inherit;
+  cursor: pointer;
+  /* Y los botones vienen con `overflow: hidden` de fábrica —lo pone la hoja
+     del navegador, no nosotros—, que recortaba el contorno luminoso de abajo
+     por sobresalir 1px. Mientras esto fue un <div> no hacía falta; al
+     convertirlo en botón para que abriera la tarjeta, la luz desapareció. */
+  overflow: visible;
+  position: relative;
+  /* Contexto de apilamiento propio. Sin esto, el contorno con z-index
+     negativo se colaría por detrás del fondo de la barra y desaparecería. */
+  isolation: isolate;
   display: flex;
   align-items: center;
   gap: 4px;
   padding: 5px 12px 5px 8px;
   border: 1px solid var(--border);
   border-radius: 2px;
-  background: rgba(245, 243, 233, .04);
+  background: #05070d;
   transition: border-color var(--mov-rapido) ease;
 }
 
@@ -31,6 +55,80 @@
   .estados:hover {
     border-color: var(--accent);
   }
+}
+
+/* --- contorno con la luz dando vueltas -----------------------------
+   Un cono de color girando, recortado con máscara para que solo se vea
+   en el borde: se pinta el rectángulo entero y luego se descuenta su
+   interior (`exclude`), de modo que sobrevive únicamente el marco de
+   1px. Es lo que hace que la luz recorra el perímetro en vez de barrer
+   el fondo.
+
+   Va dentro de @supports porque la máscara y el ángulo animable no
+   están en todos los navegadores. Donde no lleguen, queda el borde
+   sólido de arriba: el chip se ve bien igual, sin luz.
+   ------------------------------------------------------------------ */
+@property --estados-angulo {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@supports ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+  .estados {
+    border-color: transparent;
+  }
+
+  .estados::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: -1px;
+    border-radius: inherit;
+    /* El grosor del contorno: es el ancho de la banda que la máscara deja
+       ver, no un borde de verdad. */
+    padding: 1px;
+    /* Casi toda la vuelta es transparente. La luz es un tramo corto que
+       pasa de la marca al hueso y se apaga: un cono con color en todo el
+       giro se vería como un aro fijo, no como algo que da vueltas. */
+    background: conic-gradient(
+      from var(--estados-angulo),
+      transparent 0 62%,
+      color-mix(in srgb, var(--accent) 55%, transparent) 74%,
+      var(--accent) 84%,
+      var(--bone) 89%,
+      transparent 94% 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask-composite: exclude;
+    animation: estados-vuelta 4s linear infinite;
+  }
+
+  /* Un borde tenue permanente por debajo de la luz. Sin él, la parte del
+     contorno por la que la luz no está pasando no existe, y el chip
+     parece recortado a trozos. */
+  .estados::after {
+    content: '';
+    position: absolute;
+    z-index: -2;
+    inset: -1px;
+    border-radius: inherit;
+    border: 1px solid var(--border);
+  }
+
+  /* Al pasar el ratón la vuelta se acelera. Es la única respuesta al
+     hover que queda, ya que el borde dejó de ser de color fijo. */
+  @media (hover: hover) {
+    .estados:hover::before {
+      animation-duration: 1.6s;
+    }
+  }
+}
+
+@keyframes estados-vuelta {
+  to { --estados-angulo: 360deg; }
 }
 
 /* Cada punto es un enlace. El punto mide 8px pero el enlace lleva 7px de
@@ -44,9 +142,9 @@
   color: var(--bone);
 }
 
-.estado:focus-visible {
+.estados:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 
 .estado__punto {
@@ -147,6 +245,14 @@
     animation: none;
   }
 
+  /* La luz deja de girar y se queda como un contorno fijo con el color de
+     marca. Quien tiene el movimiento desactivado no pierde el chip, solo
+     su vuelta. */
+  .estados::before {
+    animation: none;
+    background: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+
   /* Sin relevos y sin deslizamiento: la etiqueta en turno simplemente
      está. El componente ya no arranca el temporizador en este modo, así
      que lo que se ve es el estado más urgente, fijo. */
@@ -167,5 +273,131 @@
 @media (max-width: 1300px) {
   .estados__texto {
     display: none;
+  }
+}
+
+/* ==================================================================
+   La tarjeta que despliega el chip
+   ------------------------------------------------------------------
+   El chip dice CUÁNTAS cosas hay; esto dice CUÁLES. Es la diferencia
+   entre "3 activos" y tres títulos que se pueden leer y abrir.
+
+   Crece desde la esquina del chip (`transform-origin`) en vez de
+   aparecer centrada: así se lee como algo que sale de ahí y no como una
+   ventana que se planta encima de la página.
+   ================================================================== */
+
+.estados-tarjeta {
+  position: absolute;
+  top: calc(100% + 8px);
+  /* Anclada al lado derecho del chip, que es el que queda hacia dentro
+     de la barra: alineándola por la izquierda se salía de la pantalla en
+     cuanto el chip estaba cerca del borde. */
+  right: 0;
+  transform-origin: top right;
+  z-index: 60;
+
+  min-width: 240px;
+  max-width: min(340px, calc(100vw - 32px));
+  padding: 10px;
+
+  background: #05070d;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  /* La sombra es lo que la despega del fondo. Sin ella, sobre una página
+     oscura la tarjeta y lo que hay detrás se funden en la misma mancha. */
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .55);
+}
+
+.estados-tarjeta__titulo {
+  margin: 0 0 8px;
+  padding: 0 6px;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--bone);
+  opacity: .5;
+}
+
+.estados-tarjeta__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.estados-tarjeta__fila {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 6px;
+  border-radius: 2px;
+  text-decoration: none;
+  color: var(--bone);
+  transition: background var(--mov-rapido) ease;
+}
+
+@media (hover: hover) {
+  .estados-tarjeta__fila:hover {
+    background: rgba(245, 243, 233, .06);
+  }
+}
+
+.estados-tarjeta__fila:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* El punto de cada fila hereda su color del tono, igual que en el chip.
+   Va alineado con la primera línea de texto, no centrado con el bloque
+   entero: con un título de dos líneas, centrarlo lo dejaba flotando a
+   media altura sin relación con nada. */
+.estados-tarjeta__fila .estado__punto {
+  margin-top: 5px;
+  opacity: 1;
+}
+
+.estados-tarjeta__fila--directo .estado__punto { color: var(--error); }
+.estados-tarjeta__fila--aviso   .estado__punto { color: var(--warning); }
+.estados-tarjeta__fila--evento  .estado__punto { color: var(--accent); }
+
+.estados-tarjeta__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.estados-tarjeta__que {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  opacity: .6;
+}
+
+/* El título completo, en varias líneas si hace falta. Aquí SÍ cabe:
+   es la pantalla que existe para leerlo, al revés que el chip de la
+   barra, donde recortarlo con puntos suspensivos se leía peor que no
+   ponerlo. */
+.estados-tarjeta__cual {
+  font-size: var(--t-sm);
+  line-height: 1.35;
+  color: var(--bone);
+}
+
+@media (max-width: 900px) {
+  /* En la barra estrecha el chip queda casi pegado al borde: anclarla a
+     la derecha la sacaría de la pantalla, así que se centra bajo él. */
+  .estados-tarjeta {
+    right: auto;
+    left: 50%;
+    transform-origin: top center;
+    translate: -50% 0;
   }
 }

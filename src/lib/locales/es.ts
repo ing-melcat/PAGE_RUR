@@ -23,6 +23,8 @@ export const es = {
     avisoActivo: 'AVISO ACTIVO',
     eventoActivo: 'EVENTO ACTIVO',
     variosActivos: '{n} activos',
+    verActivos: 'Ver qué hay activo ahora ({n})',
+    activosTitulo: 'Ahora mismo',
   },
   home: {
     heroTitulo: 'El Futuro de la Tecnología',

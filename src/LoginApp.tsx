@@ -719,7 +719,13 @@ export default function App() {
 
       <main className={view === "login" ? "container" : view === "controles" ? "controller-main" : "full-container"} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <AnimatePresence mode="wait">
-          {view === "login" && (
+          {/* `sessionChecked` y no solo `view`: la vista arranca en "login"
+              porque no hay nada en el navegador que diga lo contrario, y quien
+              decide es /api/me. Hasta que contesta pasan unos milisegundos, y
+              sin esta condición quien ya tenía sesión veía parpadear el
+              formulario de acceso antes de entrar a su panel: parece que te ha
+              echado y que vuelve a entrar solo. */}
+          {view === "login" && sessionChecked && (
             <motion.section key="login" className="login-panel" {...pageTransition}>
               <div className="panel-header">
                 <h1>{t('login.titulo')}</h1>

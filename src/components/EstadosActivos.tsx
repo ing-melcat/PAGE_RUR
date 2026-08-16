@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../lib/i18n';
 import { useEnVivo } from '../lib/useEnVivo';
 import './EstadosActivos.css';
 
-type Publicacion = { id: string; title: string; type: string; date?: string };
+type Publicacion = { id: string; title: string; type: string; date?: string; isHidden?: boolean };
 
 /**
  * Lo que está pasando ahora mismo, en la barra de navegación.
@@ -58,7 +59,12 @@ export function EstadosActivos({ alCerrarMenu }: { alCerrarMenu?: () => void }) 
         const orden = { aviso: 0, evento: 1 } as Record<string, number>;
         setEspeciales(
           datos
-            .filter((p) => p.type === 'aviso' || p.type === 'evento')
+            // `!p.isHidden` no sobra aunque /api/posts ya esconda lo oculto:
+            // solo lo esconde a quien NO tiene sesión. Con la sesión abierta
+            // devuelve todas las publicaciones, ocultas incluidas, así que
+            // quien administra veía anunciado en la barra un evento que había
+            // retirado y que ningún visitante podía abrir.
+            .filter((p) => (p.type === 'aviso' || p.type === 'evento') && !p.isHidden)
             .sort((a, b) =>
               (orden[a.type] - orden[b.type]) ||
               String(b.date ?? '').localeCompare(String(a.date ?? ''))
@@ -91,10 +97,10 @@ export function EstadosActivos({ alCerrarMenu }: { alCerrarMenu?: () => void }) 
       tono: p.type === 'aviso' ? 'aviso' : 'evento',
     });
   } else if (especiales.length > 1) {
-    // Con más de uno NO se listan: la barra no es un tablón de anuncios, y
+    // Con más de uno NO se listan EN LA BARRA: no es un tablón de anuncios, y
     // tres o cuatro chips seguidos hacen que no se lea ninguno. Se anuncia
-    // cuántos hay y se manda al archivo, que es la pantalla hecha para
-    // recorrerlos. El tono lo marca el más urgente de todos.
+    // cuántos hay; el detalle de cada uno está en la tarjeta que despliega el
+    // chip al pulsarlo. El tono lo marca el más urgente de todos.
     estados.push({
       clave: 'varios',
       etiqueta: t('nav.variosActivos').replace('{n}', String(especiales.length)),
@@ -106,7 +112,31 @@ export function EstadosActivos({ alCerrarMenu }: { alCerrarMenu?: () => void }) 
 
   if (estados.length === 0) return null;
 
-  return <Rotador estados={estados.slice(0, 2)} alCerrarMenu={alCerrarMenu} />;
+  // Lo que se despliega al pulsar: uno por cada cosa que está pasando, sin
+  // colapsar. Es distinto de `estados`, que es lo que cabe en la barra. El
+  // chip resume; la tarjeta enumera, que es lo que hace que "3 activos" deje
+  // de ser una cifra sin nombres.
+  const listado: Estado[] = [];
+  if (enVivo) {
+    listado.push({
+      clave: 'vivo',
+      etiqueta: t('envivo.etiqueta'),
+      detalle: enVivo.name,
+      destino: `/espectador/${enVivo.id}`,
+      tono: 'directo',
+    });
+  }
+  for (const p of especiales) {
+    listado.push({
+      clave: `pub-${p.id}`,
+      etiqueta: p.type === 'aviso' ? t('nav.avisoActivo') : t('nav.eventoActivo'),
+      detalle: p.title,
+      destino: `/publicacion/${p.id}`,
+      tono: p.type === 'aviso' ? 'aviso' : 'evento',
+    });
+  }
+
+  return <Rotador estados={estados.slice(0, 2)} listado={listado} alCerrarMenu={alCerrarMenu} />;
 }
 
 /** Cada cuánto pasa el turno al siguiente estado. */
@@ -130,13 +160,48 @@ const TURNO_MS = 5000;
  * La rotación se detiene cuando alguien pasa el ratón o llega con el
  * teclado: si la estás leyendo, no se te escapa a mitad de frase.
  */
-function Rotador({ estados, alCerrarMenu }: { estados: Estado[]; alCerrarMenu?: () => void }) {
+function Rotador({ estados, listado, alCerrarMenu }: { estados: Estado[]; listado: Estado[]; alCerrarMenu?: () => void }) {
+  // Su propio `t`: los textos de la tarjeta se escriben aquí, y este
+  // componente no recibe nada del de arriba salvo los datos.
+  const { t } = useLanguage();
   const [activo, setActivo] = useState(0);
   const [detenido, setDetenido] = useState(false);
+  const [abierta, setAbierta] = useState(false);
+  const cajaRef = useRef<HTMLDivElement>(null);
+  const botonRef = useRef<HTMLButtonElement>(null);
+
+  // Mientras la tarjeta está abierta la etiqueta no rota: el relevo movería
+  // el texto del chip justo cuando se está leyendo lo que desplegó.
+  const rotacionParada = detenido || abierta;
+
+  // Cerrar es tan importante como abrir. Un panel que solo se quita pulsando
+  // otra vez el mismo botón se queda por delante de la página en cuanto
+  // alguien mira a otro lado.
+  useEffect(() => {
+    if (!abierta) return;
+
+    const alPulsarFuera = (e: MouseEvent) => {
+      if (!cajaRef.current?.contains(e.target as Node)) setAbierta(false);
+    };
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setAbierta(false);
+      // El foco vuelve al chip: quien cerró con el teclado no puede quedarse
+      // sin sitio en la página.
+      botonRef.current?.focus();
+    };
+
+    document.addEventListener('mousedown', alPulsarFuera);
+    document.addEventListener('keydown', alTeclear);
+    return () => {
+      document.removeEventListener('mousedown', alPulsarFuera);
+      document.removeEventListener('keydown', alTeclear);
+    };
+  }, [abierta]);
 
   useEffect(() => {
     // Con un solo estado no hay turnos que repartir: se queda desplegado.
-    if (estados.length < 2 || detenido) return;
+    if (estados.length < 2 || rotacionParada) return;
 
     // Quien tiene la pestaña en segundo plano no está viendo los relevos;
     // seguir rotando solo gasta batería.
@@ -147,68 +212,100 @@ function Rotador({ estados, alCerrarMenu }: { estados: Estado[]; alCerrarMenu?: 
       setActivo((i) => (i + 1) % estados.length);
     }, TURNO_MS);
     return () => clearInterval(id);
-  }, [estados.length, detenido]);
+  }, [estados.length, rotacionParada]);
 
   // Si desaparece un estado (termina la transmisión), el índice puede quedar
   // apuntando fuera de la lista.
   const indice = activo % estados.length;
 
-  const enTurno = estados[indice];
-
   return (
-    <div
-      className="estados"
-      onMouseEnter={() => setDetenido(true)}
-      onMouseLeave={() => setDetenido(false)}
-      onFocus={() => setDetenido(true)}
-      onBlur={() => setDetenido(false)}
-    >
-      {/* Los puntos: uno por cada cosa que está pasando, siempre visibles.
-          Cada uno es su propio enlace y lleva el texto completo en
-          aria-label, así que el conjunto funciona igual con teclado y con
-          lector de pantalla aunque la etiqueta de al lado esté rotando. */}
-      {estados.map((e, i) => (
-        <Link
-          key={e.clave}
-          to={e.destino}
-          className={`estado estado--${e.tono}${i === indice ? ' estado--en-turno' : ''}`}
-          title={e.detalle ? `${e.etiqueta}: ${e.detalle}` : e.etiqueta}
-          aria-label={e.detalle ? `${e.etiqueta}: ${e.detalle}` : e.etiqueta}
-          onClick={alCerrarMenu}
-          // Apuntar a un punto concreto lo despliega sin esperar su turno.
-          // Un punto de color no dice de qué es, y obligar a aguardar cinco
-          // segundos para averiguarlo sería una adivinanza, no una interfaz.
-          onMouseEnter={() => setActivo(i)}
-          onFocus={() => setActivo(i)}
-        >
-          <span className="estado__punto" />
-        </Link>
-      ))}
-
-      {/* La zona de texto es ÚNICA y de ancho fijo: todas las etiquetas se
-          apilan en la misma celda del grid, así que mide siempre lo que la
-          más larga, esté visible la que esté. Es lo que permite que el
-          relevo no empuje nada a su alrededor.
-
-          Va oculta al lector de pantalla y fuera del tabulador porque no
-          añade nada: los puntos de arriba ya son los enlaces, con su texto
-          completo. */}
-      <Link
-        to={enTurno.destino}
-        className="estados__texto"
-        tabIndex={-1}
-        aria-hidden="true"
-        onClick={alCerrarMenu}
+    <div className="estados-caja" ref={cajaRef}>
+      {/* El chip es UN botón, no varios enlaces.
+          Antes cada punto llevaba directamente a su publicación, que con un
+          solo activo estaba bien y con tres obligaba a adivinar cuál era
+          cuál por el color. Ahora pulsar abre la tarjeta y allí cada cosa
+          aparece con su nombre. El destino sigue a un clic, solo que con el
+          rótulo delante. */}
+      <button
+        type="button"
+        ref={botonRef}
+        className="estados"
+        aria-expanded={abierta}
+        aria-haspopup="true"
+        aria-label={t('nav.verActivos').replace('{n}', String(listado.length))}
+        onClick={() => setAbierta((v) => !v)}
+        onMouseEnter={() => setDetenido(true)}
+        onMouseLeave={() => setDetenido(false)}
+        onFocus={() => setDetenido(true)}
+        onBlur={() => setDetenido(false)}
       >
+        {/* Los puntos: uno por cada cosa que está pasando. Ya no son enlaces
+            —el botón que los contiene es el que actúa—, así que van marcados
+            como decoración: su información la da el aria-label de arriba. */}
         {estados.map((e, i) => (
           <span
             key={e.clave}
-            className={`estados__etiqueta${i === indice ? ' estados__etiqueta--visible' : ''}`}
+            className={`estado estado--${e.tono}${i === indice ? ' estado--en-turno' : ''}`}
+            aria-hidden="true"
           >
-            {e.etiqueta}
+            <span className="estado__punto" />
           </span>
         ))}
-      </Link>
+
+        {/* La zona de texto es ÚNICA y de ancho fijo: todas las etiquetas se
+            apilan en la misma celda del grid, así que mide siempre lo que la
+            más larga, esté visible la que esté. Es lo que permite que el
+            relevo no empuje nada a su alrededor. */}
+        <span className="estados__texto" aria-hidden="true">
+          {estados.map((e, i) => (
+            <span
+              key={e.clave}
+              className={`estados__etiqueta${i === indice ? ' estados__etiqueta--visible' : ''}`}
+            >
+              {e.etiqueta}
+            </span>
+          ))}
+        </span>
+      </button>
+
+      <AnimatePresence>
+        {abierta && (
+          <motion.div
+            className="estados-tarjeta"
+            role="group"
+            aria-label={t('nav.activosTitulo')}
+            initial={{ opacity: 0, scale: .94, y: -6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: .96, y: -4 }}
+            // Muelle, no curva fija: la tarjeta se asienta en vez de
+            // frenar en seco, que es lo que la hace parecer que crece del
+            // chip y no que aparece encima de la página.
+            transition={{ type: 'spring', stiffness: 460, damping: 34, mass: .7 }}
+          >
+            <p className="estados-tarjeta__titulo">{t('nav.activosTitulo')}</p>
+
+            <ul className="estados-tarjeta__lista">
+              {listado.map((e) => (
+                <li key={e.clave}>
+                  <Link
+                    to={e.destino}
+                    className={`estados-tarjeta__fila estados-tarjeta__fila--${e.tono}`}
+                    onClick={() => { setAbierta(false); alCerrarMenu?.(); }}
+                  >
+                    <span className="estado__punto" aria-hidden="true" />
+                    <span className="estados-tarjeta__texto">
+                      <span className="estados-tarjeta__que">{e.etiqueta}</span>
+                      {/* El título es lo que de verdad distingue una fila de
+                          otra: sin él, tres eventos se leen igual. */}
+                      {e.detalle && <span className="estados-tarjeta__cual">{e.detalle}</span>}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
