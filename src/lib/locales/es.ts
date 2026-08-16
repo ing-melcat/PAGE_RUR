@@ -328,7 +328,7 @@ export const es = {
     guardando: 'Guardando...',
     guardarCambios: 'GUARDAR CAMBIOS',
     publicarAhora: 'PUBLICAR AHORA',
-    contenidoHtml: 'Contenido HTML (100% Personalizable)',
+    contenidoHtml: 'Contenido HTML',
     guiaRapida: 'Guía rápida:',
     yaTienenEstilo: 'ya tienen el estilo del sitio — no hace falta ponerles',
     verEjemplo: 'Ver ejemplo',

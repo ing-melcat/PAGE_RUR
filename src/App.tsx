@@ -15,6 +15,7 @@ import imgLine from './assets/real_images/line.jpeg';
 // bundle de quien solo entra a la web pública.
 const SpectatorApp = lazyConRecarga(() => import('./controller/SpectatorApp'));
 const OverlayApp = lazyConRecarga(() => import('./controller/OverlayApp'));
+const VisorModelo3D = lazyConRecarga(() => import('./VisorModelo3D'));
 // Igual con el panel: arrastra el visor 3D de la selección de unidad, y con él
 // three.js entero. Quien solo visita la web pública no tiene por qué cargarlo.
 const LoginApp = lazyConRecarga(() => import('./LoginApp'));
@@ -22,6 +23,7 @@ import './App.css';
 import { Landing, PublicationPage, ArchiveDashboard } from './Landing';
 import { Miembros } from './Miembros';
 import { PerfilMiembro } from './PerfilMiembro';
+import ContactPage from './ContactPage';
 import { useLanguage } from './lib/i18n';
 import { EstadosActivos } from './components/EstadosActivos';
 import { InvitacionEnVivo } from './components/InvitacionEnVivo';
@@ -203,8 +205,14 @@ const Footer = () => {
           <Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>+52 (---) --- ----</Link>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0' }}>
-          <Mail size={18} style={{ flexShrink: 0 }} /> <span style={{ fontSize: '0.9rem' }}>research.unit.robotics@gmail.com</span>
+          <Mail size={18} style={{ flexShrink: 0 }} /> <Link to="/contacto" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>research.unit.robotics@gmail.com</Link>
         </div>
+      </div>
+      <div>
+        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-titulo)', marginBottom: '20px', letterSpacing: '0.1em' }}>Comunidad</h4>
+        <p style={{ margin: '12px 0' }}><a href="https://discord.gg/YCJxw6NfD" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>Servidor de Discord</a></p>
+        <p style={{ margin: '12px 0' }}><a href="#" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>Grupo de WhatsApp</a></p>
+        <p style={{ margin: '12px 0' }}><a href="#" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>Foro RUR</a></p>
       </div>
       <div>
         <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-titulo)', marginBottom: '20px', letterSpacing: '0.1em' }}>{t('footer.legal')}</h4>
@@ -322,6 +330,7 @@ const LandingLayout = () => {
           <span className="nav-separator" style={{ color: 'var(--muted)', opacity: 0.5 }}>•</span>
           <Link to="/miembros" className="nav-link" data-text={t('nav.miembros')} onClick={() => setIsMobileMenuOpen(false)}>{t('nav.miembros')}</Link>
 
+
           {/* Mismos chips que en la barra de escritorio, no una variante
               propia: es la misma información y no tiene por qué verse de dos
               maneras distintas según el ancho de la pantalla. */}
@@ -378,32 +387,41 @@ const ComingSoon = () => {
   const { t } = useLanguage();
   return (
   <div style={{
-    height: '60vh',
+    minHeight: '80vh',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
     textAlign: 'center',
-    padding: '40px'
+    padding: '40px',
+    position: 'relative'
   }}>
-    <h1 style={{ fontFamily: 'var(--font-titulo)', fontSize: '3.6rem', color: 'var(--accent)', marginBottom: '20px' }}>{t('comingSoon.titulo')}</h1>
-    <p style={{ color: 'var(--muted)', fontSize: '1.2rem', maxWidth: '600px', lineHeight: '1.6' }}>
-      {t('comingSoon.texto')}
-    </p>
-    <Link to="/" style={{ marginTop: '40px' }}>
-      <button style={{
-        background: 'transparent',
-        color: 'var(--accent)',
-        border: '1px solid var(--accent)',
-        padding: '12px 24px',
-        fontFamily: 'var(--font-ibm-mono)',
-        fontWeight: 'bold',
-        cursor: 'pointer',
-        transition: 'all 0.3s ease'
-      }}>
-        {t('comingSoon.volver')}
-      </button>
-    </Link>
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, opacity: 0.5, pointerEvents: 'none' }}>
+      <Suspense fallback={null}>
+        <VisorModelo3D url="/models/DeliveryBotv1.glb" variante="publicacion" />
+      </Suspense>
+    </div>
+    <div style={{ position: 'relative', zIndex: 10, background: 'rgba(3,8,22,0.7)', padding: '40px', borderRadius: '16px', backdropFilter: 'blur(10px)', border: '1px solid var(--border)' }}>
+      <h1 style={{ fontFamily: 'var(--font-titulo)', fontSize: '3.6rem', color: 'var(--accent)', marginBottom: '20px' }}>{t('comingSoon.titulo') || 'PRÓXIMAMENTE'}</h1>
+      <p style={{ color: 'var(--text)', fontSize: '1.2rem', maxWidth: '600px', lineHeight: '1.6', margin: '0 auto' }}>
+        {t('comingSoon.texto') || 'Estamos construyendo algo increíble en el laboratorio de robótica. ¡Vuelve pronto!'}
+      </p>
+      <Link to="/" style={{ marginTop: '40px', display: 'inline-block' }}>
+        <button className="action-card" style={{
+          background: 'var(--accent)',
+          color: '#000',
+          border: 'none',
+          padding: '12px 32px',
+          fontFamily: 'var(--font-ibm-mono)',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          borderRadius: '4px',
+          transition: 'all 0.3s ease'
+        }}>
+          {t('comingSoon.volver') || 'VOLVER AL INICIO'}
+        </button>
+      </Link>
+    </div>
   </div>
   );
 };
@@ -443,6 +461,7 @@ function App() {
           <Route path="/explora" element={<PageTransition><Explora /></PageTransition>} />
           <Route path="/descubre" element={<PageTransition><Descubre /></PageTransition>} />
           <Route path="/conecta" element={<PageTransition><Conecta /></PageTransition>} />
+          <Route path="/contacto" element={<PageTransition><ContactPage /></PageTransition>} />
           <Route path="/miembros" element={<PageTransition><Miembros /></PageTransition>} />
           <Route path="/miembros/:id" element={<PageTransition><PerfilMiembro /></PageTransition>} />
           <Route path="/archivo" element={<PageTransition><ArchiveDashboard /></PageTransition>} />

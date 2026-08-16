@@ -199,7 +199,7 @@ function rowToPost(row, includeContent = true) {
     post.content = row.content;
     post.pages = row.pages;
   } else {
-    if (row.type === 'simple' && row.content) {
+    if ((row.type === 'simple' || row.type === 'aviso' || row.type === 'evento' || row.type === '3d_model') && row.content) {
       const stripped = row.content.replace(/<[^>]*>?/gm, '');
       post.previewText = stripped.substring(0, 140) + (stripped.length > 140 ? '...' : '');
     }
@@ -312,6 +312,51 @@ app.post('/api/upload', verifyToken, uploadLimiter, csrfProtection, upload.singl
   }
 
   res.json({ url: `/api/uploads/${nombre}` });
+});
+
+const contactLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => req.ip,
+  handler: (req, res) => res.status(429).json({ message: 'Has enviado demasiados mensajes. Intenta más tarde.' }),
+});
+
+app.post('/api/contact', contactLimiter, async (req, res) => {
+  const { name, email, subject, message } = req.body || {};
+  
+  if (!name || !email || !subject || !message) {
+    return res.status(400).json({ success: false, message: 'Todos los campos son obligatorios' });
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO contact_messages (name, email, subject, message) VALUES ($1, $2, $3, $4)`,
+      [name.slice(0,100), email.slice(0,255), subject.slice(0,200), message]
+    );
+
+    if (process.env.DISCORD_WEBHOOK_URL) {
+      await fetch(process.env.DISCORD_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          embeds: [{
+            title: `📩 Nuevo Mensaje: ${subject.slice(0,200)}`,
+            color: 16501249,
+            fields: [
+              { name: 'Nombre', value: name.slice(0,100), inline: true },
+              { name: 'Email', value: email.slice(0,255), inline: true },
+              { name: 'Mensaje', value: message.slice(0,1024) }
+            ]
+          }]
+        })
+      }).catch(err => console.error('[contact] Discord webhook error:', err));
+    }
+
+    res.json({ success: true, message: 'Mensaje enviado correctamente' });
+  } catch (error) {
+    console.error('[contact] Error:', error);
+    res.status(500).json({ success: false, message: 'Error interno del servidor' });
+  }
 });
 
 app.use((err, req, res, next) => {

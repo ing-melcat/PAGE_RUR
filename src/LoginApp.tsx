@@ -24,6 +24,7 @@ import { AdminContent } from "./components/admin/AdminContent";
 import { AdminUsers } from "./components/admin/AdminUsers";
 import { AdminLogs } from "./components/admin/AdminLogs";
 import { ProfileEditor } from "./components/profile/ProfileEditor";
+import { Configurar2FA } from "./components/profile/Configurar2FA";
 import { useLogs, useMetrics } from "./hooks/queries/useLogs";
 import { DashboardSidebar } from "./components/dashboard/DashboardSidebar";
 import { DashboardMain } from "./components/dashboard/DashboardMain";
@@ -809,11 +810,23 @@ export default function App() {
               `tmp` del token); esto es para que se encuentre la explicación y
               el formulario, en vez de un panel lleno de errores. */}
           {view === "cambiar_password" && user && (
-            <CambiarPassword
-              key="password-forzado"
-              forzado
-              alTerminar={(u) => { setUser(u); setView("dashboard"); setMainContext("modules"); }}
-            />
+            <div className="dashboard-card" style={{ maxWidth: '600px', margin: '40px auto' }}>
+              <div style={{ marginBottom: '24px' }}>
+                <h2 className="titulo-panel">¡Bienvenido! Último paso</h2>
+                <p style={{ color: 'var(--text-muted)' }}>Para completar tu registro, es obligatorio vincular tu cuenta con Google Authenticator.</p>
+              </div>
+              <Configurar2FA 
+                user={user} 
+                setUser={(u: any) => { 
+                  setUser(u); 
+                  setView("dashboard"); 
+                  setMainContext("modules"); 
+                }} 
+              />
+              <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                <button className="back-link" onClick={handleLogout}>Cerrar Sesión (Volver al Login)</button>
+              </div>
+            </div>
           )}
 
           {view === "welcome" && user && (
@@ -975,7 +988,7 @@ export default function App() {
           )}
 
           {view === "admin_content" && (
-            <motion.section key="admin_content" className="full-container" {...pageTransition} style={{ maxWidth: '1400px', margin: '40px auto', display: 'flex', flexDirection: 'column' }}>
+            <motion.section key="admin_content" className="full-container" {...pageTransition} style={{ width: '98%', maxWidth: '1920px', margin: '40px auto', display: 'flex', flexDirection: 'column' }}>
               
               <AdminContent onBack={() => setView("dashboard")} user={user} />
             </motion.section>

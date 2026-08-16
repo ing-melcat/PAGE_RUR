@@ -36,8 +36,8 @@
   --border: rgba(245, 243, 233, 0.15); /* Líneas estructurales color hueso translúcido */
   --accent: #FBCA01; /* Amarillo institucional (Resaltados) */
   --accent-muted: rgba(251, 202, 1, 0.15); /* Amarillo transparente para fondos de botones */
-  --error: #ef4444;
-  --error-muted: rgba(239, 68, 68, 0.15); /* Rojo transparente para fondos de botones destructivos */
+  --error: #ff0000;
+  --error-muted: rgba(255, 0, 0, 0.15); /* Rojo transparente para fondos de botones destructivos */
   --success: #2ecc71;
   /* Único matiz sin token que se usaba de verdad en el proyecto (avisos de
      fecha límite, badges de warning); el resto de "rojos" y "verdes" sueltos
@@ -1901,3 +1901,27 @@ textarea:focus-visible {
     gap: 12px !important;
   }
 }
+
+/* Ocultar el botón de pantalla completa en el editor Markdown para evitar conflictos de z-index */
+.w-md-editor-toolbar li[aria-label="fullscreen"] {
+  display: none !important;
+}
+.w-md-editor-toolbar button[data-name="fullscreen"] {
+  display: none !important;
+}
+.w-md-editor-toolbar svg[data-name="fullscreen"] {
+  display: none !important;
+}
+
+
+/* Ocultar el botón de imagen por defecto del editor Markdown para evitar confusiones con la subida de archivos real */
+.w-md-editor-toolbar li[aria-label="image"] {
+  display: none !important;
+}
+.w-md-editor-toolbar button[data-name="image"] {
+  display: none !important;
+}
+.w-md-editor-toolbar svg[data-name="image"] {
+  display: none !important;
+}
+

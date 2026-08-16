@@ -22,5 +22,8 @@ import DOMPurify from 'dompurify';
  * ya cubre el caso de uso real sin que nadie note el cambio en su flujo.
  */
 export function sanitizeHtml(html: string): string {
-  return DOMPurify.sanitize(html ?? '');
+  return DOMPurify.sanitize(html ?? '', {
+    ADD_TAGS: ['iframe'],
+    ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling']
+  });
 }

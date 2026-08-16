@@ -1,6 +1,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TriangleAlert, Star } from 'lucide-react';
+import { TriangleAlert, Star, MapPin } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import logoUrl from './assets/isotipo.png';
@@ -80,7 +82,7 @@ export const Landing = ({ category = 'landing', limit }: { category?: string, li
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 500px), 1fr))', gap: '40px' }}>
         {posts.map(post => {
-          const previewText = post.type === 'simple'
+          const previewText = (post.type === 'simple' || post.type === 'aviso' || post.type === 'evento' || post.type === '3d_model')
             ? post.previewText || ''
             : t('landing.previewMagazine');
           const isAviso = post.type === 'aviso';
@@ -182,6 +184,12 @@ export const Landing = ({ category = 'landing', limit }: { category?: string, li
                   {isSpecial && post.countdownDate && (
                     <Countdown targetDate={post.countdownDate} />
                   )}
+                  
+                  {post.location && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)', fontSize: '0.9rem', marginTop: '12px', fontFamily: 'var(--font-ibm-mono)' }}>
+                      <MapPin size={16} /> {post.location}
+                    </div>
+                  )}
                 </div>
                 
                 <p style={{ color: 'var(--muted)', fontSize: '1rem', lineHeight: '1.6', marginTop: '16px' }}>{previewText}</p>
@@ -212,7 +220,7 @@ export const PublicationPage = () => {
         .then(found => {
           if (!found.error) {
             if (found.type === 'simple' || found.type === 'aviso' || found.type === 'evento' || found.type === '3d_model') {
-              setPost({ ...found, pages: [{ content: found.content || t('publicacion.sinContenido'), image: found.image }] });
+              setPost({ ...found, pages: [{ content: found.content || t('publicacion.sinContenido'), image: found.backgroundImage || found.image }] });
             } else {
               setPost(found);
             }
@@ -268,7 +276,7 @@ export const PublicationPage = () => {
       )}
       
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, zIndex: 10, position: 'relative' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '20px 40px', borderBottom: `1px solid ${isSpecial ? specialColor : 'var(--border)'}`, alignItems: 'center', background: isSpecial ? specialBg : 'rgba(5,16,37,0.8)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', gap: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '20px 40px', borderBottom: `2px solid ${isSpecial ? specialColor : 'var(--border)'}`, alignItems: 'center', background: 'rgba(5,16,37,0.8)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', gap: '20px' }}>
           <Link to="/" style={{ textDecoration: 'none' }}>
             <div className="action-card logo-card" style={{ display: 'flex', alignItems: 'center', border: `0.6px solid ${isSpecial ? specialColor : 'var(--accent)'}`, padding: '8px 16px', gap: '12px', transition: 'all 0.3s ease' }}>
               <div className="logo-img-container">
@@ -294,7 +302,7 @@ export const PublicationPage = () => {
 
         <div style={{ 
           flex: 1, 
-          padding: isSpecial ? '0px' : '60px', 
+          padding: isSpecial ? '40px 8%' : '60px', 
           maxWidth: isSpecial ? '100%' : '1200px', 
           margin: '0 auto', 
           width: '100%', 
@@ -327,13 +335,23 @@ export const PublicationPage = () => {
              </div>
            )}
 
+           {post.location && (
+             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)', fontSize: '1rem', marginTop: '16px', marginBottom: '24px', fontFamily: 'var(--font-ibm-mono)' }}>
+               <MapPin size={20} style={{ color: specialColor }} /> {post.location}
+             </div>
+           )}
+
            <motion.div 
              initial={{ opacity: 0 }}
              animate={{ opacity: 1 }}
              transition={{ duration: 0.6 }}
              style={{ width: '100%', height: '100%' }}
            >
-             <div className="contenido-publicacion" dangerouslySetInnerHTML={{ __html: sanitizeHtml((post.pages && post.pages.length > 0) ? post.pages[currentPage].content : (post.content || '')) }} />
+              <div className="contenido-publicacion">
+                <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+                  {sanitizeHtml((post.pages && post.pages.length > 0) ? post.pages[currentPage].content : (post.content || ''))}
+                </ReactMarkdown>
+              </div>
            </motion.div>
         </div>
 
@@ -449,7 +467,7 @@ export const ArchiveDashboard = () => {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '32px' }}>
             {filteredPosts.map(post => {
-              const previewText = post.type === 'simple'
+              const previewText = (post.type === 'simple' || post.type === 'aviso' || post.type === 'evento' || post.type === '3d_model')
                 ? post.previewText || ''
                 : t('archivo.previewMagazine');
               const isAviso = post.type === 'aviso';

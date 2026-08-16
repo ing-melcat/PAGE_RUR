@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TriangleAlert, Star, Eye, EyeOff, Upload, X, ChevronDown, ChevronUp } from "lucide-react";
+import { TriangleAlert, Star, Eye, EyeOff, Upload, X, ChevronDown, ChevronUp, HelpCircle } from "lucide-react";
+import MDEditor from '@uiw/react-md-editor';
+import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 import { apiFetch } from "../../lib/apiClient";
 import { sanitizeHtml } from "../../lib/sanitizeHtml";
 import { useLanguage } from "../../lib/i18n";
@@ -23,14 +26,16 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [image, setImage] = useState('');
+  const [backgroundImage, setBackgroundImage] = useState('');
   const [pages, setPages] = useState([{ content: '', image: '', _key: Math.random().toString() }]);
   const [countdownDate, setCountdownDate] = useState('');
+  const [location, setLocation] = useState('');
   const [category, setCategory] = useState('landing');
   const [modelUrl, setModelUrl] = useState('');
   const [autores, setAutores] = useState<{ _key?: string; userId: number; papel: string; lider: boolean }[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [showEjemplos, setShowEjemplos] = useState(false);
+
 
   const handleDelete = async (id: string) => {
     if(!window.confirm(t('alertas.confirmarEliminarPublicacion'))) return;
@@ -62,7 +67,9 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
     setType(post.type || 'simple');
     setTitle(post.title || '');
     setImage(post.image || '');
+    setBackgroundImage(post.backgroundImage || '');
     setCountdownDate(post.countdownDate || '');
+    setLocation(post.location || '');
     setModelUrl(post.modelUrl || '');
     setAutores((post.autores || []).map((a: any) => ({ _key: Math.random().toString(), userId: a.id, papel: a.papel || '', lider: Boolean(a.lider) })));
     setViewMode('edit');
@@ -74,11 +81,21 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
     setTitle('');
     setContent('');
     setImage('');
+    setBackgroundImage('');
     setCountdownDate('');
+    setLocation('');
     setPages([{ content: '', image: '', _key: Math.random().toString() }]);
     setModelUrl('');
     setAutores([]);
   };
+
+  const renderSanitizedPreview = (source: string) => (
+    <div className="contenido-publicacion" style={{ padding: '16px', color: 'var(--text)', background: 'var(--background)', minHeight: '100%' }}>
+      <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+        {sanitizeHtml(source)}
+      </ReactMarkdown>
+    </div>
+  );
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -135,9 +152,11 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
     e.preventDefault();
     const postData = {
       title, type, image, category, modelUrl,
+      backgroundImage: (type === 'simple' || type === 'aviso' || type === 'evento' || type === '3d_model') ? backgroundImage : undefined,
       content: (type === 'simple' || type === 'aviso' || type === 'evento' || type === '3d_model') ? content : 'Contenido Multi-página',
       pages: type === 'magazine' ? pages.map((p: any) => { const { _key, ...rest } = p; return rest; }) : [],
       countdownDate: (type === 'aviso' || type === 'evento') ? countdownDate : undefined,
+      location: location.trim() || undefined,
       autores: puede(user, 'publicaciones.firmar') ? autores.filter(a => a.userId) : undefined,
     };
 
@@ -164,7 +183,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
           </div>
         </div>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '32px' }}>
           {/* Tarjeta de Crear Nueva */}
           <div 
             onClick={() => { resetForm(); setViewMode('create'); }}
@@ -235,7 +254,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                   <Ayuda texto={post.type === 'magazine' ? t('adminPublicaciones.tipoRevista') : isAviso ? t('adminPublicaciones.tipoAviso') : isEvento ? t('adminPublicaciones.tipoEvento') : post.type === '3d_model' ? t('adminPublicaciones.tipoModelo3d') : t('adminPublicaciones.tipoSimple')} />
                 </div>
                 
-                <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '20px' }}>
                   <button onClick={() => toggleVisibility(post)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'transparent', border: '1px solid var(--muted)', color: 'var(--muted)', padding: '8px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', transition: 'all 0.2s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--muted)'; e.currentTarget.style.color = 'var(--surface-strong)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--muted)'; }}
@@ -264,7 +283,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '32px', height: '100%', minHeight: '80vh' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '32px', height: '100%', minHeight: '80vh' }}>
       {/* Sidebar de Configuración */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <button className="back-link" onClick={() => setViewMode('list')} style={{ marginBottom: '16px', alignSelf: 'flex-start' }}>{t('adminPublicaciones.cancelarVolver')}</button>
@@ -309,6 +328,13 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
           </div>
         )}
 
+        {(type === 'evento' || type === 'aviso' || type === 'simple') && (
+          <div className="input-group">
+            <label>Ubicación (Opcional)</label>
+            <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Ej. Laboratorio de Robótica" />
+          </div>
+        )}
+
         <div className="input-group">
           <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <span>{t('adminPublicaciones.portada')}</span>
@@ -322,6 +348,22 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
           </div>
           <input type="text" value={image} onChange={(e) => setImage(e.target.value)} placeholder={t('adminPublicaciones.urlPlaceholder')} />
         </div>
+
+        {(type === 'simple' || type === 'aviso' || type === 'evento' || type === '3d_model') && (
+          <div className="input-group">
+            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span>Fondo de Lectura (Opcional)</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>Imagen principal del artículo</span>
+            </label>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+              <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setBackgroundImage)} style={{ display: 'none' }} id="upload-bg" />
+              <label htmlFor="upload-bg" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px', background: 'var(--surface-strong)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>
+                {uploadingImage ? t('adminPublicaciones.subiendo') : <><Upload size={14} /> {t('adminPublicaciones.subirLocal')}</>}
+              </label>
+            </div>
+            <input type="text" value={backgroundImage} onChange={(e) => setBackgroundImage(e.target.value)} placeholder="Dejar en blanco para usar la Portada" />
+          </div>
+        )}
 
         {/* Quién desarrolló esto. Va aquí, junto al título y la portada, y no
             en una pantalla aparte: se firma al publicar, que es cuando se
@@ -408,61 +450,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
           <h2 className="titulo-panel titulo-panel--acento">{t('adminPublicaciones.contenidoHtml')}</h2>
         </div>
 
-        {/* La linea de que ya viene estilado se queda siempre visible (es
-            corta y util de un vistazo); el ejemplo completo, que ocupa
-            bastante espacio vertical, queda detras de un boton para no
-            saturar el editor por defecto. La revelacion usa AnimatePresence
-            + motion.div con la prop `layout` -- el mismo patron que ya usa
-            este archivo en otros paneles que cambian de alto (ver el
-            action-grid de mainContext, mas arriba) -- en vez de un
-            mostrar/ocultar instantaneo sin transicion. */}
-        <div style={{ background: 'var(--background)', border: '1px dashed var(--border)', borderRadius: '4px', padding: '16px 20px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.78rem', color: 'var(--muted)', lineHeight: 1.7, overflow: 'hidden' }}>
-          <motion.div layout="position">
-            <p style={{ margin: 0 }}>
-              <strong style={{ color: 'var(--accent)' }}>{t('adminPublicaciones.guiaRapida')}</strong> <code style={{ color: 'var(--text)' }}>{'<h1> <h2> <h3> <p> <ul> <a> <blockquote> <img> <code>'}</code> {t('adminPublicaciones.yaTienenEstilo')} <code style={{ color: 'var(--text)' }}>{'style=""'}</code>.{' '}
-              <button
-                type="button"
-                onClick={() => setShowEjemplos(v => !v)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', textDecoration: 'underline', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '2px', verticalAlign: 'middle' }}
-              >
-                {showEjemplos ? t('adminPublicaciones.ocultarEjemplo') : t('adminPublicaciones.verEjemplo')}
-                {showEjemplos ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </button>
-            </p>
-          </motion.div>
-          <AnimatePresence>
-            {showEjemplos && (
-              <motion.div
-                layout
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.25, ease: 'easeInOut' }}
-                style={{ overflow: 'hidden' }}
-              >
-                <pre style={{ background: 'var(--surface-strong)', color: 'var(--text)', padding: '10px 14px', borderRadius: '4px', overflowX: 'auto', margin: '12px 0 0', whiteSpace: 'pre-wrap' }}>
-{`<h1>Prueba de estilo</h1>
-<p>Este es un párrafo normal, sin ningún <code>style=""</code> a mano. Debería verse integrado con el resto del sitio: mismo color de texto, mismo interlineado.</p>
 
-<h2>Un subtítulo</h2>
-<p>Aquí un link de prueba: <a href="https://rur.unipolidgo.edu.mx">visita la página principal</a>. Debería salir en ámbar y subrayarse solo al pasar el mouse.</p>
-
-<ul>
-  <li>Primer punto de una lista</li>
-  <li>Segundo punto, con las viñetas en ámbar</li>
-  <li>Tercer punto</li>
-</ul>
-
-<blockquote>Esto es una cita destacada, con borde a la izquierda y texto un poco más apagado.</blockquote>
-
-<div style="background: var(--accent-muted); border-left: 3px solid var(--accent); padding: 16px 20px; border-radius: 4px;">
-  <strong>Nota destacada:</strong> esta caja sí lleva style="" a mano — es una de las dos recetas de la guía rápida del editor.
-</div>`}
-                </pre>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
 
         {type === '3d_model' && (
           <div className="input-group">
@@ -472,20 +460,52 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
         )}
 
         {(type === 'simple' || type === 'aviso' || type === 'evento' || type === '3d_model') ? (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', marginBottom: '16px' }}>
-               <button type="button" onClick={() => setShowPreview(false)} style={{ flex: 1, padding: '12px', background: !showPreview ? 'var(--surface-strong)' : 'transparent', color: !showPreview ? 'white' : 'var(--muted)', border: '1px solid var(--border)', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer', borderRadius: '4px 0 0 4px', fontWeight: 'bold' }}>{t('adminPublicaciones.codigoHtml')}</button>
-               <button type="button" onClick={() => setShowPreview(true)} style={{ flex: 1, padding: '12px', background: showPreview ? 'var(--surface-strong)' : 'transparent', color: showPreview ? 'var(--accent)' : 'var(--muted)', border: '1px solid var(--border)', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer', borderRadius: '0 4px 4px 0', borderLeft: 'none', fontWeight: 'bold' }}>{t('adminPublicaciones.vistaPrevia')}</button>
-            </div>
-
-            {!showPreview ? (
-              <textarea required value={content} onChange={(e) => setContent(e.target.value)} placeholder={t('adminPublicaciones.htmlPlaceholder')} style={{ minHeight: '400px', resize: 'vertical' }}></textarea>
-            ) : (
-              <div style={{ flex: 1, padding: (type === 'evento' || type === 'aviso') ? '0px' : '40px', background: 'var(--background)', color: 'var(--text)', border: '1px solid var(--accent)', borderRadius: '4px', width: '100%', minHeight: '400px', overflowY: 'auto' }}>
-                <div className="contenido-publicacion" dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} />
+            <div style={{ flex: 1, minHeight: '600px', display: 'flex', flexDirection: 'column' }} data-color-mode="dark">
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+                <label 
+                  style={{ 
+                    cursor: 'pointer', 
+                    color: 'var(--text)', 
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    fontSize: '0.85rem', 
+                    fontFamily: 'var(--font-ibm-mono)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--background)';
+                    e.currentTarget.style.borderColor = 'var(--accent)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--surface)';
+                    e.currentTarget.style.borderColor = 'var(--border)';
+                  }}
+                  title="Sube una imagen desde tu computadora para añadirla automáticamente al documento."
+                >
+                  <Upload size={14} />
+                  {t('adminPublicaciones.insertarImagen') || 'Subir Imagen'}
+                  <HelpCircle size={14} style={{ color: 'var(--muted)', marginLeft: '4px' }} />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    style={{ display: 'none' }} 
+                    onChange={(e) => handleImageUpload(e, (url) => setContent(c => c + `\n![Imagen](${url})\n`))} 
+                  />
+                </label>
               </div>
-            )}
-          </div>
+              <MDEditor
+                value={content}
+                onChange={(val) => setContent(val || '')}
+                height={600}
+                preview="live"
+                components={{ preview: renderSanitizedPreview }}
+              />
+            </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             {pages.map((page, idx) => (
@@ -519,13 +539,19 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                     </div>
                   </div>
                 </div>
-                <div className="input-group">
+                <div className="input-group" data-color-mode="dark">
                   <label>{t('adminPublicaciones.estructuraHtml')}</label>
-                  <textarea required value={page.content} onChange={(e) => {
-                    const newPages = [...pages];
-                    newPages[idx] = { ...newPages[idx], content: e.target.value };
-                    setPages(newPages);
-                  }} placeholder={`<div style="padding: 40px;">\n  <h1>Página ${idx + 1}</h1>\n</div>`} style={{ minHeight: '300px', resize: 'vertical' }}></textarea>
+                  <MDEditor
+                    value={page.content}
+                    onChange={(val) => {
+                      const newPages = [...pages];
+                      newPages[idx] = { ...newPages[idx], content: val || '' };
+                      setPages(newPages);
+                    }}
+                    height={300}
+                    preview="live"
+                    components={{ preview: renderSanitizedPreview }}
+                  />
                 </div>
               </div>
             ))}

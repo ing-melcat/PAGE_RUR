@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import bcrypt from 'bcryptjs';
+import { generateSecret, verifySync, generateURI, NobleCryptoPlugin, ScureBase32Plugin } from 'otplib';
+import QRCode from 'qrcode';
 import { getPool } from '../shared/db.js';
 import {
   SESSION_COOKIE,
@@ -53,9 +55,15 @@ app.get('/api/hello', (req, res) => {
 });
 
 app.post('/api/login', loginIpLimiter, async (req, res) => {
-  const { matricula, password } = req.body ?? {};
-  if (!matricula || !password) {
-    return res.status(400).json({ success: false, message: 'Matrícula y contraseña son requeridas' });
+  const { matricula, password, code } = req.body ?? {};
+  if (!matricula) {
+    return res.status(400).json({ success: false, message: 'La matrícula es requerida' });
+  }
+
+  // The frontend sends the same value in `password` and `code` to unify the login field
+  const credential = code || password;
+  if (!credential) {
+    return res.status(400).json({ success: false, message: 'La credencial de acceso es requerida' });
   }
 
   if (isLocked(matricula)) {
@@ -65,19 +73,25 @@ app.post('/api/login', loginIpLimiter, async (req, res) => {
 
   const { rows } = await pool.query('SELECT * FROM users WHERE matricula = $1', [matricula]);
   const userRecord = rows[0];
-  // bcrypt.compare (async) en vez de compareSync: la variante síncrona
-  // bloquea el event loop entero de svc-identity mientras corre, así que
-  // cualquier otra request concurrente (incluido /api/me) se congelaba con
-  // ella. Se compara siempre contra un hash real o el de relleno -- nunca
-  // se salta la comparación -- para no filtrar por tiempo de respuesta si
-  // la matrícula existe o no.
-  const passwordMatch = await bcrypt.compare(password, userRecord ? userRecord.password_hash : DUMMY_PASSWORD_HASH);
-  const isMatch = Boolean(userRecord) && passwordMatch;
 
-  // Una contraseña provisional caducada no entra. Si siguiera valiendo, dejar
-  // de caducar sería el comportamiento por defecto y la columna no serviría
-  // de nada.
-  if (userRecord && isMatch && userRecord.password_temporal
+  let isMatch = false;
+
+  if (userRecord && userRecord.totp_enabled) {
+    // Modo Passwordless 2FA
+    try {
+      isMatch = verifySync({ token: credential, secret: userRecord.totp_secret, crypto: new NobleCryptoPlugin(), base32: new ScureBase32Plugin() }).valid;
+    } catch (e) {
+      isMatch = false;
+    }
+    await bcrypt.compare('dummy', DUMMY_PASSWORD_HASH); // previene timing attacks
+  } else {
+    // Modo Tradicional
+    const passwordMatch = await bcrypt.compare(credential, userRecord ? userRecord.password_hash : DUMMY_PASSWORD_HASH);
+    isMatch = Boolean(userRecord) && passwordMatch;
+  }
+
+  // Las contraseñas temporales caducadas ya solo aplican si no tiene 2FA encendido
+  if (userRecord && isMatch && !userRecord.totp_enabled && userRecord.password_temporal
       && userRecord.password_expira && new Date(userRecord.password_expira) < new Date()) {
     recordFailure(matricula);
     await saveLog('warning', `Contraseña provisional caducada para ${matricula}.`);
@@ -89,23 +103,14 @@ app.post('/api/login', loginIpLimiter, async (req, res) => {
 
   if (userRecord && isMatch) {
     recordSuccess(matricula);
-    // Misma forma exacta que /api/me. Antes /api/login armaba su propio objeto
-    // recortado (sin bio, foto, redes ni preferencias) y eso perdía datos: al
-    // entrar a "Personalizar Perfil" sin recargar, el formulario se rellenaba
-    // con esos campos en blanco y el primer guardado los sobrescribía vacíos.
     const user = toPublicUser(userRecord);
-    // El token solo lleva identidad y autorización. Los datos de perfil se
-    // leen de la base en /api/me: si viajaran en el JWT, editarlos no surtiría
-    // efecto hasta el siguiente login, y engordarían la cookie sin motivo.
     const token = signSessionToken({
       id: user.id,
       matricula: user.matricula,
       nombre: user.nombre,
       roles: user.roles,
       grupo: user.grupo,
-      // Marca la sesión como "solo sirve para cambiar la contraseña". Va en el
-      // token para que los tres servicios la respeten sin consultar la base.
-      ...(userRecord.password_temporal ? { tmp: true } : {}),
+      ...(userRecord.password_temporal && !userRecord.totp_enabled ? { tmp: true } : {}),
     });
     const csrfToken = generateCsrfToken();
 
@@ -118,7 +123,7 @@ app.post('/api/login', loginIpLimiter, async (req, res) => {
 
   recordFailure(matricula);
   if (userRecord) {
-    await saveLog('error', `Intento de acceso fallido para ${matricula} (Contraseña incorrecta).`);
+    await saveLog('error', `Intento de acceso fallido para ${matricula} (Credencial incorrecta).`);
   } else {
     await saveLog('warning', `Intento de acceso fallido para usuario inexistente: ${matricula}`);
   }
@@ -369,6 +374,41 @@ app.put('/api/profile/password', verifyToken, cambioPasswordLimiter, csrfProtect
   await saveLog('success', `${req.user.matricula} cambió su contraseña.`);
   const permisos = await permisosDe({ matricula: user.matricula, roles: user.roles });
   res.json({ success: true, user: { ...user, permisos: [...permisos] } });
+});
+
+app.get('/api/profile/2fa/generate', verifyToken, noStore, async (req, res) => {
+  const secret = generateSecret(20);
+  const otpauth = generateURI({ secret, accountName: req.user.matricula, issuer: 'RUR Robotics' });
+  try {
+    const qrCodeDataUrl = await QRCode.toDataURL(otpauth);
+    res.json({ success: true, secret, qrCodeDataUrl });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error generando QR' });
+  }
+});
+
+app.post('/api/profile/2fa/enable', verifyToken, csrfProtection, noStore, async (req, res) => {
+  const { code, secret } = req.body ?? {};
+  if (!code || !secret) {
+    return res.status(400).json({ success: false, message: 'Faltan datos' });
+  }
+
+  let isValid = false;
+  try {
+    isValid = verifySync({ token: code, secret, crypto: new NobleCryptoPlugin(), base32: new ScureBase32Plugin() }).valid;
+  } catch(e) {}
+  
+  if (!isValid) {
+    return res.status(400).json({ success: false, message: 'El código no es válido' });
+  }
+
+  await pool.query(
+    'UPDATE users SET totp_secret = $1, totp_enabled = true, password_hash = NULL, password_temporal = false WHERE matricula = $2',
+    [secret, req.user.matricula]
+  );
+
+  await saveLog('info', `${req.user.matricula} activó Passwordless 2FA.`);
+  res.json({ success: true, message: 'Autenticación configurada exitosamente' });
 });
 
 app.put('/api/profile/mappings', verifyToken, csrfProtection, noStore, async (req, res) => {
@@ -817,11 +857,10 @@ app.post('/api/users', verifyToken, requirePermiso('usuarios.gestionar'), csrfPr
   const { rows } = await pool.query(
     `INSERT INTO users (matricula, password_hash, nombre, roles, grupo, alias,
                         password_temporal, password_expira)
-     VALUES ($1, $2, $3, $4::jsonb, $5, $6, false, NULL)
+     VALUES ($1, $2, $3, $4::jsonb, $5, $6, true, NULL)
      ON CONFLICT (matricula) DO NOTHING
      RETURNING matricula`,
-    [matricula, passwordHash, nombre, JSON.stringify(roles || []), grupo || 'GENERAL', alias || '',
-     VIGENCIA_PROVISIONAL]
+    [matricula, passwordHash, nombre, JSON.stringify(roles || []), grupo || 'GENERAL', alias || '']
   );
   if (rows.length === 0) {
     return res.status(400).json({ message: 'La matrícula ya existe' });
@@ -912,8 +951,8 @@ app.put('/api/users/:matricula', verifyToken, requirePermiso('usuarios.gestionar
     `UPDATE users SET nombre = $1, roles = $2::jsonb, grupo = $3, alias = $4, password_hash = $5,
        permisos_extra = $6::jsonb, perfil_publico = $7,
        rol_publico = $8, area = $9, generacion = $10,
-       password_temporal = CASE WHEN $11 THEN false ELSE password_temporal END,
-       password_expira   = CASE WHEN $11 THEN NULL ELSE password_expira END
+       password_temporal = CASE WHEN $11::boolean THEN true ELSE password_temporal END,
+       password_expira   = CASE WHEN $11::boolean THEN NULL ELSE password_expira END
      WHERE matricula = $12`,
     [nombre, JSON.stringify(roles), grupo, alias, passwordHash, JSON.stringify(permisosExtra), perfilPublico,
      ficha.rol_publico, ficha.area, ficha.generacion,
@@ -959,10 +998,10 @@ app.post('/api/users/:matricula/password-temporal', verifyToken, requirePermiso(
 
   const temporal = generarPasswordTemporal();
   await pool.query(
-    `UPDATE users SET password_hash = $1, password_temporal = false,
+    `UPDATE users SET password_hash = $1, password_temporal = true,
        password_expira = NULL
-     WHERE matricula = $3`,
-    [await bcrypt.hash(temporal, 10), VIGENCIA_PROVISIONAL, matricula]
+     WHERE matricula = $2`,
+    [await bcrypt.hash(temporal, 10), matricula]
   );
 
   // El texto en claro sale de aquí y no vuelve a existir en ninguna parte: ni
@@ -970,6 +1009,21 @@ app.post('/api/users/:matricula/password-temporal', verifyToken, requirePermiso(
   // contraseña.
   await saveLog('warning', `Administrador ${req.user.matricula} reinició la contraseña de ${matricula}.`);
   res.json({ success: true, password: temporal, horas: 72 });
+});
+
+app.delete('/api/users/:matricula/2fa', verifyToken, requirePermiso('usuarios.gestionar'), csrfProtection, async (req, res) => {
+  const { matricula } = req.params;
+  const { rows } = await pool.query('SELECT matricula FROM users WHERE matricula = $1', [matricula]);
+  if (!rows[0]) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+
+  const temporal = generarPasswordTemporal();
+  await pool.query(
+    `UPDATE users SET totp_secret = NULL, totp_enabled = false, password_hash = $1, password_temporal = true, password_expira = NULL WHERE matricula = $2`,
+    [await bcrypt.hash(temporal, 10), matricula]
+  );
+
+  await saveLog('warning', `Administrador ${req.user.matricula} desvinculó el 2FA de ${matricula}.`);
+  res.json({ success: true, password: temporal });
 });
 
 app.delete('/api/users/:matricula', verifyToken, requirePermiso('usuarios.gestionar'), csrfProtection, async (req, res) => {

@@ -4,6 +4,7 @@ import { useLanguage } from "../../lib/i18n";
 import { CheckCircle } from "lucide-react";
 import { apiFetch } from "../../lib/apiClient";
 import { AREAS } from "../../lib/authUtils";
+import { Configurar2FA } from "./Configurar2FA";
 
 export const ProfileEditor = ({
   user, setUser, setMainContext,
@@ -149,15 +150,18 @@ export const ProfileEditor = ({
                               <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>{t('perfil.recibirPush')}</span>
                               <input type="checkbox" checked={pushNotifications} onChange={(e) => setPushNotifications(e.target.checked)} style={{width: 'auto', cursor: 'pointer'}} />
                             </label>
+                            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', border: '1px solid var(--border)', background: 'var(--background)', cursor: 'pointer' }}>
+                              <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--text)' }}>{t('perfil.reducirAnimaciones')}</span>
+                              <input type="checkbox" checked={reduceAnimations} onChange={(e) => setReduceAnimations(e.target.checked)} style={{width: 'auto', cursor: 'pointer'}} />
+                            </label>
+                          </div>
+
+                          <div style={{ marginTop: '32px' }}>
+                            <Configurar2FA user={user} setUser={setUser} />
                           </div>
 
                           <button className="primary-btn" style={{ marginTop: 'auto' }} onClick={async () => {
                             try {
-                              // Un solo guardado para todo el perfil: los datos
-                              // públicos del formulario y las dos preferencias,
-                              // que antes vivían en una pantalla aparte.
-                              // perfil_publico se queda fuera: el servidor lo
-                              // ignora en esta ruta y mandarlo daría a entender
                               // que se puede cambiar desde aquí.
                               const { perfil_publico: _visible, ...datosPerfil } = profileForm;
                               const res = await apiFetch('/api/profile', {

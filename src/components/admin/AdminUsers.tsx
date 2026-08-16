@@ -18,6 +18,7 @@ export const AdminUsers = ({ user, setView }: any) => {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [perfilPublicoEdit, setPerfilPublicoEdit] = useState(false);
   const [fichaEdit, setFichaEdit] = useState({ rol_publico: '', area: '', generacion: '' });
+  const [resetModal, setResetModal] = useState<{ show: boolean, password: '', userNombre: '', action: '2fa' | 'password' } | null>(null);
 
   const { data: usersList = [] } = useUsers();
   const { data: rolesDisponibles = [] } = useRolesDisponibles();
@@ -83,7 +84,24 @@ export const AdminUsers = ({ user, setView }: any) => {
       const res = await apiFetch(`/api/users/${u.matricula}/password-temporal`, { method: 'POST' });
       const datos = await res.json().catch(() => null);
       if (!res.ok || !datos?.success) return alert(datos?.message || t('adminUsuarios.reiniciarError'));
-      window.prompt(t('adminUsuarios.reiniciarListo').replace('{quien}', u.nombre), datos.password);
+      setResetModal({ show: true, password: datos.password, userNombre: u.nombre, action: 'password' });
+    } catch {
+      alert(t('alertas.errorConexionGenerico'));
+    }
+  };
+
+  const desvincular2FA = async (u: any) => {
+    const isSelf = u.matricula === user?.matricula;
+    const warningMsg = isSelf 
+      ? '¡CUIDADO! Vas a desvincular tu propio Google Authenticator. Perderás el acceso y requerirás una contraseña temporal. ¿Estás seguro?'
+      : `¿Estás seguro de que quieres desvincular el Google Authenticator de ${u.nombre}? Se generará una contraseña temporal para que vuelva a entrar.`;
+
+    if (!window.confirm(warningMsg)) return;
+    try {
+      const res = await apiFetch(`/api/users/${u.matricula}/2fa`, { method: 'DELETE' });
+      const datos = await res.json().catch(() => null);
+      if (!res.ok || !datos?.success) return alert(datos?.message || 'Error al desvincular 2FA.');
+      setResetModal({ show: true, password: datos.password, userNombre: u.nombre, action: '2fa' });
     } catch {
       alert(t('alertas.errorConexionGenerico'));
     }
@@ -416,9 +434,12 @@ export const AdminUsers = ({ user, setView }: any) => {
                                 cambiarse ni el nombre. Lo que no se puede es
                                 borrarse —ni quitarse la gestión de usuarios,
                                 que lo impide el servidor—. */}
-                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                               <button className="logout-btn-small" style={{borderColor: 'var(--accent)', color: 'var(--accent)'}} onClick={() => { setEditingUser(u); setMotivosMedallas({ ...(u.medallas ?? {}) }); setPerfilPublicoEdit(!!u.perfil_publico); setFichaEdit({ rol_publico: u.rol_publico ?? '', area: u.area ?? '', generacion: u.generacion ?? '' }); }}>{t('adminUsuarios.editar')}</button>
                               <button className="logout-btn-small" onClick={() => reiniciarPassword(u)}>{t('adminUsuarios.reiniciar')}</button>
+                              {u.totp_enabled && (
+                                <button className="logout-btn-small" style={{borderColor: '#eab308', color: '#eab308'}} onClick={() => desvincular2FA(u)}>Quitar 2FA</button>
+                              )}
                               {u.matricula !== user?.matricula && (
                                 <button className="logout-btn-small" style={{borderColor: 'var(--muted)', color: 'var(--muted)'}} onClick={() => handleDeleteUser(u.matricula)}>{t('adminUsuarios.revocar')}</button>
                               )}
@@ -440,6 +461,44 @@ export const AdminUsers = ({ user, setView }: any) => {
                 }
               }}>{t('adminUsuarios.volver')}</button>
             </motion.section>
+
+            {resetModal && (
+              <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
+                <div className="dashboard-card" style={{ maxWidth: '500px', width: '90%', textAlign: 'center', padding: '40px 32px' }}>
+                  <h2 style={{ color: 'var(--accent)', marginBottom: '16px', fontFamily: 'var(--font-heading)' }}>
+                    {resetModal.action === '2fa' ? '2FA Desvinculado' : 'Contraseña Reiniciada'}
+                  </h2>
+                  <p style={{ color: 'var(--text)', marginBottom: '32px', fontSize: '1.1rem', lineHeight: '1.5' }}>
+                    Se ha generado una nueva contraseña temporal para <strong>{resetModal.userNombre}</strong>.
+                    Pídele que inicie sesión con ella para poder configurar su cuenta de nuevo.
+                  </p>
+                  <div style={{ padding: '24px', background: 'var(--background)', border: '2px solid var(--accent)', borderRadius: '8px', marginBottom: '32px' }}>
+                    <span style={{ fontSize: '2.5rem', fontFamily: 'var(--font-ibm-mono)', letterSpacing: '4px', userSelect: 'all', color: 'var(--text)' }}>
+                      {resetModal.password}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '16px', flexDirection: 'column' }}>
+                    <button 
+                      className="primary-btn" 
+                      style={{ padding: '16px', fontSize: '1.1rem' }}
+                      onClick={() => {
+                        navigator.clipboard.writeText(resetModal.password);
+                        alert('¡Contraseña copiada al portapapeles!');
+                      }}
+                    >
+                      Copiar al Portapapeles
+                    </button>
+                    <button 
+                      className="secondary-btn" 
+                      style={{ padding: '16px', fontSize: '1.1rem' }}
+                      onClick={() => setResetModal(null)}
+                    >
+                      Cerrar (Ya la guardé)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
     </>
   );
 };
