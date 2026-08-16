@@ -1960,9 +1960,14 @@ textarea:focus-visible {
   pointer-events: none;
 }
 
-/* La luz que la recorre. Es un tramo corto y translúcido: un brillo que
-   ocupara la línea entera se leería como un cambio de color, no como algo
-   que se mueve. */
+/* Lo que la recorre. No es una luz clara sino un tramo OSCURO —el azul casi
+   negro del fondo del sitio— que va abriendo un hueco en la raya de color.
+   Con hueso blanco el destello era el punto más claro de toda la portada y
+   se llevaba la mirada por delante del titular; en la paleta de aquí el
+   blanco no aparece en ningún otro sitio.
+
+   Es un tramo corto a propósito: si ocupara la línea entera se leería como
+   un cambio de color, no como algo que se mueve. */
 .linea-viva::after {
   content: '';
   position: absolute;
@@ -1970,7 +1975,7 @@ textarea:focus-visible {
   width: 32%;
   background: linear-gradient(90deg,
     transparent,
-    color-mix(in srgb, var(--bone) 85%, transparent),
+    color-mix(in srgb, var(--linea-brillo, var(--background)) 92%, transparent),
     transparent);
   animation: linea-viva-barrido 3.6s linear infinite;
 }
