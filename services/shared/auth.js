@@ -39,6 +39,12 @@ export const RUTAS_CON_PASSWORD_TEMPORAL = new Set([
   '/api/me',
   '/api/logout',
   '/api/profile/password',
+  // Salir de una contraseña provisional ya no es solo cambiarla: el
+  // onboarding lleva a vincular el autenticador, y al activarlo la contraseña
+  // desaparece (password_hash = NULL). Sin estas dos rutas abiertas, el corte
+  // de abajo devuelve 403 justo en la pantalla que existe para obedecerlo.
+  '/api/profile/2fa/generate',
+  '/api/profile/2fa/enable',
 ]);
 
 // verifyToken: exige sesión válida. Sustituye al middleware que leía
@@ -52,7 +58,6 @@ export const verifyToken = (req, res, next) => {
     // Se corta aquí y no en el frontend: una pantalla que "obliga" a cambiar
     // la contraseña no obliga a nada si la API sigue atendiendo al resto de
     // rutas. Con el corte aquí, la contraseña provisional no abre nada.
-    /*
     if (decoded?.tmp && !RUTAS_CON_PASSWORD_TEMPORAL.has(req.path)) {
       return res.status(403).json({
         success: false,
@@ -60,7 +65,6 @@ export const verifyToken = (req, res, next) => {
         message: 'Tienes una contraseña provisional: cámbiala para poder seguir.',
       });
     }
-    */
     req.user = decoded;
     next();
   });

@@ -208,7 +208,16 @@ app.delete('/api/robots/:id', verifyToken, requirePermiso('robots.gestionar'), c
   res.json({ success: true, message: 'Robot eliminado' });
 });
 
-app.post('/api/livekit-verify', verifyToken, csrfProtection, async (req, res) => {
+// Probar unas credenciales de LiveKit antes de guardarlas.
+//
+// Esta ruta hace que el servidor abra una conexión saliente a una URL que
+// escribe quien la llama, así que pide el mismo permiso que crear o editar un
+// robot y no solo tener sesión. Sin ese permiso, cualquiera con cuenta —un
+// operador, alguien recién dado de alta— podía usar a svc-robots de sonda
+// contra la red interna: está en rur_network y en rur_db_net, o sea que
+// alcanza Postgres, los otros dos servicios y CrowdSec, ninguno de los cuales
+// está expuesto al exterior.
+app.post('/api/livekit-verify', verifyToken, requirePermiso('robots.gestionar'), csrfProtection, async (req, res) => {
   const { livekitUrl, livekitApiKey, livekitApiSecret } = req.body ?? {};
   if (!livekitUrl || !livekitApiKey || !livekitApiSecret) {
     return res.status(400).json({ success: false, message: 'Faltan parámetros de conexión.' });
@@ -219,7 +228,11 @@ app.post('/api/livekit-verify', verifyToken, csrfProtection, async (req, res) =>
     await roomService.listRooms();
     res.json({ success: true, message: 'Conexión a LiveKit Cloud establecida correctamente.' });
   } catch (error) {
-    res.status(401).json({ success: false, message: error.message || 'Credenciales inválidas o servidor inalcanzable.' });
+    // El detalle se queda en el log del servidor. Devolverlo distinguía "no
+    // hay nada escuchando ahí" de "hay algo que contestó y rechazó", que es
+    // justo lo que convierte una conexión fallida en un escáner de puertos.
+    console.error('[svc-robots] livekit-verify falló:', error.message);
+    res.status(401).json({ success: false, message: 'Credenciales inválidas o servidor inalcanzable.' });
   }
 });
 

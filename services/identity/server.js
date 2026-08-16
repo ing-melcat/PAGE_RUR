@@ -161,6 +161,11 @@ function toPublicUser(row) {
     // No es lo que lo impone —eso lo hace verifyToken con la marca del token—,
     // es para que se lo encuentre explicado en vez de a golpe de error.
     debe_cambiar_password: row.password_temporal ?? false,
+    // Si esta cuenta entra ya con autenticador. Va el booleano, nunca
+    // totp_secret: con el secreto, cualquiera que viera esta respuesta podría
+    // generar los códigos. Sin el booleano, el panel no puede ofrecer
+    // «Quitar 2FA» ni dejar de proponer una vinculación que ya está hecha.
+    totp_enabled: row.totp_enabled ?? false,
     perfil_publico: row.perfil_publico ?? false,
     rol_publico: row.rol_publico ?? '',
     area: row.area ?? '',
@@ -828,6 +833,9 @@ app.get('/api/users', verifyToken, requirePermiso('usuarios.gestionar'), noStore
   const { rows } = await pool.query(
     `SELECT u.id, u.matricula, u.nombre, u.grupo, u.roles, u.alias, u.permisos_extra,
             u.perfil_publico, u.rol_publico, u.area, u.generacion,
+            -- Quién entra con autenticador. Es lo que decide si la ficha
+            -- ofrece «Quitar 2FA»; el secreto no sale de la base nunca.
+            u.totp_enabled, u.password_temporal,
             -- Las especiales que ya tiene, con su motivo: { clave: motivo }.
             -- Así el editor puede abrirse con lo que hay escrito en vez de
             -- pedirlo persona a persona. Las automáticas no vienen: no se
@@ -857,10 +865,11 @@ app.post('/api/users', verifyToken, requirePermiso('usuarios.gestionar'), csrfPr
   const { rows } = await pool.query(
     `INSERT INTO users (matricula, password_hash, nombre, roles, grupo, alias,
                         password_temporal, password_expira)
-     VALUES ($1, $2, $3, $4::jsonb, $5, $6, true, NULL)
+     VALUES ($1, $2, $3, $4::jsonb, $5, $6, true, now() + $7::interval)
      ON CONFLICT (matricula) DO NOTHING
      RETURNING matricula`,
-    [matricula, passwordHash, nombre, JSON.stringify(roles || []), grupo || 'GENERAL', alias || '']
+    [matricula, passwordHash, nombre, JSON.stringify(roles || []), grupo || 'GENERAL', alias || '',
+     VIGENCIA_PROVISIONAL]
   );
   if (rows.length === 0) {
     return res.status(400).json({ message: 'La matrícula ya existe' });
@@ -952,14 +961,28 @@ app.put('/api/users/:matricula', verifyToken, requirePermiso('usuarios.gestionar
        permisos_extra = $6::jsonb, perfil_publico = $7,
        rol_publico = $8, area = $9, generacion = $10,
        password_temporal = CASE WHEN $11::boolean THEN true ELSE password_temporal END,
-       password_expira   = CASE WHEN $11::boolean THEN NULL ELSE password_expira END
-     WHERE matricula = $12`,
+       password_expira   = CASE WHEN $11::boolean THEN now() + $12::interval ELSE password_expira END,
+       -- Escribirle una contraseña a alguien que entra con autenticador lo
+       -- devuelve al modo contraseña. Sin estas dos líneas la contraseña se
+       -- guardaba pero totp_enabled seguía en true, así que el login solo
+       -- aceptaba el código de seis dígitos: el administrador dictaba una
+       -- contraseña que no servía para nada y la respuesta era un 200.
+       -- Importa justo en el caso en que se usa —alguien perdió el teléfono—,
+       -- que es cuando la persona ya no puede generar códigos.
+       totp_enabled = CASE WHEN $11::boolean THEN false ELSE totp_enabled END,
+       totp_secret  = CASE WHEN $11::boolean THEN NULL  ELSE totp_secret  END
+     WHERE matricula = $13`,
     [nombre, JSON.stringify(roles), grupo, alias, passwordHash, JSON.stringify(permisosExtra), perfilPublico,
      ficha.rol_publico, ficha.area, ficha.generacion,
-     cambiaPassword, matricula]
+     cambiaPassword, VIGENCIA_PROVISIONAL, matricula]
   );
   if (cambiaPassword) {
     await saveLog('warning', `Administrador ${req.user.matricula} puso una contraseña provisional a ${matricula}.`);
+    // Que quede escrito aparte: esto apaga el segundo factor de otra persona,
+    // y por el camino de "editar usuario", no por el botón que lo anuncia.
+    if (existingUser.totp_enabled) {
+      await saveLog('warning', `La contraseña provisional desvinculó el 2FA de ${matricula}.`);
+    }
   }
   await saveLog('info', `Administrador ${req.user.matricula} modificó el usuario ${matricula}.`);
   // Se registra aparte: publicar o retirar a alguien de la web es lo único de
@@ -999,9 +1022,9 @@ app.post('/api/users/:matricula/password-temporal', verifyToken, requirePermiso(
   const temporal = generarPasswordTemporal();
   await pool.query(
     `UPDATE users SET password_hash = $1, password_temporal = true,
-       password_expira = NULL
-     WHERE matricula = $2`,
-    [await bcrypt.hash(temporal, 10), matricula]
+       password_expira = now() + $2::interval
+     WHERE matricula = $3`,
+    [await bcrypt.hash(temporal, 10), VIGENCIA_PROVISIONAL, matricula]
   );
 
   // El texto en claro sale de aquí y no vuelve a existir en ninguna parte: ni
@@ -1018,8 +1041,10 @@ app.delete('/api/users/:matricula/2fa', verifyToken, requirePermiso('usuarios.ge
 
   const temporal = generarPasswordTemporal();
   await pool.query(
-    `UPDATE users SET totp_secret = NULL, totp_enabled = false, password_hash = $1, password_temporal = true, password_expira = NULL WHERE matricula = $2`,
-    [await bcrypt.hash(temporal, 10), matricula]
+    `UPDATE users SET totp_secret = NULL, totp_enabled = false, password_hash = $1,
+       password_temporal = true, password_expira = now() + $2::interval
+     WHERE matricula = $3`,
+    [await bcrypt.hash(temporal, 10), VIGENCIA_PROVISIONAL, matricula]
   );
 
   await saveLog('warning', `Administrador ${req.user.matricula} desvinculó el 2FA de ${matricula}.`);
