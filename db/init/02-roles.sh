@@ -62,4 +62,14 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     -- el panel de personal.
     GRANT SELECT, INSERT, UPDATE, DELETE ON medallas_otorgadas TO svc_identity_role;
     GRANT USAGE, SELECT ON SEQUENCE medallas_otorgadas_id_seq TO svc_identity_role;
+
+    -- El catálogo de medallas lo administra identity desde el panel de
+    -- personal. Los otros dos servicios no lo tocan.
+    GRANT SELECT, INSERT, UPDATE, DELETE ON medallas TO svc_identity_role;
+
+    -- svc-content sirve /api/contact y solo escribe. No se le concede SELECT:
+    -- son datos personales de gente de fuera y el servicio más expuesto del
+    -- stack no necesita poder leerlos de vuelta.
+    GRANT INSERT ON contact_messages TO svc_content_role;
+    GRANT USAGE, SELECT ON SEQUENCE contact_messages_id_seq TO svc_content_role;
 EOSQL

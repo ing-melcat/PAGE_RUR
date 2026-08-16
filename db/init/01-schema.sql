@@ -13,7 +13,10 @@
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     matricula VARCHAR(50) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
+    -- Nullable a propósito: quien activa el 2FA cambia la contraseña por el
+    -- autenticador y este campo pasa a NULL. Ver totp_enabled más abajo y el
+    -- CHECK del final, que impide quedarse sin ninguno de los dos.
+    password_hash VARCHAR(255),
     nombre VARCHAR(100) NOT NULL,
     grupo VARCHAR(50),
     telefono VARCHAR(20),
@@ -53,7 +56,19 @@ CREATE TABLE IF NOT EXISTS users (
     password_temporal BOOLEAN NOT NULL DEFAULT false,
     password_expira TIMESTAMPTZ,
     password_changed_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    -- Segundo factor por aplicación autenticadora, en modo passwordless: no
+    -- es contraseña + código, es el código EN LUGAR de la contraseña.
+    -- `totp_enabled` va aparte del secreto porque entre generar el QR y
+    -- validar el primer código el secreto ya existe y todavía no debe
+    -- autenticar a nadie.
+    totp_secret VARCHAR(64),
+    totp_enabled BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- Una cuenta sin contraseña y sin 2FA no la puede usar nadie, ni su dueño
+    -- ni un administrador, y desde fuera parece una cuenta normal que "no
+    -- deja entrar". Que falle el UPDATE aquí y no la persona al intentar
+    -- entrar.
+    CONSTRAINT users_metodo_acceso_check CHECK (totp_enabled OR password_hash IS NOT NULL)
 );
 
 -- Cuando se borra un rol el servidor busca quién lo tiene con
@@ -181,18 +196,61 @@ INSERT INTO roles (nombre, color, permisos, del_sistema) VALUES
 ON CONFLICT (nombre) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
--- Medallas que no se calculan solas.
+-- Medallas: el catálogo y las concedidas.
 --
--- Las automáticas (proyecto terminado, grandes aportes, líder) salen de
--- post_miembros y no se guardan en ninguna parte. Aquí solo viven las
--- especiales, que otorga la coordinación: se registra quién y por qué, que es
--- lo que las hace valer algo.
+-- El catálogo vive en la tabla y no en el código: inventar una medalla nueva
+-- no debe exigir tocar tres servicios y desplegarlos. Es el mismo criterio
+-- que con los roles.
+--
+-- La diferencia entre los dos tipos SÍ sigue en el código, porque no es una
+-- preferencia:
+--
+--   automatica = true   Se calcula desde los proyectos firmados. Su REGLA vive
+--                       en medallasDe() y no se escribe desde el panel: una
+--                       regla es código. Aquí solo viven nombre, icono y
+--                       color, que sí se pueden cambiar.
+--   automatica = false  La otorga la coordinación con un motivo escrito.
 -- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS medallas (
+    clave       VARCHAR(40) PRIMARY KEY,
+    nombre      VARCHAR(80)  NOT NULL,
+    -- El criterio. Se enseña al concederla, que es lo que evita que la misma
+    -- medalla acabe significando cosas distintas según quién la dé.
+    descripcion TEXT         NOT NULL DEFAULT '',
+    -- Un solo carácter visible. Se distinguen por FORMA además de por color:
+    -- fiarlo todo al tono deja fuera a quien no separa el ámbar del verde.
+    icono       VARCHAR(8)   NOT NULL DEFAULT '✦',
+    color       VARCHAR(7)   NOT NULL DEFAULT '#fbbf24',
+    -- Se calcula sola desde post_miembros; no se otorga a mano.
+    automatica  BOOLEAN      NOT NULL DEFAULT false,
+    -- Las que tienen regla en el código no se pueden borrar: la regla seguiría
+    -- corriendo y calcularía una medalla que ya no existe en la tabla.
+    del_sistema BOOLEAN      NOT NULL DEFAULT false,
+    -- En qué orden salen en el perfil y en el panel.
+    orden       INTEGER      NOT NULL DEFAULT 100
+);
+
+-- Las siete de partida, con los iconos y colores que tuvieron desde el
+-- principio. Una base recién creada sin esto no podría conceder ninguna.
+INSERT INTO medallas (clave, nombre, descripcion, icono, color, automatica, del_sistema, orden) VALUES
+  ('proyecto',       'Proyecto terminado', 'Firmó al menos un proyecto publicado.',                        '▲', '#8c9bb0', true,  true,  10),
+  ('aportes',        'Grandes aportes',    'Cinco proyectos o más, o trabajo en tres facetas distintas.',  '◆', '#2ecc71', true,  true,  20),
+  ('lider',          'Líder',              'Lideró al menos un proyecto.',                                 '★', '#FBCA01', true,  true,  30),
+  ('excelencia',     'Excelencia',         'Trayectoria sostenida por encima de lo que se le pidió.',      '✦', '#fbbf24', false, false, 40),
+  ('innovacion',     'Innovación',         'Resolvió algo que en la unidad no existía o nadie había logrado.', '◈', '#fbbf24', false, false, 50),
+  ('mentoria',       'Mentoría',           'Formó a otros miembros y los dejó capaces de seguir solos.',   '❖', '#fbbf24', false, false, 60),
+  ('representacion', 'Representación',     'Representó a la unidad fuera: competencia, congreso o convenio.', '◉', '#fbbf24', false, false, 70)
+ON CONFLICT (clave) DO NOTHING;
+
+-- Las concedidas. Las automáticas salen de post_miembros y no se guardan aquí:
+-- esta tabla es solo de las que otorga la coordinación, con quién y por qué,
+-- que es lo que las hace valer algo.
 CREATE TABLE IF NOT EXISTS medallas_otorgadas (
     id           SERIAL PRIMARY KEY,
     user_id      INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    -- Del catálogo de services/shared/medallas.js (MEDALLAS_ESPECIALES).
-    clave        VARCHAR(40) NOT NULL,
+    -- RESTRICT y no CASCADE a propósito: borrar del catálogo una medalla que
+    -- alguien lleva puesta le estaría quitando un reconocimiento de paso.
+    clave        VARCHAR(40) NOT NULL REFERENCES medallas(clave) ON DELETE RESTRICT,
     -- Una medalla sin motivo es un adorno; con motivo es un reconocimiento
     -- que se puede leer.
     motivo       TEXT,
