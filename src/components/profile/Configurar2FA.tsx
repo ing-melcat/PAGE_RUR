@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../../lib/apiClient';
-import { Smartphone, CheckCircle } from 'lucide-react';
+import { Smartphone, CheckCircle, AlertTriangle, Copy, ExternalLink } from 'lucide-react';
 import { useLanguage } from '../../lib/i18n';
+import { copiarAlPortapapeles } from '../../lib/clipboard';
+import './Configurar2FA.css';
 
 export const Configurar2FA = ({ user, setUser }: { user: any, setUser: any }) => {
   const { t } = useLanguage();
   const [qrCode, setQrCode] = useState('');
   const [secret, setSecret] = useState('');
+  const [otpauth, setOtpauth] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [copiado, setCopiado] = useState(false);
 
   const iniciarSetup = async () => {
     try {
@@ -17,6 +21,7 @@ export const Configurar2FA = ({ user, setUser }: { user: any, setUser: any }) =>
       const data = await res.json();
       if (data.success) {
         setSecret(data.secret);
+        setOtpauth(data.otpauth);
         setQrCode(data.qrCodeDataUrl);
       } else {
         setError('Error al generar el QR');
@@ -46,84 +51,110 @@ export const Configurar2FA = ({ user, setUser }: { user: any, setUser: any }) =>
     }
   };
 
+  // El secreto se copia sin espacios -- los grupos de cuatro son solo
+  // para que se lea a mano, la app autenticadora quiere la cadena base32
+  // tal cual.
+  const copiarClave = async () => {
+    // Si no se pudo copiar no se finge que sí: la clave queda a la vista y
+    // seleccionable, que es el respaldo real.
+    if (!await copiarAlPortapapeles(secret)) return;
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  };
+
   if (user.totp_enabled || success) {
     return (
-      <div style={{ padding: '24px', border: '1px solid var(--success)', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', gap: '16px', width: '100%' }}>
-        <CheckCircle color="var(--success)" size={32} />
+      <div className="bloque-2fa__listo">
+        <CheckCircle color="var(--success)" size={32} className="bloque-2fa__listo-icono" />
         <div>
-          <h4 style={{ color: 'var(--success)', margin: '0 0 8px 0', fontSize: '1.2rem', fontFamily: 'var(--font-heading)' }}>Passwordless Activo</h4>
-          <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text)' }}>Tu cuenta está altamente protegida. Ahora iniciarás sesión usando los códigos de Google Authenticator de tu celular en lugar de escribir una contraseña.</p>
+          <h4 className="bloque-2fa__listo-titulo">Passwordless Activo</h4>
+          <p className="bloque-2fa__listo-texto">
+            Entras con los códigos de tu autenticador en lugar de escribir una contraseña. Para desvincularlo hace falta un administrador.
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '32px', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--background)', width: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <Smartphone color="var(--accent)" size={32} />
-        <h3 style={{ margin: 0, color: 'var(--text)', fontFamily: 'var(--font-heading)' }}>Activar Inicio sin Contraseña (2FA)</h3>
-      </div>
-      <p style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: '32px', lineHeight: '1.6' }}>
-        Vincula tu cuenta con Google Authenticator para dejar de usar contraseñas inseguras. Al activar esta opción, usarás tu celular como tu única llave de acceso.
-      </p>
+    <div className="bloque-2fa">
+      <div className="bloque-2fa__caja">
+        {!qrCode ? (
+          <>
+            <div className="bloque-2fa__cabecera">
+              <Smartphone color="var(--accent)" size={32} />
+              <h3>Activar Inicio sin Contraseña (2FA)</h3>
+            </div>
+            <p className="bloque-2fa__intro">
+              Vincula tu cuenta con Google Authenticator para dejar de usar contraseñas inseguras. Al activar esta opción, usarás tu celular como tu única llave de acceso.
+            </p>
+            <div className="bloque-2fa__aviso">
+              <AlertTriangle size={18} className="bloque-2fa__aviso-icono" />
+              <p>
+                Al activarlo se borra tu contraseña: el celular pasa a ser la única forma de entrar. Todavía no hay códigos de respaldo, así que si lo pierdes tendrás que pedirle a un administrador que te desvincule.
+              </p>
+            </div>
+            <button className="primary-btn bloque-2fa__cta" onClick={iniciarSetup}>
+              Comenzar Vinculación
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="bloque-2fa__fila">
+              <div className="bloque-2fa__qr">
+                <img src={qrCode} alt="Código QR 2FA" />
+              </div>
+              <div className="bloque-2fa__instrucciones">
+                <label className="bloque-2fa__pasos">
+                  1. Escanea el código QR con tu app de Autenticador.<br/><br/>
+                  2. Escribe aquí el código temporal de 6 dígitos que te da la app:
+                </label>
+                <input
+                  type="text"
+                  placeholder="000000"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                  className="bloque-2fa__codigo"
+                />
+                <div className="bloque-2fa__botones">
+                  <button
+                    className="secondary-btn"
+                    onClick={() => { setQrCode(''); setCode(''); setError(''); }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="primary-btn"
+                    onClick={verificarYActivar}
+                    disabled={code.length !== 6}
+                  >
+                    Verificar y Activar Passwordless
+                  </button>
+                </div>
+                {error && <div className="bloque-2fa__error">{error}</div>}
+              </div>
+            </div>
 
-      {!qrCode ? (
-        <button className="primary-btn" style={{ width: '100%', padding: '16px', fontSize: '1.1rem' }} onClick={iniciarSetup}>
-          Comenzar Vinculación
-        </button>
-      ) : (
-        <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 auto', display: 'flex', justifyContent: 'center', padding: '16px', background: '#fff', borderRadius: '8px' }}>
-            <img src={qrCode} alt="Código QR 2FA" style={{ maxWidth: '100%', height: 'auto', display: 'block' }} />
-          </div>
-          <div style={{ flex: '2 1 300px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <label style={{ display: 'block', fontSize: '1.1rem', color: 'var(--text)', fontWeight: 600 }}>
-              1. Escanea el código QR con tu app de Autenticador.<br/><br/>
-              2. Escribe aquí el código temporal de 6 dígitos que te da la app:
-            </label>
-            <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
-              <input
-                type="text"
-                placeholder="000000"
-                maxLength={6}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                style={{ 
-                  flex: 1,
-                  padding: '16px', 
-                  border: '1px solid var(--accent)', 
-                  borderRadius: '4px', 
-                  background: 'var(--surface)', 
-                  color: 'var(--text)', 
-                  letterSpacing: '8px', 
-                  textAlign: 'center', 
-                  fontSize: '1.5rem',
-                  fontFamily: 'var(--font-ibm-mono)'
-                }}
-              />
+            <div className="bloque-2fa__manual">
+              <p className="bloque-2fa__manual-rotulo">¿No puedes escanear? Vincula a mano</p>
+              <div className="bloque-2fa__manual-fila">
+                <div className="bloque-2fa__clave">
+                  <span>{secret.match(/.{1,4}/g)?.join(' ')}</span>
+                  <button type="button" onClick={copiarClave} aria-label="Copiar clave de configuración">
+                    <Copy size={16} />
+                  </button>
+                </div>
+                <a href={otpauth} className="secondary-btn bloque-2fa__abrir-app">
+                  <ExternalLink size={16} />
+                  Abrir en la app
+                </a>
+              </div>
+              {copiado && <span className="bloque-2fa__copiado">Clave copiada al portapapeles</span>}
             </div>
-            <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
-              <button 
-                className="secondary-btn" 
-                style={{ flex: '1', padding: '16px', fontSize: '1.1rem' }} 
-                onClick={() => { setQrCode(''); setCode(''); setError(''); }}
-              >
-                Cancelar
-              </button>
-              <button 
-                className="primary-btn" 
-                style={{ flex: '2', padding: '16px', fontSize: '1.1rem' }} 
-                onClick={verificarYActivar} 
-                disabled={code.length !== 6}
-              >
-                Verificar y Activar Passwordless
-              </button>
-            </div>
-            {error && <div style={{ color: 'var(--danger)', fontSize: '1rem', marginTop: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderLeft: '4px solid var(--danger)' }}>{error}</div>}
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

@@ -1,0 +1,114 @@
+/* ==================================================================
+   Editor de perfil
+   ------------------------------------------------------------------
+   Cinco secciones apiladas a ancho completo en vez de la rejilla
+   `1fr 1fr` de antes, que dejaba 3 campos a la izquierda contra unos 12
+   a la derecha -- una columna larga junto a una corta con mucho aire
+   perdido. Cada sección lleva su numeral y su título sobre una línea
+   punteada, como en el resto del panel.
+   ================================================================== */
+
+.perfil-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 800px;
+}
+
+.perfil-editor__secciones {
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
+}
+
+.perfil-editor__seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.perfil-editor__cabecera {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.perfil-editor__numero {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--t-xs);
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.perfil-editor__titulo {
+  margin: 0;
+  font-family: var(--font-titulo), sans-serif;
+  font-size: var(--t-md);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+
+/* Rejilla de 2 columnas: identidad (alias/bio) y redes. */
+.perfil-editor__grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+/* Perfil público ya trae su propio recuadro (.perfil-publico, en
+   index.css); aquí solo se le pide a sus 3 campos que se repartan en
+   fila en vez de apilarse -- sin tocar las reglas de index.css:1422. */
+.perfil-editor__publico .perfil-publico__campos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.perfil-editor__toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.perfil-editor__interruptor {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--border);
+  background: var(--background);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.perfil-editor__interruptor span {
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--t-xs);
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.perfil-editor__interruptor input {
+  width: auto;
+  cursor: pointer;
+}
+
+.perfil-editor__acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 28px;
+  border-top: 1px dashed var(--border);
+}
+
+@media (max-width: 540px) {
+  .perfil-editor__grid-2,
+  .perfil-editor__publico .perfil-publico__campos {
+    grid-template-columns: 1fr;
+  }
+}

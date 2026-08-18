@@ -6,6 +6,7 @@ import { Ayuda } from "../Ayuda";
 import { PanelRoles } from "../PanelRoles";
 import { PanelMedallas } from "../PanelMedallas";
 import { puede, AREAS } from "../../lib/authUtils";
+import { copiarAlPortapapeles } from "../../lib/clipboard";
 
 import { useUsers, useRolesDisponibles, useCatalogoPermisos, useMedallasEspeciales, useMutateUser, useMutateMedalla } from "../../hooks/queries/useUsers";
 
@@ -375,11 +376,11 @@ export const AdminUsers = ({ user, setView }: any) => {
                                 rows={2}
                               />
                               <div className="excelencia__acciones">
-                                <button type="button" onClick={() => otorgarMedalla(clave, true)}>
+                                <button type="button" onClick={() => otorgarMedalla(editingUser.id, clave, true)}>
                                   {tiene ? t('adminUsuarios.medallaActualizar') : t('adminUsuarios.excelenciaOtorgar')}
                                 </button>
                                 {tiene && (
-                                  <button type="button" className="excelencia__retirar" onClick={() => otorgarMedalla(clave, false)}>
+                                  <button type="button" className="excelencia__retirar" onClick={() => otorgarMedalla(editingUser.id, clave, false)}>
                                     {t('adminUsuarios.excelenciaRetirar')}
                                   </button>
                                 )}
@@ -481,32 +482,45 @@ export const AdminUsers = ({ user, setView }: any) => {
             {resetModal && (
               <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
                 <div className="dashboard-card" style={{ maxWidth: '500px', width: '90%', textAlign: 'center', padding: '40px 32px' }}>
-                  <h2 style={{ color: 'var(--accent)', marginBottom: '16px', fontFamily: 'var(--font-heading)' }}>
+                  <h2 style={{ color: 'var(--accent)', marginBottom: '16px', fontFamily: 'var(--font-titulo)' }}>
                     {resetModal.action === '2fa' ? '2FA Desvinculado' : 'Contraseña Reiniciada'}
                   </h2>
-                  <p style={{ color: 'var(--text)', marginBottom: '32px', fontSize: '1.1rem', lineHeight: '1.5' }}>
-                    Se ha generado una nueva contraseña temporal para <strong>{resetModal.userNombre}</strong>.
-                    Pídele que inicie sesión con ella para poder configurar su cuenta de nuevo.
+                  <p style={{ color: 'var(--text)', marginBottom: '32px', fontSize: 'var(--t-base)', lineHeight: '1.5' }}>
+                    {resetModal.action === '2fa' ? (
+                      <>
+                        <strong>{resetModal.userNombre}</strong> vuelve a entrar con contraseña. Al iniciar sesión con esta, tendrá que vincular otra vez su autenticador.
+                      </>
+                    ) : (
+                      <>
+                        Se ha generado una nueva contraseña temporal para <strong>{resetModal.userNombre}</strong>.
+                        Pídele que inicie sesión con ella para poder configurar su cuenta de nuevo.
+                      </>
+                    )}
                   </p>
-                  <div style={{ padding: '24px', background: 'var(--background)', border: '2px solid var(--accent)', borderRadius: '8px', marginBottom: '32px' }}>
-                    <span style={{ fontSize: '2.5rem', fontFamily: 'var(--font-ibm-mono)', letterSpacing: '4px', userSelect: 'all', color: 'var(--text)' }}>
+                  <div style={{ padding: '24px', background: 'var(--background)', border: '2px solid var(--accent)', borderRadius: '8px', marginBottom: '12px' }}>
+                    <span style={{ fontSize: 'var(--t-2xl)', fontFamily: 'var(--font-ibm-mono)', letterSpacing: '4px', userSelect: 'all', color: 'var(--text)' }}>
                       {resetModal.password}
                     </span>
                   </div>
+                  <p style={{ margin: '0 0 32px 0', fontFamily: 'var(--font-ibm-mono)', fontSize: 'var(--t-xs)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--warning)' }}>
+                    Caduca en 72 horas
+                  </p>
                   <div style={{ display: 'flex', gap: '16px', flexDirection: 'column' }}>
-                    <button 
-                      className="primary-btn" 
-                      style={{ padding: '16px', fontSize: '1.1rem' }}
-                      onClick={() => {
-                        navigator.clipboard.writeText(resetModal.password);
-                        alert('¡Contraseña copiada al portapapeles!');
+                    <button
+                      className="primary-btn"
+                      style={{ padding: '16px', fontSize: 'var(--t-base)' }}
+                      onClick={async () => {
+                        const copiado = await copiarAlPortapapeles(resetModal.password);
+                        alert(copiado
+                          ? '¡Contraseña copiada al portapapeles!'
+                          : 'No se pudo copiar. Selecciona la contraseña con un clic y cópiala a mano.');
                       }}
                     >
                       Copiar al Portapapeles
                     </button>
-                    <button 
-                      className="secondary-btn" 
-                      style={{ padding: '16px', fontSize: '1.1rem' }}
+                    <button
+                      className="secondary-btn"
+                      style={{ padding: '16px', fontSize: 'var(--t-base)' }}
                       onClick={() => setResetModal(null)}
                     >
                       Cerrar (Ya la guardé)

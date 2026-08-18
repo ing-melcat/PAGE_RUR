@@ -819,7 +819,7 @@ export default function App() {
             <div className="dashboard-card" style={{ maxWidth: '600px', margin: '40px auto' }}>
               <div style={{ marginBottom: '24px' }}>
                 <h2 className="titulo-panel">¡Bienvenido! Último paso</h2>
-                <p style={{ color: 'var(--text-muted)' }}>Para completar tu registro, es obligatorio vincular tu cuenta con Google Authenticator.</p>
+                <p style={{ color: 'var(--muted)' }}>Para completar tu registro, es obligatorio vincular tu cuenta con Google Authenticator.</p>
               </div>
               <Configurar2FA 
                 user={user} 
@@ -893,7 +893,7 @@ export default function App() {
                   )}
 
                   {mainContext === "edit_profile" && (
-                      <ProfileEditor user={user} setUser={setUser} setMainContext={setMainContext} profileForm={profileForm} setProfileForm={setProfileForm} showAlias={showAlias} setShowAlias={setShowAlias} pushNotifications={pushNotifications} setPushNotifications={setPushNotifications} />
+                      <ProfileEditor user={user} setUser={setUser} setMainContext={setMainContext} profileForm={profileForm} setProfileForm={setProfileForm} showAlias={showAlias} setShowAlias={setShowAlias} pushNotifications={pushNotifications} setPushNotifications={setPushNotifications} reduceAnimations={reduceAnimations} setReduceAnimations={setReduceAnimations} />
                   )}
 
                   {mainContext === "cambiar_password" && (

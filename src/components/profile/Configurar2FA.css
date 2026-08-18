@@ -1,0 +1,289 @@
+/* ==================================================================
+   Bloque de 2FA / passwordless
+   ------------------------------------------------------------------
+   Se monta en dos sitios de ancho muy distinto: dentro del editor de
+   perfil (~800px) y dentro de la tarjeta de 600px del enrolamiento
+   obligatorio (LoginApp, ~520px útiles tras su padding). El plegado de
+   la fila QR + instrucciones tiene que reaccionar al ancho real del
+   bloque, no al del viewport -- en los dos sitios el viewport es
+   idéntico. `container-type: inline-size` convierte a `.bloque-2fa` en
+   su propio contenedor de medida, así que `@container` de aquí abajo
+   mide el bloque, no la pantalla.
+   ================================================================== */
+
+.bloque-2fa {
+  width: 100%;
+  container-type: inline-size;
+}
+
+/* --- Estado: ya vinculado --- */
+
+.bloque-2fa__listo {
+  padding: 24px;
+  border: 1px solid var(--success);
+  border-radius: 4px;
+  /* El verde del proyecto es --success (#2ecc71); este rgba() es esa
+     misma cifra en transparencia, no el verde genérico que traía el
+     inline anterior. */
+  background: rgba(46, 204, 113, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.bloque-2fa__listo-icono {
+  flex-shrink: 0;
+}
+
+.bloque-2fa__listo-titulo {
+  margin: 0 0 8px 0;
+  color: var(--success);
+  font-size: var(--t-md);
+  font-family: var(--font-titulo), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.bloque-2fa__listo-texto {
+  margin: 0;
+  font-size: var(--t-sm);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* --- Caja compartida: sin vincular / escaneando --- */
+
+.bloque-2fa__caja {
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--background);
+  width: 100%;
+}
+
+.bloque-2fa__cabecera {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.bloque-2fa__cabecera h3 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-titulo), sans-serif;
+  font-size: var(--t-md);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.bloque-2fa__intro {
+  font-size: var(--t-base);
+  color: var(--muted);
+  margin: 0 0 24px 0;
+  line-height: 1.6;
+}
+
+/* Aviso de que activar el 2FA borra la contraseña y que todavía no hay
+   códigos de respaldo -- tiene que leerse antes de que alguien pulse el
+   botón, porque el corte a passwordless es irreversible sin un
+   administrador de por medio. */
+.bloque-2fa__aviso {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 28px;
+  border: 1px solid var(--warning);
+  background: rgba(251, 191, 36, 0.1);
+  border-radius: 2px;
+}
+
+.bloque-2fa__aviso-icono {
+  color: var(--warning);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.bloque-2fa__aviso p {
+  margin: 0;
+  font-size: var(--t-xs);
+  line-height: 1.6;
+  color: var(--text);
+  max-width: 62ch;
+}
+
+.bloque-2fa__cta {
+  font-size: var(--t-base);
+}
+
+/* --- Fila QR + instrucciones --- */
+
+.bloque-2fa__fila {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.bloque-2fa__qr {
+  flex: 0 0 200px;
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+}
+
+.bloque-2fa__qr img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.bloque-2fa__instrucciones {
+  flex: 1 1 280px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bloque-2fa__pasos {
+  display: block;
+  font-size: var(--t-base);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.bloque-2fa__codigo {
+  padding: 16px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  letter-spacing: 8px;
+  text-align: center;
+  font-size: var(--t-lg);
+  font-family: var(--font-ibm-mono);
+}
+
+.bloque-2fa__botones {
+  display: flex;
+  gap: 16px;
+}
+
+.bloque-2fa__botones .secondary-btn {
+  flex: 1;
+}
+
+.bloque-2fa__botones .primary-btn {
+  flex: 2;
+}
+
+.bloque-2fa__botones button {
+  font-size: var(--t-base);
+}
+
+.bloque-2fa__error {
+  color: var(--error);
+  font-size: var(--t-base);
+  padding: 12px;
+  background: var(--error-muted);
+  border-left: 4px solid var(--error);
+}
+
+/* Por debajo de ~520px de ancho de bloque -- la tarjeta de enrolamiento
+   obligatorio, no el editor de perfil -- el QR y la columna de
+   instrucciones se apilan. */
+@container (max-width: 520px) {
+  .bloque-2fa__fila {
+    flex-direction: column;
+  }
+
+  .bloque-2fa__qr {
+    align-self: center;
+  }
+
+  .bloque-2fa__instrucciones {
+    min-width: 0;
+  }
+}
+
+/* --- Vincular a mano: clave manual + abrir en la app --- */
+
+.bloque-2fa__manual {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px dashed var(--border);
+}
+
+.bloque-2fa__manual-rotulo {
+  margin: 0 0 12px 0;
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.bloque-2fa__manual-fila {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+.bloque-2fa__clave {
+  flex: 1 1 260px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  background: var(--background);
+  border-radius: 2px;
+}
+
+.bloque-2fa__clave span {
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-sm);
+  letter-spacing: 2px;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.bloque-2fa__clave button {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+  display: flex;
+}
+
+@media (hover: hover) {
+  .bloque-2fa__clave button:hover {
+    color: var(--accent);
+  }
+}
+
+/* Gris a propósito: en escritorio "abrir en la app" no hace nada útil, y
+   no debe competir con el botón primario de la fila de arriba. */
+.bloque-2fa__abrir-app {
+  flex: 0 1 auto;
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.bloque-2fa__copiado {
+  display: block;
+  margin-top: 8px;
+  font-size: var(--t-xs);
+  color: var(--success);
+}

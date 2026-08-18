@@ -386,7 +386,7 @@ app.get('/api/profile/2fa/generate', verifyToken, noStore, async (req, res) => {
   const otpauth = generateURI({ secret, accountName: req.user.matricula, issuer: 'RUR Robotics' });
   try {
     const qrCodeDataUrl = await QRCode.toDataURL(otpauth);
-    res.json({ success: true, secret, qrCodeDataUrl });
+    res.json({ success: true, secret, otpauth, qrCodeDataUrl });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Error generando QR' });
   }

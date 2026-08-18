@@ -897,6 +897,40 @@ button[type="submit"]:disabled {
   }
 }
 
+/* La acción secundaria de al lado de un .primary-btn: misma geometría para
+   que emparejen, pero en el gris de .logout-btn-small en vez de acento. Se
+   usaba la clase en JSX sin que existiera aquí, así que salía con el estilo
+   por defecto del navegador. El hover se queda sobrio a propósito -- el del
+   gris pequeño se pone ámbar al pasar el ratón, y aquí competiría con el
+   botón primario de al lado. */
+.secondary-btn {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: var(--t-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: color var(--mov-rapido) ease, background-color 0.2s ease,
+              border-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease,
+              box-shadow 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (hover: hover) {
+  .secondary-btn:hover {
+    border-color: var(--muted);
+    color: var(--text);
+  }
+}
+
 .social-link {
   display: inline-flex;
   align-items: center;
