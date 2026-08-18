@@ -14,11 +14,27 @@
 // estado a Postgres o Redis — dejarlo anotado para esa fase.
 import rateLimit from 'express-rate-limit';
 
+// Las dos defensas contra probar contraseñas a lo bruto —el límite por red y
+// el bloqueo progresivo por cuenta— quedan APAGADAS fuera de producción.
+//
+// No es un descuido: en dev se entra y se sale de las mismas cuentas decenas
+// de veces seguidas probando el alta, la contraseña provisional y la
+// vinculación del autenticador, y a los cinco fallos la cuenta se bloqueaba
+// justo en mitad de la prueba. Una espera de 30 segundos que se duplica sola
+// no protege nada en una IP de Tailscale sin exponer, y sí impide probar el
+// flujo que hay que probar.
+//
+// Se mira NODE_ENV aquí mismo en vez de importar IS_PRODUCTION de auth.js
+// para no atar dos módulos compartidos por una sola comparación. El valor lo
+// pone el compose: 'production' en el stack real, 'development' en rur-dev.
+const EN_PRODUCCION = process.env.NODE_ENV === 'production';
+
 export const loginIpLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => !EN_PRODUCCION,
   handler: (req, res) => res.status(429).json({
     success: false,
     message: 'Demasiados intentos desde esta red. Espera unos minutos.',
@@ -69,6 +85,11 @@ const purgaTimer = setInterval(() => {
 purgaTimer.unref?.();
 
 export function isLocked(matricula) {
+  // Fuera de producción no se bloquea nunca (ver la nota de arriba). El
+  // corte se hace aquí y no en recordFailure para que el conteo siga
+  // ocurriendo igual: así el registro de actividad sigue mostrando los
+  // fallos, que es información útil también en dev.
+  if (!EN_PRODUCCION) return false;
   const entry = attempts.get(matricula);
   if (!entry || !entry.lockedUntil) return false;
   if (Date.now() >= entry.lockedUntil) return false;

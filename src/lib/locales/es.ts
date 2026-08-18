@@ -269,6 +269,15 @@ export const es = {
     subtitulo: 'Explora y busca entre todas nuestras revistas, artículos, avisos y eventos.',
     buscarPlaceholder: 'Buscar por título...',
     todos: 'Todos los Tipos',
+    // Los dos filtros de la parte de arriba. Faltaban las siete: los
+    // desplegables se veían con la clave a pelo ("archivo.todasLasAreas").
+    todasLasAreas: 'Todas las Áreas',
+    general: 'General',
+    explora: 'Explora',
+    descubre: 'Descubre',
+    conecta: 'Conecta',
+    todosLosFormatos: 'Todos los Formatos',
+    articulos: 'Artículos',
     revistas: 'Revistas',
     articulosSimples: 'Artículos Simples',
     eventosEspeciales: 'Eventos Especiales',
@@ -327,6 +336,7 @@ export const es = {
     urlPlaceholder: 'O pega URL...',
     subiendo: 'SUBIENDO...',
     subirLocal: 'SUBIR LOCAL',
+    insertarImagen: 'Subir Imagen',
     guardando: 'Guardando...',
     guardarCambios: 'GUARDAR CAMBIOS',
     publicarAhora: 'PUBLICAR AHORA',
@@ -394,6 +404,10 @@ export const es = {
     generacion: 'AÑO DE INGRESO',
 
     identidad: 'IDENTIDAD',
+    redes: 'REDES',
+    perfilPublicoTitulo: 'PERFIL PÚBLICO',
+    preferencias: 'PREFERENCIAS',
+    seguridad: 'SEGURIDAD',
     titulo: 'Personaliza tu Perfil',
     alias: 'Alias / Apodo',
     aliasPlaceholder: 'Ej. CyberNinja',
@@ -408,6 +422,10 @@ export const es = {
     facebook: 'Facebook (URL)',
     mostrarAlias: 'MOSTRAR ALIAS EN TABLERO',
     recibirPush: 'RECIBIR NOTIFICACIONES PUSH',
+    // Existe también en `accesibilidad`, pero el editor de perfil lo pide
+    // como perfil.*: sin esta entrada el interruptor salía con la clave a
+    // pelo en pantalla.
+    reducirAnimaciones: 'REDUCIR ANIMACIONES',
     guardarCambios: 'Guardar Cambios',
     cancelarVolver: '← Cancelar y Volver',
     imagenPesada: 'La imagen no puede pesar más de 2MB',
@@ -426,6 +444,12 @@ export const es = {
 
     reiniciar: 'Reiniciar contraseña',
     reiniciarConfirmar: 'Se le pondrá a {quien} una contraseña provisional. La actual dejará de funcionar y tendrá que elegir una nueva al entrar. ¿Continuar?',
+    // El aviso de reiniciarse la contraseña a uno mismo. En el código lleva
+    // un `|| '¡CUIDADO!…'` de respaldo que nunca se usaba: t() devuelve la
+    // clave cuando falta, y una cadena con texto no dispara el `||`. O sea
+    // que quien pulsaba aquí veía "adminUsuarios.reiniciarConfirmarPropio"
+    // en vez de la advertencia de que va a quedarse fuera.
+    reiniciarConfirmarPropio: '¡CUIDADO! Vas a restablecer TU PROPIA contraseña. Te quedarás sin permisos hasta que inicies sesión con la nueva contraseña temporal y la cambies. ¿Estás seguro?',
     reiniciarListo: 'Contraseña provisional de {quien}. Cópiala ahora: no se guarda en ninguna parte y vale 72 horas.',
     reiniciarError: 'No se pudo reiniciar la contraseña.',
     perfilPublico: 'PERFIL PÚBLICO EN MIEMBROS',
@@ -581,6 +605,7 @@ export const es = {
     errorEliminar: 'Error al eliminar',
     errorActualizarVisibilidad: 'Error al actualizar visibilidad',
     errorSubirImagen: 'Error al subir la imagen',
+    errorMotivoMedalla: 'Escribe el motivo antes de otorgar la medalla.',
     errorConexionImagen: 'Error de conexión al subir imagen',
     sinPermisosGuardar: 'No tienes permisos para guardar esta publicación.',
     errorConectarServidor: 'Error al conectar con el servidor.',
