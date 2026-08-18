@@ -78,6 +78,15 @@ services:
       - PGDATABASE=${POSTGRES_DB}
       - LIBRETRANSLATE_URL=http://libretranslate:5000
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
+      # Tope del heap de Node, deliberadamente POR DEBAJO del límite del
+      # contenedor (2G, abajo). Comprimir un modelo 3D grande carga la escena
+      # entera en memoria: medido, un .glb de 307 MB llega a 1,9 GB de pico.
+      # Sin este tope Node crece hasta chocar con el límite del cgroup y el
+      # kernel lo mata con SIGKILL: el servicio entero cae y la subida muere
+      # sin explicación. Con el tope, Node lanza "JS heap out of memory", lo
+      # recoge el try/catch de comprimirModelo y quien sube recibe un 422 que
+      # dice qué pasó, con el servicio en pie.
+      - NODE_OPTIONS=--max-old-space-size=1536
     volumes:
       - ./uploads:/app/services/content/uploads
     networks:
@@ -91,7 +100,19 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 256M
+          # 2G y no los 256M del resto de servicios Node: este es el único que
+          # comprime modelos 3D, y eso no cabe en 256M ni de lejos. Con el
+          # límite anterior la primera subida de un .glb habría matado el
+          # contenedor -- el compresor se midió contra el stack de dev, que no
+          # lleva tope, y ahí este problema no se ve.
+          #
+          # Sigue siendo un techo, no una promesa: dos compresiones grandes a
+          # la vez no caben. El límite las corta a ellas en vez de dejar que se
+          # lleven por delante al resto de la máquina, que es de lo que se
+          # trata. Si llega a estorbar de verdad, lo que toca es sacar la
+          # compresión a una cola fuera del ciclo de la petición, no subir
+          # este número.
+          memory: 2G
     logging:
       driver: json-file
       options:

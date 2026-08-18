@@ -34,6 +34,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
   const [modelUrl, setModelUrl] = useState('');
   const [autores, setAutores] = useState<{ _key?: string; userId: number; papel: string; lider: boolean }[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingModel, setUploadingModel] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
 
@@ -144,6 +145,46 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
       else alert(t('alertas.errorSubirImagen'));
     } catch(err) { alert(t('alertas.errorConexionImagen')); }
     setUploadingImage(false);
+  };
+
+  // Subida del modelo 3D. No reutiliza handleImageUpload a propósito: aquel
+  // valida el archivo cargándolo como imagen (mínimo 1280x720 y 16:9), y un
+  // .glb cae siempre en img.onerror -- se descartaría en silencio, sin subir
+  // nada y sin decir por qué. Aquí el archivo va tal cual: el filtro de
+  // formatos y el tope de entrada (400 MB) los aplica el servicio de
+  // contenido, que además comprime el modelo al vuelo y se queda solo con el
+  // resultado (services/content/server.js: fileFilter, LIMITE_SUBIDA,
+  // comprimirModelo). Por eso la subida puede tardar: un modelo grande se
+  // está procesando en el servidor mientras el botón dice "Subiendo".
+  const handleModelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploadingModel(true);
+    try {
+      const response = await apiFetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      // Un modelo grande que pasa del límite devuelve el error de multer como
+      // HTML, no como JSON: sin esta comprobación, el .json() de abajo revienta
+      // con un error de sintaxis que no dice nada del tamaño.
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        alert('Error del servidor: el modelo puede superar el límite de 400 MB, o hubo un error de red.');
+        setUploadingModel(false);
+        e.target.value = '';
+        return;
+      }
+      const data = await response.json();
+      if (data.url) setModelUrl(data.url);
+      else alert(data.message || t('alertas.errorSubirModelo'));
+    } catch(err) { alert(t('alertas.errorConexionModelo')); }
+    setUploadingModel(false);
+    e.target.value = '';
   };
 
   const isSubmitting = mutatePost.isPending;
@@ -454,7 +495,21 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
 
         {type === '3d_model' && (
           <div className="input-group">
-            <label>{t('adminPublicaciones.rutaModelo3d')}</label>
+            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span>{t('adminPublicaciones.rutaModelo3d')}</span>
+              <span style={{ fontSize: 'var(--t-xs)', color: 'var(--muted)', fontWeight: 'normal' }}>.glb o .gltf · se comprime al subir</span>
+            </label>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+              {/* Solo extensiones, sin tipos MIME: model/gltf-binary y
+                  model/gltf+json no los reconocen todos los diálogos de
+                  archivo, y cuando no los reconocen filtran de más — el .glb
+                  aparece en gris y no hay forma de elegirlo. Es también lo
+                  que hace el selector de modelo del editor de robots. */}
+              <input type="file" accept=".glb,.gltf" onChange={handleModelUpload} style={{ display: 'none' }} id="upload-model" />
+              <label htmlFor="upload-model" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px', background: 'var(--surface-strong)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: 'var(--t-xs)' }}>
+                {uploadingModel ? t('adminPublicaciones.subiendo') : <><Upload size={14} /> {t('adminPublicaciones.subirLocal')}</>}
+              </label>
+            </div>
             <input type="text" value={modelUrl} onChange={(e) => setModelUrl(e.target.value)} placeholder="Ej. /models/BMO.glb" />
           </div>
         )}

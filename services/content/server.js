@@ -6,6 +6,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import sharp from 'sharp';
+import { NodeIO } from '@gltf-transform/core';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
+import { dedup, prune, join, weld, quantize, meshopt, textureCompress } from '@gltf-transform/functions';
+import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer';
 import rateLimit from 'express-rate-limit';
 import { getPool } from '../shared/db.js';
 import { verifyToken, requirePermiso, permisosDe, sesionOpcional, IS_PRODUCTION } from '../shared/auth.js';
@@ -51,7 +55,16 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + '-' + file.originalname.replace(/\s+/g, '_'));
+    // Antes solo se cambiaban los espacios, y un nombre como
+    // "FONDO (2).webp" llegaba con los paréntesis intactos. Eso rompía el
+    // `url()` sin comillas de la portada de publicación: el navegador
+    // descartaba la regla entera y no se veía ningún fondo. Aquí se reduce
+    // el nombre a lo que es seguro en una URL y dentro de CSS; el frontend
+    // además entrecomilla, pero no conviene depender de una sola defensa.
+    const seguro = file.originalname
+      .replace(/\s+/g, '_')
+      .replace(/[^A-Za-z0-9._-]/g, '_');
+    cb(null, uniqueSuffix + '-' + seguro);
   },
 });
 
@@ -63,10 +76,24 @@ const fileFilter = (req, file, cb) => {
   cb(null, true);
 };
 
-// 25 MB: no había NINGÚN límite, así que una subida podía llenar el disco del
-// servidor. Una foto de móvil no pasa de 12 MB y un modelo 3D grande ronda los
-// 20; por encima de eso hay que preguntar antes de aceptarlo.
-const LIMITE_SUBIDA = 25 * 1024 * 1024;
+// El límite de ENTRADA, no el de lo que se guarda.
+//
+// No había ninguno y una subida podía llenar el disco. Pero un tope bajo tenía
+// el efecto contrario al buscado con los modelos 3D: rechazaba el archivo
+// gordo en la puerta y dejaba a quien lo subía sin más salida que comprimirlo
+// a mano. Ahora entra y se comprime aquí dentro (comprimirModelo), y lo que
+// queda en disco es el resultado —de 300 MB suelen quedar menos de 10—, así
+// que este número solo tiene que cubrir lo que llega, no lo que se sirve.
+//
+// 400 MB es holgado para una exportación sin optimizar. El disco lo protege
+// además uploadLimiter, y el archivo de entrada se borra en cuanto termina la
+// compresión.
+const LIMITE_SUBIDA = 400 * 1024 * 1024;
+
+// Si la compresión de un modelo FALLA, hasta aquí se deja pasar el original.
+// Por encima se rechaza: servir cientos de MB a cada visitante es peor que
+// perder la subida, y quien la hizo puede volver a exportar.
+const SERVIBLE_SIN_COMPRIMIR = 25 * 1024 * 1024;
 
 const upload = multer({ storage, fileFilter, limits: { fileSize: LIMITE_SUBIDA } });
 
@@ -130,6 +157,72 @@ async function reducirImagen(rutaOriginal, nombreOriginal) {
   }
 
   await fs.promises.unlink(rutaOriginal).catch(() => {});
+  return path.basename(destino);
+}
+
+// ---------------------------------------------------------------------------
+// Compresión de modelos 3D
+//
+// Mismo trato que las imágenes, y por el mismo motivo: lo que se sube no es lo
+// que conviene servir. Un .glb exportado de Blender o bajado de Sketchfab llega
+// con las texturas a 4K sin comprimir y la geometría en float32; uno de 300 MB
+// no es raro. Ese archivo lo descarga ENTERO cada visitante que abra la
+// publicación, así que publicarlo tal cual no es una opción.
+//
+// Qué se le hace:
+//   - dedup + prune + join: fuera lo repetido y lo que no cuelga de la escena
+//     (los exportadores dejan materiales y texturas huérfanos con alegría);
+//   - texturas a WebP y con un techo de TEXTURA_MAXIMA px — en un visor
+//     embebido en una página nadie distingue 4K de 2K, y ahí está la mayor
+//     parte del peso;
+//   - quantize + meshopt: la geometría deja de ser float32 y se comprime.
+//
+// meshopt y NO Draco a propósito: el visor carga con useGLTF de drei, que trae
+// el decodificador de meshopt dentro del bundle. Draco funcionaría, pero se
+// baja su decodificador de gstatic.com en cada visita — una dependencia
+// externa en tiempo de ejecución que no hace falta pagar.
+//
+// Lo que NO se hace es simplificar la malla: reduce el número de triángulos y
+// eso sí se ve. Si un modelo sigue pesando después de esto, la decisión de
+// bajarle detalle es de quien lo publica, no de este servicio.
+// ---------------------------------------------------------------------------
+const MODELOS = /\.(glb|gltf)$/i;
+const TEXTURA_MAXIMA = 2048;
+
+async function comprimirModelo(rutaOriginal) {
+  const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({
+    'meshopt.decoder': MeshoptDecoder,
+    'meshopt.encoder': MeshoptEncoder,
+  });
+
+  const documento = await io.read(rutaOriginal);
+  await documento.transform(
+    dedup(),
+    prune(),
+    // keepNamed: aquí los modelos son robots, y sus piezas suelen venir como
+    // nodos con nombre —brazo, rueda, cazo—. Fusionarlas ahorraría algo de
+    // peso, pero se lleva por delante la estructura que hace falta si algún
+    // día se anima o se señala una pieza. La diferencia medida es de décimas
+    // de MB; no compensa.
+    join({ keepNamed: true }),
+    weld(),
+    textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [TEXTURA_MAXIMA, TEXTURA_MAXIMA] }),
+    quantize(),
+    meshopt({ encoder: MeshoptEncoder }),
+  );
+
+  // Siempre .glb de salida: un .gltf trae los binarios y las texturas en
+  // archivos sueltos al lado, y aquí solo se guarda el que sube el navegador
+  // -- el resto se habría perdido igual.
+  const destino = rutaOriginal.replace(/\.[^.]+$/, '') + '.glb';
+  await io.write(destino, documento);
+
+  // El pesado se borra: es el punto de todo esto. Si origen y destino son el
+  // mismo nombre (ya era .glb), io.write acaba de sobrescribirlo y no hay nada
+  // que borrar.
+  if (destino !== rutaOriginal) {
+    await fs.promises.unlink(rutaOriginal).catch(() => {});
+  }
   return path.basename(destino);
 }
 
@@ -308,6 +401,27 @@ app.post('/api/upload', verifyToken, uploadLimiter, csrfProtection, upload.singl
       // conserva el original y se sirve igual. Perder la subida del usuario
       // por no poder optimizarla sería un mal negocio.
       console.error('[upload] no se pudo reducir la imagen:', e.message);
+    }
+  } else if (MODELOS.test(nombre)) {
+    const pesoOriginal = req.file.size;
+    try {
+      nombre = await comprimirModelo(req.file.path);
+      const { size } = await fs.promises.stat(path.join(UPLOADS_DIR, nombre));
+      console.log(`[upload] modelo comprimido: ${(pesoOriginal / 1048576).toFixed(1)} MB -> ${(size / 1048576).toFixed(1)} MB (${req.file.originalname})`);
+    } catch (e) {
+      console.error('[upload] no se pudo comprimir el modelo:', e.message);
+      // Aquí NO se conserva el original como se hace con las imágenes: una
+      // imagen que no se pudo optimizar pesa de más y ya está, pero un modelo
+      // sin comprimir puede ser de cientos de MB y lo descargaría entero cada
+      // visitante. Si supera lo que es razonable servir, se borra y se dice
+      // por qué; por debajo de ese techo se deja pasar tal cual.
+      if (pesoOriginal > SERVIBLE_SIN_COMPRIMIR) {
+        await fs.promises.unlink(req.file.path).catch(() => {});
+        return res.status(422).json({
+          success: false,
+          message: `No se pudo comprimir el modelo y pesa ${Math.round(pesoOriginal / 1048576)} MB, demasiado para publicarlo tal cual. Compruébalo en un visor glTF y vuelve a exportarlo.`,
+        });
+      }
     }
   }
 
