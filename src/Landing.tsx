@@ -244,6 +244,14 @@ export const PublicationPage = () => {
   const next = () => setCurrentPage(prev => Math.min(prev + 1, post.pages.length - 1));
   const prev = () => setCurrentPage(prev => Math.max(prev - 1, 0));
 
+  // El nombre del archivo puede traer paréntesis u otros caracteres que
+  // rompen un url() sin comillas: el navegador descarta la declaración
+  // entera y la publicación se queda sin ningún fondo. Entrecomillar y
+  // codificar lo deja a salvo también para los archivos ya subidos, que
+  // conservan el nombre con el que se guardaron.
+  const fondo = post.pages?.[currentPage]?.image;
+  const fondoCss = fondo ? `url("${encodeURI(fondo)}")` : null;
+
   const isAviso = post.type === 'aviso';
   const isEvento = post.type === 'evento';
   const isSpecial = isAviso || isEvento;
@@ -253,7 +261,11 @@ export const PublicationPage = () => {
     <div style={{ 
       width: '100%', 
       color: 'var(--text)',
-      backgroundImage: (post.type !== '3d_model' && post.pages?.[currentPage]?.image) ? `linear-gradient(rgba(5,7,15,0.8), rgba(5,7,15,0.95)), url(${post.pages?.[currentPage]?.image})` : 'none',
+      // El velo sobre la imagen de fondo iba de 0.8 a 0.95, y a ese nivel la
+      // foto no se distinguía del fondo plano: parecía que la publicación no
+      // tenía imagen. 0.55/0.8 la deja verse manteniendo el texto blanco
+      // legible encima. Si se sube de ahí, se vuelve a perder la foto.
+      backgroundImage: (post.type !== '3d_model' && fondoCss) ? `linear-gradient(rgba(5,7,15,0.55), rgba(5,7,15,0.8)), ${fondoCss}` : 'none',
       backgroundColor: 'var(--background)',
       backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed',
       minHeight: '100vh',

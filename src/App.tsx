@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { Routes, Route, Link, Outlet, useLocation } from 'react-router-dom';
 import { lazyConRecarga, marcarArranqueCorrecto } from './lib/lazyConRecarga';
 import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion';
@@ -30,16 +30,34 @@ import { InvitacionEnVivo } from './components/InvitacionEnVivo';
 import { PortadaSeccion } from './components/PortadaSeccion';
 
 // --- ANIMACIONES DE TRANSICIÓN ---
-const PageTransition = ({ children }: { children: React.ReactNode }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 15, filter: 'blur(10px)' }}
-    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-    exit={{ opacity: 0, y: -15, filter: 'blur(10px)' }}
-    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-  >
-    {children}
-  </motion.div>
-);
+const PageTransition = ({ children }: { children: React.ReactNode }) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Al acabar, framer deja `filter: blur(0px)` puesto, no `none`. Un filter
+  // distinto de none convierte este div en bloque contenedor, y entonces el
+  // `background-attachment: fixed` de la publicación deja de referirse al
+  // viewport y pasa a referirse a este div, que mide toda la página. Con
+  // `background-size: cover` la imagen se escalaba contra la caja
+  // equivocada: se veía recortada o con otro encuadre hasta que un scroll
+  // forzaba el repintado. Quitar el filter al terminar cierra el desajuste
+  // sin renunciar al desenfoque de entrada.
+  const limpiarFiltro = () => {
+    if (ref.current) ref.current.style.filter = 'none';
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 15, filter: 'blur(10px)' }}
+      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      exit={{ opacity: 0, y: -15, filter: 'blur(10px)' }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      onAnimationComplete={limpiarFiltro}
+    >
+      {children}
+    </motion.div>
+  );
+};
 
 // --- COMPONENTE HOME (Página Principal) ---
 function Home() {
