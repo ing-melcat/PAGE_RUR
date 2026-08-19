@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { TriangleAlert, Star, Eye, EyeOff, Upload, X, ChevronDown, ChevronUp, HelpCircle } from "lucide-react";
 import MDEditor from '@uiw/react-md-editor';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
 import { apiFetch } from "../../lib/apiClient";
-import { sanitizeHtml } from "../../lib/sanitizeHtml";
+import { markdownSanitizeSchema } from "../../lib/markdownSanitizeSchema";
 import { useLanguage } from "../../lib/i18n";
 import { Ayuda } from "../Ayuda";
 import { puede } from "../../lib/authUtils";
@@ -92,8 +94,8 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
 
   const renderSanitizedPreview = (source: string) => (
     <div className="contenido-publicacion" style={{ padding: '16px', color: 'var(--text)', background: 'var(--background)', minHeight: '100%' }}>
-      <ReactMarkdown rehypePlugins={[rehypeRaw]}>
-        {sanitizeHtml(source)}
+      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema]]}>
+        {source}
       </ReactMarkdown>
     </div>
   );

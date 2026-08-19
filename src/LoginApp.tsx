@@ -13,7 +13,6 @@ import { ModeSelect } from "./controller/ModeSelect";
 const RobotSelection = lazy(() => import("./controller/RobotSelection").then((m) => ({ default: m.RobotSelection as React.ComponentType<any> })));
 const PanelTransmision = lazy(() => import("./controller/PanelTransmision").then((m) => ({ default: m.PanelTransmision as React.ComponentType<any> })));
 import { apiFetch } from "./lib/apiClient";
-import { sanitizeHtml } from "./lib/sanitizeHtml";
 import { useLanguage } from "./lib/i18n";
 import { Ayuda } from "./components/Ayuda";
 import { PanelRoles } from "./components/PanelRoles";

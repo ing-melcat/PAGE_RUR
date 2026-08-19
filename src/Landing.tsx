@@ -2,12 +2,14 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TriangleAlert, Star, MapPin } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
 
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import logoUrl from './assets/isotipo.png';
 import logoBlancoUrl from './assets/real_images/isotipo_blanco.png';
-import { sanitizeHtml } from './lib/sanitizeHtml';
+import { markdownSanitizeSchema } from './lib/markdownSanitizeSchema';
 import { useLanguage } from './lib/i18n';
 
 // Carga diferida: three.js y @react-three pesan cerca de un megabyte y solo
@@ -366,8 +368,8 @@ export const PublicationPage = () => {
              style={{ width: '100%', height: '100%' }}
            >
               <div className="contenido-publicacion">
-                <ReactMarkdown rehypePlugins={[rehypeRaw]}>
-                  {sanitizeHtml((post.pages && post.pages.length > 0) ? post.pages[currentPage].content : (post.content || ''))}
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema]]}>
+                  {(post.pages && post.pages.length > 0) ? post.pages[currentPage].content : (post.content || '')}
                 </ReactMarkdown>
               </div>
            </motion.div>
