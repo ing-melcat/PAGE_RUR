@@ -351,7 +351,7 @@ h1 {
   margin: 0 0 1.2em;
 }
 
-.contenido-publicacion a {
+.contenido-publicacion a:not(.action-card):not(.primary-btn) {
   color: var(--accent);
   text-decoration: none;
   border-bottom: 1px solid transparent;
@@ -359,9 +359,18 @@ h1 {
 }
 
 @media (hover: hover) {
-  .contenido-publicacion a:hover {
+  .contenido-publicacion a:not(.action-card):not(.primary-btn):hover {
     border-bottom-color: var(--accent);
   }
+}
+
+/* Los botones oficiales (.action-card, .primary-btn) que un redactor
+   incrusta como HTML dentro de una publicación no deben heredar el
+   `width: 100%` que tienen en sus usos normales (formularios, paneles) --
+   ahí viven sueltos dentro de un párrafo, no en un contenedor a medida. */
+.contenido-publicacion .action-card,
+.contenido-publicacion .primary-btn {
+  width: auto;
 }
 
 .contenido-publicacion ul,
