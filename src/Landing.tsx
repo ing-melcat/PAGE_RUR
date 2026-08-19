@@ -269,7 +269,18 @@ export const PublicationPage = () => {
       // legible encima. Si se sube de ahí, se vuelve a perder la foto.
       backgroundImage: (post.type !== '3d_model' && fondoCss) ? `linear-gradient(rgba(5,7,15,0.55), rgba(5,7,15,0.8)), ${fondoCss}` : 'none',
       backgroundColor: 'var(--background)',
-      backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed',
+      // Sin backgroundAttachment: 'fixed' a propósito. PageTransition (App.tsx)
+      // anima este contenedor con un `filter: blur(...)`, y mientras ese filter
+      // no es `none` el div se convierte en el bloque contenedor del fondo fixed
+      // -- que entonces se pinta contra ESE div en vez de contra el viewport.
+      // PageTransition ya limpia el filter al terminar la animación, pero para
+      // entonces el navegador ya compositó la capa del fondo fixed contra la
+      // caja equivocada, y quitar el filter no la fuerza a recalcularse: se
+      // queda mal hasta que un scroll la repinta. `fixed` es la única causa
+      // posible de este desajuste (un fondo con attachment normal siempre se
+      // pinta contra su propia caja, sea cual sea el filter del antecesor), así
+      // que se quita en vez de perseguir cada forma de invalidar el repintado.
+      backgroundSize: 'cover', backgroundPosition: 'center',
       minHeight: '100vh',
       display: 'flex', flexDirection: 'column',
       position: 'relative'
