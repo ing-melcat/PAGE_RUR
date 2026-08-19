@@ -610,7 +610,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                 </div>
               </div>
             ))}
-            <button type="button" onClick={() => setPages([...pages, { content: '', image: '' }])} style={{ padding: '16px', background: 'transparent', color: 'var(--accent)', border: '1px dashed var(--accent)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '1rem', width: '100%' }}>
+            <button type="button" onClick={() => setPages([...pages, { content: '', image: '', _key: Math.random().toString() }])} style={{ padding: '16px', background: 'transparent', color: 'var(--accent)', border: '1px dashed var(--accent)', borderRadius: '8px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '1rem', width: '100%' }}>
               {t('adminPublicaciones.anadirPagina')}
             </button>
           </div>
