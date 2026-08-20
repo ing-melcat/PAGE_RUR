@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TriangleAlert, Star, MapPin } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -216,6 +217,22 @@ export const Landing = ({ category = 'landing', limit }: { category?: string, li
   );
 };
 
+// Contenedor fijo para el fondo de la publicación (ver comentario donde se
+// usa, dentro de PublicationPage). Tiene que vivir ANTES de #root en el DOM
+// -- no basta con darle z-index negativo: eso lo manda detrás incluso del
+// propio background-color de <body>, así que nunca se llegaba a ver. Sin
+// z-index, el orden de pintado normal (quien viene antes en el DOM se pinta
+// primero) ya lo deja detrás de #root y delante del fondo plano de <body>,
+// que es justo donde tiene que estar.
+let capaFondoPublicacion: HTMLDivElement | null = null;
+function obtenerCapaFondoPublicacion(): HTMLDivElement {
+  if (!capaFondoPublicacion || !capaFondoPublicacion.isConnected) {
+    capaFondoPublicacion = document.createElement('div');
+    document.body.insertBefore(capaFondoPublicacion, document.body.firstChild);
+  }
+  return capaFondoPublicacion;
+}
+
 export const PublicationPage = () => {
   const { t, lang } = useLanguage();
   const { id } = useParams();
@@ -259,28 +276,46 @@ export const PublicationPage = () => {
   const isSpecial = isAviso || isEvento;
   const specialColor = isAviso ? 'var(--error)' : 'var(--accent)';
 
+  const hayFondo = post.type !== '3d_model' && !!fondoCss;
+
   return (
-    <div style={{ 
-      width: '100%', 
+    <>
+      {/* El fondo de la publicación se pinta en una capa aparte, fija al
+          viewport, montada por portal justo antes de #root (ver
+          obtenerCapaFondoPublicacion arriba) -- fuera del div que
+          PageTransition (App.tsx) anima con `filter: blur(...)`. Antes vivía
+          como backgroundAttachment:'fixed' en el propio contenedor de la
+          publicación: mientras ese filter estaba activo, el contenedor se
+          convertía en el bloque contenedor del fondo fixed, que se pintaba
+          contra ÉL en vez de contra el viewport y se quedaba mal hasta que un
+          scroll forzaba el repintado. Sacándolo del árbol filtrado no hay
+          containing block que pueda secuestrarlo: siempre se pinta contra el
+          viewport real, sea lo que sea que la animación de entrada le esté
+          haciendo a su antecesor. Así se conserva el efecto -- la foto detrás
+          de todo el texto, fija mientras se hace scroll -- sin el bug. */}
+      {hayFondo && createPortal(
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'fixed', inset: 0,
+            // El velo sobre la imagen de fondo iba de 0.8 a 0.95, y a ese
+            // nivel la foto no se distinguía del fondo plano: parecía que la
+            // publicación no tenía imagen. 0.55/0.8 la deja verse
+            // manteniendo el texto blanco legible encima. Si se sube de ahí,
+            // se vuelve a perder la foto.
+            backgroundImage: `linear-gradient(rgba(5,7,15,0.55), rgba(5,7,15,0.8)), ${fondoCss}`,
+            backgroundSize: 'cover', backgroundPosition: 'center',
+          }}
+        />,
+        obtenerCapaFondoPublicacion()
+      )}
+      <div style={{
+      width: '100%',
       color: 'var(--text)',
-      // El velo sobre la imagen de fondo iba de 0.8 a 0.95, y a ese nivel la
-      // foto no se distinguía del fondo plano: parecía que la publicación no
-      // tenía imagen. 0.55/0.8 la deja verse manteniendo el texto blanco
-      // legible encima. Si se sube de ahí, se vuelve a perder la foto.
-      backgroundImage: (post.type !== '3d_model' && fondoCss) ? `linear-gradient(rgba(5,7,15,0.55), rgba(5,7,15,0.8)), ${fondoCss}` : 'none',
-      backgroundColor: 'var(--background)',
-      // Sin backgroundAttachment: 'fixed' a propósito. PageTransition (App.tsx)
-      // anima este contenedor con un `filter: blur(...)`, y mientras ese filter
-      // no es `none` el div se convierte en el bloque contenedor del fondo fixed
-      // -- que entonces se pinta contra ESE div en vez de contra el viewport.
-      // PageTransition ya limpia el filter al terminar la animación, pero para
-      // entonces el navegador ya compositó la capa del fondo fixed contra la
-      // caja equivocada, y quitar el filter no la fuerza a recalcularse: se
-      // queda mal hasta que un scroll la repinta. `fixed` es la única causa
-      // posible de este desajuste (un fondo con attachment normal siempre se
-      // pinta contra su propia caja, sea cual sea el filter del antecesor), así
-      // que se quita en vez de perseguir cada forma de invalidar el repintado.
-      backgroundSize: 'cover', backgroundPosition: 'center',
+      // Con el fondo ya pintado en la capa fija de arriba, este contenedor
+      // solo necesita el color plano de respaldo para publicaciones sin
+      // imagen -- transparente cuando sí hay una, para no taparla.
+      backgroundColor: hayFondo ? 'transparent' : 'var(--background)',
       minHeight: '100vh',
       display: 'flex', flexDirection: 'column',
       position: 'relative'
@@ -397,6 +432,7 @@ export const PublicationPage = () => {
       )}
       </div>
     </div>
+    </>
   );
 };
 
