@@ -285,6 +285,10 @@ function rowToPost(row, includeContent = true) {
     modelUrl: row.model_url,
     category: row.category,
     isHidden: row.is_hidden,
+    // La portada de la publicación (PublicationPage, Landing.tsx) muestra la
+    // fecha en el eyebrow, junto al chip de tipo -- hasta ahora la fecha se
+    // guardaba pero nunca salía de aquí.
+    date: row.date,
     ...(row.extra ?? {}),
   };
 

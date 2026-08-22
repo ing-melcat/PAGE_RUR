@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap');
 
 /* ==================================================================
    Tipografía
@@ -25,6 +25,13 @@
 
   --font-ibm-sans: var(--font-texto);
   --font-ibm-mono: var(--font-etiqueta);
+
+  /* Monoespaciada de verdad, para código. OJO: --font-ibm-mono NO es
+     monoespaciada pese al nombre -- apunta a --font-etiqueta, que es
+     Roboto. Se quedó así por los ~60 usos heredados donde solo marca
+     "texto de interfaz", pero un bloque de código en Roboto no alinea
+     nada y no se parece en nada a un editor. Para código va esta. */
+  --font-codigo: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 
   /* PALETA OFICIAL RUR */
   --background: #020713; /* Fondo principal (más oscuro que la base para contraste) */
@@ -269,6 +276,177 @@ h1 {
 }
 
 /* ------------------------------------------------------------------
+   Portada de publicación (PublicationPage, Landing.tsx)
+   ------------------------------------------------------------------
+   La foto de la publicación ocupaba antes toda la lectura como papel tapiz
+   fijo, con el mismo velo oscuro de arriba a abajo -- funcionaba, pero se
+   sentía genérico y sin personalidad. Ahora la foto ocupa solo este primer
+   tramo, como una portada editorial, con el título grande anclado abajo; el
+   resto de la lectura pasa a superficie sólida (var(--surface)) en
+   .contenido-publicacion, más abajo.
+   ------------------------------------------------------------------ */
+.portada-publicacion {
+  position: relative;
+  background-color: var(--surface);
+  background-size: cover;
+  background-position: center 30%;
+  display: flex;
+  align-items: flex-end;
+}
+
+/* Misma altura lleve foto o no: si la variante sin foto fuera corta, el
+   título saltaría de sitio al pasar de una publicación a otra y daba
+   sensación de descuido. Cuando no hay foto se rellena con el azul
+   institucional -- el mismo recurso que ya usa la portada del archivo
+   (ArchiveDashboard, Landing.tsx), que tampoco tiene imagen. */
+.portada-publicacion--con-foto,
+.portada-publicacion--compacta {
+  /* No se resta la altura real del header: varía con el idioma y con lo
+     largo del título, y un cálculo exacto sería frágil. Un porcentaje del
+     viewport da una portada cinematográfica sin necesitar ese ajuste. */
+  height: 62vh;
+  min-height: 380px;
+  max-height: 620px;
+}
+
+.portada-publicacion--compacta {
+  background-color: var(--surface-strong);
+}
+
+.portada-publicacion__velo {
+  position: absolute;
+  inset: 0;
+  /* Funde la foto con la superficie sólida del cuerpo -- casi transparente
+     arriba, opaca del todo al llegar a --surface, para que portada y
+     contenido no se corten con una línea dura. */
+  background: linear-gradient(180deg, rgba(2,7,19,0.1) 0%, rgba(2,7,19,0.35) 55%, var(--surface) 100%);
+  pointer-events: none;
+}
+
+.portada-publicacion__texto {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 60px 56px;
+}
+
+/* Sin foto se pinta igualmente el velo, con un degradado suave sobre el
+   azul institucional -- así el borde inferior funde con el cuerpo
+   exactamente igual que cuando sí hay foto. */
+.portada-publicacion--compacta .portada-publicacion__velo {
+  background: linear-gradient(180deg, rgba(2,7,19,0) 0%, rgba(2,7,19,0.25) 55%, var(--surface) 100%);
+}
+
+.portada-publicacion__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.portada-publicacion__chip {
+  color: #1a1400;
+  background: var(--accent);
+  padding: 4px 10px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.portada-publicacion__fecha {
+  color: var(--text);
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.portada-publicacion__linea {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.portada-publicacion__titulo {
+  margin: 0;
+  font-family: var(--font-titulo), sans-serif;
+  font-weight: 400;
+  font-size: clamp(2.2rem, 6vw, 4.6rem);
+  line-height: 0.98;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+  max-width: 16ch;
+  color: var(--text);
+  text-shadow: 0 2px 24px rgba(0,0,0,0.35);
+}
+
+.portada-publicacion--compacta .portada-publicacion__titulo {
+  text-shadow: none;
+  max-width: 20ch;
+}
+
+@media (max-width: 760px) {
+  .portada-publicacion--con-foto {
+    height: 62vh;
+    min-height: 340px;
+  }
+  .portada-publicacion__texto {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .portada-publicacion--compacta .portada-publicacion__texto {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Paginador de publicaciones por páginas (revista)
+   ------------------------------------------------------------------
+   Los botones llevaban `background: transparent` en estilo EN LÍNEA, y
+   eso rompía el hover global de `button:hover` (más abajo en este mismo
+   archivo), que rellena de ámbar y pone el texto oscuro: el relleno lo
+   bloqueaba el estilo en línea, pero el texto oscuro sí se aplicaba
+   porque va con !important. Resultado: al pasar el ratón el texto se
+   volvía casi negro sobre fondo oscuro y el botón parecía romperse.
+   Aquí el fondo se define por CSS, no en línea, así que el hover de
+   relleno funciona como en el resto del sitio.
+   ------------------------------------------------------------------ */
+.paginador-btn {
+  padding: 14px 28px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-family: var(--font-etiqueta), sans-serif;
+  font-size: var(--t-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 3px;
+}
+
+.paginador-btn:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Un botón deshabilitado no debe iluminarse ni levantarse al pasar el
+   ratón -- el hover global no distingue, así que se anula aquí. */
+@media (hover: hover) {
+  .paginador-btn:disabled:hover {
+    transform: none;
+    box-shadow: none;
+    background: transparent;
+    color: var(--muted) !important;
+  }
+}
+
+/* ------------------------------------------------------------------
    Contenido de publicaciones (redactor)
    ------------------------------------------------------------------
    El editor deja escribir HTML crudo a propósito (control total de layout),
@@ -410,8 +588,8 @@ h1 {
 }
 
 .contenido-publicacion code {
-  font-family: var(--font-ibm-mono), monospace;
-  background: var(--surface);
+  font-family: var(--font-codigo);
+  background: var(--surface-strong);
   padding: 0.15em 0.4em;
   border-radius: 4px;
   /* En `em` y no en la escala: va dentro de un párrafo y tiene que
@@ -421,18 +599,163 @@ h1 {
 }
 
 .contenido-publicacion pre {
-  font-family: var(--font-ibm-mono), monospace;
-  background: var(--surface);
+  font-family: var(--font-codigo);
+  /* Más oscuro que --surface a propósito: un bloque de código se lee como
+     una "ventana de editor" incrustada, y para eso tiene que hundirse
+     respecto de la superficie de lectura, no confundirse con ella. */
+  background: #0a0f1e;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 1em 1.2em;
+  padding: 1.1em 1.3em;
   overflow-x: auto;
-  margin: 0 0 1.2em;
+  margin: 0 0 1.5em;
+  /* El 1.8 del cuerpo separa tanto las líneas que el código pierde la
+     forma de bloque; los editores rondan 1.5. */
+  line-height: 1.55;
+  font-size: 0.875rem;
+  tab-size: 2;
 }
 
 .contenido-publicacion pre code {
   background: none;
   padding: 0;
+  font-size: inherit;
+}
+
+/* ------------------------------------------------------------------
+   Resaltado de sintaxis (rehype-prism-plus)
+   ------------------------------------------------------------------
+   Sin esto un bloque ```python salía en un solo color, y al lado de
+   cualquier editor se veía plano y "sin terminar". Los colores son los
+   papeles habituales de un tema oscuro de editor, elegidos para convivir
+   con la paleta del sitio: el ámbar institucional se reserva para las
+   funciones (que es donde más se agradece el acento) y el resto va en
+   azules/verdes/morados que no compiten con él.
+   ------------------------------------------------------------------ */
+.contenido-publicacion pre code .token.comment,
+.contenido-publicacion pre code .token.prolog,
+.contenido-publicacion pre code .token.doctype,
+.contenido-publicacion pre code .token.cdata {
+  color: #6b7f99;
+  font-style: italic;
+}
+
+.contenido-publicacion pre code .token.punctuation {
+  color: #a3b1c6;
+}
+
+.contenido-publicacion pre code .token.property,
+.contenido-publicacion pre code .token.tag,
+.contenido-publicacion pre code .token.constant,
+.contenido-publicacion pre code .token.symbol,
+.contenido-publicacion pre code .token.deleted {
+  color: #ff7b72;
+}
+
+.contenido-publicacion pre code .token.boolean,
+.contenido-publicacion pre code .token.number {
+  color: #d2a8ff;
+}
+
+.contenido-publicacion pre code .token.selector,
+.contenido-publicacion pre code .token.attr-name,
+.contenido-publicacion pre code .token.string,
+.contenido-publicacion pre code .token.char,
+.contenido-publicacion pre code .token.builtin,
+.contenido-publicacion pre code .token.inserted {
+  color: #7ee787;
+}
+
+.contenido-publicacion pre code .token.operator,
+.contenido-publicacion pre code .token.entity,
+.contenido-publicacion pre code .token.url,
+.contenido-publicacion pre code .token.variable {
+  color: #a5d6ff;
+}
+
+.contenido-publicacion pre code .token.atrule,
+.contenido-publicacion pre code .token.attr-value,
+.contenido-publicacion pre code .token.keyword {
+  color: #ff9bce;
+}
+
+.contenido-publicacion pre code .token.function,
+.contenido-publicacion pre code .token.class-name {
+  color: var(--accent);
+}
+
+.contenido-publicacion pre code .token.regex,
+.contenido-publicacion pre code .token.important {
+  color: #ffa657;
+}
+
+/* ------------------------------------------------------------------
+   Tablas de publicación
+   ------------------------------------------------------------------
+   No tenían ninguna regla: salían con el estilo por defecto del
+   navegador (sin separación, sin alineación, texto pegado) encima de un
+   sitio por lo demás ya diseñado.
+
+   Primera versión de este bloque solo ponía `border-bottom` -- con
+   `var(--border)` a 0.15 de opacidad (pensado para líneas sueltas, no
+   para una rejilla) quedaba casi invisible: se leía como columnas de
+   texto espaciadas, no como una tabla. Ahora es una rejilla completa
+   (borde en las cuatro caras de cada celda) y la cabecera lleva su
+   propio fondo, no solo texto en color -- así se lee como tabla de un
+   vistazo, sin depender de que se note una línea tenue.
+   ------------------------------------------------------------------ */
+.contenido-publicacion table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1.8em;
+  font-size: var(--t-sm);
+  /* Para que los números de una columna alineen por dígito. */
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--border);
+}
+
+.contenido-publicacion thead th {
+  text-align: left;
+  font-family: var(--font-etiqueta), sans-serif;
+  font-weight: 700;
+  font-size: var(--t-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--surface-strong);
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.contenido-publicacion tbody td {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  line-height: 1.5;
+  vertical-align: top;
+}
+
+@media (hover: hover) {
+  .contenido-publicacion tbody tr:hover td {
+    background: rgba(245, 243, 233, 0.05);
+  }
+}
+
+/* Una tabla ancha desborda en móvil y empuja el ancho de toda la página.
+   El scroll va en un contenedor propio (lo envuelve ReactMarkdown, ver
+   `components` en Landing.tsx) y NO en la propia <table>: ponerle
+   `display: block` a la tabla para que acepte overflow le quita el
+   reparto automático de columnas y las deja encogidas al contenido. */
+.contenido-publicacion .tabla-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 0 0 1.8em;
+}
+
+.contenido-publicacion .tabla-scroll table {
+  margin-bottom: 0;
+  /* Por debajo de esto las columnas se aplastan y es mejor hacer scroll. */
+  min-width: 480px;
 }
 
 .contenido-publicacion hr {

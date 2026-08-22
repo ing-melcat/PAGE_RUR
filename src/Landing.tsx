@@ -1,16 +1,18 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TriangleAlert, Star, MapPin } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
+import rehypePrism from 'rehype-prism-plus';
 
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import logoUrl from './assets/isotipo.png';
 import logoBlancoUrl from './assets/real_images/isotipo_blanco.png';
 import { markdownSanitizeSchema } from './lib/markdownSanitizeSchema';
+import { rehypeQuitarTituloDuplicado } from './lib/rehypeQuitarTituloDuplicado';
+import { componentesMarkdown } from './lib/componentesMarkdown';
 import { useLanguage } from './lib/i18n';
 
 // Carga diferida: three.js y @react-three pesan cerca de un megabyte y solo
@@ -217,22 +219,6 @@ export const Landing = ({ category = 'landing', limit }: { category?: string, li
   );
 };
 
-// Contenedor fijo para el fondo de la publicación (ver comentario donde se
-// usa, dentro de PublicationPage). Tiene que vivir ANTES de #root en el DOM
-// -- no basta con darle z-index negativo: eso lo manda detrás incluso del
-// propio background-color de <body>, así que nunca se llegaba a ver. Sin
-// z-index, el orden de pintado normal (quien viene antes en el DOM se pinta
-// primero) ya lo deja detrás de #root y delante del fondo plano de <body>,
-// que es justo donde tiene que estar.
-let capaFondoPublicacion: HTMLDivElement | null = null;
-function obtenerCapaFondoPublicacion(): HTMLDivElement {
-  if (!capaFondoPublicacion || !capaFondoPublicacion.isConnected) {
-    capaFondoPublicacion = document.createElement('div');
-    document.body.insertBefore(capaFondoPublicacion, document.body.firstChild);
-  }
-  return capaFondoPublicacion;
-}
-
 export const PublicationPage = () => {
   const { t, lang } = useLanguage();
   const { id } = useParams();
@@ -246,7 +232,15 @@ export const PublicationPage = () => {
         .then(found => {
           if (!found.error) {
             if (found.type === 'simple' || found.type === 'aviso' || found.type === 'evento' || found.type === '3d_model') {
-              setPost({ ...found, pages: [{ content: found.content || t('publicacion.sinContenido'), image: found.backgroundImage || found.image }] });
+              // Antes caía en `found.image` (la Portada/miniatura de la
+              // tarjeta) cuando no había Fondo de Lectura -- pensado para
+              // cuando el fondo se pintaba detrás de todo el texto y "algo"
+              // se sentía mejor que nada. Con la portada nueva ese fallback
+              // hace que cualquier publicación sin fondo elegido a propósito
+              // salga igual con una foto grande de cabecera que nadie pidió.
+              // Sin backgroundImage, sencillamente no hay fondo -- la
+              // publicación cae en la variante compacta de la portada.
+              setPost({ ...found, pages: [{ content: found.content || t('publicacion.sinContenido'), image: found.backgroundImage }] });
             } else {
               setPost(found);
             }
@@ -260,8 +254,16 @@ export const PublicationPage = () => {
     return <div style={{ minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div className="animate-spin" style={{ width: '32px', height: '32px', border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%' }} /></div>;
   }
 
-  const next = () => setCurrentPage(prev => Math.min(prev + 1, post.pages.length - 1));
-  const prev = () => setCurrentPage(prev => Math.max(prev - 1, 0));
+  // Al pasar de página el contenido cambiaba pero el scroll se quedaba
+  // donde estuviera, así que la página nueva empezaba a media lectura y
+  // parecía que no había pasado nada. Se vuelve arriba, como al abrir
+  // cualquier publicación.
+  const irAPagina = (n: number) => {
+    setCurrentPage(n);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const next = () => irAPagina(Math.min(currentPage + 1, post.pages.length - 1));
+  const prev = () => irAPagina(Math.max(currentPage - 1, 0));
 
   // El nombre del archivo puede traer paréntesis u otros caracteres que
   // rompen un url() sin comillas: el navegador descarta la declaración
@@ -277,45 +279,28 @@ export const PublicationPage = () => {
   const specialColor = isAviso ? 'var(--error)' : 'var(--accent)';
 
   const hayFondo = post.type !== '3d_model' && !!fondoCss;
+  const esPortada = post.type !== '3d_model';
+
+  // Chip de tipo del eyebrow de la portada -- las mismas etiquetas que ya usa
+  // la tarjeta del archivo (ArchiveDashboard, más abajo en este archivo), para
+  // no inventar un segundo vocabulario de "tipo de publicación".
+  const chipTexto = post.type === 'magazine'
+    ? t('archivo.revista')
+    : isAviso ? t('archivo.aviso') : isEvento ? t('archivo.evento') : t('archivo.articulo');
+
+  // post.date llega en ISO desde rowToPost (services/content/server.js). Si
+  // el backend todavía no lo manda (build viejo en caché) simplemente no hay
+  // fecha que mostrar, en vez de romper con un "Invalid Date".
+  const fechaFormateada = post.date
+    ? new Date(post.date).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })
+    : null;
 
   return (
     <>
-      {/* El fondo de la publicación se pinta en una capa aparte, fija al
-          viewport, montada por portal justo antes de #root (ver
-          obtenerCapaFondoPublicacion arriba) -- fuera del div que
-          PageTransition (App.tsx) anima con `filter: blur(...)`. Antes vivía
-          como backgroundAttachment:'fixed' en el propio contenedor de la
-          publicación: mientras ese filter estaba activo, el contenedor se
-          convertía en el bloque contenedor del fondo fixed, que se pintaba
-          contra ÉL en vez de contra el viewport y se quedaba mal hasta que un
-          scroll forzaba el repintado. Sacándolo del árbol filtrado no hay
-          containing block que pueda secuestrarlo: siempre se pinta contra el
-          viewport real, sea lo que sea que la animación de entrada le esté
-          haciendo a su antecesor. Así se conserva el efecto -- la foto detrás
-          de todo el texto, fija mientras se hace scroll -- sin el bug. */}
-      {hayFondo && createPortal(
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'fixed', inset: 0,
-            // El velo sobre la imagen de fondo iba de 0.8 a 0.95, y a ese
-            // nivel la foto no se distinguía del fondo plano: parecía que la
-            // publicación no tenía imagen. 0.55/0.8 la deja verse
-            // manteniendo el texto blanco legible encima. Si se sube de ahí,
-            // se vuelve a perder la foto.
-            backgroundImage: `linear-gradient(rgba(5,7,15,0.55), rgba(5,7,15,0.8)), ${fondoCss}`,
-            backgroundSize: 'cover', backgroundPosition: 'center',
-          }}
-        />,
-        obtenerCapaFondoPublicacion()
-      )}
       <div style={{
       width: '100%',
       color: 'var(--text)',
-      // Con el fondo ya pintado en la capa fija de arriba, este contenedor
-      // solo necesita el color plano de respaldo para publicaciones sin
-      // imagen -- transparente cuando sí hay una, para no taparla.
-      backgroundColor: hayFondo ? 'transparent' : 'var(--background)',
+      backgroundColor: 'var(--surface)',
       minHeight: '100vh',
       display: 'flex', flexDirection: 'column',
       position: 'relative'
@@ -359,21 +344,53 @@ export const PublicationPage = () => {
             </div>
           </Link>
 
-          <h2 style={{ margin: 0, color: isSpecial ? specialColor : 'var(--accent)', fontFamily: 'var(--font-titulo)', fontSize: '1.35rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '12px', letterSpacing: '1px', flex: 1, justifyContent: 'center', textAlign: 'center' }}>
+          <h2 style={{ margin: 0, color: isSpecial ? specialColor : 'var(--text)', fontFamily: 'var(--font-titulo)', fontSize: '1.35rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '12px', letterSpacing: '1px', flex: 1, justifyContent: 'center', textAlign: 'center' }}>
             {isSpecial && <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: specialColor, animation: 'pulse 1.5s infinite' }}></div>}
             {post.title}
           </h2>
           <Link to="/" style={{ textDecoration: 'none', background: 'transparent', border: `1px solid ${isSpecial ? specialColor : 'var(--accent)'}`, color: isSpecial ? specialColor : 'var(--accent)', padding: '6px 16px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.9rem', borderRadius: '4px', whiteSpace: 'nowrap' }}>{t('publicacion.volver')}</Link>
         </div>
 
-        <div style={{ 
-          flex: 1, 
-          padding: isSpecial ? '40px 8%' : '60px', 
-          maxWidth: isSpecial ? '100%' : '1200px', 
-          margin: '0 auto', 
-          width: '100%', 
+        {/* La portada reemplaza al fondo que antes cubría toda la lectura
+            (ver historial de PublicationPage): la foto ahora vive solo en
+            este primer tramo, con el título grande anclado abajo, y el
+            cuerpo de más abajo pasa a superficie sólida (var(--surface)).
+            Sin foto, la portada se reduce a una versión compacta con el
+            mismo eyebrow -- así el tipo "simple" sin imagen también tiene
+            una seña de identidad, en vez de arrancar directo en el texto.
+            Los modelos 3D no llevan portada: siguen con su propio visor de
+            fondo, sin tocar. */}
+        {esPortada && (
+          <div
+            className={`portada-publicacion ${hayFondo ? 'portada-publicacion--con-foto' : 'portada-publicacion--compacta'}`}
+            style={hayFondo ? { backgroundImage: fondoCss ?? undefined } : undefined}
+          >
+            {hayFondo && <div className="portada-publicacion__velo" aria-hidden="true" />}
+            <div className="portada-publicacion__texto">
+              <div className="portada-publicacion__eyebrow">
+                <span
+                  className="portada-publicacion__chip"
+                  style={isSpecial ? { backgroundColor: specialColor, color: isAviso ? '#fff' : '#1a1400' } : undefined}
+                >
+                  {chipTexto}
+                </span>
+                {fechaFormateada && <span className="portada-publicacion__fecha">{fechaFormateada}</span>}
+                <span className="portada-publicacion__linea" />
+              </div>
+              <h1 className="portada-publicacion__titulo">{post.title}</h1>
+            </div>
+          </div>
+        )}
+
+        <div style={{
+          flex: 1,
+          padding: isSpecial ? '40px 8%' : '60px',
+          maxWidth: isSpecial ? '100%' : '1200px',
+          margin: '0 auto',
+          width: '100%',
           position: 'relative',
-          display: 'block'
+          display: 'block',
+          backgroundColor: 'var(--surface)'
         }}>
            {/* Quién lo desarrolló. El perfil ya llevaba a sus proyectos; esto
                cierra el circuito en el otro sentido, que era lo que faltaba:
@@ -414,7 +431,16 @@ export const PublicationPage = () => {
              style={{ width: '100%', height: '100%' }}
            >
               <div className="contenido-publicacion">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema]]}>
+                {/* rehypePrism va DESPUÉS del saneado a propósito: es él quien
+                    genera los <span class="token ..."> del coloreado, y si
+                    corriera antes, rehypeSanitize los volvería a mezclar con
+                    el HTML del redactor en vez de tratarlos como salida ya
+                    verificada. */}
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema], [rehypePrism, { ignoreMissing: true }], [rehypeQuitarTituloDuplicado, esPortada ? post.title : undefined]]}
+                  components={componentesMarkdown}
+                >
                   {(post.pages && post.pages.length > 0) ? post.pages[currentPage].content : (post.content || '')}
                 </ReactMarkdown>
               </div>
@@ -423,11 +449,11 @@ export const PublicationPage = () => {
 
       {post.pages && post.pages.length > 1 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 60px', borderTop: '1px solid var(--border)', background: 'rgba(5,16,37,0.8)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
-          <button onClick={prev} disabled={currentPage === 0} style={{ padding: '16px 32px', background: 'transparent', color: currentPage === 0 ? 'var(--muted)' : 'var(--text)', border: '1px solid var(--border)', cursor: currentPage === 0 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ibm-mono)' }}>{t('publicacion.anterior')}</button>
+          <button className="paginador-btn" onClick={prev} disabled={currentPage === 0}>{t('publicacion.anterior')}</button>
           <span style={{ fontFamily: 'var(--font-ibm-mono)', color: 'var(--accent)', letterSpacing: '4px', fontSize: '1.2rem' }}>
             {t('publicacion.pagina')} {currentPage + 1} / {post.pages.length}
           </span>
-          <button onClick={next} disabled={currentPage === post.pages.length - 1} style={{ padding: '16px 32px', background: 'transparent', color: currentPage === post.pages.length - 1 ? 'var(--muted)' : 'var(--text)', border: '1px solid var(--border)', cursor: currentPage === post.pages.length - 1 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ibm-mono)' }}>{t('publicacion.siguiente')}</button>
+          <button className="paginador-btn" onClick={next} disabled={currentPage === post.pages.length - 1}>{t('publicacion.siguiente')}</button>
         </div>
       )}
       </div>

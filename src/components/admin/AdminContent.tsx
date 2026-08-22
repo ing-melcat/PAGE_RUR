@@ -6,8 +6,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
+import rehypePrism from 'rehype-prism-plus';
 import { apiFetch } from "../../lib/apiClient";
 import { markdownSanitizeSchema } from "../../lib/markdownSanitizeSchema";
+import { rehypeQuitarTituloDuplicado } from "../../lib/rehypeQuitarTituloDuplicado";
+import { componentesMarkdown } from "../../lib/componentesMarkdown";
 import { useLanguage } from "../../lib/i18n";
 import { Ayuda } from "../Ayuda";
 import { puede } from "../../lib/authUtils";
@@ -94,7 +97,16 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
 
   const renderSanitizedPreview = (source: string) => (
     <div className="contenido-publicacion" style={{ padding: '16px', color: 'var(--text)', background: 'var(--background)', minHeight: '100%' }}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema]]}>
+      {/* Misma cadena de plugins que la página pública (PublicationPage,
+          Landing.tsx) -- incluido el que quita el primer <h1> si repite el
+          título, para que quien redacta vea aquí exactamente lo que se va a
+          publicar. Los modelos 3D no llevan portada en la página pública, así
+          que ahí tampoco se les quita el título. */}
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema], [rehypePrism, { ignoreMissing: true }], [rehypeQuitarTituloDuplicado, type !== '3d_model' ? title : undefined]]}
+        components={componentesMarkdown}
+      >
         {source}
       </ReactMarkdown>
     </div>
