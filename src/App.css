@@ -421,6 +421,14 @@
   filter: brightness(0.42) contrast(1.15);
 }
 
+/* Cuando la portada lleva la pieza gráfica de marca en vez de una foto.
+   El fondo del gráfico ya es el azul del sitio y sus trazos son finos:
+   apagarlo como a una foto lo borraría. En lugar de eso se deja a plena
+   luz, y el contraste con el titular lo sigue dando el velo de abajo. */
+.portada__foto--grafico {
+  filter: none;
+}
+
 /* Oscurece solo la mitad de abajo, que es donde va el texto. Apagar la
    foto entera para que se lea el titular desperdicia la foto; el
    degradado deja las caras a plena luz y oscurece únicamente donde hace

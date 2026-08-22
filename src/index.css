@@ -976,6 +976,14 @@ input:focus, select:focus, textarea:focus {
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
+/* Sin esto, un checkbox marcado cae al color de acento del sistema
+   operativo/navegador -- en Linux con tema oscuro, un verde translúcido que
+   no tiene nada que ver con la paleta del sitio. */
+input[type="checkbox"], input[type="radio"] {
+  width: auto;
+  accent-color: var(--accent);
+}
+
 /* Buttons - Physical Actuators */
 button[type="submit"], .action-card {
   width: 100%;

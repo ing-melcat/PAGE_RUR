@@ -22,10 +22,11 @@
   padding: 24px;
   border: 1px solid var(--success);
   border-radius: 4px;
-  /* El verde del proyecto es --success (#2ecc71); este rgba() es esa
-     misma cifra en transparencia, no el verde genérico que traía el
-     inline anterior. */
-  background: rgba(46, 204, 113, 0.1);
+  /* Fondo sólido y no un rgba() translúcido: sobre el azul oscuro del
+     sitio, el verde en transparencia se veía como una ventana aparte en
+     vez de una tarjeta del mismo panel. El borde y el texto ya bastan
+     para leerse como estado positivo. */
+  background: var(--background);
   display: flex;
   align-items: center;
   gap: 16px;

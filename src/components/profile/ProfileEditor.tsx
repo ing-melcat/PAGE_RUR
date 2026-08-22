@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useLanguage } from "../../lib/i18n";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Upload } from "lucide-react";
 import { apiFetch } from "../../lib/apiClient";
 import { AREAS } from "../../lib/authUtils";
 import { Configurar2FA } from "./Configurar2FA";
@@ -15,6 +15,7 @@ export const ProfileEditor = ({
   reduceAnimations, setReduceAnimations
 }: any) => {
   const { t } = useLanguage();
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
   return (
     <motion.div key="edit_profile" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
       <div className="panel-header" style={{ marginBottom: '32px' }}>
@@ -58,6 +59,7 @@ export const ProfileEditor = ({
                   const formData = new FormData();
                   formData.append('file', file);
 
+                  setSubiendoFoto(true);
                   try {
                     const res = await apiFetch('/api/upload', {
                       method: 'POST',
@@ -77,18 +79,20 @@ export const ProfileEditor = ({
                     }
                   } catch (err) {
                     alert(t('perfil.errorConexionFoto'));
+                  } finally {
+                    setSubiendoFoto(false);
+                    e.target.value = '';
                   }
                 }}
-                style={{
-                  padding: '8px',
-                  background: 'var(--surface-strong)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '4px',
-                  color: 'var(--text)',
-                  width: '100%',
-                  fontFamily: 'var(--font-ibm-mono)'
-                }}
+                style={{ display: 'none' }}
+                id="upload-foto-perfil"
               />
+              <label
+                htmlFor="upload-foto-perfil"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px', background: 'var(--surface-strong)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}
+              >
+                {subiendoFoto ? t('adminPublicaciones.subiendo') : <><Upload size={14} /> {t('adminPublicaciones.subirLocal')}</>}
+              </label>
               {profileForm.foto && profileForm.foto.includes('/api/uploads/') && (
                 <div style={{ marginTop: '8px', fontSize: 'var(--t-xs)', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <CheckCircle size={14} /> {t('perfil.fotoSubida')}

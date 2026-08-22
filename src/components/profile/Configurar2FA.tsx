@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../../lib/apiClient';
-import { Smartphone, CheckCircle, AlertTriangle, Copy, ExternalLink } from 'lucide-react';
+import { Smartphone, AlertTriangle, Copy, ExternalLink } from 'lucide-react';
 import { useLanguage } from '../../lib/i18n';
 import { copiarAlPortapapeles } from '../../lib/clipboard';
+import { IconoPasswordless } from '../iconos/IconoPasswordless';
 import './Configurar2FA.css';
 
 export const Configurar2FA = ({ user, setUser }: { user: any, setUser: any }) => {
@@ -65,7 +66,7 @@ export const Configurar2FA = ({ user, setUser }: { user: any, setUser: any }) =>
   if (user.totp_enabled || success) {
     return (
       <div className="bloque-2fa__listo">
-        <CheckCircle color="var(--success)" size={32} className="bloque-2fa__listo-icono" />
+        <span className="bloque-2fa__listo-icono"><IconoPasswordless size={36} /></span>
         <div>
           <h4 className="bloque-2fa__listo-titulo">Passwordless Activo</h4>
           <p className="bloque-2fa__listo-texto">

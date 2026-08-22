@@ -6,6 +6,7 @@ import { MapPin, Phone, Mail, Menu, X, Languages } from 'lucide-react';
 import logoUrl from './assets/isotipo.png';
 import logoBlancoUrl from './assets/real_images/isotipo_blanco.png';
 import imgMembers from './assets/real_images/rur-members1.jpeg';
+import imgPanel from './assets/real_images/panel-rur.jpg';
 import imgProjects from './assets/real_images/projects1.jpeg';
 import imgDelivery from './assets/real_images/delivery.jpg';
 import imgLumobox from './assets/real_images/lumobox.jpg';
@@ -79,9 +80,14 @@ function Home() {
       {/* Portada: la foto dentro del mismo margen que el resto de la página */}
       <section className="portada">
         <div className="portada__marco">
+          {/* La pieza gráfica de marca, no una foto: por eso el modificador.
+              El tratamiento de .portada__foto (bajarle el brillo a menos de
+              la mitad) está pensado para que un titular fino se lea sobre
+              caras a plena luz; aplicado a un gráfico que ya es casi negro
+              lo dejaría en un rectángulo vacío. */}
           <motion.div
-            className="portada__foto"
-            style={{ backgroundImage: `url(${imgMembers})`, scale: bgScale }}
+            className="portada__foto portada__foto--grafico"
+            style={{ backgroundImage: `url(${imgPanel})`, scale: bgScale }}
           />
           <div className="portada__velo" />
 
