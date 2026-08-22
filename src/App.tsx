@@ -28,6 +28,7 @@ import { useLanguage } from './lib/i18n';
 import { EstadosActivos } from './components/EstadosActivos';
 import { InvitacionEnVivo } from './components/InvitacionEnVivo';
 import { PortadaSeccion } from './components/PortadaSeccion';
+import { NotFound } from './components/NotFound';
 
 // --- ANIMACIONES DE TRANSICIÓN ---
 const PageTransition = ({ children }: { children: React.ReactNode }) => {
@@ -496,6 +497,15 @@ function App() {
               entra -- lo valida el propio backend
               (services/identity/server.js) antes de tocar la base. */}
           <Route path="/:slug" element={<PageTransition><PerfilMiembro /></PageTransition>} />
+          {/* Comodín: cubre cualquier ruta de más de un tramo que no exista
+              (ej. /algo/random) -- ninguna otra Route la reclama. Un tramo
+              único inválido (ej. /asdf) en cambio SIEMPRE cae en "/:slug" de
+              arriba, porque React Router no puede meter una regex dentro de
+              un ":param" y un dinámico gana por ranking sobre un comodín.
+              Ahí es PerfilMiembro.tsx quien pinta este mismo <NotFound/> al
+              ver que la API no devuelve un miembro real -- mismo resultado
+              para quien visita, camino distinto por dentro. */}
+          <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
         </Route>
         {/* Fuera de LandingLayout: ocupa la pantalla completa, sin cabecera
             ni pie. Es un enlace público que se le pasa a quien no tiene

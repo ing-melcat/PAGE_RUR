@@ -52,6 +52,11 @@ export const en: Dictionary = {
     texto: 'This section is still under development. Stay tuned to our social media for future updates!',
     volver: 'BACK TO HOME',
   },
+  notFound: {
+    eyebrow: 'ERROR 404',
+    titulo: 'Page not found',
+    texto: "The link you followed doesn't exist, moved, or was never here. Check the address or head back home.",
+  },
   footer: {
     contacto: 'CONTACT',
     legal: 'LEGAL',

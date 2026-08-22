@@ -13,6 +13,7 @@ import logoBlancoUrl from './assets/real_images/isotipo_blanco.png';
 import { markdownSanitizeSchema } from './lib/markdownSanitizeSchema';
 import { rehypeQuitarTituloDuplicado } from './lib/rehypeQuitarTituloDuplicado';
 import { componentesMarkdown } from './lib/componentesMarkdown';
+import { NotFound } from './components/NotFound';
 import { useLanguage } from './lib/i18n';
 
 // Carga diferida: three.js y @react-three pesan cerca de un megabyte y solo
@@ -223,32 +224,46 @@ export const PublicationPage = () => {
   const { t, lang } = useLanguage();
   const { id } = useParams();
   const [post, setPost] = useState<any>(null);
+  const [noExiste, setNoExiste] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
     if (id) {
+      setPost(null);
+      setNoExiste(false);
+      // Antes se comprobaba `found.error`, una clave que la API nunca manda
+      // (el servicio devuelve {success:false, message:...} en un 404 --
+      // grep en services/content/server.js). `!found.error` daba siempre
+      // true, así que una publicación borrada o con id inválido igual
+      // llegaba a setPost() con ese objeto de error, y el resto del
+      // componente se quedaba intentando pintar post.title, post.pages...
+      // de un objeto que no los tiene: una página de publicación vacía y
+      // rota, sin ningún aviso. Comprobar res.ok lo ataja antes de llegar
+      // ahí.
       fetch(`/api/posts/${id}?lang=${lang}`)
-        .then(res => res.json())
+        .then(res => (res.ok ? res.json() : Promise.reject()))
         .then(found => {
-          if (!found.error) {
-            if (found.type === 'simple' || found.type === 'aviso' || found.type === 'evento' || found.type === '3d_model') {
-              // Antes caía en `found.image` (la Portada/miniatura de la
-              // tarjeta) cuando no había Fondo de Lectura -- pensado para
-              // cuando el fondo se pintaba detrás de todo el texto y "algo"
-              // se sentía mejor que nada. Con la portada nueva ese fallback
-              // hace que cualquier publicación sin fondo elegido a propósito
-              // salga igual con una foto grande de cabecera que nadie pidió.
-              // Sin backgroundImage, sencillamente no hay fondo -- la
-              // publicación cae en la variante compacta de la portada.
-              setPost({ ...found, pages: [{ content: found.content || t('publicacion.sinContenido'), image: found.backgroundImage }] });
-            } else {
-              setPost(found);
-            }
+          if (found.type === 'simple' || found.type === 'aviso' || found.type === 'evento' || found.type === '3d_model') {
+            // Antes caía en `found.image` (la Portada/miniatura de la
+            // tarjeta) cuando no había Fondo de Lectura -- pensado para
+            // cuando el fondo se pintaba detrás de todo el texto y "algo"
+            // se sentía mejor que nada. Con la portada nueva ese fallback
+            // hace que cualquier publicación sin fondo elegido a propósito
+            // salga igual con una foto grande de cabecera que nadie pidió.
+            // Sin backgroundImage, sencillamente no hay fondo -- la
+            // publicación cae en la variante compacta de la portada.
+            setPost({ ...found, pages: [{ content: found.content || t('publicacion.sinContenido'), image: found.backgroundImage }] });
+          } else {
+            setPost(found);
           }
         })
-        .catch(console.error);
+        .catch(() => setNoExiste(true));
     }
   }, [id, lang]);
+
+  if (noExiste) {
+    return <NotFound />;
+  }
 
   if (!post) {
     return <div style={{ minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div className="animate-spin" style={{ width: '32px', height: '32px', border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%' }} /></div>;

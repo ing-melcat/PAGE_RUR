@@ -52,6 +52,11 @@ export const es = {
     texto: 'Esta sección aún está en desarrollo. ¡Mantente atento a nuestras redes para futuras actualizaciones!',
     volver: 'VOLVER AL INICIO',
   },
+  notFound: {
+    eyebrow: 'ERROR 404',
+    titulo: 'Página no encontrada',
+    texto: 'El enlace que seguiste no existe, se movió, o nunca estuvo aquí. Comprueba la dirección o vuelve al inicio.',
+  },
   footer: {
     contacto: 'CONTACTO',
     legal: 'LEGAL',

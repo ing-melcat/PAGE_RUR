@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useLanguage } from './lib/i18n';
 import { RedesMiembro } from './components/RedesMiembro';
 import { Medallas } from './components/Medallas';
+import { NotFound } from './components/NotFound';
 import './Miembros.css';
 
 /**
@@ -58,13 +59,12 @@ export function PerfilMiembro() {
     return <p className="miembros__vacio">{t('miembros.cargando')}</p>;
   }
 
+  // Un slug con formato inválido (nunca llega a existir en la base), un
+  // perfil apagado y uno que nunca existió se tratan todos igual: la misma
+  // página de error que cualquier otra URL rota del sitio, no un mensaje
+  // aparte que insinúe "esta persona existe pero no quiere aparecer".
   if (estado === 'no-existe' || !miembro) {
-    return (
-      <div className="perfil-vacio">
-        <p className="miembros__vacio">{t('miembros.noExiste')}</p>
-        <Link to="/miembros" className="perfil__volver">{t('miembros.volver')}</Link>
-      </div>
-    );
+    return <NotFound />;
   }
 
   const iniciales = miembro.nombre
