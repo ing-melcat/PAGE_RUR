@@ -545,6 +545,7 @@ export const es = {
     rutaModelo: 'Ruta del Modelo 3D (.glb) - Opcional',
     subir: 'SUBIR',
     subiendo: 'SUBIENDO...',
+    comprimiendo: 'COMPRIMIENDO...',
     transmisionPublica: 'TRANSMISIÓN PÚBLICA (MODO EVENTO)',
     transmisionDescripcion: 'Activada, cualquier persona sin cuenta puede ver el video en',
     transmisionDescripcion2: '. El espectador es de solo lectura y nunca puede controlar la unidad, pero la transmisión queda abierta a todo internet: déjala apagada mientras no haya un evento en curso.',
@@ -618,6 +619,12 @@ export const es = {
     publicacionCreada: 'Publicación creada con éxito',
     errorSubirModelo: 'Error al subir el modelo 3D',
     errorConexionModelo: 'Error de conexión al subir el modelo 3D',
+    // A diferencia de una imagen que no se pudo optimizar (se sube igual sin
+    // más), un modelo que no se pudo comprimir en el navegador NO se intenta
+    // subir tal cual: es precisamente el archivo grande lo que hace fallar
+    // la conexión en primer lugar, así que reintentar con el original sería
+    // repetir el mismo error. Se avisa y se sugiere una salida.
+    errorComprimirModelo: 'No se pudo comprimir el modelo en el navegador. Pruébalo en https://gltf.report antes de subirlo, o inténtalo desde una conexión más estable.',
     errorGuardarRobot: 'Error al guardar el robot',
     errorConexionGenerico: 'Error de conexión',
     controlesGuardados: 'Controles mapeados con éxito.',

@@ -28,6 +28,7 @@ import { useLogs, useMetrics } from "./hooks/queries/useLogs";
 import { DashboardSidebar } from "./components/dashboard/DashboardSidebar";
 import { DashboardMain } from "./components/dashboard/DashboardMain";
 import { getRoles, puede, hasRole, AREAS } from "./lib/authUtils";
+import { comprimirModelo3D } from "./lib/comprimirModelo3D";
 
 
 // Mismo patrón que src/controller/RobotSelection.jsx: un objeto de estilos
@@ -255,6 +256,11 @@ export default function App() {
   }, [user]);
   const [editingRobot, setEditingRobot] = useState<any>(null);
   const [uploadingRobotModel, setUploadingRobotModel] = useState(false);
+  // Aparte de "subiendo": comprimir un modelo grande en el navegador tarda
+  // varios segundos por sí solo, antes de que exista nada que subir. Sin un
+  // estado propio, el botón se habría quedado en "SUBIR" ese rato, como si
+  // no hubiera pasado nada al hacer clic.
+  const [comprimiendoRobotModel, setComprimiendoRobotModel] = useState(false);
   const robotModelInputRef = useRef<HTMLInputElement>(null);
 
   // El commit original ponía este handler dentro de AdminContent, un
@@ -266,7 +272,36 @@ export default function App() {
   // build (vite build no valida tipos por defecto).
   const handleRobotModelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
+    let file = e.target.files[0];
+
+    // Un modelo real de cientos de MB tarda tanto en subir que cualquier
+    // hipo de la conexión corta la petición a medio camino -- por eso se
+    // comprime aquí, en el navegador, ANTES de intentar subirlo: lo que sale
+    // ya son decenas de MB, no cientos, y una subida así de corta rara vez
+    // se corta. Mismo pipeline que services/content/server.js, ver
+    // lib/comprimirModelo3D.ts para el porqué completo.
+    if (/\.(glb|gltf)$/i.test(file.name)) {
+      setComprimiendoRobotModel(true);
+      try {
+        const resultado = await comprimirModelo3D(file);
+        console.log(
+          `[modelo3d] comprimido en el navegador: ${(resultado.originalSize / 1048576).toFixed(1)} MB -> ${(resultado.compressedSize / 1048576).toFixed(1)} MB`
+        );
+        file = resultado.archivo;
+      } catch (err) {
+        console.error('[modelo3d] no se pudo comprimir en el navegador:', err);
+        // A diferencia de una imagen que no se pudo optimizar (esa sí se
+        // sube igual, sin más), aquí NO se intenta subir el original: es
+        // precisamente su tamaño lo que hace fallar la conexión, así que
+        // reintentar con él repetiría el mismo error sin decir por qué.
+        alert(t('alertas.errorComprimirModelo'));
+        setComprimiendoRobotModel(false);
+        e.target.value = '';
+        return;
+      }
+      setComprimiendoRobotModel(false);
+    }
+
     const formData = new FormData();
     formData.append('file', file);
 
@@ -1118,7 +1153,7 @@ export default function App() {
                                             <input ref={robotModelInputRef} name="modelUrl" defaultValue={editingRobot.modelUrl} placeholder="/models/mi-robot.glb" style={{ flex: 1 }} />
                                             <input type="file" accept=".glb,.gltf" onChange={handleRobotModelUpload} style={{ display: 'none' }} id="upload-robot-model" />
                                             <label htmlFor="upload-robot-model" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '12px 16px', background: 'var(--surface-strong)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                                                {uploadingRobotModel ? t('adminRobots.subiendo') : <><Upload size={14} /> {t('adminRobots.subir')}</>}
+                                                {comprimiendoRobotModel ? t('adminRobots.comprimiendo') : uploadingRobotModel ? t('adminRobots.subiendo') : <><Upload size={14} /> {t('adminRobots.subir')}</>}
                                             </label>
                                         </div>
                                     </div>
