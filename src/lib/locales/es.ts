@@ -340,6 +340,7 @@ export const es = {
     portada: 'Portada',
     urlPlaceholder: 'O pega URL...',
     subiendo: 'SUBIENDO...',
+    comprimiendoModelo: 'COMPRIMIENDO...',
     subirLocal: 'SUBIR LOCAL',
     insertarImagen: 'Subir Imagen',
     guardando: 'Guardando...',

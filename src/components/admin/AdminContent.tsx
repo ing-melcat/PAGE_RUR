@@ -7,7 +7,8 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypePrism from 'rehype-prism-plus';
-import { apiFetch } from "../../lib/apiClient";
+import { apiFetch, apiUpload } from "../../lib/apiClient";
+import { comprimirModelo3D } from "../../lib/comprimirModelo3D";
 import { markdownSanitizeSchema } from "../../lib/markdownSanitizeSchema";
 import { rehypeQuitarTituloDuplicado } from "../../lib/rehypeQuitarTituloDuplicado";
 import { componentesMarkdown } from "../../lib/componentesMarkdown";
@@ -40,6 +41,15 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
   const [autores, setAutores] = useState<{ _key?: string; userId: number; papel: string; lider: boolean }[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingModel, setUploadingModel] = useState(false);
+  // Ver LoginApp.tsx (handleRobotModelUpload) para el porqué completo: un
+  // modelo grande se comprime en el navegador antes de subirlo, y eso por sí
+  // solo tarda -- sin este estado el botón se habría quedado en "SUBIR
+  // LOCAL" mientras tanto, como si el clic no hubiera hecho nada.
+  const [comprimiendoModel, setComprimiendoModel] = useState(false);
+  // 0-1, se reinicia a 0 al empezar cada fase. Una sola barra para comprimir
+  // y subir, sin repartir un porcentaje entre las dos: son un trabajo de
+  // CPU y uno de red sin relación entre sí.
+  const [progresoModelo, setProgresoModelo] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
 
 
@@ -164,36 +174,62 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
   // Subida del modelo 3D. No reutiliza handleImageUpload a propósito: aquel
   // valida el archivo cargándolo como imagen (mínimo 1280x720 y 16:9), y un
   // .glb cae siempre en img.onerror -- se descartaría en silencio, sin subir
-  // nada y sin decir por qué. Aquí el archivo va tal cual: el filtro de
-  // formatos y el tope de entrada (400 MB) los aplica el servicio de
-  // contenido, que además comprime el modelo al vuelo y se queda solo con el
-  // resultado (services/content/server.js: fileFilter, LIMITE_SUBIDA,
-  // comprimirModelo). Por eso la subida puede tardar: un modelo grande se
-  // está procesando en el servidor mientras el botón dice "Subiendo".
+  // nada y sin decir por qué.
+  //
+  // Un modelo grande se comprime primero en el propio navegador -- mismo
+  // motivo que en LoginApp.tsx (handleRobotModelUpload): una subida de
+  // cientos de MB tarda tanto que cualquier hipo de la conexión la corta a
+  // medio camino, sin manera de reanudarla. Ver lib/comprimirModelo3D.ts. El
+  // servicio de contenido sigue comprimiendo también su lado
+  // (services/content/server.js: comprimirModelo) -- no está de más como
+  // respaldo, y por si algún día algo sube sin pasar por este formulario.
   const handleModelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
+    let file = e.target.files[0];
+
+    if (/\.(glb|gltf)$/i.test(file.name)) {
+      setComprimiendoModel(true);
+      setProgresoModelo(0);
+      try {
+        const resultado = await comprimirModelo3D(file, setProgresoModelo);
+        console.log(
+          `[modelo3d] comprimido en el navegador: ${(resultado.originalSize / 1048576).toFixed(1)} MB -> ${(resultado.compressedSize / 1048576).toFixed(1)} MB`
+        );
+        file = resultado.archivo;
+      } catch (err) {
+        console.error('[modelo3d] no se pudo comprimir en el navegador:', err);
+        // Igual que en LoginApp.tsx: NO se intenta subir el original. Es
+        // precisamente su tamaño lo que hace fallar una conexión inestable,
+        // así que reintentar con él repetiría el mismo error sin explicarlo.
+        alert(t('alertas.errorComprimirModelo'));
+        setComprimiendoModel(false);
+        e.target.value = '';
+        return;
+      }
+      setComprimiendoModel(false);
+    }
 
     const formData = new FormData();
     formData.append('file', file);
 
     setUploadingModel(true);
+    setProgresoModelo(0);
     try {
-      const response = await apiFetch('/api/upload', {
-        method: 'POST',
-        body: formData,
+      // apiUpload y no apiFetch: fetch() no expone progreso de subida de
+      // forma consistente en ningún navegador. Ver el comentario en
+      // lib/apiClient.ts.
+      const { status, contentType, json: data } = await apiUpload('/api/upload', formData, {
+        onProgress: setProgresoModelo,
       });
       // Un modelo grande que pasa del límite devuelve el error de multer como
-      // HTML, no como JSON: sin esta comprobación, el .json() de abajo revienta
-      // con un error de sintaxis que no dice nada del tamaño.
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
+      // HTML, no como JSON: sin esta comprobación, se intentaría leer un
+      // mensaje de un objeto que nunca llegó a parsear.
+      if (status < 200 || status >= 300 || !contentType?.includes('application/json') || !data) {
         alert('Error del servidor: el modelo puede superar el límite de 400 MB, o hubo un error de red.');
         setUploadingModel(false);
         e.target.value = '';
         return;
       }
-      const data = await response.json();
       if (data.url) setModelUrl(data.url);
       else alert(data.message || t('alertas.errorSubirModelo'));
     } catch(err) { alert(t('alertas.errorConexionModelo')); }
@@ -521,9 +557,28 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                   que hace el selector de modelo del editor de robots. */}
               <input type="file" accept=".glb,.gltf" onChange={handleModelUpload} style={{ display: 'none' }} id="upload-model" />
               <label htmlFor="upload-model" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px', background: 'var(--surface-strong)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: 'var(--t-xs)' }}>
-                {uploadingModel ? t('adminPublicaciones.subiendo') : <><Upload size={14} /> {t('adminPublicaciones.subirLocal')}</>}
+                {comprimiendoModel ? t('adminPublicaciones.comprimiendoModelo') : uploadingModel ? t('adminPublicaciones.subiendo') : <><Upload size={14} /> {t('adminPublicaciones.subirLocal')}</>}
               </label>
             </div>
+            {/* Mismo marco que cualquier <input> del panel (fondo --background,
+                borde --border, radio 2px): es una barra de progreso, no una
+                tarjeta nueva. */}
+            {(comprimiendoModel || uploadingModel) && (
+              <div style={{ marginBottom: '8px' }}>
+                <div style={{ height: '4px', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${Math.round(progresoModelo * 100)}%`,
+                    background: 'var(--accent)',
+                    transition: 'width 0.15s linear',
+                  }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+                  <span>{comprimiendoModel ? t('adminPublicaciones.comprimiendoModelo') : t('adminPublicaciones.subiendo')}</span>
+                  <span>{Math.round(progresoModelo * 100)}%</span>
+                </div>
+              </div>
+            )}
             <input type="text" value={modelUrl} onChange={(e) => setModelUrl(e.target.value)} placeholder="Ej. /models/BMO.glb" />
           </div>
         )}

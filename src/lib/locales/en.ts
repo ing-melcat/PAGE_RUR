@@ -338,6 +338,7 @@ export const en: Dictionary = {
     portada: 'Cover',
     urlPlaceholder: 'Or paste URL...',
     subiendo: 'UPLOADING...',
+    comprimiendoModelo: 'COMPRESSING...',
     subirLocal: 'UPLOAD LOCAL',
     insertarImagen: 'Upload Image',
     guardando: 'Saving...',
