@@ -404,7 +404,7 @@ export const PublicationPage = () => {
                  <span key={a.id}>
                    {i > 0 && <span className="creditos__coma">, </span>}
                    {a.publico
-                     ? <Link to={`/miembros/${a.id}`} className="creditos__persona">{a.nombre}</Link>
+                     ? <Link to={`/${a.slug}`} className="creditos__persona">{a.nombre}</Link>
                      : <span className="creditos__persona creditos__persona--sin-perfil">{a.nombre}</span>}
                    {a.papel && <span className="creditos__papel"> · {a.papel}</span>}
                  </span>

@@ -35,6 +35,7 @@ type Proyecto = { id: string; titulo: string; papel: string | null };
 
 type Miembro = {
   id: number;
+  slug: string;
   nombre: string;
   rol: string;
   area: string;
@@ -277,7 +278,7 @@ export function Miembros() {
 
                       <div className="miembro__identidad">
                         <h3 className="miembro__nombre">
-                          <Link to={`/miembros/${m.id}`} className="miembro__enlace">
+                          <Link to={`/${m.slug}`} className="miembro__enlace">
                             {m.nombre}
                           </Link>
                         </h3>

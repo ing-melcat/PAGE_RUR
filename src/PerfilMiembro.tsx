@@ -32,14 +32,14 @@ type Miembro = {
 
 export function PerfilMiembro() {
   const { t } = useLanguage();
-  const { id } = useParams();
+  const { slug } = useParams();
   const [miembro, setMiembro] = useState<Miembro | null>(null);
   const [estado, setEstado] = useState<'cargando' | 'listo' | 'no-existe'>('cargando');
 
   useEffect(() => {
     let cancelado = false;
     setEstado('cargando');
-    fetch(`/api/miembros/${id}`)
+    fetch(`/api/miembros/${slug}`)
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((datos: Miembro) => {
         if (cancelado) return;
@@ -52,7 +52,7 @@ export function PerfilMiembro() {
         if (!cancelado) setEstado('no-existe');
       });
     return () => { cancelado = true; };
-  }, [id]);
+  }, [slug]);
 
   if (estado === 'cargando') {
     return <p className="miembros__vacio">{t('miembros.cargando')}</p>;

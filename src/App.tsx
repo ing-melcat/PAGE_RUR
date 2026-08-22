@@ -483,10 +483,19 @@ function App() {
           <Route path="/conecta" element={<PageTransition><Conecta /></PageTransition>} />
           <Route path="/contacto" element={<PageTransition><ContactPage /></PageTransition>} />
           <Route path="/miembros" element={<PageTransition><Miembros /></PageTransition>} />
-          <Route path="/miembros/:id" element={<PageTransition><PerfilMiembro /></PageTransition>} />
           <Route path="/archivo" element={<PageTransition><ArchiveDashboard /></PageTransition>} />
           <Route path="/coming-soon" element={<PageTransition><ComingSoon /></PageTransition>} />
           <Route path="/publicacion/:id" element={<PageTransition><PublicationPage /></PageTransition>} />
+          {/* El perfil de un miembro va en la raíz ("/member-1"), no bajo
+              /miembros/, porque así lo pidió el usuario -- no le gustaba un
+              id pelón ni un prefijo de sección delante. React Router v6
+              rankea por especificidad, no por orden de declaración: una
+              ruta estática como "/explora" siempre gana sobre esta aunque
+              coincida el segmento, así que convivir aquí con el resto de
+              rutas de un solo tramo es seguro. Solo "/member-<número>"
+              entra -- lo valida el propio backend
+              (services/identity/server.js) antes de tocar la base. */}
+          <Route path="/:slug" element={<PageTransition><PerfilMiembro /></PageTransition>} />
         </Route>
         {/* Fuera de LandingLayout: ocupa la pantalla completa, sin cabecera
             ni pie. Es un enlace público que se le pasa a quien no tiene

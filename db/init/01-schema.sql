@@ -12,6 +12,16 @@
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
+    -- El id de la URL pública (/member-1, PerfilMiembro.tsx). GENERATED
+    -- STORED en vez de calculado en la aplicación: así queda fijo desde el
+    -- momento en que la fila existe, sin que el código de creación de
+    -- usuarios tenga que acordarse de ponerlo, y sin poder desincronizarse
+    -- del id nunca. A propósito NO es la matrícula ni el nombre: la
+    -- matrícula es la mitad de las credenciales de acceso de cada persona
+    -- (publicarla sería regalarla), y un slug basado en el nombre cambiaría
+    -- -o colisionaría con otro- cada vez que alguien edita su perfil,
+    -- rompiendo cualquier enlace que ya se hubiera compartido.
+    slug VARCHAR(80) UNIQUE GENERATED ALWAYS AS ('member-' || id) STORED,
     matricula VARCHAR(50) NOT NULL UNIQUE,
     -- Nullable a propósito: quien activa el 2FA cambia la contraseña por el
     -- autenticador y este campo pasa a NULL. Ver totp_enabled más abajo y el

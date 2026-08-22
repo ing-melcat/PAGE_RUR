@@ -458,7 +458,7 @@ app.put('/api/profile/mappings', verifyToken, csrfProtection, noStore, async (re
 // historial de trabajo y no un listado de gente. Solo publicaciones
 // visibles: una firmada en algo aún oculto no lo destapa.
 const SELECT_MIEMBRO = `
-  SELECT u.id, u.nombre, u.alias, u.show_alias, u.bio, u.foto,
+  SELECT u.id, u.slug, u.nombre, u.alias, u.show_alias, u.bio, u.foto,
          u.rol_publico, u.area, u.generacion,
          u.github, u.linkedin, u.instagram, u.facebook, u.reddit,
          COALESCE(
@@ -489,6 +489,10 @@ const SELECT_MIEMBRO = `
 function aMiembroPublico(r, catalogo) {
   return {
     id: r.id,
+    // La URL pública (/member-1, PerfilMiembro.tsx). Es columna GENERATED
+    // en la base (db/migrations/013-slug-miembros.sql) a partir del id, así
+    // que nunca hace falta calcularla aquí ni puede desincronizarse.
+    slug: r.slug,
     nombre: r.show_alias && r.alias ? r.alias : r.nombre,
     rol: r.rol_publico ?? '',
     area: r.area ?? '',
@@ -523,21 +527,22 @@ app.get('/api/miembros', async (req, res) => {
 // El perfil de una sola persona, con su historial completo.
 //
 // Mismo filtro que la lista: si alguien apaga su perfil, su página deja de
-// existir aunque tuvieran el enlace guardado. Y el id se fuerza a entero
-// para que un ':id' cualquiera no llegue a la consulta.
-app.get('/api/miembros/:id', async (req, res) => {
-  // Solo dígitos. parseInt es demasiado indulgente —"1abc" y "1;DROP" le
-  // valen como 1—, y aunque la consulta va parametrizada y no hay inyección
-  // posible, eso haría que media docena de URLs distintas sirvieran el mismo
-  // perfil.
-  if (!/^\d+$/.test(req.params.id)) {
+// existir aunque tuvieran el enlace guardado.
+//
+// Va por `slug` ("member-1"), no por el id pelón: es lo que sale en la URL
+// pública (App.tsx monta PerfilMiembro en la ruta raíz "/:slug", ver el
+// comentario ahí sobre por qué en la raíz y no bajo /miembros/). El slug es
+// columna GENERATED en la base a partir del id
+// (db/migrations/013-slug-miembros.sql), así que este patrón es exacto y no
+// una convención que este código tenga que mantener sincronizada a mano.
+app.get('/api/miembros/:slug', async (req, res) => {
+  if (!/^member-\d+$/.test(req.params.slug)) {
     return res.status(404).json({ success: false, message: 'Miembro no encontrado' });
   }
-  const id = Number.parseInt(req.params.id, 10);
 
   const { rows } = await pool.query(
-    `${SELECT_MIEMBRO} WHERE u.perfil_publico IS TRUE AND u.id = $1`,
-    [id]
+    `${SELECT_MIEMBRO} WHERE u.perfil_publico IS TRUE AND u.slug = $1`,
+    [req.params.slug]
   );
   if (!rows[0]) {
     return res.status(404).json({ success: false, message: 'Miembro no encontrado' });

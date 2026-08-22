@@ -333,7 +333,7 @@ app.get('/api/posts', sesionOpcional, async (req, res) => {
   const AUTORES = `,
     COALESCE(
       (SELECT json_agg(json_build_object(
-                'id', u.id, 'nombre',
+                'id', u.id, 'slug', u.slug, 'nombre',
                 CASE WHEN u.show_alias AND u.alias <> '' THEN u.alias ELSE u.nombre END,
                 'papel', pm.papel, 'lider', pm.lider, 'publico', u.perfil_publico)
               ORDER BY u.nombre)
@@ -365,7 +365,7 @@ app.get('/api/posts/:id', sesionOpcional, async (req, res) => {
   const AUTORES = `,
     COALESCE(
       (SELECT json_agg(json_build_object(
-                'id', u.id, 'nombre',
+                'id', u.id, 'slug', u.slug, 'nombre',
                 CASE WHEN u.show_alias AND u.alias <> '' THEN u.alias ELSE u.nombre END,
                 'papel', pm.papel, 'lider', pm.lider, 'publico', u.perfil_publico)
               ORDER BY u.nombre)

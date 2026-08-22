@@ -1,0 +1,21 @@
+-- El id de la URL pública de un miembro (/member-1, PerfilMiembro.tsx), en
+-- vez del número pelón que se usaba hasta ahora (/miembros/1).
+--
+-- GENERATED ALWAYS AS ... STORED, no una columna normal rellenada por la
+-- aplicación: así queda fijo desde el momento en que la fila existe y no
+-- puede desincronizarse del id, sin que el código de creación de usuarios
+-- tenga que acordarse de ponerlo. Al añadir la columna sobre una tabla que
+-- ya tiene filas, Postgres calcula el valor para todas ellas -- no hace
+-- falta un UPDATE de relleno aparte.
+--
+-- A propósito NO es la matrícula ni el nombre: la matrícula es la mitad de
+-- las credenciales de acceso de cada persona (publicarla sería regalarla,
+-- ver comentario en SELECT_MIEMBRO de services/identity/server.js), y un
+-- slug basado en el nombre cambiaría -o colisionaría con otro- cada vez que
+-- alguien edita su perfil, rompiendo cualquier enlace que ya se hubiera
+-- compartido.
+--
+-- Idempotente, como el resto: se puede aplicar sobre una base ya viva y
+-- volver a aplicarse sin efecto. El estado final equivalente está en
+-- db/init/01-schema.sql.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS slug VARCHAR(80) UNIQUE GENERATED ALWAYS AS ('member-' || id) STORED;
