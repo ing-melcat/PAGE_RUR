@@ -38,15 +38,18 @@ export function NotFound() {
         </Suspense>
       </div>
 
+      {/* Superficie plana y sólida, sin blur -- el resto del sitio no usa
+          glassmorphism en ningún sitio (ni las tarjetas del archivo, ni las
+          de medallas, ni el panel del perfil): son var(--surface) opaco con
+          sombra para la elevación, nunca transparencia + blur. */}
       <div style={{
         position: 'relative',
         zIndex: 10,
-        background: 'rgba(3,8,22,0.7)',
+        background: 'var(--surface)',
         padding: '48px 40px',
-        borderRadius: '16px',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
+        borderRadius: '8px',
         border: '1px solid var(--border)',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
         maxWidth: '560px',
       }}>
         <span style={{
