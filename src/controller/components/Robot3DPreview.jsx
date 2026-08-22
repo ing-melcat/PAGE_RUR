@@ -1,6 +1,7 @@
 import React, { useRef, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, ContactShadows, useGLTF } from '@react-three/drei';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 // Modelo 3D cargado desde un archivo .glb
 function RealRobotModel({ url, isOffline }) {
@@ -81,13 +82,19 @@ export function Robot3DPreview({ status, modelUrl }) {
             Environment sin depender de una textura de red. */}
         <pointLight position={[-4, 2, -4]} intensity={isOffline ? 0.3 : 0.6} />
 
-        <Suspense fallback={<PlaceholderRobotModel isOffline={isOffline} />}>
-          {useRealModel ? (
-            <RealRobotModel url={modelUrl} isOffline={isOffline} />
-          ) : (
-            <PlaceholderRobotModel isOffline={isOffline} />
-          )}
-        </Suspense>
+        {/* Sin esto, un modelo que falla al parsear (uno corrupto, uno
+            demasiado pesado para la memoria del navegador) se llevaba la
+            tarjeta entera por delante -- Suspense atrapa la ESPERA, no
+            errores de verdad. Ver components/ErrorBoundary.tsx. */}
+        <ErrorBoundary fallback={<PlaceholderRobotModel isOffline={isOffline} />}>
+          <Suspense fallback={<PlaceholderRobotModel isOffline={isOffline} />}>
+            {useRealModel ? (
+              <RealRobotModel url={modelUrl} isOffline={isOffline} />
+            ) : (
+              <PlaceholderRobotModel isOffline={isOffline} />
+            )}
+          </Suspense>
+        </ErrorBoundary>
 
         <ContactShadows position={[0, -0.6, 0]} opacity={0.5} scale={5} blur={2} far={2} />
         {/* Sin <Environment preset="city" />: descargaba un mapa de iluminación

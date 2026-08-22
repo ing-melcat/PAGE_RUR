@@ -308,15 +308,18 @@ app.post('/api/livekit/public-token', publicTokenLimiter, async (req, res) => {
     const at = new AccessToken(robot.livekit_api_key, secret, { identity, ttl: PUBLIC_TOKEN_TTL });
     at.addGrant({ roomJoin: true, room: robot.room, canPublish: false, canSubscribe: true, canPublishData: false });
     const token = await at.toJwt();
-    // robotName es para el HUD del espectador. Se expone a propósito: esta
-    // transmisión ya es pública (is_public_event), así que el nombre de la
-    // unidad no añade nada que el espectador no vaya a ver en pantalla.
+    // robotName es para el HUD del espectador, y modelUrl para la portada de
+    // carga (SpectatorApp.jsx). Ambos se exponen a propósito: esta
+    // transmisión ya es pública (is_public_event), así que ni el nombre ni
+    // el modelo 3D de la unidad añaden nada que el espectador no vaya a ver
+    // en pantalla de todos modos.
     res.json({
       success: true,
       token,
       livekitUrl: robot.livekit_url,
       room: robot.room,
       robotName: robot.name,
+      modelUrl: robot.model_url,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error interno al generar el token' });

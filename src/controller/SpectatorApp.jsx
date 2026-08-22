@@ -1,10 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Loader2, Eye, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { VideoViewer } from './VideoViewer';
 import { HudEspectador } from './components/HudEspectador';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useLanguage } from '../lib/i18n';
 import './Espectador.css';
+
+// Mismo patrón que ComingSoon/NotFound (App.tsx, components/NotFound.tsx):
+// lazyConRecarga y no React.lazy a secas, para recuperarse solo si el
+// navegador tiene en caché un index.html viejo que pide un chunk de una
+// release ya rotada.
+import { lazyConRecarga } from '../lib/lazyConRecarga';
+const VisorModelo3D = lazyConRecarga(() => import('../VisorModelo3D'));
 
 /**
  * Espectador público de una unidad. Ruta: /espectador/:robotId
@@ -23,6 +31,9 @@ export default function SpectatorApp() {
   const [searchParams] = useSearchParams();
   const simular = searchParams.get('demo') === '1';
   const [robotName, setRobotName] = useState('');
+  // El mismo modelo que se sube en Administración de Robots -- ver el
+  // comentario junto a VisorModelo3D más abajo para dónde se pinta.
+  const [robotModelUrl, setRobotModelUrl] = useState('');
   const [error, setError] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   // La conexión puede resolverse en 200 ms, y entonces la portada aparece y
@@ -79,6 +90,7 @@ export default function SpectatorApp() {
         if (cancelled) return;
 
         setRobotName(data.robotName || robotId);
+        setRobotModelUrl(data.modelUrl || '');
 
         const { Room, RoomEvent, setLogLevel } = await import('livekit-client');
         // Ver la nota en ControllerApp.jsx: 'info' es demasiado verboso para
@@ -145,6 +157,26 @@ export default function SpectatorApp() {
           demora al irse hace parecer que la señal va lenta. */}
       {montarPortada && (
         <div className={`espectador__portada${listo ? ' espectador__portada--saliendo' : ''}`}>
+          {/* El mismo modelo que se sube en Administración de Robots, de
+              fondo mientras se conecta -- antes la portada era solo texto,
+              sin ninguna seña de qué unidad es. z-index:-1 y no el orden del
+              DOM: dentro de un contenedor normal (sin ancestro con filter ni
+              portal de por medio, a diferencia del caso de las
+              publicaciones) un hijo con z-index negativo pinta por encima
+              del fondo propio del contenedor pero por debajo de sus
+              hermanos sin posicionar -- justo donde tiene que quedar. Si no
+              hay modelo asignado, no se pinta nada: la portada se queda
+              como estaba. */}
+          {robotModelUrl && (
+            <div style={{ position: 'absolute', inset: 0, zIndex: -1, opacity: 0.35, pointerEvents: 'none' }}>
+              <ErrorBoundary fallback={null}>
+                <Suspense fallback={null}>
+                  <VisorModelo3D url={robotModelUrl} variante="publicacion" />
+                </Suspense>
+              </ErrorBoundary>
+            </div>
+          )}
+
           <div className="espectador__marca-carga">
             <Eye size={15} />
             <span>{t('operador.espectador.modoEspectador')}</span>

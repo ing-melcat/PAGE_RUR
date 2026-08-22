@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Bounds, useGLTF } from '@react-three/drei';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 /**
  * Visor de modelos .glb de las publicaciones.
@@ -53,12 +54,17 @@ export default function VisorModelo3D({
       <ambientLight intensity={v.ambiental} />
       <directionalLight position={v.direccional.position} intensity={v.direccional.intensidad} />
       {/* El modelo llega por red: sin este Suspense el lienzo reventaría
-          mientras se descarga. */}
-      <Suspense fallback={null}>
-        <Bounds fit clip observe margin={v.margen}>
-          <Modelo url={url} />
-        </Bounds>
-      </Suspense>
+          mientras se descarga. Y sin el ErrorBoundary, un archivo que falla
+          al parsear (Suspense solo atrapa la espera, no errores de verdad)
+          se llevaba por delante todo lo que hubiera encima -- ver
+          components/ErrorBoundary.tsx. */}
+      <ErrorBoundary fallback={null}>
+        <Suspense fallback={null}>
+          <Bounds fit clip observe margin={v.margen}>
+            <Modelo url={url} />
+          </Bounds>
+        </Suspense>
+      </ErrorBoundary>
       <OrbitControls
         makeDefault
         enableZoom

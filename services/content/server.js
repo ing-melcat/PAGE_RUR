@@ -8,8 +8,8 @@ import multer from 'multer';
 import sharp from 'sharp';
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { dedup, prune, join, weld, quantize, meshopt, textureCompress } from '@gltf-transform/functions';
-import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer';
+import { dedup, prune, join, weld, quantize, meshopt, textureCompress, simplify } from '@gltf-transform/functions';
+import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import rateLimit from 'express-rate-limit';
 import { getPool } from '../shared/db.js';
 import { verifyToken, requirePermiso, permisosDe, sesionOpcional, IS_PRODUCTION } from '../shared/auth.js';
@@ -182,12 +182,38 @@ async function reducirImagen(rutaOriginal, nombreOriginal) {
 // baja su decodificador de gstatic.com en cada visita — una dependencia
 // externa en tiempo de ejecución que no hace falta pagar.
 //
-// Lo que NO se hace es simplificar la malla: reduce el número de triángulos y
-// eso sí se ve. Si un modelo sigue pesando después de esto, la decisión de
-// bajarle detalle es de quien lo publica, no de este servicio.
+// Por defecto NO se simplifica la malla: reduce el número de triángulos y eso
+// sí se ve, así que si un modelo pesa es porque quien lo publica quiso ese
+// nivel de detalle. Hay una única excepción, VERTICES_MAXIMOS_SIN_SIMPLIFICAR
+// más abajo: un modelo "recuperado" (rassorbody_full___recovered_.glb) subido
+// en agosto de 2026 resultó tener 9,2 millones de vértices y NINGUNA
+// textura -- un escaneo o una reconstrucción en crudo, no un modelo pensado
+// para verse en tiempo real. Ni cuantizar ni comprimir con meshopt bajan ese
+// número: solo hacen más pequeños los mismos 9,2 millones de vértices, así
+// que el navegador seguía intentando procesarlos enteros en cada visita. Sin
+// ningún ErrorBoundary en todo el proyecto (ver componente ErrorBoundary,
+// src/components/ErrorBoundary.tsx, que corrige eso del lado del visor), el
+// fallo se llevaba por delante toda la tarjeta -- de ahí que saliera en
+// blanco. VERTICES_OBJETIVO_SIMPLIFICADO es generoso a propósito: muy por
+// encima de cualquier modelo de robot modelado a mano, así que esto no debe
+// notarse en ningún archivo publicado hasta ahora -- solo entra a actuar en
+// el caso extremo que ya rompió algo.
 // ---------------------------------------------------------------------------
 const MODELOS = /\.(glb|gltf)$/i;
 const TEXTURA_MAXIMA = 2048;
+const VERTICES_MAXIMOS_SIN_SIMPLIFICAR = 500_000;
+const VERTICES_OBJETIVO_SIMPLIFICADO = 150_000;
+
+function contarVertices(documento) {
+  let total = 0;
+  for (const mesh of documento.getRoot().listMeshes()) {
+    for (const primitiva of mesh.listPrimitives()) {
+      const posiciones = primitiva.getAttribute('POSITION');
+      if (posiciones) total += posiciones.getCount();
+    }
+  }
+  return total;
+}
 
 async function comprimirModelo(rutaOriginal) {
   const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({
@@ -206,6 +232,22 @@ async function comprimirModelo(rutaOriginal) {
     // de MB; no compensa.
     join({ keepNamed: true }),
     weld(),
+  );
+
+  // Después de weld() para contar sobre la malla ya deduplicada -- antes,
+  // vértices repetidos habrían inflado el número sin representar geometría
+  // real. Este paso va antes de cuantizar/comprimir: simplify() trabaja
+  // sobre la geometría todavía en float32.
+  const vertices = contarVertices(documento);
+  if (vertices > VERTICES_MAXIMOS_SIN_SIMPLIFICAR) {
+    const ratio = VERTICES_OBJETIVO_SIMPLIFICADO / vertices;
+    console.log(`[comprimirModelo] malla con ${vertices.toLocaleString()} vértices, por encima del techo -- simplificando a ~${VERTICES_OBJETIVO_SIMPLIFICADO.toLocaleString()}`);
+    await documento.transform(
+      simplify({ simplifier: MeshoptSimplifier, ratio, error: 0.01 })
+    );
+  }
+
+  await documento.transform(
     textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [TEXTURA_MAXIMA, TEXTURA_MAXIMA] }),
     quantize(),
     meshopt({ encoder: MeshoptEncoder }),
