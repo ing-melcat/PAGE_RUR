@@ -39,3 +39,9 @@ dist-releases/
 # Herramientas locales, no se versionan
 CLAUDE.md
 .claude/
+
+# Respaldos de git generados a mano (recuperación de mensajes de commit
+# tras un filter-repo) -- no son parte del código, y son pesados (190 MB).
+.git-backup/
+.git-backup-claude/
+.backups-contenido/
