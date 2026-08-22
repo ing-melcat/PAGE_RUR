@@ -559,15 +559,38 @@
   flex-wrap: wrap;
 }
 
+/* El retrato llevaba un borde de 1px del mismo color que cualquier otro
+   marco del sitio (var(--border)): la única foto de una persona en toda la
+   página se leía igual que el borde de una tarjeta cualquiera. El anillo en
+   --accent y el halo detrás (radial-gradient con --accent-muted, el mismo
+   tono que ya usan los botones para su fondo de hover) le dan peso sin
+   inventar color nuevo ni imitar una insignia con relieve -- sigue siendo
+   plano, como el resto de la interfaz. */
+.perfil__retrato-wrap {
+  --retrato-size: 132px;
+  position: relative;
+  width: var(--retrato-size);
+  height: var(--retrato-size);
+  flex-shrink: 0;
+}
+
+.perfil__retrato-halo {
+  position: absolute;
+  inset: calc(var(--retrato-size) * -0.16);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-muted) 0%, transparent 70%);
+  pointer-events: none;
+}
+
 .perfil__retrato {
   position: relative;
-  width: 132px;
-  height: 132px;
-  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   overflow: hidden;
   background: var(--surface-strong);
-  border: 1px solid var(--border);
+  border: 3px solid var(--accent);
+  box-shadow: 0 8px 24px -4px rgba(251, 202, 1, 0.25);
   display: grid;
   place-items: center;
 }
@@ -600,13 +623,35 @@
   margin: 0;
 }
 
+/* Antes era una línea de texto gris apagado -- el mismo tono que un dato
+   secundario cualquiera, cuando en realidad es un dato de identidad (área y
+   generación). La convierte en chip, al mismo nivel visual que --rol,
+   reusando el patrón de "etiqueta con punto de acento" que ya usa el
+   eyebrow de la portada de publicaciones (Landing.tsx). */
 .perfil__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
   font-family: var(--font-etiqueta), sans-serif;
   font-size: var(--t-xs);
-  letter-spacing: .12em;
+  font-weight: 700;
+  letter-spacing: .1em;
   text-transform: uppercase;
-  color: var(--muted);
-  margin: 0;
+  color: var(--text);
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  padding: 5px 12px;
+  border-radius: 999px;
+  margin: 2px 0 0;
+}
+
+.perfil__meta-punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
 }
 
 .perfil__sep {
@@ -636,25 +681,31 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 10px;
 }
 
+/* Antes era una fila de texto (título a la izquierda, papel a la derecha)
+   sin ninguna imagen en toda la columna de proyectos. Ahora lleva la
+   miniatura real de la publicación (post.image, vía p.imagen -- ver
+   SELECT_MIEMBRO en services/identity/server.js) y una tarjeta con marco
+   propio, en vez de una línea suelta separada solo por un borde inferior. */
 .perfil__proyecto {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   gap: 16px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--border);
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
   text-decoration: none;
   color: var(--text);
-  transition: color var(--mov-rapido) ease, padding-left var(--mov-rapido) ease;
+  transition: color var(--mov-rapido) ease, border-color var(--mov-rapido) ease, background-color var(--mov-rapido) ease;
 }
 
 @media (hover: hover) {
   .perfil__proyecto:hover {
     color: var(--accent);
-    padding-left: 8px;
+    border-color: var(--accent);
+    background: var(--surface-strong);
   }
 }
 
@@ -663,19 +714,43 @@
   outline-offset: 2px;
 }
 
+.perfil__proyecto-miniatura {
+  width: 88px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--surface-strong);
+}
+
+.perfil__proyecto-miniatura img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.perfil__proyecto-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
 .perfil__proyecto-titulo {
   font-size: var(--t-md);
   line-height: 1.3;
 }
 
+/* Ya no comparte fila con el título (antes iba a la derecha, alineado por
+   línea base, y necesitaba no encogerse ni partirse); apilado debajo, un
+   papel largo puede partirse en dos líneas sin problema. */
 .perfil__papel {
   font-family: var(--font-etiqueta), sans-serif;
   font-size: var(--t-xs);
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--muted);
-  white-space: nowrap;
-  flex-shrink: 0;
 }
 
 @media (max-width: 1000px) {
@@ -700,11 +775,11 @@
 
   .perfil__nombre { font-size: var(--t-xl); }
 
-  .perfil__retrato { width: 96px; height: 96px; }
+  .perfil__retrato-wrap { --retrato-size: 96px; }
 
-  .perfil__proyecto {
-    flex-direction: column;
-    gap: 4px;
+  .perfil__proyecto-miniatura {
+    width: 64px;
+    height: 44px;
   }
 }
 

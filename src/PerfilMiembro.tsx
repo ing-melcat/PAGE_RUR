@@ -15,7 +15,7 @@ import './Miembros.css';
  * otro. Un modal no se puede enlazar.
  */
 
-type Proyecto = { id: string; titulo: string; papel: string | null };
+type Proyecto = { id: string; titulo: string; papel: string | null; imagen: string | null };
 
 type Miembro = {
   id: number;
@@ -84,10 +84,13 @@ export function PerfilMiembro() {
             Con un historial largo, tener que subir para recordar de quién es
             la lista es lo que rompe la lectura. */}
         <aside className="perfil__ficha">
-          <div className="perfil__retrato">
-            {miembro.foto
-              ? <img src={miembro.foto} alt="" />
-              : <span className="miembro__iniciales">{iniciales}</span>}
+          <div className="perfil__retrato-wrap">
+            <div className="perfil__retrato-halo" aria-hidden="true" />
+            <div className="perfil__retrato">
+              {miembro.foto
+                ? <img src={miembro.foto} alt="" />
+                : <span className="miembro__iniciales">{iniciales}</span>}
+            </div>
           </div>
 
           <h1 className="perfil__nombre">{miembro.nombre}</h1>
@@ -95,6 +98,7 @@ export function PerfilMiembro() {
 
           {(miembro.area || miembro.generacion) && (
             <p className="perfil__meta">
+              <span className="perfil__meta-punto" aria-hidden="true" />
               {miembro.area}
               {miembro.area && miembro.generacion && <span className="perfil__sep">·</span>}
               {miembro.generacion && t('miembros.desde').replace('{a}', miembro.generacion)}
@@ -126,8 +130,13 @@ export function PerfilMiembro() {
                 {miembro.proyectos.map((p) => (
                   <li key={p.id}>
                     <Link to={`/publicacion/${p.id}`} className="perfil__proyecto">
-                      <span className="perfil__proyecto-titulo">{p.titulo}</span>
-                      {p.papel && <span className="perfil__papel">{p.papel}</span>}
+                      <span className="perfil__proyecto-miniatura">
+                        {p.imagen && <img src={p.imagen} alt="" loading="lazy" />}
+                      </span>
+                      <span className="perfil__proyecto-texto">
+                        <span className="perfil__proyecto-titulo">{p.titulo}</span>
+                        {p.papel && <span className="perfil__papel">{p.papel}</span>}
+                      </span>
                     </Link>
                   </li>
                 ))}

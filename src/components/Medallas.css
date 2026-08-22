@@ -41,21 +41,28 @@
 
 /* --- detalle: en el perfil --- */
 
+/* Antes era un círculo con el signo y el borde de su color, suelto en una
+   columna angosta -- lo más "de personalidad" que tiene el sistema de
+   medallas (según el resto de este archivo) quedaba como una nota al pie.
+   La tarjeta con el color de la medalla en el borde izquierdo la sube de
+   peso sin dorados ni relieve: sigue siendo plana, solo que ahora ocupa
+   sitio y se lee de un vistazo, no hay que pasar el ratón para saber qué es. */
 .medalla-detalle {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--surface-strong);
+  border-radius: 6px;
+  border-left: 3px solid currentColor;
 }
 
 .medalla-detalle__icono {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 22px;
   flex-shrink: 0;
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  font-size: 0.85rem;
+  font-size: 1.05rem;
   line-height: 1;
 }
 

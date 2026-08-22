@@ -463,7 +463,8 @@ const SELECT_MIEMBRO = `
          u.github, u.linkedin, u.instagram, u.facebook, u.reddit,
          COALESCE(
            (SELECT json_agg(json_build_object('id', p.id, 'titulo', p.title,
-                                              'papel', pm.papel, 'lider', pm.lider)
+                                              'papel', pm.papel, 'lider', pm.lider,
+                                              'imagen', p.image)
                             ORDER BY p.date DESC)
               FROM post_miembros pm
               JOIN posts p ON p.id = pm.post_id
