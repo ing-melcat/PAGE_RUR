@@ -393,8 +393,10 @@ const LandingLayout = () => {
       </header>
       )}
 
-      <Outlet />
-      
+      <main className="app-main">
+        <Outlet />
+      </main>
+
       <Footer />
     </div>
   );

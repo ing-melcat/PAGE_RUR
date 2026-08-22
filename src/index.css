@@ -771,6 +771,23 @@ h1 {
   flex-direction: column;
 }
 
+/* Envuelve el <Outlet/> de LandingLayout (App.tsx), entre el header y el
+   Footer. `.app-shell` ya era flex-column, pero el contenido de la ruta no
+   tenía `flex: 1` -- en una página con poco contenido (p.ej. /conecta con
+   pocas publicaciones visibles) el footer quedaba pegado justo debajo de
+   ese contenido, con hueco en blanco hasta el final de la pantalla, en vez
+   de anclado abajo. Esto NO es `position: fixed`: un footer fijo real
+   taparía contenido al hacer scroll en páginas largas, que es peor que el
+   problema que resuelve. `flex: 1` hace que el contenido ocupe como mínimo
+   el espacio que sobra del viewport -- el footer solo baja del pliegue
+   cuando el contenido real ya lo empuja, que es el comportamiento correcto
+   en los dos casos (poco contenido y mucho contenido). */
+.app-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Topbar - Industrial Rail */
 .topbar {
   display: grid;
