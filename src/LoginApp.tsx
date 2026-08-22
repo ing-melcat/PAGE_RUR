@@ -12,7 +12,7 @@ import { ModeSelect } from "./controller/ModeSelect";
 // ControllerApp más abajo.
 const RobotSelection = lazy(() => import("./controller/RobotSelection").then((m) => ({ default: m.RobotSelection as React.ComponentType<any> })));
 const PanelTransmision = lazy(() => import("./controller/PanelTransmision").then((m) => ({ default: m.PanelTransmision as React.ComponentType<any> })));
-import { apiFetch } from "./lib/apiClient";
+import { apiFetch, apiUpload } from "./lib/apiClient";
 import { useLanguage } from "./lib/i18n";
 import { Ayuda } from "./components/Ayuda";
 import { PanelRoles } from "./components/PanelRoles";
@@ -261,6 +261,11 @@ export default function App() {
   // estado propio, el botón se habría quedado en "SUBIR" ese rato, como si
   // no hubiera pasado nada al hacer clic.
   const [comprimiendoRobotModel, setComprimiendoRobotModel] = useState(false);
+  // 0-1. Una sola barra para las dos fases (comprimir y subir): se reinicia
+  // a 0 al empezar cada una, en vez de intentar repartir un porcentaje único
+  // entre un trabajo de CPU y uno de red que no tienen relación entre sí --
+  // sumarlos habría dado un número que parece preciso y no lo es.
+  const [progresoModelo, setProgresoModelo] = useState(0);
   const robotModelInputRef = useRef<HTMLInputElement>(null);
 
   // El commit original ponía este handler dentro de AdminContent, un
@@ -282,8 +287,9 @@ export default function App() {
     // lib/comprimirModelo3D.ts para el porqué completo.
     if (/\.(glb|gltf)$/i.test(file.name)) {
       setComprimiendoRobotModel(true);
+      setProgresoModelo(0);
       try {
-        const resultado = await comprimirModelo3D(file);
+        const resultado = await comprimirModelo3D(file, setProgresoModelo);
         console.log(
           `[modelo3d] comprimido en el navegador: ${(resultado.originalSize / 1048576).toFixed(1)} MB -> ${(resultado.compressedSize / 1048576).toFixed(1)} MB`
         );
@@ -306,19 +312,21 @@ export default function App() {
     formData.append('file', file);
 
     setUploadingRobotModel(true);
+    setProgresoModelo(0);
     try {
-      const response = await apiFetch('/api/upload', {
-        method: 'POST',
-        body: formData,
+      // apiUpload y no apiFetch: fetch() no expone progreso de subida en
+      // ningún navegador de forma consistente. Ver el comentario en
+      // lib/apiClient.ts -- CSRF y cookie de sesión se manejan igual, solo
+      // que por dentro de XMLHttpRequest en vez de fetch.
+      const { status, contentType, json: data } = await apiUpload('/api/upload', formData, {
+        onProgress: setProgresoModelo,
       });
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
+      if (status < 200 || status >= 300 || !contentType?.includes('application/json') || !data) {
          alert('Error del servidor: Posiblemente el archivo es demasiado grande.');
          setUploadingRobotModel(false);
          e.target.value = '';
          return;
       }
-      const data = await response.json();
       if (data.url && robotModelInputRef.current) {
         robotModelInputRef.current.value = data.url;
       } else if (!data.url) {
@@ -1156,6 +1164,29 @@ export default function App() {
                                                 {comprimiendoRobotModel ? t('adminRobots.comprimiendo') : uploadingRobotModel ? t('adminRobots.subiendo') : <><Upload size={14} /> {t('adminRobots.subir')}</>}
                                             </label>
                                         </div>
+                                        {/* Misma superficie que cualquier <input> del panel (fondo
+                                            --background, borde --border, radio 2px): es una barra de
+                                            progreso, no una tarjeta nueva, así que toma prestado el
+                                            marco que ya usa todo lo demás en vez de inventar uno. */}
+                                        {(comprimiendoRobotModel || uploadingRobotModel) && (
+                                          <div style={{ marginTop: '10px' }}>
+                                            <div style={{ height: '4px', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+                                              <div style={{
+                                                height: '100%',
+                                                width: `${Math.round(progresoModelo * 100)}%`,
+                                                background: 'var(--accent)',
+                                                // El ancho ya lo anima React re-renderizando en cada aviso
+                                                // de progreso; esta transición solo suaviza el salto entre
+                                                // un aviso y el siguiente, que si no se nota a saltos.
+                                                transition: 'width 0.15s linear',
+                                              }} />
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+                                              <span>{comprimiendoRobotModel ? t('adminRobots.comprimiendo') : t('adminRobots.subiendo')}</span>
+                                              <span>{Math.round(progresoModelo * 100)}%</span>
+                                            </div>
+                                          </div>
+                                        )}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', gridColumn: 'span 2', padding: '16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)' }}>
                                         <input type="checkbox" name="isPublicEvent" defaultChecked={Boolean(editingRobot.isPublicEvent)} style={{ width: 'auto', marginTop: '3px', cursor: 'pointer' }} />

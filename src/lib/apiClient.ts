@@ -47,6 +47,56 @@ export async function apiJson<T = any>(url: string, options: RequestInit = {}): 
   return res.json();
 }
 
+// fetch() no expone progreso de subida en ningún navegador de forma
+// consistente (streaming del cuerpo de la petición es soporte parcial y
+// reciente); XMLHttpRequest sí, con xhr.upload.onprogress, desde siempre.
+// Es la única razón para no usar apiFetch aquí -- el manejo de CSRF y cookie
+// de sesión es el mismo, solo que replicado a mano porque XHR no comparte
+// código con fetch.
+export function apiUpload(
+  url: string,
+  formData: FormData,
+  options: { onProgress?: (fraccion: number) => void; signal?: AbortSignal } = {}
+): Promise<{ status: number; contentType: string | null; json: any }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.withCredentials = true; // equivalente a credentials:'include' de apiFetch
+
+    const csrfToken = getCookie('rur_csrf');
+    if (csrfToken) xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+
+    // Sin tope propio, y NO los 15s de DEFAULT_TIMEOUT_MS de arriba: ese
+    // valor está pensado para una respuesta JSON pequeña, no para el tiempo
+    // que tarda en viajar un archivo entero. 10 minutos es margen de sobra
+    // para una subida lenta pero que sí avanza; una que de verdad se cuelga
+    // sigue teniendo tope, en vez de esperar para siempre.
+    xhr.timeout = 10 * 60 * 1000;
+
+    if (options.onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) options.onProgress!(e.loaded / e.total);
+      };
+    }
+
+    xhr.onload = () => {
+      let json = null;
+      try { json = JSON.parse(xhr.responseText); } catch { /* respuesta no-JSON: se resuelve con json:null, el caller ya sabe leer eso */ }
+      resolve({ status: xhr.status, contentType: xhr.getResponseHeader('content-type'), json });
+    };
+    xhr.onerror = () => reject(new Error('Error de red subiendo el archivo.'));
+    xhr.ontimeout = () => reject(new Error('La subida tardó demasiado y se canceló.'));
+    xhr.onabort = () => reject(new Error('Subida cancelada.'));
+
+    if (options.signal) {
+      if (options.signal.aborted) { xhr.abort(); return; }
+      options.signal.addEventListener('abort', () => xhr.abort());
+    }
+
+    xhr.send(formData);
+  });
+}
+
 export function hasSessionCookieHint(): boolean {
   // rur_csrf no es httpOnly a propósito (ver services/shared/csrf.js) --
   // sirve como pista barata de "probablemente hay sesión" para no hacer un

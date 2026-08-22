@@ -30,8 +30,9 @@
 
 type MensajeEntrada = { buffer: ArrayBuffer };
 type MensajeSalida =
-  | { ok: true; buffer: ArrayBuffer; originalSize: number; compressedSize: number }
-  | { ok: false; error: string };
+  | { tipo: 'progreso'; fraccion: number }
+  | { tipo: 'listo'; ok: true; buffer: ArrayBuffer; originalSize: number; compressedSize: number }
+  | { tipo: 'listo'; ok: false; error: string };
 
 // `self` en este archivo resuelve al tipo de Window (lib DOM del proyecto,
 // no WebWorker) porque tsconfig.app.json no declara la lib "webworker" --
@@ -43,6 +44,11 @@ type MensajeSalida =
 const contexto = self as any;
 
 contexto.onmessage = async (e: MessageEvent<MensajeEntrada>) => {
+  const avisarProgreso = (fraccion: number) => {
+    const mensaje: MensajeSalida = { tipo: 'progreso', fraccion };
+    contexto.postMessage(mensaje);
+  };
+
   try {
     const [
       { WebIO },
@@ -64,19 +70,30 @@ contexto.onmessage = async (e: MessageEvent<MensajeEntrada>) => {
     const original = new Uint8Array(e.data.buffer);
     const documento = await io.readBinary(original);
 
-    await documento.transform(
-      dedup(),
-      prune(),
+    // Un solo document.transform(a, b, c, ...) no deja meterse en medio a
+    // avisar nada -- por eso aquí va paso a paso, cada uno en su propio
+    // transform(), con un aviso de progreso entre uno y el siguiente. Son
+    // los mismos 6 pasos de siempre, nada más separados.
+    const pasos: [string, () => any][] = [
+      ['dedup', () => dedup()],
+      ['prune', () => prune()],
       // keepNamed: los modelos aquí son robots, y sus piezas vienen como
       // nodos con nombre (brazo, rueda, cazo). Fusionarlas sin nombre se
       // llevaría por delante esa estructura -- misma decisión que en
       // comprimirModelo del servidor, por el mismo motivo.
-      join({ keepNamed: true }),
-      weld(),
-      textureCompress({ targetFormat: 'webp', resize: [2048, 2048] }),
-      quantize(),
-      meshopt({ encoder: MeshoptEncoder }),
-    );
+      ['join', () => join({ keepNamed: true })],
+      ['weld', () => weld()],
+      ['textureCompress', () => textureCompress({ targetFormat: 'webp', resize: [2048, 2048] })],
+      ['quantize', () => quantize()],
+      ['meshopt', () => meshopt({ encoder: MeshoptEncoder })],
+    ];
+
+    avisarProgreso(0);
+    for (let i = 0; i < pasos.length; i++) {
+      const [, crearTransform] = pasos[i];
+      await documento.transform(crearTransform());
+      avisarProgreso((i + 1) / pasos.length);
+    }
 
     const comprimido = await io.writeBinary(documento);
     // .slice() y no el Uint8Array tal cual: da un ArrayBuffer propio, del
@@ -88,6 +105,7 @@ contexto.onmessage = async (e: MessageEvent<MensajeEntrada>) => {
     ) as ArrayBuffer;
 
     const mensaje: MensajeSalida = {
+      tipo: 'listo',
       ok: true,
       buffer: salida,
       originalSize: original.byteLength,
@@ -95,7 +113,7 @@ contexto.onmessage = async (e: MessageEvent<MensajeEntrada>) => {
     };
     contexto.postMessage(mensaje, [salida]);
   } catch (err: any) {
-    const mensaje: MensajeSalida = { ok: false, error: err?.message || String(err) };
+    const mensaje: MensajeSalida = { tipo: 'listo', ok: false, error: err?.message || String(err) };
     contexto.postMessage(mensaje);
   }
 };
