@@ -360,6 +360,28 @@ app.get('/api/posts', sesionOpcional, async (req, res) => {
   res.json(posts);
 });
 
+// Modelos 3D ya en uso en publicaciones -- para el selector "elegir uno ya
+// subido" del formulario de publicación de tipo Modelo 3D y, vía
+// useModelos3D en el frontend, también del formulario de robots. No lista
+// los archivos sueltos que haya en uploads/: solo los que de verdad están
+// asignados a algo, así que un modelo que se reemplazó no se queda
+// ensuciando el selector para siempre.
+//
+// Va ANTES de /api/posts/:id a propósito: Express prueba las rutas en el
+// orden en que se registran (a diferencia de React Router v6, que rankea
+// por especificidad sin importar el orden -- ver el comentario sobre esto
+// en App.tsx). Registrada después, /api/posts/:id la habría interceptado
+// primero tomando "modelos" como si fuera el :id de una publicación.
+app.get('/api/posts/modelos', verifyToken, async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT DISTINCT ON (model_url) model_url, title
+       FROM posts
+      WHERE model_url IS NOT NULL AND model_url <> ''
+      ORDER BY model_url, date DESC`
+  );
+  res.json(rows.map((r) => ({ url: r.model_url, etiqueta: r.title })));
+});
+
 app.get('/api/posts/:id', sesionOpcional, async (req, res) => {
   res.set('Vary', 'Cookie');
   const AUTORES = `,

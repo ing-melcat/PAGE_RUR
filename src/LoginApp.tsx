@@ -25,6 +25,7 @@ import { AdminLogs } from "./components/admin/AdminLogs";
 import { ProfileEditor } from "./components/profile/ProfileEditor";
 import { Configurar2FA } from "./components/profile/Configurar2FA";
 import { useLogs, useMetrics } from "./hooks/queries/useLogs";
+import { useModelos3D } from "./hooks/queries/useModelos3D";
 import { DashboardSidebar } from "./components/dashboard/DashboardSidebar";
 import { DashboardMain } from "./components/dashboard/DashboardMain";
 import { getRoles, puede, hasRole, AREAS } from "./lib/authUtils";
@@ -267,6 +268,9 @@ export default function App() {
   // sumarlos habría dado un número que parece preciso y no lo es.
   const [progresoModelo, setProgresoModelo] = useState(0);
   const robotModelInputRef = useRef<HTMLInputElement>(null);
+  // Modelos ya subidos en cualquier robot o publicación, para elegir uno en
+  // vez de tener que volver a subir el mismo archivo. Ver useModelos3D.
+  const { data: modelos3d = [] } = useModelos3D();
 
   // El commit original ponía este handler dentro de AdminContent, un
   // componente distinto que no comparte closure con App -- robotModelInputRef
@@ -1157,6 +1161,29 @@ export default function App() {
                                     </div>
                                     <div className="input-group" style={{ gridColumn: 'span 2' }}>
                                         <label>{t('adminRobots.rutaModelo')}</label>
+                                        {modelos3d.length > 0 && (
+                                          <select
+                                            defaultValue=""
+                                            onChange={(e) => {
+                                              if (e.target.value && robotModelInputRef.current) {
+                                                robotModelInputRef.current.value = e.target.value;
+                                              }
+                                              // El selector es una acción rápida, no un dato guardado -- se
+                                              // devuelve al placeholder tras elegir, en vez de quedarse
+                                              // "seleccionado" como si fuera el valor real del campo (ese
+                                              // es el <input> de abajo).
+                                              e.target.value = '';
+                                            }}
+                                            style={{ marginBottom: '8px' }}
+                                          >
+                                            <option value="">{t('adminRobots.elegirModeloExistente')}</option>
+                                            {modelos3d.map((m) => (
+                                              <option key={m.url} value={m.url}>
+                                                {m.etiqueta} — {m.origen === 'robot' ? t('modelos3d.origenRobot') : t('modelos3d.origenPublicacion')}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        )}
                                         <div style={{ display: 'flex', gap: '8px' }}>
                                             <input ref={robotModelInputRef} name="modelUrl" defaultValue={editingRobot.modelUrl} placeholder="/models/mi-robot.glb" style={{ flex: 1 }} />
                                             <input type="file" accept=".glb,.gltf" onChange={handleRobotModelUpload} style={{ display: 'none' }} id="upload-robot-model" />

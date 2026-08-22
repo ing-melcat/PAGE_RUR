@@ -145,6 +145,20 @@ app.get('/api/robots', verifyToken, noStore, async (req, res) => {
   res.json(augmented.map((row) => rowToRobot(row, { includeAdminFields: isAdmin })));
 });
 
+// Modelos 3D ya en uso en robots -- mismo propósito que /api/posts/modelos
+// en svc-content, para el selector "elegir uno ya subido". Cada servicio
+// expone solo lo suyo -- ninguno lee la tabla del otro -- y el frontend
+// (useModelos3D) junta las dos listas.
+app.get('/api/robots/modelos', verifyToken, noStore, async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT DISTINCT ON (model_url) model_url, name
+       FROM robots
+      WHERE model_url IS NOT NULL AND model_url <> ''
+      ORDER BY model_url, id`
+  );
+  res.json(rows.map((r) => ({ url: r.model_url, etiqueta: r.name })));
+});
+
 app.post('/api/robots', verifyToken, requirePermiso('robots.gestionar'), csrfProtection, async (req, res) => {
   const body = req.body ?? {};
   const { id, name, status, room, modelUrl, livekitUrl, livekitApiKey, livekitApiSecret, isPublicEvent, ...settings } = body;

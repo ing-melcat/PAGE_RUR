@@ -4,6 +4,10 @@ import type { Dictionary } from './es';
 // (mismas secciones, mismas claves) -- TypeScript avisa en build si una
 // clave falta o sobra, gracias al tipo `Dictionary` importado de es.ts.
 export const en: Dictionary = {
+  modelos3d: {
+    origenRobot: 'Robot',
+    origenPublicacion: 'Post',
+  },
   accesibilidad: {
     idioma: 'Language',
     idiomaDescripcion: 'Changes the language of the whole interface. Post content is translated separately.',
@@ -350,6 +354,7 @@ export const en: Dictionary = {
     verEjemplo: 'View example',
     ocultarEjemplo: 'Hide example',
     rutaModelo3d: '3D Model Path (.glb)',
+    elegirModeloExistente: '— Choose an already-uploaded model —',
     codigoHtml: 'HTML CODE',
     vistaPrevia: 'LIVE PREVIEW',
     htmlPlaceholder: '<h1>My Article</h1><p>Write HTML here...</p>',
@@ -534,6 +539,7 @@ export const en: Dictionary = {
     apiSecretGuardado: 'Saved',
     apiSecretReemplazar: '— type a new one to replace it',
     rutaModelo: '3D Model Path (.glb) - Optional',
+    elegirModeloExistente: '— Choose an already-uploaded model —',
     subir: 'UPLOAD',
     subiendo: 'UPLOADING...',
     comprimiendo: 'COMPRESSING...',

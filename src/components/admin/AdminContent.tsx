@@ -18,6 +18,7 @@ import { puede } from "../../lib/authUtils";
 
 import { usePosts, useMutatePost } from "../../hooks/queries/usePosts";
 import { usePersonas } from "../../hooks/queries/useUsers";
+import { useModelos3D } from "../../hooks/queries/useModelos3D";
 
 export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   const { t } = useLanguage();
@@ -51,6 +52,9 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
   // CPU y uno de red sin relación entre sí.
   const [progresoModelo, setProgresoModelo] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
+  // Modelos ya subidos en cualquier robot o publicación, para elegir uno en
+  // vez de tener que volver a subir el mismo archivo. Ver useModelos3D.
+  const { data: modelos3d = [] } = useModelos3D();
 
 
   const handleDelete = async (id: string) => {
@@ -549,6 +553,26 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
               <span>{t('adminPublicaciones.rutaModelo3d')}</span>
               <span style={{ fontSize: 'var(--t-xs)', color: 'var(--muted)', fontWeight: 'normal' }}>.glb o .gltf · se comprime al subir</span>
             </label>
+            {modelos3d.length > 0 && (
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  if (e.target.value) setModelUrl(e.target.value);
+                  // Acción rápida, no un dato guardado -- vuelve al
+                  // placeholder tras elegir; el valor real vive en el
+                  // <input> de más abajo.
+                  e.target.value = '';
+                }}
+                style={{ marginBottom: '8px' }}
+              >
+                <option value="">{t('adminPublicaciones.elegirModeloExistente')}</option>
+                {modelos3d.map((m) => (
+                  <option key={m.url} value={m.url}>
+                    {m.etiqueta} — {m.origen === 'robot' ? t('modelos3d.origenRobot') : t('modelos3d.origenPublicacion')}
+                  </option>
+                ))}
+              </select>
+            )}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               {/* Solo extensiones, sin tipos MIME: model/gltf-binary y
                   model/gltf+json no los reconocen todos los diálogos de

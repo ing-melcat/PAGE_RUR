@@ -4,6 +4,14 @@
 // el plan de traducción -- no todas las claves usadas en el código existen
 // aquí todavía hasta terminar ese barrido.
 export const es = {
+  // Compartido entre el selector de modelos del panel de robots
+  // (LoginApp.tsx) y el del editor de publicaciones (AdminContent.tsx): un
+  // modelo subido en cualquiera de los dos aparece en el selector del otro,
+  // y esta etiqueta es lo único que distingue de dónde salió.
+  modelos3d: {
+    origenRobot: 'Robot',
+    origenPublicacion: 'Publicación',
+  },
   accesibilidad: {
     idioma: 'Idioma',
     idiomaDescripcion: 'Cambia el idioma de toda la interfaz. El contenido de las publicaciones se traduce aparte.',
@@ -352,6 +360,7 @@ export const es = {
     verEjemplo: 'Ver ejemplo',
     ocultarEjemplo: 'Ocultar ejemplo',
     rutaModelo3d: 'Ruta del Modelo 3D (.glb)',
+    elegirModeloExistente: '— Elegir un modelo ya subido —',
     codigoHtml: 'CÓDIGO HTML',
     vistaPrevia: 'VISTA PREVIA EN VIVO',
     htmlPlaceholder: '<h1>Mi Artículo</h1><p>Escribe HTML aquí...</p>',
@@ -544,6 +553,7 @@ export const es = {
     apiSecretGuardado: 'Guardado',
     apiSecretReemplazar: '— escribe uno nuevo para reemplazarlo',
     rutaModelo: 'Ruta del Modelo 3D (.glb) - Opcional',
+    elegirModeloExistente: '— Elegir un modelo ya subido —',
     subir: 'SUBIR',
     subiendo: 'SUBIENDO...',
     comprimiendo: 'COMPRIMIENDO...',
