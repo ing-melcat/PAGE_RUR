@@ -7,11 +7,14 @@ import { PanelRoles } from "../PanelRoles";
 import { PanelMedallas } from "../PanelMedallas";
 import { puede, AREAS } from "../../lib/authUtils";
 import { copiarAlPortapapeles } from "../../lib/clipboard";
+import { useNotificar, useConfirmar } from "../Notificaciones";
 
 import { useUsers, useRolesDisponibles, useCatalogoPermisos, useMedallasEspeciales, useMutateUser, useMutateMedalla } from "../../hooks/queries/useUsers";
 
 export const AdminUsers = ({ user, setView }: any) => {
   const { t } = useLanguage();
+  const notificar = useNotificar();
+  const confirmar = useConfirmar();
 
   const [pestanaPersonal, setPestanaPersonal] = useState<'personas'|'roles'|'medallas'>('personas');
   const [motivosMedallas, setMotivosMedallas] = useState<Record<string,string>>({});
@@ -43,7 +46,7 @@ export const AdminUsers = ({ user, setView }: any) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const rolesArr = formData.getAll('roles') as string[];
-    if (rolesArr.length === 0 && !window.confirm(t('adminUsuarios.sinRolConfirmar'))) return;
+    if (rolesArr.length === 0 && !(await confirmar(t('adminUsuarios.sinRolConfirmar')))) return;
     const permisosExtra = formData.getAll('permisos_extra') as string[];
     const userData = {
       matricula: formData.get('matricula'),
@@ -58,14 +61,14 @@ export const AdminUsers = ({ user, setView }: any) => {
     try {
       await mutateUser.mutateAsync({ method: 'POST', userData });
       setIsCreatingUser(false);
-    } catch(err: any) { alert(err.message || t('alertas.errorConexionGenerico')); }
+    } catch(err: any) { notificar(err.message || t('alertas.errorConexionGenerico'), 'error'); }
   };
 
   const handleUpdateUser = async (e: any) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const rolesArr = formData.getAll('roles') as string[];
-    if (rolesArr.length === 0 && !window.confirm(t('adminUsuarios.sinRolConfirmar'))) return;
+    if (rolesArr.length === 0 && !(await confirmar(t('adminUsuarios.sinRolConfirmar')))) return;
     const permisosExtra = formData.getAll('permisos_extra') as string[];
     const userData = {
       password: formData.get('user_password_provisional'),
@@ -80,54 +83,54 @@ export const AdminUsers = ({ user, setView }: any) => {
     try {
       await mutateUser.mutateAsync({ matricula: editingUser.matricula, method: 'PUT', userData });
       setEditingUser(null); setCambiarPassword(false);
-    } catch(err: any) { alert(err.message || t('alertas.errorConexionGenerico')); }
+    } catch(err: any) { notificar(err.message || t('alertas.errorConexionGenerico'), 'error'); }
   };
 
   const reiniciarPassword = async (u: any) => {
     const isSelf = u.matricula === user?.matricula;
-    const warningMsg = isSelf 
+    const warningMsg = isSelf
       ? t('adminUsuarios.reiniciarConfirmarPropio') || '¡CUIDADO! Vas a restablecer TU PROPIA contraseña. Te quedarás sin permisos hasta que inicies sesión con la nueva contraseña temporal y la cambies. ¿Estás seguro?'
       : t('adminUsuarios.reiniciarConfirmar').replace('{quien}', u.nombre);
 
-    if (!window.confirm(warningMsg)) return;
+    if (!(await confirmar(warningMsg))) return;
     try {
       const res = await apiFetch(`/api/users/${u.matricula}/password-temporal`, { method: 'POST' });
       const datos = await res.json().catch(() => null);
-      if (!res.ok || !datos?.success) return alert(datos?.message || t('adminUsuarios.reiniciarError'));
+      if (!res.ok || !datos?.success) return notificar(datos?.message || t('adminUsuarios.reiniciarError'), 'error');
       setResetModal({ show: true, password: datos.password, userNombre: u.nombre, action: 'password' });
     } catch {
-      alert(t('alertas.errorConexionGenerico'));
+      notificar(t('alertas.errorConexionGenerico'), 'error');
     }
   };
 
   const desvincular2FA = async (u: any) => {
     const isSelf = u.matricula === user?.matricula;
-    const warningMsg = isSelf 
+    const warningMsg = isSelf
       ? '¡CUIDADO! Vas a desvincular tu propio Google Authenticator. Perderás el acceso y requerirás una contraseña temporal. ¿Estás seguro?'
       : `¿Estás seguro de que quieres desvincular el Google Authenticator de ${u.nombre}? Se generará una contraseña temporal para que vuelva a entrar.`;
 
-    if (!window.confirm(warningMsg)) return;
+    if (!(await confirmar(warningMsg))) return;
     try {
       const res = await apiFetch(`/api/users/${u.matricula}/2fa`, { method: 'DELETE' });
       const datos = await res.json().catch(() => null);
-      if (!res.ok || !datos?.success) return alert(datos?.message || 'Error al desvincular 2FA.');
+      if (!res.ok || !datos?.success) return notificar(datos?.message || 'Error al desvincular 2FA.', 'error');
       setResetModal({ show: true, password: datos.password, userNombre: u.nombre, action: '2fa' });
     } catch {
-      alert(t('alertas.errorConexionGenerico'));
+      notificar(t('alertas.errorConexionGenerico'), 'error');
     }
   };
 
   const handleDeleteUser = async (matricula: string) => {
-    if (!window.confirm(t('adminUsuarios.confirmarEliminar'))) return;
+    if (!(await confirmar(t('adminUsuarios.confirmarEliminar')))) return;
     try {
       await mutateUser.mutateAsync({ matricula, method: 'DELETE' });
-    } catch(err: any) { alert(err.message); }
+    } catch(err: any) { notificar(err.message, 'error'); }
   };
 
   const otorgarMedalla = async (userId: number, clave: string, otorgar: boolean) => {
     const motivo = motivosMedallas[clave] || '';
     if (otorgar && !motivo) {
-      alert(t('alertas.errorMotivoMedalla'));
+      notificar(t('alertas.errorMotivoMedalla'), 'error');
       return;
     }
     try {
@@ -135,7 +138,7 @@ export const AdminUsers = ({ user, setView }: any) => {
       if (!otorgar) {
         setMotivosMedallas(prev => { const n = { ...prev }; delete n[clave]; return n; });
       }
-    } catch(err: any) { alert(err.message); }
+    } catch(err: any) { notificar(err.message, 'error'); }
   };
 
   const pageTransition = {
@@ -511,9 +514,9 @@ export const AdminUsers = ({ user, setView }: any) => {
                       style={{ padding: '16px', fontSize: 'var(--t-base)' }}
                       onClick={async () => {
                         const copiado = await copiarAlPortapapeles(resetModal.password);
-                        alert(copiado
+                        notificar(copiado
                           ? '¡Contraseña copiada al portapapeles!'
-                          : 'No se pudo copiar. Selecciona la contraseña con un clic y cópiala a mano.');
+                          : 'No se pudo copiar. Selecciona la contraseña con un clic y cópiala a mano.', copiado ? 'exito' : 'error');
                       }}
                     >
                       Copiar al Portapapeles

@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { Mail, Send, CheckCircle } from 'lucide-react';
 import { useLanguage } from './lib/i18n';
+import { apiFetch } from './lib/apiClient';
+import { useTitulo } from './lib/useTitulo';
 
 export default function ContactPage() {
   const { t } = useLanguage();
+  useTitulo('Contacto');
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -13,15 +16,19 @@ export default function ContactPage() {
     setStatus('loading');
     
     try {
-      const res = await fetch('/api/contact', {
+      const res = await apiFetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-      
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Error de conexión');
-      
+
+      // Si el servidor responde sin cuerpo JSON (un 405 de Caddy si la ruta
+      // no está enrutada, un 502 si el servicio está caído...), res.json()
+      // lanza y el mensaje real se perdía detrás de un "Unexpected end of
+      // JSON input".
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || `Error de conexión (${res.status})`);
+
       setStatus('success');
       setFormData({ name: '', email: '', subject: '', message: '' });
     } catch (err: any) {
@@ -78,23 +85,23 @@ export default function ContactPage() {
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Nombre</label>
-                  <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ background: 'var(--background)', border: '1px solid var(--border)', padding: '12px', color: 'var(--text)', borderRadius: '8px' }} placeholder="Tu nombre" />
+                  <label htmlFor="contacto-nombre" style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Nombre</label>
+                  <input id="contacto-nombre" name="name" autoComplete="name" required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ background: 'var(--background)', border: '1px solid var(--border)', padding: '12px', color: 'var(--text)', borderRadius: '8px' }} placeholder="Tu nombre" />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Correo Electrónico</label>
-                  <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} style={{ background: 'var(--background)', border: '1px solid var(--border)', padding: '12px', color: 'var(--text)', borderRadius: '8px' }} placeholder="tu@email.com" />
+                  <label htmlFor="contacto-email" style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Correo Electrónico</label>
+                  <input id="contacto-email" name="email" autoComplete="email" required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} style={{ background: 'var(--background)', border: '1px solid var(--border)', padding: '12px', color: 'var(--text)', borderRadius: '8px' }} placeholder="tu@email.com" />
                 </div>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Asunto</label>
-                <input required type="text" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} style={{ background: 'var(--background)', border: '1px solid var(--border)', padding: '12px', color: 'var(--text)', borderRadius: '8px' }} placeholder="¿De qué trata tu mensaje?" />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Mensaje</label>
-                <textarea required rows={5} value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} style={{ background: 'var(--background)', border: '1px solid var(--border)', padding: '12px', color: 'var(--text)', borderRadius: '8px', resize: 'vertical' }} placeholder="Escribe tu mensaje aquí..." />
+                <label htmlFor="contacto-asunto" style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Asunto</label>
+                <input id="contacto-asunto" name="subject" autoComplete="off" required type="text" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} style={{ background: 'var(--background)', border: '1px solid var(--border)', padding: '12px', color: 'var(--text)', borderRadius: '8px' }} placeholder="¿De qué trata tu mensaje?" />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label htmlFor="contacto-mensaje" style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Mensaje</label>
+                <textarea id="contacto-mensaje" name="message" required rows={5} value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} style={{ background: 'var(--background)', border: '1px solid var(--border)', padding: '12px', color: 'var(--text)', borderRadius: '8px', resize: 'vertical' }} placeholder="Escribe tu mensaje aquí..." />
               </div>
 
               <button disabled={status === 'loading'} className="action-card" style={{

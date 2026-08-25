@@ -5,6 +5,7 @@ import { CheckCircle, Upload } from "lucide-react";
 import { apiFetch } from "../../lib/apiClient";
 import { AREAS } from "../../lib/authUtils";
 import { Configurar2FA } from "./Configurar2FA";
+import { useNotificar } from "../Notificaciones";
 import "./ProfileEditor.css";
 
 export const ProfileEditor = ({
@@ -15,6 +16,7 @@ export const ProfileEditor = ({
   reduceAnimations, setReduceAnimations
 }: any) => {
   const { t } = useLanguage();
+  const notificar = useNotificar();
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   return (
     <motion.div key="edit_profile" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
@@ -51,7 +53,7 @@ export const ProfileEditor = ({
                   if (!file) return;
 
                   if (file.size > 2 * 1024 * 1024) {
-                    alert(t('perfil.imagenPesada'));
+                    notificar(t('perfil.imagenPesada'), 'error');
                     e.target.value = '';
                     return;
                   }
@@ -67,18 +69,18 @@ export const ProfileEditor = ({
                     });
                     const contentType = res.headers.get('content-type');
                     if (!contentType || !contentType.includes('application/json')) {
-                      alert('Error del servidor: Posiblemente la imagen es demasiado grande o hubo un error de red.');
+                      notificar('Error del servidor: Posiblemente la imagen es demasiado grande o hubo un error de red.', 'error');
                       return;
                     }
                     const data = await res.json();
                     if (res.ok && data.url) {
                       setProfileForm({...profileForm, foto: data.url});
-                      alert(t('perfil.fotoSubidaTemporal'));
+                      notificar(t('perfil.fotoSubidaTemporal'), 'exito');
                     } else {
-                      alert(data.error || data.message || t('perfil.errorSubirFoto'));
+                      notificar(data.error || data.message || t('perfil.errorSubirFoto'), 'error');
                     }
                   } catch (err) {
-                    alert(t('perfil.errorConexionFoto'));
+                    notificar(t('perfil.errorConexionFoto'), 'error');
                   } finally {
                     setSubiendoFoto(false);
                     e.target.value = '';
@@ -223,13 +225,13 @@ export const ProfileEditor = ({
               const data = await res.json().catch(() => null);
               if (res.ok && data?.success) {
                 setUser(data.user);
-                alert(t('perfil.perfilActualizado'));
+                notificar(t('perfil.perfilActualizado'), 'exito');
                 setMainContext("modules");
               } else {
-                alert(data?.message || t('perfil.errorGuardarPerfil'));
+                notificar(data?.message || t('perfil.errorGuardarPerfil'), 'error');
               }
             } catch (e) {
-              alert(t('perfil.errorConexion'));
+              notificar(t('perfil.errorConexion'), 'error');
             }
           }}>
             {t('perfil.guardarCambios')}

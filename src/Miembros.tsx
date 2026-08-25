@@ -6,6 +6,7 @@ import { useLanguage } from './lib/i18n';
 import { RedesMiembro } from './components/RedesMiembro';
 import { Medallas } from './components/Medallas';
 import { PortadaSeccion } from './components/PortadaSeccion';
+import { useTitulo } from './lib/useTitulo';
 import './Miembros.css';
 
 /**
@@ -68,6 +69,7 @@ type Grupo = { clave: 'area' | 'rol' | 'medalla'; titulo: string; opciones: stri
 
 export function Miembros() {
   const { t } = useLanguage();
+  useTitulo(t('nav.miembros'));
   const [miembros, setMiembros] = useState<Miembro[]>([]);
   const [cargando, setCargando] = useState(true);
 

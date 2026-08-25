@@ -5,6 +5,7 @@ import { useLanguage } from './lib/i18n';
 import { RedesMiembro } from './components/RedesMiembro';
 import { Medallas } from './components/Medallas';
 import { NotFound } from './components/NotFound';
+import { useTitulo } from './lib/useTitulo';
 import './Miembros.css';
 
 /**
@@ -36,6 +37,7 @@ export function PerfilMiembro() {
   const { slug } = useParams();
   const [miembro, setMiembro] = useState<Miembro | null>(null);
   const [estado, setEstado] = useState<'cargando' | 'listo' | 'no-existe'>('cargando');
+  useTitulo(miembro?.nombre);
 
   useEffect(() => {
     let cancelado = false;

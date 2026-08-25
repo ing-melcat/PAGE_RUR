@@ -354,7 +354,7 @@ export const es = {
     guardando: 'Guardando...',
     guardarCambios: 'GUARDAR CAMBIOS',
     publicarAhora: 'PUBLICAR AHORA',
-    contenidoHtml: 'Contenido HTML',
+    contenidoHtml: 'Contenido (Markdown)',
     guiaRapida: 'Guía rápida:',
     yaTienenEstilo: 'ya tienen el estilo del sitio — no hace falta ponerles',
     verEjemplo: 'Ver ejemplo',

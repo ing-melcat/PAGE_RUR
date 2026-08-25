@@ -15,18 +15,20 @@ export const fetchMetrics = async () => {
   return data;
 };
 
-export const useLogs = (options?: { refetchInterval?: number }) => {
+export const useLogs = (options?: { refetchInterval?: number; enabled?: boolean }) => {
   return useQuery({
     queryKey: ['logs'],
     queryFn: fetchLogs,
     refetchInterval: options?.refetchInterval,
+    enabled: options?.enabled,
   });
 };
 
-export const useMetrics = (options?: { refetchInterval?: number }) => {
+export const useMetrics = (options?: { refetchInterval?: number; enabled?: boolean }) => {
   return useQuery({
     queryKey: ['metrics'],
     queryFn: fetchMetrics,
     refetchInterval: options?.refetchInterval,
+    enabled: options?.enabled,
   });
 };

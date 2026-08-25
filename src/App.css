@@ -424,9 +424,25 @@
 /* Cuando la portada lleva la pieza gráfica de marca en vez de una foto.
    El fondo del gráfico ya es el azul del sitio y sus trazos son finos:
    apagarlo como a una foto lo borraría. En lugar de eso se deja a plena
-   luz, y el contraste con el titular lo sigue dando el velo de abajo. */
+   luz, y el contraste con el titular lo sigue dando el velo de abajo.
+
+   background-size distinto al de .portada__foto a propósito: la pieza es
+   un panel de 2.4:1 con contenido (logo, trazos) repartido en todo el
+   ancho, no una foto donde recortar el centro sea aceptable. Con `cover`,
+   un móvil vertical (~0.74:1) solo mostraba el ~31% central. `contain`
+   deja verse la pieza completa siempre; el color de relleno es casi
+   idéntico al fondo del propio gráfico, así que las franjas que puedan
+   quedar a los lados no se notan como letterbox. */
 .portada__foto--grafico {
   filter: none;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-color: var(--background);
+  /* El titular va anclado abajo (.portada__marco, justify-content:
+     flex-end); centrar el gráfico verticalmente lo dejaba a la misma
+     altura que el texto y el emblema circular quedaba detrás de las
+     letras. Arriba, la pieza y el titular ocupan bandas separadas. */
+  background-position: center top;
 }
 
 /* Oscurece solo la mitad de abajo, que es donde va el texto. Apagar la

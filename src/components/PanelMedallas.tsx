@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { apiFetch } from '../lib/apiClient';
 import { useLanguage } from '../lib/i18n';
+import { useConfirmar } from './Notificaciones';
 import './PanelRoles.css';
 
 /**
@@ -43,6 +44,7 @@ const VACIA: Medalla = {
 
 export function PanelMedallas() {
   const { t } = useLanguage();
+  const confirmar = useConfirmar();
   const [medallas, setMedallas] = useState<Medalla[]>([]);
   const [editando, setEditando] = useState<Medalla | null>(null);
   const [creando, setCreando] = useState(false);
@@ -72,7 +74,7 @@ export function PanelMedallas() {
 
   const borrar = async (m: Medalla) => {
     setError('');
-    if (!window.confirm(t('medallasPanel.confirmarBorrar').replace('{m}', m.nombre))) return;
+    if (!(await confirmar(t('medallasPanel.confirmarBorrar').replace('{m}', m.nombre)))) return;
     const res = await apiFetch(`/api/medallas/${m.clave}`, { method: 'DELETE' });
     const datos = await res.json().catch(() => null);
     // El servidor dice a cuánta gente hay que retirársela antes; se enseña tal

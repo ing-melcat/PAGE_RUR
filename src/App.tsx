@@ -30,6 +30,8 @@ import { EstadosActivos } from './components/EstadosActivos';
 import { InvitacionEnVivo } from './components/InvitacionEnVivo';
 import { PortadaSeccion } from './components/PortadaSeccion';
 import { NotFound } from './components/NotFound';
+import { NotificacionesProvider } from './components/Notificaciones';
+import { useTitulo } from './lib/useTitulo';
 
 // --- ANIMACIONES DE TRANSICIÓN ---
 const PageTransition = ({ children }: { children: React.ReactNode }) => {
@@ -64,6 +66,7 @@ const PageTransition = ({ children }: { children: React.ReactNode }) => {
 // --- COMPONENTE HOME (Página Principal) ---
 function Home() {
   const { t } = useLanguage();
+  useTitulo(t('nav.inicio'));
   const { scrollY } = useScroll();
   
   // Efectos Scrollytelling
@@ -139,6 +142,7 @@ function Home() {
 // --- COMPONENTES PLACEHOLDER PARA LAS RUTAS ---
 const Explora = () => {
   const { t } = useLanguage();
+  useTitulo(t('nav.explora'));
   return (
   <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
     <PortadaSeccion
@@ -162,6 +166,7 @@ const Explora = () => {
 
 const Descubre = () => {
   const { t } = useLanguage();
+  useTitulo(t('nav.descubre'));
   return (
   <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
     <PortadaSeccion
@@ -185,6 +190,7 @@ const Descubre = () => {
 
 const Conecta = () => {
   const { t } = useLanguage();
+  useTitulo(t('nav.conecta'));
   return (
   <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
     <PortadaSeccion
@@ -540,7 +546,7 @@ function App() {
           path="/login/*"
           element={
             <Suspense fallback={null}>
-              <PageTransition><LoginApp /></PageTransition>
+              <NotificacionesProvider><PageTransition><LoginApp /></PageTransition></NotificacionesProvider>
             </Suspense>
           }
         />

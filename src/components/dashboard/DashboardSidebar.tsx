@@ -151,14 +151,19 @@ export const DashboardSidebar = ({ user, openProfileEditor, setMainContext }: an
 
                   {/* Junto a personalizar el perfil, no escondido en Ajustes:
                       es la razón por la que hoy se le pide la contraseña nueva
-                      a un administrador — porque no había dónde cambiarla. */}
-                  <button
-                    className="logout-btn-small"
-                    style={{ width: '100%', marginTop: '8px' }}
-                    onClick={() => setMainContext("cambiar_password")}
-                  >
-                    {t('password.titulo')}
-                  </button>
+                      a un administrador — porque no había dónde cambiarla.
+                      Oculto con 2FA activo: esa cuenta no tiene password_hash
+                      (pasa a NULL al vincular el autenticador), así que no
+                      hay contraseña que cambiar por aquí. */}
+                  {!user.totp_enabled && (
+                    <button
+                      className="logout-btn-small"
+                      style={{ width: '100%', marginTop: '8px' }}
+                      onClick={() => setMainContext("cambiar_password")}
+                    >
+                      {t('password.titulo')}
+                    </button>
+                  )}
                 </motion.div>
               </aside>
     </>

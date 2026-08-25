@@ -348,7 +348,7 @@ export const en: Dictionary = {
     guardando: 'Saving...',
     guardarCambios: 'SAVE CHANGES',
     publicarAhora: 'PUBLISH NOW',
-    contenidoHtml: 'HTML Content (100% Customizable)',
+    contenidoHtml: 'Content (Markdown)',
     guiaRapida: 'Quick guide:',
     yaTienenEstilo: 'already have the site style — no need to add',
     verEjemplo: 'View example',

@@ -15,6 +15,7 @@ import { componentesMarkdown } from "../../lib/componentesMarkdown";
 import { useLanguage } from "../../lib/i18n";
 import { Ayuda } from "../Ayuda";
 import { puede } from "../../lib/authUtils";
+import { useNotificar, useConfirmar } from "../Notificaciones";
 
 import { usePosts, useMutatePost } from "../../hooks/queries/usePosts";
 import { usePersonas } from "../../hooks/queries/useUsers";
@@ -22,6 +23,8 @@ import { useModelos3D } from "../../hooks/queries/useModelos3D";
 
 export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
   const { t } = useLanguage();
+  const notificar = useNotificar();
+  const confirmar = useConfirmar();
   const [viewMode, setViewMode] = useState<'list'|'create'|'edit'>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -58,23 +61,23 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
 
 
   const handleDelete = async (id: string) => {
-    if(!window.confirm(t('alertas.confirmarEliminarPublicacion'))) return;
+    if(!(await confirmar(t('alertas.confirmarEliminarPublicacion')))) return;
     try {
       await mutatePost.mutateAsync({ id, method: 'DELETE' });
-    } catch(err: any) { 
-      if (err.message.includes('Error al guardar')) alert(t('alertas.errorEliminar'));
-      else alert(t('alertas.sinPermisos'));
+    } catch(err: any) {
+      if (err.message.includes('Error al guardar')) notificar(t('alertas.errorEliminar'), 'error');
+      else notificar(t('alertas.sinPermisos'), 'error');
     }
   };
 
   const toggleVisibility = async (post: any) => {
     try {
-      await mutatePost.mutateAsync({ 
-        id: post.id, 
-        method: 'PUT', 
-        postData: { isHidden: !post.isHidden } 
+      await mutatePost.mutateAsync({
+        id: post.id,
+        method: 'PUT',
+        postData: { isHidden: !post.isHidden }
       });
-    } catch(err) { alert(t('alertas.errorActualizarVisibilidad')); }
+    } catch(err) { notificar(t('alertas.errorActualizarVisibilidad'), 'error'); }
   };
 
   const openEdit = (post: any) => {
@@ -135,10 +138,10 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
       img.onload = () => {
         const aspect = img.width / img.height;
         if (img.width < 1280 || img.height < 720) {
-          alert(`La imagen es muy pequeña (${img.width}x${img.height}).\nPara que se vea nítida en todas las pantallas, debe medir al menos 1280x720 píxeles.`);
+          notificar(`La imagen es muy pequeña (${img.width}x${img.height}). Para que se vea nítida en todas las pantallas, debe medir al menos 1280x720 píxeles.`, 'error');
           resolve(false);
         } else if (Math.abs(aspect - 16/9) > 0.02) {
-          alert(`Para mantener el diseño actual, la imagen debe ser exactamente 16:9 (ej. 1920x1080 o 1280x720).\n\nTu imagen mide ${img.width}x${img.height} píxeles. Por favor expórtala en 16:9 para evitar recortes.`);
+          notificar(`Para mantener el diseño actual, la imagen debe ser exactamente 16:9 (ej. 1920x1080 o 1280x720). Tu imagen mide ${img.width}x${img.height} píxeles. Por favor expórtala en 16:9 para evitar recortes.`, 'error');
           resolve(false);
         } else {
           resolve(true);
@@ -164,14 +167,14 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
       });
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-         alert('Error del servidor: Posiblemente la imagen es demasiado grande o hubo un error de red.');
+         notificar('Error del servidor: Posiblemente la imagen es demasiado grande o hubo un error de red.', 'error');
          setUploadingImage(false);
          return;
       }
       const data = await response.json();
       if (data.url) callback(data.url);
-      else alert(t('alertas.errorSubirImagen'));
-    } catch(err) { alert(t('alertas.errorConexionImagen')); }
+      else notificar(t('alertas.errorSubirImagen'), 'error');
+    } catch(err) { notificar(t('alertas.errorConexionImagen'), 'error'); }
     setUploadingImage(false);
   };
 
@@ -205,7 +208,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
         // Igual que en LoginApp.tsx: NO se intenta subir el original. Es
         // precisamente su tamaño lo que hace fallar una conexión inestable,
         // así que reintentar con él repetiría el mismo error sin explicarlo.
-        alert(t('alertas.errorComprimirModelo'));
+        notificar(t('alertas.errorComprimirModelo'), 'error');
         setComprimiendoModel(false);
         e.target.value = '';
         return;
@@ -229,14 +232,14 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
       // HTML, no como JSON: sin esta comprobación, se intentaría leer un
       // mensaje de un objeto que nunca llegó a parsear.
       if (status < 200 || status >= 300 || !contentType?.includes('application/json') || !data) {
-        alert('Error del servidor: el modelo puede superar el límite de 400 MB, o hubo un error de red.');
+        notificar('Error del servidor: el modelo puede superar el límite de 400 MB, o hubo un error de red.', 'error');
         setUploadingModel(false);
         e.target.value = '';
         return;
       }
       if (data.url) setModelUrl(data.url);
-      else alert(data.message || t('alertas.errorSubirModelo'));
-    } catch(err) { alert(t('alertas.errorConexionModelo')); }
+      else notificar(data.message || t('alertas.errorSubirModelo'), 'error');
+    } catch(err) { notificar(t('alertas.errorConexionModelo'), 'error'); }
     setUploadingModel(false);
     e.target.value = '';
   };
@@ -261,10 +264,10 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
         method: viewMode === 'edit' ? 'PUT' : 'POST',
         postData
       });
-      alert(viewMode === 'edit' ? t('alertas.publicacionActualizada') : t('alertas.publicacionCreada'));
+      notificar(viewMode === 'edit' ? t('alertas.publicacionActualizada') : t('alertas.publicacionCreada'), 'exito');
       setViewMode('list');
-    } catch(err) { 
-      alert(t('alertas.errorConectarServidor')); 
+    } catch(err) {
+      notificar(t('alertas.errorConectarServidor'), 'error');
     }
   };
 
@@ -280,10 +283,13 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '32px' }}>
           {/* Tarjeta de Crear Nueva */}
-          <div 
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => { resetForm(); setViewMode('create'); }}
-            style={{ 
-              border: '2px dashed var(--border)', borderRadius: '8px', padding: '24px', display: 'flex', 
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); resetForm(); setViewMode('create'); } }}
+            style={{
+              border: '2px dashed var(--border)', borderRadius: '8px', padding: '24px', display: 'flex',
               flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--surface)',
               minHeight: '280px', transition: 'all 0.3s ease', color: 'var(--muted)', textAlign: 'center'
             }}

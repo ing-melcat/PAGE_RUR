@@ -73,6 +73,11 @@ CREATE TABLE IF NOT EXISTS users (
     -- autenticar a nadie.
     totp_secret VARCHAR(64),
     totp_enabled BOOLEAN NOT NULL DEFAULT false,
+    -- Último paso de tiempo (ventana de 30s) de un código ya aceptado. Sin
+    -- esto un código TOTP es una credencial reutilizable durante toda su
+    -- ventana de validez -- en passwordless el código ES la contraseña, así
+    -- que "válido" tiene que significar también "no usado ya".
+    totp_last_step BIGINT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     -- Una cuenta sin contraseña y sin 2FA no la puede usar nadie, ni su dueño
     -- ni un administrador, y desde fuera parece una cuenta normal que "no

@@ -16,9 +16,10 @@ export type Modelo3D = { url: string; etiqueta: string; origen: 'robot' | 'publi
 // listas. Por eso son dos peticiones y no una: no existe un endpoint único
 // que pueda contestar por los dos a la vez sin que un servicio empiece a
 // leer datos que no son suyos.
-export function useModelos3D() {
+export function useModelos3D(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['modelos3d'],
+    enabled: options?.enabled,
     queryFn: async (): Promise<Modelo3D[]> => {
       const [posts, robots] = await Promise.all([
         apiFetch('/api/posts/modelos').then((r) => (r.ok ? r.json() : [])),

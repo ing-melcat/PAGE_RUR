@@ -54,33 +54,37 @@ export const DashboardMain = ({ user, loadingAction, setLoadingAction, setView, 
 
                           return actions.map((action, idx) => {
                             const isActivating = loadingAction === action.view;
+                            const activar = () => {
+                              if (action.view === "controles") {
+                                setView("robot_selection");
+                              } else if (!isActivating) {
+                                // Cancelar cualquier timer de una tarjeta anterior: sin esto,
+                                // un click en A seguido de otro en B antes de que pasen los
+                                // 1.2s dejaba dos timers corriendo, y el de A navegaba igual
+                                // aunque B fuera el último elegido.
+                                if (loadingActionTimerRef.current) {
+                                  clearTimeout(loadingActionTimerRef.current);
+                                }
+                                setLoadingAction(action.view);
+                                loadingActionTimerRef.current = setTimeout(() => {
+                                  setLoadingAction(null);
+                                  setView(action.view);
+                                  loadingActionTimerRef.current = null;
+                                }, 1200);
+                              }
+                            };
                             return (
-                              <motion.div 
+                              <motion.div
                                 layout
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.3 + (idx * 0.1) }}
-                                key={idx} 
+                                key={idx}
                                 className="action-card"
-                                onClick={() => {
-                                  if (action.view === "controles") {
-                                    setView("robot_selection");
-                                  } else if (!isActivating) {
-                                    // Cancelar cualquier timer de una tarjeta anterior: sin esto,
-                                    // un click en A seguido de otro en B antes de que pasen los
-                                    // 1.2s dejaba dos timers corriendo, y el de A navegaba igual
-                                    // aunque B fuera el último elegido.
-                                    if (loadingActionTimerRef.current) {
-                                      clearTimeout(loadingActionTimerRef.current);
-                                    }
-                                    setLoadingAction(action.view);
-                                    loadingActionTimerRef.current = setTimeout(() => {
-                                      setLoadingAction(null);
-                                      setView(action.view);
-                                      loadingActionTimerRef.current = null;
-                                    }, 1200);
-                                  }
-                                }}
+                                role="button"
+                                tabIndex={0}
+                                onClick={activar}
+                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activar(); } }}
                                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', ...(action.view === "controles" ? { background: 'var(--accent)', color: 'black' } : {}) }}
                               >
                                 {isActivating && (

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { apiFetch } from '../lib/apiClient';
 import { useLanguage } from '../lib/i18n';
+import { useConfirmar } from './Notificaciones';
 import './PanelRoles.css';
 
 /**
@@ -22,6 +23,7 @@ const COLORES = ['#FBCA01', '#2ecc71', '#8c9bb0', '#fbbf24', '#8b5cf6', '#ef4444
 
 export function PanelRoles() {
   const { t } = useLanguage();
+  const confirmar = useConfirmar();
   const [roles, setRoles] = useState<Rol[]>([]);
   const [catalogo, setCatalogo] = useState<Record<string, string>>({});
   const [editando, setEditando] = useState<Rol | null>(null);
@@ -58,7 +60,7 @@ export function PanelRoles() {
 
   const borrar = async (rol: Rol) => {
     setError('');
-    if (!window.confirm(t('roles.confirmarBorrar').replace('{r}', rol.nombre))) return;
+    if (!(await confirmar(t('roles.confirmarBorrar').replace('{r}', rol.nombre)))) return;
     const res = await apiFetch(`/api/roles/${rol.nombre}`, { method: 'DELETE' });
     const datos = await res.json().catch(() => null);
     // El servidor dice a quién hay que quitárselo antes; se enseña tal cual,

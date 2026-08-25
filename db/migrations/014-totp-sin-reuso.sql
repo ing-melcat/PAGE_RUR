@@ -1,0 +1,16 @@
+-- Un código TOTP válido se podía reutilizar cuantas veces se quisiera
+-- durante su ventana de 30s: verifySync solo comprobaba que el código
+-- correspondiera al paso de tiempo actual, no que ya se hubiera gastado.
+-- En modo passwordless el código ES la única credencial, así que alguien
+-- que lo vea de reojo (o lo intercepte) tenía toda la ventana para
+-- reutilizarlo -- incluyendo el mismo código con el que la cuenta se
+-- activó, servido después para el primer login.
+--
+-- totp_last_step guarda el paso de tiempo (epoch / 30) del último código
+-- aceptado; server.js rechaza cualquier código cuyo paso sea <= al
+-- guardado, aunque la firma sea correcta.
+--
+-- Idempotente: se puede aplicar sobre una base ya viva y volver a
+-- aplicarse sin efecto. El estado final equivalente está en
+-- db/init/01-schema.sql.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_last_step BIGINT;

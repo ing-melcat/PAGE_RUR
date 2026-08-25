@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { Loader2, CheckCircle, ChevronDown, ChevronUp, Globe, Lock, Upload, TriangleAlert, Star, Eye, EyeOff, Languages, X } from "lucide-react";
 import { CambiarPassword } from "./components/CambiarPassword";
+import { NotificacionesProvider, useNotificar, useConfirmar, useMostrarValor } from "./components/Notificaciones";
+import { copiarAlPortapapeles } from "./lib/clipboard";
 import { PanelMedallas } from "./components/PanelMedallas";
 import "./index.css";
 import { ModeSelect } from "./controller/ModeSelect";
@@ -127,6 +129,9 @@ const RoboGreetingIcon = ({ size = 56, color = "currentColor" }) => (
 
 export default function App() {
   const { lang, setLang, t } = useLanguage();
+  const notificar = useNotificar();
+  const confirmar = useConfirmar();
+  const mostrarValor = useMostrarValor();
 
   // Nada de estado en el navegador, tampoco el de navegación: al recargar se
   // arranca en login y /api/me decide a dónde se va, según la sesión real.
@@ -135,8 +140,11 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
 
-  const { data: logsList = [] } = useLogs({ refetchInterval: view === 'admin_logs' ? 10000 : undefined });
-  const { data: crowdsecMetrics = null } = useMetrics({ refetchInterval: view === 'admin_logs' ? 10000 : undefined });
+  // enabled: !!user -- sin esto, las tres peticiones de abajo salían disparadas
+  // ya desde la pantalla de login, antes de que hubiera sesión que las
+  // autorizara: puro ruido de 403 en la consola, en cada carga de la página.
+  const { data: logsList = [] } = useLogs({ refetchInterval: view === 'admin_logs' ? 10000 : undefined, enabled: !!user });
+  const { data: crowdsecMetrics = null } = useMetrics({ refetchInterval: view === 'admin_logs' ? 10000 : undefined, enabled: !!user });
 
   useEffect(() => {
     // Ya no hay token en localStorage que revisar: la sesión vive en una
@@ -270,7 +278,7 @@ export default function App() {
   const robotModelInputRef = useRef<HTMLInputElement>(null);
   // Modelos ya subidos en cualquier robot o publicación, para elegir uno en
   // vez de tener que volver a subir el mismo archivo. Ver useModelos3D.
-  const { data: modelos3d = [] } = useModelos3D();
+  const { data: modelos3d = [] } = useModelos3D({ enabled: !!user });
 
   // El commit original ponía este handler dentro de AdminContent, un
   // componente distinto que no comparte closure con App -- robotModelInputRef
@@ -304,7 +312,7 @@ export default function App() {
         // sube igual, sin más), aquí NO se intenta subir el original: es
         // precisamente su tamaño lo que hace fallar la conexión, así que
         // reintentar con él repetiría el mismo error sin decir por qué.
-        alert(t('alertas.errorComprimirModelo'));
+        notificar(t('alertas.errorComprimirModelo'), 'error');
         setComprimiendoRobotModel(false);
         e.target.value = '';
         return;
@@ -326,7 +334,7 @@ export default function App() {
         onProgress: setProgresoModelo,
       });
       if (status < 200 || status >= 300 || !contentType?.includes('application/json') || !data) {
-         alert('Error del servidor: Posiblemente el archivo es demasiado grande.');
+         notificar('Error del servidor: Posiblemente el archivo es demasiado grande.', 'error');
          setUploadingRobotModel(false);
          e.target.value = '';
          return;
@@ -334,9 +342,9 @@ export default function App() {
       if (data.url && robotModelInputRef.current) {
         robotModelInputRef.current.value = data.url;
       } else if (!data.url) {
-        alert(t('alertas.errorSubirModelo'));
+        notificar(t('alertas.errorSubirModelo'), 'error');
       }
-    } catch(err) { alert(t('alertas.errorConexionModelo')); }
+    } catch(err) { notificar(t('alertas.errorConexionModelo'), 'error'); }
     setUploadingRobotModel(false);
     e.target.value = '';
   };
@@ -377,7 +385,7 @@ export default function App() {
     // quien quería dejar una cuenta sin permisos acababa dándole acceso a la
     // consola del robot sin enterarse. Ahora se respeta lo que se marcó y se
     // avisa de lo que implica.
-    if (rolesArr.length === 0 && !window.confirm(t('adminUsuarios.sinRolConfirmar'))) return;
+    if (rolesArr.length === 0 && !(await confirmar(t('adminUsuarios.sinRolConfirmar')))) return;
     const permisosExtra = formData.getAll('permisos_extra') as string[];
     const userData = {
       matricula: formData.get('matricula'),
@@ -400,7 +408,7 @@ export default function App() {
         fetchUsers();
       } else {
         const d = await res.json();
-        alert(d.message);
+        notificar(d.message, 'error');
       }
     } catch(e) {}
   };
@@ -413,7 +421,7 @@ export default function App() {
     // quien quería dejar una cuenta sin permisos acababa dándole acceso a la
     // consola del robot sin enterarse. Ahora se respeta lo que se marcó y se
     // avisa de lo que implica.
-    if (rolesArr.length === 0 && !window.confirm(t('adminUsuarios.sinRolConfirmar'))) return;
+    if (rolesArr.length === 0 && !(await confirmar(t('adminUsuarios.sinRolConfirmar')))) return;
     const permisosExtra = formData.getAll('permisos_extra') as string[];
     const userData = {
       password: formData.get('user_password_provisional'),
@@ -436,10 +444,10 @@ export default function App() {
         fetchUsers();
       } else {
         const d = await res.json();
-        alert(d.message);
+        notificar(d.message, 'error');
       }
     } catch(e) {
-      alert(t('alertas.errorConexionGenerico'));
+      notificar(t('alertas.errorConexionGenerico'), 'error');
     }
   };
 
@@ -452,25 +460,25 @@ export default function App() {
       ? t('adminUsuarios.reiniciarConfirmarPropio') || '¡CUIDADO! Vas a restablecer TU PROPIA contraseña. Te quedarás sin permisos hasta que inicies sesión con la nueva contraseña temporal y la cambies. ¿Estás seguro?'
       : t('adminUsuarios.reiniciarConfirmar').replace('{quien}', u.nombre);
 
-    if (!window.confirm(warningMsg)) return;
+    if (!(await confirmar(warningMsg))) return;
     try {
       const res = await apiFetch(`/api/users/${u.matricula}/password-temporal`, { method: 'POST' });
       const datos = await res.json().catch(() => null);
-      if (!res.ok || !datos?.success) return alert(datos?.message || t('adminUsuarios.reiniciarError'));
-      window.prompt(t('adminUsuarios.reiniciarListo').replace('{quien}', u.nombre), datos.password);
+      if (!res.ok || !datos?.success) return notificar(datos?.message || t('adminUsuarios.reiniciarError'), 'error');
+      await mostrarValor(t('adminUsuarios.reiniciarListo').replace('{quien}', u.nombre), datos.password);
     } catch {
-      alert(t('alertas.errorConexionGenerico'));
+      notificar(t('alertas.errorConexionGenerico'), 'error');
     }
   };
 
   const handleDeleteUser = async (matricula: string) => {
-    if (!window.confirm(t('adminUsuarios.confirmarEliminar'))) return;
+    if (!(await confirmar(t('adminUsuarios.confirmarEliminar')))) return;
     try {
       const res = await apiFetch(`/api/users/${matricula}`, { method: 'DELETE' });
       if (res.ok) fetchUsers();
       else {
         const d = await res.json();
-        alert(d.message);
+        notificar(d.message, 'error');
       }
     } catch(e) {}
   };
@@ -478,7 +486,7 @@ export default function App() {
   const handleSaveRobot = async (e: any) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const updatedRobot = {
+    const updatedRobot: any = {
         id: formData.get('id'),
         name: formData.get('name'),
         room: formData.get('room'),
@@ -490,6 +498,15 @@ export default function App() {
         // Un checkbox desmarcado no aparece en el FormData: ausente = privado.
         isPublicEvent: formData.get('isPublicEvent') === 'on',
     };
+
+    // El secreto real nunca vuelve al cliente (solo su versión enmascarada,
+    // como placeholder) -- dejar el campo en blanco al editar solo puede
+    // significar "no lo toques", nunca "bórralo". Si se manda igual como ''
+    // el backend lo interpreta como un borrado explícito. En un robot nuevo
+    // sí es válido que quede sin secreto.
+    if (!editingRobot.isNew && !updatedRobot.livekitApiSecret) {
+      delete updatedRobot.livekitApiSecret;
+    }
 
     // Ping check para el servidor LiveKit
     if (updatedRobot.livekitUrl) {
@@ -506,10 +523,10 @@ export default function App() {
         clearTimeout(timeoutId);
         
         if (!pingRes.ok && pingRes.status !== 404) {
-          if (!window.confirm(`${t('alertas.advertenciaLivekitEstado')} ${pingRes.status}. ${t('alertas.advertenciaGuardarTodosModos')}`)) return;
+          if (!(await confirmar(`${t('alertas.advertenciaLivekitEstado')} ${pingRes.status}. ${t('alertas.advertenciaGuardarTodosModos')}`))) return;
         }
       } catch (err) {
-        if (!window.confirm(t('alertas.advertenciaLivekitPing'))) {
+        if (!(await confirmar(t('alertas.advertenciaLivekitPing')))) {
           return;
         }
       }
@@ -524,16 +541,16 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedRobot)
       });
-      
+
       if (res.ok) {
         fetchRobots();
         setEditingRobot(null);
       } else {
         const d = await res.json();
-        alert(d.message || t('alertas.errorGuardarRobot'));
+        notificar(d.message || t('alertas.errorGuardarRobot'), 'error');
       }
     } catch(e) {
-      alert(t('alertas.errorConexionGenerico'));
+      notificar(t('alertas.errorConexionGenerico'), 'error');
     }
   };
 
@@ -541,24 +558,24 @@ export default function App() {
   // por eso solo tiene sentido copiarlo si el robot está marcado como público.
   const copiarEnlacePublico = async (robotId: string) => {
     const enlace = `${window.location.origin}/espectador/${robotId}`;
-    try {
-      await navigator.clipboard.writeText(enlace);
-      alert(`${t('alertas.enlaceCopiado')}\n${enlace}`);
-    } catch {
-      // clipboard solo existe en contexto seguro (https/localhost).
-      window.prompt(t('alertas.copiarEnlacePrompt'), enlace);
+    if (await copiarAlPortapapeles(enlace)) {
+      notificar(`${t('alertas.enlaceCopiado')} ${enlace}`, 'exito');
+    } else {
+      // Sin contexto seguro (HTTP) el copiado automático puede fallar del
+      // todo -- se deja el enlace a la vista para copiarlo a mano.
+      await mostrarValor(t('alertas.copiarEnlacePrompt'), enlace);
     }
   };
 
   const handleDeleteRobot = async (id: string) => {
-    if (!window.confirm(t('alertas.confirmarEliminarRobot'))) return;
+    if (!(await confirmar(t('alertas.confirmarEliminarRobot')))) return;
     try {
       const res = await apiFetch(`/api/robots/${id}`, { method: 'DELETE' });
       if (res.ok) {
         fetchRobots();
       } else {
         const d = await res.json();
-        alert(d.message);
+        notificar(d.message, 'error');
       }
     } catch(e) {
       console.error(e);
@@ -663,8 +680,8 @@ export default function App() {
       body: JSON.stringify({ otorgar, motivo }),
     });
     const datos = await res.json().catch(() => null);
-    if (!res.ok) return alert(datos?.message || t('adminUsuarios.medallaError'));
-    alert(otorgar ? t('adminUsuarios.medallaHecha') : t('adminUsuarios.medallaRetirada'));
+    if (!res.ok) return notificar(datos?.message || t('adminUsuarios.medallaError'), 'error');
+    notificar(otorgar ? t('adminUsuarios.medallaHecha') : t('adminUsuarios.medallaRetirada'), 'exito');
     const yaTiene = { ...(editingUser.medallas ?? {}) };
     if (otorgar) yaTiene[clave] = motivo; else delete yaTiene[clave];
     setEditingUser({ ...editingUser, medallas: yaTiene });
@@ -945,7 +962,7 @@ export default function App() {
                   {mainContext === "cambiar_password" && (
                     <motion.div key="cambiar_password" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                       <CambiarPassword
-                        alTerminar={(u) => { setUser(u); alert(t('password.listo')); setMainContext("modules"); }}
+                        alTerminar={(u) => { setUser(u); notificar(t('password.listo'), 'exito'); setMainContext("modules"); }}
                         alCancelar={() => setMainContext("modules")}
                       />
                     </motion.div>
@@ -995,12 +1012,12 @@ export default function App() {
                         });
                         if (res.ok) {
                           setUser({ ...user, control_mappings: newMappings });
-                          alert(t('alertas.controlesGuardados'));
+                          notificar(t('alertas.controlesGuardados'), 'exito');
                         } else {
-                          alert(t('alertas.errorGuardarControles'));
+                          notificar(t('alertas.errorGuardarControles'), 'error');
                         }
                       } catch (e) {
-                        alert(t('perfil.errorConexion'));
+                        notificar(t('perfil.errorConexion'), 'error');
                       }
                     }}
                   />

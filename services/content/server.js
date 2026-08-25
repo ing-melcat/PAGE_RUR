@@ -504,10 +504,25 @@ const contactLimiter = rateLimit({
 });
 
 app.post('/api/contact', contactLimiter, async (req, res) => {
-  const { name, email, subject, message } = req.body || {};
-  
+  const name = String(req.body?.name ?? '').trim();
+  const email = String(req.body?.email ?? '').trim();
+  const subject = String(req.body?.subject ?? '').trim();
+  const message = String(req.body?.message ?? '').trim();
+
   if (!name || !email || !subject || !message) {
     return res.status(400).json({ success: false, message: 'Todos los campos son obligatorios' });
+  }
+
+  // Sin esto "noesunemail" se guardaba tal cual: nadie iba a poder
+  // contestarle a esa persona.
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ success: false, message: 'El correo no es válido' });
+  }
+  // El embed de Discord ya recorta el mensaje a 1024, pero eso no limita lo
+  // que se guarda en la base -- sin tope aquí, contact_messages crece sin
+  // límite por fila.
+  if (message.length > 5000) {
+    return res.status(400).json({ success: false, message: 'El mensaje es demasiado largo' });
   }
 
   try {

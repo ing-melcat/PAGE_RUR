@@ -14,6 +14,7 @@ import { markdownSanitizeSchema } from './lib/markdownSanitizeSchema';
 import { rehypeQuitarTituloDuplicado } from './lib/rehypeQuitarTituloDuplicado';
 import { componentesMarkdown } from './lib/componentesMarkdown';
 import { NotFound } from './components/NotFound';
+import { useTitulo } from './lib/useTitulo';
 import { useLanguage } from './lib/i18n';
 
 // Carga diferida: three.js y @react-three pesan cerca de un megabyte y solo
@@ -226,6 +227,7 @@ export const PublicationPage = () => {
   const [post, setPost] = useState<any>(null);
   const [noExiste, setNoExiste] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
+  useTitulo(post?.title);
 
   useEffect(() => {
     if (id) {
@@ -479,6 +481,7 @@ export const PublicationPage = () => {
 
 export const ArchiveDashboard = () => {
   const { t, lang } = useLanguage();
+  useTitulo(t('archivo.titulo'));
   const [posts, setPosts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   // 'all' y no 'todos': es el valor que llevan las <option> de los dos

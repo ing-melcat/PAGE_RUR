@@ -79,7 +79,20 @@ app.post('/api/login', loginIpLimiter, async (req, res) => {
   if (userRecord && userRecord.totp_enabled) {
     // Modo Passwordless 2FA
     try {
-      isMatch = verifySync({ token: credential, secret: userRecord.totp_secret, crypto: new NobleCryptoPlugin(), base32: new ScureBase32Plugin() }).valid;
+      const resultado = verifySync({ token: credential, secret: userRecord.totp_secret, crypto: new NobleCryptoPlugin(), base32: new ScureBase32Plugin() });
+      if (resultado.valid) {
+        // Marcar el paso como usado y comprobar que no lo estuviera ya
+        // tienen que ser la MISMA operación atómica -- leer totp_last_step
+        // aparte y decidir en JS deja una ventana entre el SELECT y este
+        // UPDATE (agravada por el await de bcrypt de abajo) donde dos
+        // peticiones concurrentes con el mismo código leen el mismo valor
+        // viejo y las dos se dan por válidas.
+        const { rowCount } = await pool.query(
+          'UPDATE users SET totp_last_step = $1 WHERE matricula = $2 AND (totp_last_step IS NULL OR totp_last_step < $1)',
+          [resultado.timeStep, matricula]
+        );
+        isMatch = rowCount > 0;
+      }
     } catch (e) {
       isMatch = false;
     }
@@ -341,6 +354,14 @@ app.put('/api/profile/password', verifyToken, cambioPasswordLimiter, csrfProtect
   const fila = rows[0];
   if (!fila) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
 
+  // Una cuenta con 2FA activo no tiene password_hash (pasa a NULL al
+  // activarlo) -- bcrypt.compare truena con un hash nulo. Sin este chequeo
+  // era un 500 crudo en vez de explicarle a quien lo pidió por qué no hay
+  // nada que cambiar por aquí.
+  if (!fila.password_hash) {
+    return res.status(400).json({ success: false, message: 'Esta cuenta usa autenticador (passwordless), no tiene contraseña que cambiar.' });
+  }
+
   if (!actual || !(await bcrypt.compare(actual, fila.password_hash))) {
     await saveLog('warning', `Cambio de contraseña rechazado para ${req.user.matricula}: la actual no coincide.`);
     return res.status(400).json({ success: false, message: 'Tu contraseña actual no es correcta.' });
@@ -383,7 +404,10 @@ app.put('/api/profile/password', verifyToken, cambioPasswordLimiter, csrfProtect
 
 app.get('/api/profile/2fa/generate', verifyToken, noStore, async (req, res) => {
   const secret = generateSecret(20);
-  const otpauth = generateURI({ secret, accountName: req.user.matricula, issuer: 'RUR Robotics' });
+  // otplib desestructura `label`, no `accountName` -- con el nombre de
+  // parámetro equivocado la app quedaba registrada en el autenticador como
+  // "RUR Robotics:undefined", indistinguible entre usuarios.
+  const otpauth = generateURI({ secret, label: req.user.matricula, issuer: 'RUR Robotics' });
   try {
     const qrCodeDataUrl = await QRCode.toDataURL(otpauth);
     res.json({ success: true, secret, otpauth, qrCodeDataUrl });
@@ -399,17 +423,22 @@ app.post('/api/profile/2fa/enable', verifyToken, csrfProtection, noStore, async 
   }
 
   let isValid = false;
+  let totpTimeStep = null;
   try {
-    isValid = verifySync({ token: code, secret, crypto: new NobleCryptoPlugin(), base32: new ScureBase32Plugin() }).valid;
+    const resultado = verifySync({ token: code, secret, crypto: new NobleCryptoPlugin(), base32: new ScureBase32Plugin() });
+    isValid = resultado.valid;
+    if (resultado.valid) totpTimeStep = resultado.timeStep;
   } catch(e) {}
-  
+
   if (!isValid) {
     return res.status(400).json({ success: false, message: 'El código no es válido' });
   }
 
+  // totp_last_step queda fijado desde ya en el código con el que se activó:
+  // sin esto, ese mismo código serviría también para el primer login.
   await pool.query(
-    'UPDATE users SET totp_secret = $1, totp_enabled = true, password_hash = NULL, password_temporal = false WHERE matricula = $2',
-    [secret, req.user.matricula]
+    'UPDATE users SET totp_secret = $1, totp_enabled = true, password_hash = NULL, password_temporal = false, totp_last_step = $2 WHERE matricula = $3',
+    [secret, totpTimeStep, req.user.matricula]
   );
 
   await saveLog('info', `${req.user.matricula} activó Passwordless 2FA.`);
