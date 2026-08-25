@@ -6,10 +6,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import sharp from 'sharp';
-import { NodeIO } from '@gltf-transform/core';
-import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { dedup, prune, join, weld, quantize, meshopt, textureCompress, simplify } from '@gltf-transform/functions';
-import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import rateLimit from 'express-rate-limit';
 import { getPool } from '../shared/db.js';
 import { verifyToken, requirePermiso, permisosDe, sesionOpcional, IS_PRODUCTION } from '../shared/auth.js';
@@ -78,22 +74,25 @@ const fileFilter = (req, file, cb) => {
 
 // El límite de ENTRADA, no el de lo que se guarda.
 //
-// No había ninguno y una subida podía llenar el disco. Pero un tope bajo tenía
-// el efecto contrario al buscado con los modelos 3D: rechazaba el archivo
-// gordo en la puerta y dejaba a quien lo subía sin más salida que comprimirlo
-// a mano. Ahora entra y se comprime aquí dentro (comprimirModelo), y lo que
-// queda en disco es el resultado —de 300 MB suelen quedar menos de 10—, así
-// que este número solo tiene que cubrir lo que llega, no lo que se sirve.
-//
-// 400 MB es holgado para una exportación sin optimizar. El disco lo protege
-// además uploadLimiter, y el archivo de entrada se borra en cuanto termina la
-// compresión.
-const LIMITE_SUBIDA = 400 * 1024 * 1024;
+// Antes eran 400 MB porque el servidor comprimía aquí dentro los modelos 3D:
+// había que dejar entrar la exportación en crudo para poder reducirla. Esa
+// compresión ya no vive aquí (ver el bloque de modelos más abajo), así que el
+// número vuelve a medir lo único que tiene que medir: lo más grande que es
+// razonable aceptar de un tirón. 100 MB cubre un vídeo corto —lo único
+// pesado que sigue subiéndose sin optimizar— y deja fuera las subidas de
+// cientos de MB, que en la práctica nunca terminaban: Caddy las cortaba a los
+// 16-30s con "stream error ... CANCEL" y quien subía recibía un 502 sin
+// explicación.
+const LIMITE_SUBIDA = 100 * 1024 * 1024;
 
-// Si la compresión de un modelo FALLA, hasta aquí se deja pasar el original.
-// Por encima se rechaza: servir cientos de MB a cada visitante es peor que
-// perder la subida, y quien la hizo puede volver a exportar.
-const SERVIBLE_SIN_COMPRIMIR = 25 * 1024 * 1024;
+// Techo específico de los modelos 3D, por debajo del general.
+//
+// Un .glb llega ya comprimido por el navegador (src/lib/comprimirModelo3D
+// .worker.ts) y de ahí suelen salir menos de 10 MB. 50 MB es holgado incluso
+// para un modelo detallado optimizado a mano; por encima, el archivo o no
+// pasó por esa compresión o no está pensado para verse en tiempo real, y
+// servirlo entero a cada visitante es peor que rechazar la subida.
+const LIMITE_MODELO = 50 * 1024 * 1024;
 
 const upload = multer({ storage, fileFilter, limits: { fileSize: LIMITE_SUBIDA } });
 
@@ -161,112 +160,31 @@ async function reducirImagen(rutaOriginal, nombreOriginal) {
 }
 
 // ---------------------------------------------------------------------------
-// Compresión de modelos 3D
+// Modelos 3D
 //
-// Mismo trato que las imágenes, y por el mismo motivo: lo que se sube no es lo
-// que conviene servir. Un .glb exportado de Blender o bajado de Sketchfab llega
-// con las texturas a 4K sin comprimir y la geometría en float32; uno de 300 MB
-// no es raro. Ese archivo lo descarga ENTERO cada visitante que abra la
-// publicación, así que publicarlo tal cual no es una opción.
+// Aquí NO se comprime. Un .glb llega ya reducido desde el navegador de quien
+// lo sube (src/lib/comprimirModelo3D.worker.ts, mismo pipeline de
+// gltf-transform: dedup + prune + join + weld + texturas a WebP + quantize +
+// meshopt), y el cliente aborta la subida si esa compresión falla en vez de
+// mandar el original -- así que lo que llega aquí ya es lo que conviene
+// servir.
 //
-// Qué se le hace:
-//   - dedup + prune + join: fuera lo repetido y lo que no cuelga de la escena
-//     (los exportadores dejan materiales y texturas huérfanos con alegría);
-//   - texturas a WebP y con un techo de TEXTURA_MAXIMA px — en un visor
-//     embebido en una página nadie distingue 4K de 2K, y ahí está la mayor
-//     parte del peso;
-//   - quantize + meshopt: la geometría deja de ser float32 y se comprime.
+// Antes se comprimía también en este servicio, por duplicado. Salía caro: la
+// escena entera se carga en memoria y un .glb de 307 MB llegaba a 1,9 GB de
+// pico, lo que obligaba a darle 2 GB de RAM a este contenedor —ocho veces lo
+// que usa cualquier otro servicio Node del stack— y a ponerle un tope de heap
+// a Node para que el kernel no lo matara a mitad de una subida. Todo eso para
+// repetir un trabajo que el navegador ya había hecho. Lo que queda en su
+// lugar es un techo de tamaño (LIMITE_MODELO): más barato, y suficiente,
+// porque el caso que protegía —servir cientos de MB a cada visitante— se
+// detecta igual de bien mirando el peso.
 //
-// meshopt y NO Draco a propósito: el visor carga con useGLTF de drei, que trae
-// el decodificador de meshopt dentro del bundle. Draco funcionaría, pero se
-// baja su decodificador de gstatic.com en cada visita — una dependencia
-// externa en tiempo de ejecución que no hace falta pagar.
-//
-// Por defecto NO se simplifica la malla: reduce el número de triángulos y eso
-// sí se ve, así que si un modelo pesa es porque quien lo publica quiso ese
-// nivel de detalle. Hay una única excepción, VERTICES_MAXIMOS_SIN_SIMPLIFICAR
-// más abajo: un modelo "recuperado" (rassorbody_full___recovered_.glb) subido
-// en agosto de 2026 resultó tener 9,2 millones de vértices y NINGUNA
-// textura -- un escaneo o una reconstrucción en crudo, no un modelo pensado
-// para verse en tiempo real. Ni cuantizar ni comprimir con meshopt bajan ese
-// número: solo hacen más pequeños los mismos 9,2 millones de vértices, así
-// que el navegador seguía intentando procesarlos enteros en cada visita. Sin
-// ningún ErrorBoundary en todo el proyecto (ver componente ErrorBoundary,
-// src/components/ErrorBoundary.tsx, que corrige eso del lado del visor), el
-// fallo se llevaba por delante toda la tarjeta -- de ahí que saliera en
-// blanco. VERTICES_OBJETIVO_SIMPLIFICADO es generoso a propósito: muy por
-// encima de cualquier modelo de robot modelado a mano, así que esto no debe
-// notarse en ningún archivo publicado hasta ahora -- solo entra a actuar en
-// el caso extremo que ya rompió algo.
+// Si un modelo hace falta afinarlo más (bajar polígonos, quitar texturas que
+// no se ven), se optimiza a mano antes de subirlo. Es trabajo manual, pero no
+// cuesta un contenedor de 2 GB en marcha todo el día para las pocas veces al
+// año que se publica un modelo nuevo.
 // ---------------------------------------------------------------------------
 const MODELOS = /\.(glb|gltf)$/i;
-const TEXTURA_MAXIMA = 2048;
-const VERTICES_MAXIMOS_SIN_SIMPLIFICAR = 500_000;
-const VERTICES_OBJETIVO_SIMPLIFICADO = 150_000;
-
-function contarVertices(documento) {
-  let total = 0;
-  for (const mesh of documento.getRoot().listMeshes()) {
-    for (const primitiva of mesh.listPrimitives()) {
-      const posiciones = primitiva.getAttribute('POSITION');
-      if (posiciones) total += posiciones.getCount();
-    }
-  }
-  return total;
-}
-
-async function comprimirModelo(rutaOriginal) {
-  const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({
-    'meshopt.decoder': MeshoptDecoder,
-    'meshopt.encoder': MeshoptEncoder,
-  });
-
-  const documento = await io.read(rutaOriginal);
-  await documento.transform(
-    dedup(),
-    prune(),
-    // keepNamed: aquí los modelos son robots, y sus piezas suelen venir como
-    // nodos con nombre —brazo, rueda, cazo—. Fusionarlas ahorraría algo de
-    // peso, pero se lleva por delante la estructura que hace falta si algún
-    // día se anima o se señala una pieza. La diferencia medida es de décimas
-    // de MB; no compensa.
-    join({ keepNamed: true }),
-    weld(),
-  );
-
-  // Después de weld() para contar sobre la malla ya deduplicada -- antes,
-  // vértices repetidos habrían inflado el número sin representar geometría
-  // real. Este paso va antes de cuantizar/comprimir: simplify() trabaja
-  // sobre la geometría todavía en float32.
-  const vertices = contarVertices(documento);
-  if (vertices > VERTICES_MAXIMOS_SIN_SIMPLIFICAR) {
-    const ratio = VERTICES_OBJETIVO_SIMPLIFICADO / vertices;
-    console.log(`[comprimirModelo] malla con ${vertices.toLocaleString()} vértices, por encima del techo -- simplificando a ~${VERTICES_OBJETIVO_SIMPLIFICADO.toLocaleString()}`);
-    await documento.transform(
-      simplify({ simplifier: MeshoptSimplifier, ratio, error: 0.01 })
-    );
-  }
-
-  await documento.transform(
-    textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [TEXTURA_MAXIMA, TEXTURA_MAXIMA] }),
-    quantize(),
-    meshopt({ encoder: MeshoptEncoder }),
-  );
-
-  // Siempre .glb de salida: un .gltf trae los binarios y las texturas en
-  // archivos sueltos al lado, y aquí solo se guarda el que sube el navegador
-  // -- el resto se habría perdido igual.
-  const destino = rutaOriginal.replace(/\.[^.]+$/, '') + '.glb';
-  await io.write(destino, documento);
-
-  // El pesado se borra: es el punto de todo esto. Si origen y destino son el
-  // mismo nombre (ya era .glb), io.write acaba de sobrescribirlo y no hay nada
-  // que borrar.
-  if (destino !== rutaOriginal) {
-    await fs.promises.unlink(rutaOriginal).catch(() => {});
-  }
-  return path.basename(destino);
-}
 
 const KNOWN_POST_FIELDS = new Set([
   'title', 'type', 'content', 'image', 'videoUrl', 'modelUrl', 'category', 'isHidden', 'pages',
@@ -471,26 +389,19 @@ app.post('/api/upload', verifyToken, uploadLimiter, csrfProtection, upload.singl
       console.error('[upload] no se pudo reducir la imagen:', e.message);
     }
   } else if (MODELOS.test(nombre)) {
-    const pesoOriginal = req.file.size;
-    try {
-      nombre = await comprimirModelo(req.file.path);
-      const { size } = await fs.promises.stat(path.join(UPLOADS_DIR, nombre));
-      console.log(`[upload] modelo comprimido: ${(pesoOriginal / 1048576).toFixed(1)} MB -> ${(size / 1048576).toFixed(1)} MB (${req.file.originalname})`);
-    } catch (e) {
-      console.error('[upload] no se pudo comprimir el modelo:', e.message);
-      // Aquí NO se conserva el original como se hace con las imágenes: una
-      // imagen que no se pudo optimizar pesa de más y ya está, pero un modelo
-      // sin comprimir puede ser de cientos de MB y lo descargaría entero cada
-      // visitante. Si supera lo que es razonable servir, se borra y se dice
-      // por qué; por debajo de ese techo se deja pasar tal cual.
-      if (pesoOriginal > SERVIBLE_SIN_COMPRIMIR) {
-        await fs.promises.unlink(req.file.path).catch(() => {});
-        return res.status(422).json({
-          success: false,
-          message: `No se pudo comprimir el modelo y pesa ${Math.round(pesoOriginal / 1048576)} MB, demasiado para publicarlo tal cual. Compruébalo en un visor glTF y vuelve a exportarlo.`,
-        });
-      }
+    // Un modelo que llega por encima del techo o no pasó por la compresión
+    // del navegador, o no está pensado para verse en tiempo real. En los dos
+    // casos se rechaza en vez de dejarlo publicado: lo descargaría entero
+    // cada visitante. A diferencia de una imagen que no se pudo optimizar
+    // —pesa de más y ya está— aquí la diferencia es de cientos de MB.
+    if (req.file.size > LIMITE_MODELO) {
+      await fs.promises.unlink(req.file.path).catch(() => {});
+      return res.status(422).json({
+        success: false,
+        message: `El modelo pesa ${Math.round(req.file.size / 1048576)} MB, por encima del límite de ${Math.round(LIMITE_MODELO / 1048576)} MB. Optimízalo antes de subirlo (por ejemplo en https://gltf.report): baja las texturas a 2K y reduce la malla.`,
+      });
     }
+    console.log(`[upload] modelo aceptado: ${(req.file.size / 1048576).toFixed(1)} MB (${req.file.originalname})`);
   }
 
   res.json({ url: `/api/uploads/${nombre}` });

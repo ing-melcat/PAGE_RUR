@@ -232,7 +232,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
       // HTML, no como JSON: sin esta comprobación, se intentaría leer un
       // mensaje de un objeto que nunca llegó a parsear.
       if (status < 200 || status >= 300 || !contentType?.includes('application/json') || !data) {
-        notificar('Error del servidor: el modelo puede superar el límite de 400 MB, o hubo un error de red.', 'error');
+        notificar('Error del servidor: el modelo puede superar el límite de 50 MB, o hubo un error de red.', 'error');
         setUploadingModel(false);
         e.target.value = '';
         return;
