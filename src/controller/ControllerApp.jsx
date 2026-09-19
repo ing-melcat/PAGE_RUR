@@ -232,6 +232,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     armBack: null,
   });
   const roomRef = useRef(null);
+  const dataTrackRef = useRef(null);
   const isConnectedRef = useRef(false);
 
 
@@ -303,24 +304,15 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     const encoder = new TextEncoder();
     const data = encoder.encode(commandStr);
 
-    const sendCommand = () => {
+    const sendCommand = async () => {
       // Un array vacío en destinationIdentities significa DIFUNDIR A TODOS en
       // LiveKit, no "a nadie". Si el robot no está en la sala hay que omitir el
       // envío por completo, o los comandos acabarían llegando a los
       // espectadores justo cuando no hay robot que los reciba.
       const destinos = identidadesDeRobots(roomRef.current);
-      if (destinos.length === 0) return;
+      if (destinos.length === 0 || !dataTrackRef.current) return;
       try {
-        roomRef.current.localParticipant.publishData(data, {
-          topic: TOPIC,
-          // reliable, no `kind`: livekit-client v2 solo mira options.reliable y
-          // descarta `kind` en silencio, así que el `kind: RELIABLE` anterior
-          // dejaba estos comandos saliendo como lossy. Un paquete de soltar
-          // botón perdido deja el actuador funcionando, así que aquí sí hace
-          // falta garantía de entrega.
-          reliable: true,
-          destinationIdentities: destinos,
-        });
+        await dataTrackRef.current.tryPush({ payload: data });
       } catch (err) {
         console.error('Error sending command:', err);
       }
@@ -378,7 +370,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   const buildPacket = useCallback((deadX, deadY) => {
     const packet = new ArrayBuffer(12)
     const view = new DataView(packet)
-    const timestamp = Math.floor(Date.now() / 1000)
+    const timestamp = Math.floor(performance.now())
     view.setUint32(0, timestamp, true)
     view.setFloat32(4, deadX, true)
     view.setFloat32(8, deadY, true)
@@ -386,20 +378,12 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   }, [])
 
   // Envía un paquete directamente por LiveKit
-  const sendPacketNow = useCallback((pkt) => {
-    if (roomRef.current && isConnectedRef.current && pkt) {
-      // Misma guarda que en sendCommand: sin robot en la sala no se difunde.
+  const sendPacketNow = useCallback(async (pkt) => {
+    if (roomRef.current && isConnectedRef.current && pkt && dataTrackRef.current) {
       const destinos = identidadesDeRobots(roomRef.current);
       if (destinos.length === 0) return;
       try {
-        roomRef.current.localParticipant.publishData(pkt, {
-          topic: TOPIC,
-          // El joystick manda su posición completa 10 veces por segundo: una
-          // pérdida se corrige sola 100 ms después. Retransmitir solo añadiría
-          // retraso.
-          reliable: false,
-          destinationIdentities: destinos,
-        });
+        await dataTrackRef.current.tryPush({ payload: pkt });
       } catch (err) {
         console.error('Error sending joystick data:', err);
       }
@@ -434,19 +418,13 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   const cameraPosRef = useRef({ pan: 0, tilt: 0 });
   const cameraActiveRef = useRef(false);
 
-  const sendCameraPacketNow = useCallback((pan, tilt) => {
-    if (!roomRef.current || !isConnectedRef.current) return;
+  const sendCameraPacketNow = useCallback(async (pan, tilt) => {
+    if (!roomRef.current || !isConnectedRef.current || !dataTrackRef.current) return;
     const destinos = identidadesDeRobots(roomRef.current);
     if (destinos.length === 0) return;
     try {
       const data = new TextEncoder().encode(JSON.stringify({ component: 'Camera', pan, tilt }));
-      roomRef.current.localParticipant.publishData(data, {
-        topic: TOPIC,
-        // Igual que el joystick de movimiento: 10 paquetes por segundo con
-        // la posición completa, una pérdida se corrige sola 100ms después.
-        reliable: false,
-        destinationIdentities: destinos,
-      });
+      await dataTrackRef.current.tryPush({ payload: data });
     } catch (err) {
       console.error('Error sending camera data:', err);
     }
@@ -768,6 +746,14 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
         autoSubscribe: true
       });
 
+      // Publicar el DataTrack para el control del robot, que es lo que espera ROS
+      try {
+        const dt = await roomInstance.localParticipant.publishDataTrack({ name: TOPIC });
+        dataTrackRef.current = dt;
+      } catch (err) {
+        console.error('Error publishing data track:', err);
+      }
+
       setIsConnected(true);
       isConnectedRef.current = true;
       setRoom(roomInstance);
@@ -830,10 +816,16 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     }
   }, [robot, connect, hasFetched, connectToLiveKit]);
 
-  const disconnect = useCallback(() => {
+  const disconnect = useCallback(async () => {
     if (room) {
       stopContinuousSend();
       stopCameraContinuousSend();
+      if (dataTrackRef.current) {
+        try {
+          await dataTrackRef.current.unpublish();
+        } catch (e) {}
+        dataTrackRef.current = null;
+      }
       room.disconnect();
       setRoom(null);
       roomRef.current = null;
