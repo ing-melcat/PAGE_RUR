@@ -21,4 +21,6 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3001/api/hello || exit 1
 
+USER node
+
 CMD ["node", "services/identity/server.js"]

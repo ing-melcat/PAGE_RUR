@@ -453,8 +453,12 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
         {(type === 'simple' || type === 'aviso' || type === 'evento' || type === '3d_model') && (
           <div className="input-group">
             <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <span>Fondo de Lectura (Opcional)</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>Imagen principal del artículo</span>
+              {/* Se llamaba "Fondo de Lectura" porque esta imagen era el papel
+                  tapiz de todo el texto. Ya no: ahora es la cabecera grande de
+                  la publicación (.portada-publicacion, index.css), un tramo de
+                  62vh -- máximo 620px -- con el título anclado abajo. */}
+              <span>Imagen de Cabecera (Opcional)</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>Rec: 2560x1440 | 16:9</span>
             </label>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setBackgroundImage)} style={{ display: 'none' }} id="upload-bg" />
@@ -462,7 +466,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                 {uploadingImage ? t('adminPublicaciones.subiendo') : <><Upload size={14} /> {t('adminPublicaciones.subirLocal')}</>}
               </label>
             </div>
-            <input type="text" value={backgroundImage} onChange={(e) => setBackgroundImage(e.target.value)} placeholder="Dejar en blanco para usar la Portada" />
+            <input type="text" value={backgroundImage} onChange={(e) => setBackgroundImage(e.target.value)} placeholder="Sin imagen, la cabecera sale compacta" />
           </div>
         )}
 

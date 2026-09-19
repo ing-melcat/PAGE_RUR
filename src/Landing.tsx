@@ -320,7 +320,15 @@ export const PublicationPage = () => {
       backgroundColor: 'var(--surface)',
       minHeight: '100vh',
       display: 'flex', flexDirection: 'column',
-      position: 'relative'
+      position: 'relative',
+      // El resplandor de aviso/evento de aquí abajo late con scale: 1.05,
+      // así que se sale un 2.5% por cada lado y hacía crecer el ancho de la
+      // página: scroll horizontal en cualquier publicación especial sin
+      // foto. Se recorta aquí en vez de quitarle el latido. El contador de
+      // cuenta atrás no se ve afectado: es position: fixed y este
+      // contenedor no lleva transform ni filter, así que sigue anclado al
+      // viewport, no a esta caja.
+      overflow: 'hidden'
     }}>
       {post.type === '3d_model' && post.modelUrl && (
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, backgroundColor: '#05070f' }}>
@@ -344,8 +352,8 @@ export const PublicationPage = () => {
       )}
       
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, zIndex: 10, position: 'relative' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '20px 40px', borderBottom: `2px solid ${isSpecial ? specialColor : 'var(--border)'}`, alignItems: 'center', background: 'rgba(5,16,37,0.8)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', gap: '20px' }}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
+        <div className="cabecera-publicacion">
+          <Link to="/" className="cabecera-publicacion__logo" style={{ textDecoration: 'none' }}>
             <div className="action-card logo-card" style={{ display: 'flex', alignItems: 'center', border: `0.6px solid ${isSpecial ? specialColor : 'var(--accent)'}`, padding: '8px 16px', gap: '12px', transition: 'all 0.3s ease' }}>
               <div className="logo-img-container">
                 <img src={logoUrl} alt="Logo" className="logo-img-default" />
@@ -361,11 +369,7 @@ export const PublicationPage = () => {
             </div>
           </Link>
 
-          <h2 style={{ margin: 0, color: isSpecial ? specialColor : 'var(--text)', fontFamily: 'var(--font-titulo)', fontSize: '1.35rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '12px', letterSpacing: '1px', flex: 1, justifyContent: 'center', textAlign: 'center' }}>
-            {isSpecial && <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: specialColor, animation: 'pulse 1.5s infinite' }}></div>}
-            {post.title}
-          </h2>
-          <Link to="/" style={{ textDecoration: 'none', background: 'transparent', border: `1px solid ${isSpecial ? specialColor : 'var(--accent)'}`, color: isSpecial ? specialColor : 'var(--accent)', padding: '6px 16px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.9rem', borderRadius: '4px', whiteSpace: 'nowrap' }}>{t('publicacion.volver')}</Link>
+          <Link to="/" className="cabecera-publicacion__volver" style={{ border: `1px solid ${isSpecial ? specialColor : 'var(--accent)'}`, color: isSpecial ? specialColor : 'var(--accent)' }}>{t('publicacion.volver')}</Link>
         </div>
 
         {/* La portada reemplaza al fondo que antes cubría toda la lectura

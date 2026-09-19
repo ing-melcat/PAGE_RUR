@@ -275,6 +275,82 @@ h1 {
   letter-spacing: 0.2em;
 }
 
+/* ==================================================================
+   Botones flotantes de una publicación
+   ------------------------------------------------------------------
+   Era una barra de verdad: fondo semitransparente con desenfoque y una
+   línea de color debajo, ocupando su hueco en el flujo. Ahora los dos
+   botones (inicio y volver) flotan sobre la portada, sin barra que los
+   sostenga: la foto -- o el azul de la variante compacta -- empieza
+   pegada al borde superior de la ventana y ellos quedan encima.
+
+   Va absolute y no fixed a propósito: sin fondo, un botón fijo acabaría
+   flotando sobre el texto de la lectura y sería ilegible en cuanto se
+   baja. Aquí se quedan en la portada, que es oscura y lleva su velo, y
+   se van con el scroll.
+
+   El contenedor no intercepta clics (pointer-events: none) porque cruza
+   toda la portada por encima; solo los botones vuelven a recibirlos.
+
+   Los estilos van en clases y no en línea porque hacen falta media
+   queries: con el logo entero y sus 40px de padding, esto medía más que
+   la pantalla de un teléfono y la página hacía scroll horizontal.
+   ================================================================== */
+.cabecera-publicacion {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 40px;
+  pointer-events: none;
+}
+
+.cabecera-publicacion__logo,
+.cabecera-publicacion__volver {
+  pointer-events: auto;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.cabecera-publicacion__volver {
+  /* Sobre una foto clara el botón necesita algo de cuerpo propio: es el
+     mismo azul de la superficie, casi transparente, lo justo para que el
+     texto no se apoye directamente en la imagen. */
+  background: rgba(5, 16, 37, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-family: var(--font-ibm-mono), monospace;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .cabecera-publicacion {
+    gap: 12px;
+    /* Los mismos 16px de margen lateral que usan .responsive-section y
+       .portada__marco en móvil. */
+    padding: 14px 16px;
+  }
+
+  /* Solo dentro de esta barra: en la del sitio público el nombre sí cabe,
+     porque ahí el menú central se esconde tras el botón de hamburguesa. */
+  .cabecera-publicacion .logo-text-container {
+    display: none;
+  }
+
+  .cabecera-publicacion__volver {
+    font-size: var(--t-xs);
+    padding: 6px 10px;
+  }
+}
+
 /* ------------------------------------------------------------------
    Portada de publicación (PublicationPage, Landing.tsx)
    ------------------------------------------------------------------

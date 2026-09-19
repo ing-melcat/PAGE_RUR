@@ -2,8 +2,8 @@
 # gateway, antes de que la petición llegue a cualquier servicio, cualquier
 # IP que CrowdSec ya haya marcado (fuerza bruta, scanners, etc). El
 # caddy:latest oficial no trae este módulo -- hay que compilarlo con xcaddy.
-FROM caddy:2-builder AS builder
+FROM caddy:2.7-builder AS builder
 RUN xcaddy build --with github.com/hslatman/caddy-crowdsec-bouncer/http
 
-FROM caddy:latest
+FROM caddy:2.7-alpine
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
