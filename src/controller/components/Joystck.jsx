@@ -73,6 +73,22 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
             if (x !== 0 || y !== 0) active = true;
         };
 
+        // Cuando el operador cambia de pestaña o la ventana pierde el foco, el
+        // navegador deja de disparar keyup. Sin este handler el robot seguiría
+        // recibiendo comandos aunque el operador no esté mirando la consola.
+        const detenerPorPerderFoco = () => {
+            let habiaMovimiento = false;
+            for (const k of Object.keys(keys)) {
+                if (keys[k]) habiaMovimiento = true;
+                keys[k] = false;
+            }
+            rapido = false;
+            if (habiaMovimiento || active) {
+                active = false;
+                handleStopEvent();
+            }
+        };
+
         const handleKeyDown = (e) => {
             if (e.repeat) return;
             // Shift se aplica en caliente: si ya vas moviéndote, acelera sin
@@ -101,12 +117,20 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
             }
         };
 
+        const handleVisibility = () => {
+            if (document.hidden) detenerPorPerderFoco();
+        };
+
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
+        window.addEventListener('blur', detenerPorPerderFoco);
+        document.addEventListener('visibilitychange', handleVisibility);
 
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
+            window.removeEventListener('blur', detenerPorPerderFoco);
+            document.removeEventListener('visibilitychange', handleVisibility);
         };
     }, [handleMoveEvent, handleStopEvent, keyboardEnabled]);
 

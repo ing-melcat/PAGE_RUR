@@ -305,6 +305,7 @@ function LecturaEnLinea({ titulo, valor, unidad, contenido, activo = true, ancho
 export function BarraTelemetria({
   room, fuenteLocal, posicion = 'abajo', margen = 0, esencial = false, entrada,
   accionesMenu = [], audiencia, widgetsIniciales = WIDGETS_POR_DEFECTO,
+  isRobotConnected,
 }) {
   const { t } = useLanguage();
   // Estado, decodificación e inactividad viven en el hook: el HUD del
@@ -733,17 +734,58 @@ export function BarraTelemetria({
                     <ChipEntrada entrada={entrada} transicion={transicion} />
                   </div>
                 )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{
-                    width: '8px', height: '8px', borderRadius: '50%',
-                    background: enVivo ? 'var(--success)' : 'var(--error)',
-                    boxShadow: `0 0 8px ${enVivo ? 'var(--success)' : 'var(--error)'}`,
-                    transition: transicion,
-                  }} />
-                  <span className="telemetria__pie" style={{ color: enVivo ? 'var(--success)' : 'var(--error)' }}>
-                    {enVivo ? t('telemetria.enVivo') : t('telemetria.sinSenal')}
-                  </span>
-                </div>
+                {/* Indicador de señal: en modo operador refleja si el robot está
+                    en la sala LiveKit (isRobotConnected); en modo espectador usa
+                    enVivo (telemetría recibida). Verde=conectado, rojo+overlay=sin señal. */}
+                {(() => {
+                  // Cuando el operador pasa isRobotConnected (booleano), se usa ese
+                  // valor; cuando es undefined (espectador), se cae a enVivo.
+                  const haySenal = isRobotConnected !== undefined ? isRobotConnected : enVivo;
+                  return (
+                    <div style={{ position: 'relative' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{
+                          width: '8px', height: '8px', borderRadius: '50%',
+                          background: haySenal ? 'var(--success)' : 'var(--error)',
+                          boxShadow: `0 0 8px ${haySenal ? 'var(--success)' : 'var(--error)'}`,
+                          transition: transicion,
+                        }} />
+                        <span className="telemetria__pie" style={{ color: haySenal ? 'var(--success)' : 'var(--error)' }}>
+                          {haySenal ? t('telemetria.enVivo') : t('telemetria.sinSenal')}
+                        </span>
+                      </div>
+                      {/* Overlay "DISCONNECTED / NO SIGNAL" — solo cuando no hay robot.
+                          Fondo gris-azulado semitransparente, texto centrado, aparece
+                          suavemente encima del indicador para que no pase desapercibido.
+                          isRobotConnected !== undefined discrimina modo operador del espectador. */}
+                      {!haySenal && isRobotConnected !== undefined && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '50%', left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          background: 'rgba(30, 40, 60, 0.72)',
+                          backdropFilter: 'blur(4px)',
+                          WebkitBackdropFilter: 'blur(4px)',
+                          borderRadius: '4px',
+                          padding: '4px 10px',
+                          pointerEvents: 'none',
+                          whiteSpace: 'nowrap',
+                          zIndex: 2,
+                        }}>
+                          <span style={{
+                            fontFamily: 'var(--font-ibm-mono), monospace',
+                            fontSize: '0.68rem',
+                            letterSpacing: '0.1em',
+                            textTransform: 'uppercase',
+                            color: 'rgba(180,195,220,0.8)',
+                          }}>
+                            {t('telemetria.sinSenal')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 {/* Estos valores son las órdenes del operador. Si no hay robot
                     conectado no las está recibiendo nadie, y hay que decirlo o el
                     espectador creería que la unidad se está moviendo. Es una

@@ -221,6 +221,10 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
 
   const [hasGamepad, setHasGamepad] = useState(false);
   const [forceMobileMode, setForceMobileMode] = useState(false);
+  // true cuando el mando conectado no tiene el mapping 'standard' del W3C:
+  // controladores PS, Nintendo, VR wands, gamepads BLE propios. Algunos
+  // reportan sus ejes sin el orden estándar y se avisa al operador.
+  const [hasNonStandardGamepad, setHasNonStandardGamepad] = useState(false);
 
   const gamepadStateRef = useRef({ x: 0, y: 0, buttons: {} });
   // Estado del esquema de gatillo+stick: qué gatillo está sostenido y qué
@@ -232,8 +236,11 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     armBack: null,
   });
   const roomRef = useRef(null);
-  const dataTrackRef = useRef(null);
   const isConnectedRef = useRef(false);
+  // Evita apilar múltiples await para paquetes del joystick: si hay un envío
+  // en vuelo, el próximo tick usa el valor actualizado de joystickPosRef en
+  // lugar de encolar otro mensaje — efecto UDP last-write-wins sin backpressure.
+  const isSendingJoystickRef = useRef(false);
 
 
 
@@ -269,16 +276,24 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
 
   // Rescate para cuando la Gamepad API reporta un mando que no existe: sin
   // esto los controles táctiles se quedan ocultos y la consola inservible.
+  // Si además el mando es no-standard se muestra una nota informativa.
   const accionesMenu = hasGamepad
-    ? [{
-        label: t('operador.controller.olvidarMando'),
-        onClick: () => {
-          setHasGamepad(false);
-          setForceMobileMode(false);
-          setVisible(true);
-          setVisible1(true);
+    ? [
+        ...(hasNonStandardGamepad ? [{
+          label: t('operador.controller.mandoNoEstandar'),
+          onClick: undefined, // solo informativa, no acción
+        }] : []),
+        {
+          label: t('operador.controller.olvidarMando'),
+          onClick: () => {
+            setHasGamepad(false);
+            setHasNonStandardGamepad(false);
+            setForceMobileMode(false);
+            setVisible(true);
+            setVisible1(true);
+          },
         },
-      }]
+      ]
     : [];
 
   const telemetriaLocal = useCallback(
@@ -310,9 +325,9 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
       // envío por completo, o los comandos acabarían llegando a los
       // espectadores justo cuando no hay robot que los reciba.
       const destinos = identidadesDeRobots(roomRef.current);
-      if (destinos.length === 0 || !dataTrackRef.current) return;
+      if (destinos.length === 0) return;
       try {
-        await dataTrackRef.current.tryPush({ payload: data });
+        await roomRef.current.localParticipant.publishData(data, { reliable: false, topic: TOPIC });
       } catch (err) {
         console.error('Error sending command:', err);
       }
@@ -379,13 +394,19 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
 
   // Envía un paquete directamente por LiveKit
   const sendPacketNow = useCallback(async (pkt) => {
-    if (roomRef.current && isConnectedRef.current && pkt && dataTrackRef.current) {
+    if (roomRef.current && isConnectedRef.current && pkt) {
       const destinos = identidadesDeRobots(roomRef.current);
       if (destinos.length === 0) return;
+      // Last-write-wins: si ya hay un envío del joystick en vuelo, se descarta
+      // este paquete — el siguiente tick traerá el valor más reciente.
+      if (isSendingJoystickRef.current) return;
+      isSendingJoystickRef.current = true;
       try {
-        await dataTrackRef.current.tryPush({ payload: pkt });
+        await roomRef.current.localParticipant.publishData(pkt, { reliable: false, topic: TOPIC });
       } catch (err) {
         console.error('Error sending joystick data:', err);
+      } finally {
+        isSendingJoystickRef.current = false;
       }
     }
   }, [])
@@ -419,12 +440,12 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   const cameraActiveRef = useRef(false);
 
   const sendCameraPacketNow = useCallback(async (pan, tilt) => {
-    if (!roomRef.current || !isConnectedRef.current || !dataTrackRef.current) return;
+    if (!roomRef.current || !isConnectedRef.current) return;
     const destinos = identidadesDeRobots(roomRef.current);
     if (destinos.length === 0) return;
     try {
       const data = new TextEncoder().encode(JSON.stringify({ component: 'Camera', pan, tilt }));
-      await dataTrackRef.current.tryPush({ payload: data });
+      await roomRef.current.localParticipant.publishData(data, { reliable: false, topic: TOPIC });
     } catch (err) {
       console.error('Error sending camera data:', err);
     }
@@ -500,7 +521,38 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
       }
     }, PERIODO_TELEMETRIA_MS);
 
-    return () => clearInterval(tickMaestro);
+    // Cuando la pestaña queda oculta, los keyup de Joystck.jsx ya no llegan
+    // (el fix de blur los cubre, pero buttonSendersRef lo maneja ControllerApp
+    // directamente). Se vacía aquí para que el tick maestro no siga llamando
+    // esas funciones con la consola en segundo plano.
+    const detenerBotones = () => {
+      if (document.hidden) {
+        // Enviar un stop por cada botón activo antes de limpiar el mapa.
+        for (const [clave, _] of Object.entries(buttonSendersRef.current)) {
+          const partes = clave.split('-');
+          if (partes.length >= 2) {
+            const component = partes[0];
+            const action = partes[1];
+            const stopObj = { component, action, state: false };
+            const data = new TextEncoder().encode(JSON.stringify(stopObj));
+            const destinos = identidadesDeRobots(roomRef.current);
+            if (destinos.length > 0 && roomRef.current) {
+              roomRef.current.localParticipant.publishData(data, { reliable: true, topic: TOPIC }).catch(() => {});
+            }
+          }
+        }
+        buttonSendersRef.current = {};
+        estadoActuadoresRef.current = {};
+        continuousSendActiveRef.current = false;
+        cameraActiveRef.current = false;
+      }
+    };
+    document.addEventListener('visibilitychange', detenerBotones);
+
+    return () => {
+      clearInterval(tickMaestro);
+      document.removeEventListener('visibilitychange', detenerBotones);
+    };
   }, [buildPacket, sendPacketNow, sendCameraPacketNow]);
 
   // Las tres entradas —táctil, teclado y mando— entregan ya lo mismo: -1..1,
@@ -539,9 +591,16 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   useEffect(() => {
     const handleGamepadConnected = (e) => {
       setHasGamepad(true);
+      // Detectar si el mando tiene el mapping estándar del W3C o uno propio.
+      // Controladores PS, Nintendo, algunos BLE y la mayoría de wands de VR
+      // reportan mapping='' (vacío) porque el navegador no sabe cómo remapearlos.
+      // En ese caso se avisa al operador y se usa un modo heurístico en pollGamepad.
+      const esEstandar = e.gamepad?.mapping === 'standard';
+      setHasNonStandardGamepad(!esEstandar);
     };
     const handleGamepadDisconnected = (e) => {
       setHasGamepad(false);
+      setHasNonStandardGamepad(false);
     };
 
     window.addEventListener("gamepadconnected", handleGamepadConnected);
@@ -555,6 +614,34 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
           const gp = gamepads[i];
           if (gp) {
             const deadZone = 0.15;
+            // Un mando puede conectarse sin haber disparado 'gamepadconnected'
+            // (algunos navegadores solo lo hacen al pulsar un botón). Se comprueba
+            // el mapping aquí también por si ese primer poll llega antes del evento.
+            if (!hasGamepad && (gp.axes.some(a => Math.abs(a) > deadZone) || gp.buttons.some(b => b.pressed))) {
+              setHasGamepad(true);
+              setHasNonStandardGamepad(gp.mapping !== 'standard');
+            }
+
+            // ----------------------------------------------------------------
+            // Detección de mapeo: standard vs. no-standard
+            //
+            // 'standard' (Xbox, la mayoría de mandos USB en Windows/Linux):
+            //   Axes: 0=LX, 1=LY, 2=RX, 3=RY
+            //   Buttons: 0=A, 1=B, 2=X, 3=Y, 4=LB, 5=RB, 6=LT, 7=RT, ...
+            //
+            // No-standard (PS en macOS sin driver, Nintendo Switch Pro,
+            // wands de VR como Oculus/Meta/Valve Index):
+            //   - PS: axes 0/1=LStick, 2/5=RStick, botones reordenados
+            //   - Nintendo: A/B/X/Y rotados 90°
+            //   - VR wands: pueden tener 6+ ejes (6DOF: pos+rot) y ningún
+            //     botón coincide con el mapa estándar.
+            //
+            // Estrategia para no-standard: primer stick funcional = movimiento.
+            // Se busca el primer par de ejes (0,1), (2,3), etc. con algún valor
+            // fuera de la dead zone. Así un PS/Nintendo/VR wand mueve el robot
+            // en cuanto se mueve el stick principal, sin config extra.
+            // ----------------------------------------------------------------
+            const esEstandar = gp.mapping === 'standard';
 
             // --- Gatillo + stick: mientras se sostiene LT/RT, el stick de esa
             // misma mano deja de mover el robot y sube/baja el brazo
@@ -563,8 +650,8 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
             // conducción; LT comparte el stick izquierdo con el movimiento,
             // así que sostenerlo sí lo congela.
             const gatillo = gatilloArmRef.current;
-            const ltPresionado = Boolean(gp.buttons[INDICE_LT]?.pressed);
-            const rtPresionado = Boolean(gp.buttons[INDICE_RT]?.pressed);
+            const ltPresionado = esEstandar ? Boolean(gp.buttons[INDICE_LT]?.pressed) : false;
+            const rtPresionado = esEstandar ? Boolean(gp.buttons[INDICE_RT]?.pressed) : false;
 
             if ((ltPresionado || rtPresionado) && !hasGamepad) {
               setHasGamepad(true);
@@ -609,8 +696,32 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
             // El stick izquierdo solo mueve el robot cuando no está prestado
             // al brazo delantero.
             if (!ltPresionado) {
-              let lx = gp.axes[0] || 0;
-              let ly = gp.axes[1] || 0;
+              let lx, ly;
+
+              if (esEstandar) {
+                // Mapping estándar (Xbox): ejes fijos.
+                lx = gp.axes[0] || 0;
+                ly = gp.axes[1] || 0;
+              } else {
+                // Mapping no-standard: buscar el primer par de ejes con
+                // actividad fuera de la dead zone. Cubre PS (0/1 en Windows,
+                // 0/1 también en macOS), Nintendo (0/1) y VR wands (varía,
+                // pero el primer stick suele ser el primario en todos).
+                // Se toma el par (ejeBase, ejeBase+1) que tenga mayor magnitud.
+                let maxMag = 0;
+                lx = 0; ly = 0;
+                for (let j = 0; j + 1 < gp.axes.length; j += 2) {
+                  const ax = gp.axes[j] || 0;
+                  const ay = gp.axes[j + 1] || 0;
+                  const mag = Math.hypot(ax, ay);
+                  if (mag > maxMag) {
+                    maxMag = mag;
+                    lx = ax;
+                    ly = ay;
+                  }
+                }
+              }
+
               if (Math.abs(lx) < deadZone) lx = 0;
               if (Math.abs(ly) < deadZone) ly = 0;
 
@@ -647,10 +758,10 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
               }
             };
 
-            // Antes iban fijos aquí (índices de D-pad, con 'arm'/'drum'
-            // genéricos que ni la telemetría ni el robot reconocían). Ahora
-            // salen del mapeo que configuró el operador, con los nombres de
-            // componente exactos que espera robot_receiver_prod.py.
+            // Para gamepads no-standard se usan los mismos índices: en la
+            // práctica los botones de cara (0-3) suelen coincidir o estar muy
+            // cerca en PS/Nintendo. El operador puede reasignarlos desde el
+            // modal de configuración.
             for (const indice in mapaGamepadPorIndice) {
               const { component, action } = mapaGamepadPorIndice[indice];
               checkButton(Number(indice), component, action);
@@ -746,13 +857,6 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
         autoSubscribe: true
       });
 
-      // Publicar el DataTrack para el control del robot, que es lo que espera ROS
-      try {
-        const dt = await roomInstance.localParticipant.publishDataTrack({ name: TOPIC });
-        dataTrackRef.current = dt;
-      } catch (err) {
-        console.error('Error publishing data track:', err);
-      }
 
       setIsConnected(true);
       isConnectedRef.current = true;
@@ -820,12 +924,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     if (room) {
       stopContinuousSend();
       stopCameraContinuousSend();
-      if (dataTrackRef.current) {
-        try {
-          await dataTrackRef.current.unpublish();
-        } catch (e) {}
-        dataTrackRef.current = null;
-      }
+
       room.disconnect();
       setRoom(null);
       roomRef.current = null;
@@ -901,6 +1000,10 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
           // encendida de fábrica o el operador perdería un dato que antes
           // tenía siempre a la vista.
           widgetsIniciales={WIDGETS_OPERADOR}
+          // Estado real del robot en la sala LiveKit: el indicador de señal
+          // usa esto en lugar de `enVivo` (telemetría) para reflejar si el
+          // robot está conectado o desconectado, con overlay "NO SIGNAL".
+          isRobotConnected={isRobotConnected}
         />
       )}
 
