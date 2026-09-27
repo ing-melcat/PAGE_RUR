@@ -520,11 +520,9 @@ export function BarraTelemetria({
         // Un estilo en línea le ganaría a cualquier @media y dejaría la
         // regla muerta.
         ...(esencial ? {} : { top: arriba ? margen : undefined, bottom: arriba ? undefined : margen, left: 0, right: 0 }),
-        // Mismo navy casi negro que el header/footer del sitio (--background),
-        // no --surface: la barra es parte del armazón de la página, no una
-        // tarjeta flotando sobre él -- eso es lo que hacía que compitiera con
-        // el video en vez de enmarcarlo.
-        background: 'var(--background)',
+        // El color azul de los controles (surface) para mantener
+        // la consistencia de diseño que pidió el usuario.
+        background: 'var(--surface)',
         boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
         backdropFilter: 'blur(4px)',
         WebkitBackdropFilter: 'blur(4px)',
