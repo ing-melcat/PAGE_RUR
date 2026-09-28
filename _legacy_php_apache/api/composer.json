@@ -1,7 +1,0 @@
-{
-    "name": "rur/livekit-backend",
-    "description": "Backend API for LiveKit authentication",
-    "require": {
-        "agence104/livekit-server-sdk": "^1.0"
-    }
-}
