@@ -4,7 +4,10 @@ import {
   INACTIVIDAD_MS,
   TELEMETRIA_VACIA,
   TOPIC_TELEMETRIA,
+  TOPIC_MISION,
+  MISION_VACIA,
   decodificarTelemetria,
+  decodificarMision,
 } from './telemetria';
 
 /**
@@ -92,4 +95,32 @@ export function useSinMovimiento() {
   }, []);
 
   return sinMovimiento;
+}
+
+export function useMision(room, fuenteLocal) {
+  const [mision, setMision] = useState(MISION_VACIA);
+
+  useEffect(() => {
+    if (!fuenteLocal) return;
+    const id = setInterval(() => {
+      const datos = fuenteLocal();
+      if (datos) setMision(datos);
+    }, 1000); // 1 sec poll for local mission
+    return () => clearInterval(id);
+  }, [fuenteLocal]);
+
+  useEffect(() => {
+    if (fuenteLocal || !room) return;
+
+    const alRecibir = (payload, _participante, _kind, topic) => {
+      if (topic !== TOPIC_MISION) return;
+      const datos = decodificarMision(payload);
+      if (datos) setMision(datos);
+    };
+
+    room.on(RoomEvent.DataReceived, alRecibir);
+    return () => room.off(RoomEvent.DataReceived, alRecibir);
+  }, [room, fuenteLocal]);
+
+  return mision;
 }

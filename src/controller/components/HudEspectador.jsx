@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { ACTUADORES } from '../telemetria';
-import { useTelemetria, useSinMovimiento } from '../useTelemetria';
+import { useTelemetria, useSinMovimiento, useMision } from '../useTelemetria';
 import { useTelemetriaRobot } from '../useTelemetriaRobot';
 import { Horizonte, Bateria, VelocidadReal } from './Instrumentos';
 
@@ -96,10 +96,11 @@ function RelojMision({ desde }) {
  *                 la capa de OBS para componer escenas distintas con la misma
  *                 ruta (?widgets=avance,giro), sin necesidad de tocar código.
  */
-export function HudEspectador({ room, titulo, widgets, simular = false }) {
+export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl }) {
   const visible = (id) => !widgets || widgets.includes(id);
   const { t } = useLanguage();
   const { telemetria, enVivo } = useTelemetria(room);
+  const mision = useMision(room);
   // Sensores del robot. Devuelve null mientras nadie los publique, y cada
   // instrumento se apaga solo: ninguno dibuja un valor por defecto.
   const sensores = useTelemetriaRobot(room, simular);
@@ -109,10 +110,7 @@ export function HudEspectador({ room, titulo, widgets, simular = false }) {
   // Instante en que empezó a llegar telemetría. Es el arranque del reloj de
   // misión, y se fija una sola vez: si el enlace parpadea, el cronómetro no
   // vuelve a cero como si la sesión hubiera empezado de nuevo.
-  const [inicio, setInicio] = useState(null);
-  useEffect(() => {
-    if (enVivo) setInicio((previo) => previo ?? Date.now());
-  }, [enVivo]);
+
 
   // Se iguala al periodo de la telemetría (100 ms): suaviza el salto entre
   // paquetes sin añadir retraso perceptible sobre lo que ya tarda el dato.
@@ -131,21 +129,23 @@ export function HudEspectador({ room, titulo, widgets, simular = false }) {
             reloj y el nombre de la unidad quedan debajo, como su pie. */}
         {visible('robot3d') && (
           <Suspense fallback={null}>
-            <RassorEnVivo avance={telemetria.avance} giro={telemetria.giro} imu={sensores?.imu} />
+            <RassorEnVivo avance={telemetria.avance} giro={telemetria.giro} imu={sensores?.imu} modelUrl={modelUrl} />
           </Suspense>
         )}
         <div className="hud__reloj">
-          <span className="hud__reloj-signo">T+</span> <RelojMision desde={inicio} />
+          <span className="hud__reloj-signo">T+</span> <RelojMision desde={mision.inicio} />
         </div>
         <div className="hud__subtitulo">
-          {titulo}
-          {/* La advertencia va aquí y no escondida en un widget: si el robot
-              no está recibiendo las órdenes, todo lo demás que muestra este
-              HUD es lo que el operador PIDE, no lo que ocurre. */}
+          <span style={{ fontSize: '1.2em', color: 'var(--text)' }}>{mision.titulo ? mision.titulo : titulo}</span>
           {enVivo && !telemetria.robot && (
             <span className="hud__alerta"> · {t('telemetria.sinRobotConectado')}</span>
           )}
         </div>
+        {mision.objetivo && (
+          <div className="hud__objetivo" style={{ color: 'var(--accent)', fontSize: '0.9em', marginTop: '6px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            OBJETIVO: {mision.objetivo}
+          </div>
+        )}
         {/* Aquí es donde iría la línea de fases de la misión. Está fuera a
             propósito: las fases (excavación, descarga...) no se pueden deducir
             de la telemetría, hay que definirlas por evento. Pendiente de esa

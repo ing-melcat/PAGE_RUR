@@ -196,6 +196,7 @@ function construirTelemetria({ avance: ejeAvance, giro: ejeGiro }, actuadoresInt
 export default function ControllerApp({ onBack, robot, controlMappings, mode = 'manual' }) {
   const { t } = useLanguage();
   const [isMobile] = useState(window.innerWidth <= 932);
+  const [hasKeyboard, setHasKeyboard] = useState(false);
   const [visible, setVisible] = useState(true);
   const [visible1, setVisible1] = useState(true);
   const [visible2, setVisible2] = useState(false);
@@ -265,13 +266,13 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   //
   // Con mando conectado los controles táctiles se ocultan (ver controls-overlay
   // más abajo), y ese hueco es el que aprovecha la barra para expandirse.
-  const controlesOcultos = hasGamepad && !forceMobileMode;
+  const controlesOcultos = (hasGamepad || hasKeyboard) && !forceMobileMode;
 
   const entradaActiva = {
-    modo: controlesOcultos ? t('telemetria.mando') : t('telemetria.tactil'),
-    activo: hasGamepad,
+    modo: controlesOcultos ? (hasGamepad ? t('telemetria.mando') : (t('telemetria.teclado') || 'Teclado')) : t('telemetria.tactil'),
+    activo: hasGamepad || hasKeyboard,
     // Solo tiene sentido alternar si de verdad hay un mando que ignorar.
-    onAlternar: hasGamepad ? () => setForceMobileMode((v) => !v) : undefined,
+    onAlternar: (hasGamepad || hasKeyboard) ? () => setForceMobileMode((v) => !v) : undefined,
   };
 
   // Rescate para cuando la Gamepad API reporta un mando que no existe: sin
@@ -498,14 +499,13 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
           estadoActuadoresRef.current,
           identidadesDeRobots(roomRef.current).length > 0
         );
-        try {
-          roomRef.current.localParticipant.publishData(
-            new TextEncoder().encode(JSON.stringify(resumen)),
-            { topic: TOPIC_TELEMETRIA, reliable: false }
-          );
-        } catch (err) {
-          console.error('Error enviando telemetría:', err);
-        }
+        roomRef.current.localParticipant.publishData(
+          new TextEncoder().encode(JSON.stringify(resumen)),
+          { topic: TOPIC_TELEMETRIA, reliable: false }
+        ).catch(() => {
+          // Silenciado: el transporte de datos puede no estar listo aún.
+          // El siguiente tick (100ms) reintentará automáticamente.
+        });
       }
 
       // 3. Reenvío continuo del joystick (dead-man's switch).
@@ -812,9 +812,21 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
       handleAction(entrada.component, entrada.action, false);
     };
 
+    
+    const alDetectarTeclado = (e) => {
+      if (e.key === 'Escape') {
+        setForceMobileMode(true);
+        return;
+      }
+      if (e.key.startsWith('F') || e.key === 'Meta' || e.key === 'Alt' || e.key === 'Control' || e.key === 'Shift' || e.key === 'Tab') return;
+      setHasKeyboard(true);
+      setForceMobileMode(false);
+    };
+    window.addEventListener('keydown', alDetectarTeclado);
     window.addEventListener('keydown', alPresionar);
     window.addEventListener('keyup', alSoltar);
     return () => {
+      window.removeEventListener('keydown', alDetectarTeclado);
       window.removeEventListener('keydown', alPresionar);
       window.removeEventListener('keyup', alSoltar);
     };
@@ -989,7 +1001,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
           room={room}
           fuenteLocal={telemetriaLocal}
           posicion="abajo"
-          margen={controlesOcultos ? 0 : 24}
+          margen={24}
           esencial={!controlesOcultos}
           entrada={entradaActiva}
           accionesMenu={accionesMenu}

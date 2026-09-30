@@ -239,7 +239,7 @@
   opacity: 0;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .social-icon:hover {
     background: var(--surface-strong);
     transform: translateY(-2px);
@@ -255,7 +255,7 @@
   }
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .logo-card:hover .logo-text-default {
     transform: translateY(-100%) !important;
     opacity: 0 !important;
@@ -268,7 +268,7 @@
   color: var(--background) !important;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .logo-card:hover .logo-img-default {
     opacity: 0 !important;
   }
@@ -286,7 +286,7 @@
 
 /* El selector ocupa varias líneas y solo la última llevaba el `{`, así que
    al proteger los hover del táctil se partió por la mitad. Envuelto entero. */
-@media (hover: hover) {
+@media (any-hover: hover) {
   .logo-card:hover .logo-text-default,
   .logo-card:hover .logo-text-hover,
   .logo-card:hover .logo-img-default,
@@ -435,14 +435,10 @@
    quedar a los lados no se notan como letterbox. */
 .portada__foto--grafico {
   filter: none;
-  background-size: contain;
+  background-size: cover;
   background-repeat: no-repeat;
   background-color: var(--background);
-  /* El titular va anclado abajo (.portada__marco, justify-content:
-     flex-end); centrar el gráfico verticalmente lo dejaba a la misma
-     altura que el texto y el emblema circular quedaba detrás de las
-     letras. Arriba, la pieza y el titular ocupan bandas separadas. */
-  background-position: center top;
+  background-position: center;
 }
 
 /* Oscurece solo la mitad de abajo, que es donde va el texto. Apagar la

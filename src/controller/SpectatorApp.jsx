@@ -45,7 +45,7 @@ export default function SpectatorApp() {
   // más vale medio segundo de más que un parpadeo.
   const [esperaMinima, setEsperaMinima] = useState(false);
   useEffect(() => {
-    const id = setTimeout(() => setEsperaMinima(true), 900);
+    const id = setTimeout(() => setEsperaMinima(true), 250);
     return () => clearTimeout(id);
   }, []);
   const listo = isConnected && esperaMinima;
@@ -214,7 +214,7 @@ export default function SpectatorApp() {
       {/* Telemetría de lo que está haciendo el operador, con el lenguaje de
           una retransmisión de lanzamiento. Solo se pinta con la sala ya
           conectada: antes de eso no hay canal de datos que escuchar. */}
-      {listo && <HudEspectador room={room} titulo={robotName || robotId} simular={simular} />}
+      {listo && <HudEspectador room={room} titulo={robotName || robotId} simular={simular} modelUrl={robotModelUrl} />}
     </div>
   );
 }

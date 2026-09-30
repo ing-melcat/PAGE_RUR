@@ -46,8 +46,11 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
             DrumFrontCw: "Y", DrumFrontCcw: "X", DrumBackCw: "B", DrumBackCcw: "A"
         },
         keyboard: {
-            ArmFrontUp: "KeyW", ArmFrontDown: "KeyS", ArmBackUp: "KeyE", ArmBackDown: "KeyD",
+            ArmFrontUp: "KeyI", ArmFrontDown: "KeyK", ArmBackUp: "KeyO", ArmBackDown: "KeyL",
             DrumFrontCw: "KeyR", DrumFrontCcw: "KeyF", DrumBackCw: "KeyT", DrumBackCcw: "KeyG"
+        },
+        keyboardMovement: {
+            Forward: "KeyW", Backward: "KeyS", Left: "KeyA", Right: "KeyD"
         }
     });
     // Nombre de la acción (ej. "ArmFrontUp") que está esperando la siguiente
@@ -88,9 +91,16 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                 const gamepadValido = Object.fromEntries(
                     Object.entries(controlMappings.gamepad || {}).filter(([clave]) => clave in prev.gamepad)
                 );
+                const keyboardValido = Object.fromEntries(
+                    Object.entries(controlMappings.keyboard || {}).filter(([clave]) => clave in prev.keyboard)
+                );
+                const movementValido = Object.fromEntries(
+                    Object.entries(controlMappings.keyboardMovement || {}).filter(([clave]) => clave in (prev.keyboardMovement || {}))
+                );
                 return {
                     gamepad: { ...prev.gamepad, ...gamepadValido },
-                    keyboard: { ...prev.keyboard, ...(controlMappings.keyboard || {}) }
+                    keyboard: { ...prev.keyboard, ...keyboardValido },
+                    keyboardMovement: { ...prev.keyboardMovement, ...movementValido }
                 };
             });
         }
@@ -118,10 +128,13 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                 setCapturandoTecla(null);
                 return;
             }
-            setMappingForm(prev => ({
-                ...prev,
-                keyboard: { ...prev.keyboard, [capturandoTecla]: e.code },
-            }));
+            setMappingForm(prev => {
+                const isMovement = prev.keyboardMovement && capturandoTecla in prev.keyboardMovement;
+                if (isMovement) {
+                    return { ...prev, keyboardMovement: { ...prev.keyboardMovement, [capturandoTecla]: e.code } };
+                }
+                return { ...prev, keyboard: { ...prev.keyboard, [capturandoTecla]: e.code } };
+            });
             setCapturandoTecla(null);
         };
         window.addEventListener('keydown', alPresionar);
@@ -361,9 +374,13 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                         </div>
 
                         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                            {['gamepad', 'keyboard'].map(type => (
+                            {['gamepad', 'keyboard', 'keyboardMovement'].map(type => (
                                 <div key={type} style={{ ...S.panel, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    <h4 style={{ ...S.sectionTitle }}>{type === 'gamepad' ? t('operador.seleccion.mando') : t('operador.seleccion.teclado')}</h4>
+                                    <h4 style={{ ...S.sectionTitle }}>
+                                        {type === 'gamepad' ? t('operador.seleccion.mando') : 
+                                         type === 'keyboardMovement' ? t('operador.seleccion.tecladoMovimiento') || 'Teclado (Movimiento)' : 
+                                         t('operador.seleccion.teclado')}
+                                    </h4>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                         {Object.keys(mappingForm[type]).map(action => (
                                             <label key={action} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -381,7 +398,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                                     valor de animación (el color salía mal, tipo negro), y en
                                                     pantallas táctiles whileHover se queda pegado hasta el
                                                     siguiente toque en otra parte. */}
-                                                {type === 'keyboard' ? (
+                                                {type === 'keyboard' || type === 'keyboardMovement' ? (
                                                     <motion.button
                                                         type="button"
                                                         onClick={() => setCapturandoTecla(action)}
@@ -403,7 +420,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                                                 {t('operador.seleccion.presionaTecla')}
                                                             </>
                                                         ) : (
-                                                            formatearTecla(mappingForm.keyboard[action])
+                                                            formatearTecla(mappingForm[type][action])
                                                         )}
                                                     </motion.button>
                                                 ) : (

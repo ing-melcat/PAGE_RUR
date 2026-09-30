@@ -11,6 +11,7 @@
  */
 
 export const TOPIC_TELEMETRIA = 'telemetria';
+export const TOPIC_MISION = 'mision';
 
 // Canal por el que el ROBOT publica sus propios sensores, separado del de
 // arriba a propósito: en `telemetria` viaja lo que el operador ORDENA y aquí
@@ -57,6 +58,7 @@ export const ETIQUETAS_AVANCE = { adelante: 'ADELANTE', atras: 'ATRÁS' };
 export const ETIQUETAS_GIRO = { izquierda: 'IZQUIERDA', derecha: 'DERECHA' };
 
 export const TELEMETRIA_VACIA = { avance: null, giro: null, actuadores: {}, robot: false };
+export const MISION_VACIA = { titulo: '', objetivo: '', inicio: null };
 
 /**
  * Decodifica un paquete de telemetría. Devuelve null si el paquete no es
@@ -111,6 +113,20 @@ export function decodificarTelemetriaRobot(payload) {
     }
 
     return resultado;
+  } catch {
+    return null;
+  }
+}
+
+export function decodificarMision(payload) {
+  try {
+    const datos = JSON.parse(new TextDecoder().decode(payload));
+    if (!datos || datos.v !== 1) return null;
+    return {
+      titulo: datos.titulo || '',
+      objetivo: datos.objetivo || '',
+      inicio: datos.inicio || null, // Timestamp de cuando inició
+    };
   } catch {
     return null;
   }

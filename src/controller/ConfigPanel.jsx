@@ -75,6 +75,23 @@ export function ConfigPanel({ onApply }) {
                                     onChange={(e) => setSensitivity(Number(e.target.value))}
                                     className="slider"
                                 />
+                                <svg width="100%" height="60" viewBox="0 0 200 60" style={{ marginTop: '15px', background: 'var(--background)', borderRadius: '6px', border: '1px solid var(--border)', display: 'block', overflow: 'visible' }}>
+                                    {/* Grid reference line (Linear) */}
+                                    <path d="M 0 60 L 200 0" fill="none" stroke="var(--muted)" strokeWidth="1" strokeDasharray="4 4" opacity="0.5" />
+                                    {/* The Curve */}
+                                    <path d={(() => {
+                                        let d = "M 0 60";
+                                        const steps = 40;
+                                        for (let i = 1; i <= steps; i++) {
+                                            const x = i / steps;
+                                            const y = Math.pow(x, 1 / sensitivity);
+                                            const px = x * 200;
+                                            const py = 60 - (y * 60);
+                                            d += ` L ${px.toFixed(1)} ${py.toFixed(1)}`;
+                                        }
+                                        return d;
+                                    })()} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
                             </div>
 
                             <div className="control-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '15px 0' }}>

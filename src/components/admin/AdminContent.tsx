@@ -205,13 +205,14 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
         file = resultado.archivo;
       } catch (err) {
         console.error('[modelo3d] no se pudo comprimir en el navegador:', err);
-        // Igual que en LoginApp.tsx: NO se intenta subir el original. Es
-        // precisamente su tamaño lo que hace fallar una conexión inestable,
-        // así que reintentar con él repetiría el mismo error sin explicarlo.
-        notificar(t('alertas.errorComprimirModelo'), 'error');
-        setComprimiendoModel(false);
-        e.target.value = '';
-        return;
+        if (file.size > 50 * 1024 * 1024) {
+            notificar(t('alertas.errorComprimirModelo') + ': El archivo original es demasiado grande.', 'error');
+            setComprimiendoModel(false);
+            e.target.value = '';
+            return;
+        } else {
+            console.warn('[modelo3d] El archivo ya es pequeño (' + (file.size/1048576).toFixed(1) + ' MB). Subiendo original sin comprimir...');
+        }
       }
       setComprimiendoModel(false);
     }

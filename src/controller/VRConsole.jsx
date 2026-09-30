@@ -171,7 +171,7 @@ function ControlXR({ onMove, onAction, onCameraAim }) {
 
 export function VRConsole({ room, isConnected, onMove, onAction, onCameraAim, onExit }) {
   const { t } = useLanguage();
-  const videoRef = useLiveKitVideoTrack(room, isConnected);
+  const { videoRef } = useLiveKitVideoTrack(room, isConnected);
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#000' }}>

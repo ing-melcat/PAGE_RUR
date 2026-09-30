@@ -1,14 +1,28 @@
-import React, { useRef, Suspense } from 'react';
+import React, { useRef, Suspense, useMemo } from 'react';
+import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, ContactShadows, useGLTF } from '@react-three/drei';
+import { OrbitControls, ContactShadows, useGLTF, Bounds } from '@react-three/drei';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 // Modelo 3D cargado desde un archivo .glb
 function RealRobotModel({ url, isOffline }) {
-  // Para evitar crasheos si el archivo no existe, deberíamos capturar errores,
-  // pero useGLTF normalmente se maneja con Suspense.
   const { scene } = useGLTF(url);
   const group = useRef();
+
+  const clonedScene = useMemo(() => {
+    const s = scene.clone();
+    const materialColor = isOffline ? "#555555" : "#FFFFFF";
+    s.traverse((child) => {
+      if (child.isMesh) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: materialColor,
+          roughness: 0.4,
+          metalness: 0.1
+        });
+      }
+    });
+    return s;
+  }, [scene, isOffline]);
 
   useFrame((state, delta) => {
     if (group.current) {
@@ -16,12 +30,11 @@ function RealRobotModel({ url, isOffline }) {
     }
   });
 
-  // Clona la escena para poder aplicarle materiales si está offline
-  // Por simplicidad, solo rotamos. Para desaturar, se tendría que iterar sobre los meshes.
-
   return (
-    <group ref={group} dispose={null} scale={1.5} position={[0, -0.5, 0]}>
-      <primitive object={scene} />
+    <group ref={group} dispose={null} position={[0, -0.5, 0]}>
+      <Bounds fit clip observe margin={1.5}>
+        <primitive object={clonedScene} />
+      </Bounds>
     </group>
   );
 }
@@ -40,7 +53,7 @@ function PlaceholderRobotModel({ isOffline }) {
   // Literal y no var(--accent): three.js no resuelve variables CSS, descarta el
   // valor y cae a blanco. Por eso la vista previa nunca salió en ámbar, y de
   // ahí el aviso "Unknown color model var(--accent)" en la consola.
-  const color = "#FBCA01";
+  const color = "#FFFFFF";
   const materialColor = isOffline ? "#555555" : color;
 
   return (

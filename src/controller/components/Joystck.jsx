@@ -5,7 +5,7 @@ import { Joystick } from 'react-joystick-component';
 // gradación: o pulsas o no, así que a fondo sería la única velocidad posible.
 const VELOCIDAD_TECLADO = 0.5;
 
-export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent = true, keyboardEnabled = true }) {
+export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent = true, keyboardEnabled = true, keyboardMappings }) {
 
     // Todo lo que sale de aquí va en -1..1, la escala de
     // react-joystick-component, y con el mismo significado de ejes: el primer
@@ -38,21 +38,21 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
 
     useEffect(() => {
         if (!keyboardEnabled) return;
-        const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+        const keys = { Forward: false, Backward: false, Left: false, Right: false };
         let active = false;
         let rapido = false;
 
+        const maps = keyboardMappings || { Forward: 'KeyW', Backward: 'KeyS', Left: 'KeyA', Right: 'KeyD' };
+
         const updateJoystickFromKeys = () => {
-            // El teclado es todo o nada, así que sin esto cada tecla saldría a
-            // fondo. Se conduce a media potencia y Shift acelera.
             const tope = rapido ? 1 : VELOCIDAD_TECLADO;
 
             let x = 0;
             let y = 0;
-            if (keys.w || keys.ArrowUp) y += tope;
-            if (keys.s || keys.ArrowDown) y -= tope;
-            if (keys.d || keys.ArrowRight) x += tope;
-            if (keys.a || keys.ArrowLeft) x -= tope;
+            if (keys.Forward) y += tope;
+            if (keys.Backward) y -= tope;
+            if (keys.Right) x += tope;
+            if (keys.Left) x -= tope;
 
             // En diagonal los dos ejes suman y el vector se pasaría del tope
             // (1.41 con Shift). Se recorta manteniendo la dirección.
@@ -91,16 +91,20 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
 
         const handleKeyDown = (e) => {
             if (e.repeat) return;
-            // Shift se aplica en caliente: si ya vas moviéndote, acelera sin
-            // tener que soltar y volver a presionar la dirección.
             if (e.key === 'Shift') {
                 rapido = true;
                 updateJoystickFromKeys();
                 return;
             }
-            if (keys.hasOwnProperty(e.key)) {
+            let match = null;
+            if (e.code === maps.Forward || e.key === 'ArrowUp') match = 'Forward';
+            if (e.code === maps.Backward || e.key === 'ArrowDown') match = 'Backward';
+            if (e.code === maps.Left || e.key === 'ArrowLeft') match = 'Left';
+            if (e.code === maps.Right || e.key === 'ArrowRight') match = 'Right';
+            
+            if (match) {
                 rapido = e.shiftKey;
-                keys[e.key] = true;
+                keys[match] = true;
                 updateJoystickFromKeys();
             }
         };
@@ -111,8 +115,14 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
                 updateJoystickFromKeys();
                 return;
             }
-            if (keys.hasOwnProperty(e.key)) {
-                keys[e.key] = false;
+            let match = null;
+            if (e.code === maps.Forward || e.key === 'ArrowUp') match = 'Forward';
+            if (e.code === maps.Backward || e.key === 'ArrowDown') match = 'Backward';
+            if (e.code === maps.Left || e.key === 'ArrowLeft') match = 'Left';
+            if (e.code === maps.Right || e.key === 'ArrowRight') match = 'Right';
+
+            if (match) {
+                keys[match] = false;
                 updateJoystickFromKeys();
             }
         };
@@ -132,7 +142,7 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
             window.removeEventListener('blur', detenerPorPerderFoco);
             document.removeEventListener('visibilitychange', handleVisibility);
         };
-    }, [handleMoveEvent, handleStopEvent, keyboardEnabled]);
+    }, [handleMoveEvent, handleStopEvent, keyboardEnabled, keyboardMappings]);
 
     return (
         <Joystick

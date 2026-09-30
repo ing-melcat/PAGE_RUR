@@ -135,8 +135,10 @@ export default function App() {
 
   // Nada de estado en el navegador, tampoco el de navegación: al recargar se
   // arranca en login y /api/me decide a dónde se va, según la sesión real.
-  const [view, setView] = useState("login");
-  const [controlMode, setControlMode] = useState("manual");
+  const [view, setView] = useState(() => sessionStorage.getItem('loginApp_view') || "login");
+  useEffect(() => { sessionStorage.setItem('loginApp_view', view); }, [view]);
+  const [controlMode, setControlMode] = useState(() => sessionStorage.getItem('loginApp_controlMode') || "manual");
+  useEffect(() => { sessionStorage.setItem('loginApp_controlMode', controlMode); }, [controlMode]);
   const [user, setUser] = useState<any>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
 
@@ -156,7 +158,7 @@ export default function App() {
         const data = await res.json();
         if (data.success) {
           setUser(data.user);
-          setView("dashboard");
+          setView(v => v === "login" ? "dashboard" : v);
         } else {
           setView("login");
         }
@@ -175,7 +177,8 @@ export default function App() {
   const [error, setError] = useState("");
   const [isShaking, setIsShaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [mainContext, setMainContext] = useState("modules");
+  const [mainContext, setMainContext] = useState(() => sessionStorage.getItem('loginApp_mainContext') || "modules");
+  useEffect(() => { sessionStorage.setItem('loginApp_mainContext', mainContext); }, [mainContext]);
   const [activeModule, setActiveModule] = useState<any>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const loadingActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -194,7 +197,21 @@ export default function App() {
   // en sessionStorage la dejaba en texto plano al alcance de cualquier script,
   // el mismo error del que ya se migró al pasar el JWT a una cookie httpOnly.
   // Al recargar se vuelve a pedir al backend, que es barato y siempre correcto.
-  const [livekitToken, setLivekitToken] = useState<any>("");
+  const [livekitToken, setLivekitToken] = useState<any>(() => {
+    try {
+      const stored = sessionStorage.getItem('loginApp_livekitToken');
+      return stored ? JSON.parse(stored) : "";
+    } catch {
+      return "";
+    }
+  });
+  useEffect(() => { 
+    if (livekitToken) {
+      sessionStorage.setItem('loginApp_livekitToken', JSON.stringify(livekitToken)); 
+    } else {
+      sessionStorage.removeItem('loginApp_livekitToken');
+    }
+  }, [livekitToken]);
   // Pestaña del panel de personal: las personas y los roles se administran
   // en el mismo sitio porque es donde los roles se asignan.
   const [pestanaPersonal, setPestanaPersonal] = useState<'personas'|'roles'|'medallas'>('personas');
@@ -308,14 +325,15 @@ export default function App() {
         file = resultado.archivo;
       } catch (err) {
         console.error('[modelo3d] no se pudo comprimir en el navegador:', err);
-        // A diferencia de una imagen que no se pudo optimizar (esa sí se
-        // sube igual, sin más), aquí NO se intenta subir el original: es
-        // precisamente su tamaño lo que hace fallar la conexión, así que
-        // reintentar con él repetiría el mismo error sin decir por qué.
-        notificar(t('alertas.errorComprimirModelo'), 'error');
-        setComprimiendoRobotModel(false);
-        e.target.value = '';
-        return;
+        if (file.size > 50 * 1024 * 1024) {
+            notificar(t('alertas.errorComprimirModelo') + ': El archivo original es demasiado grande.', 'error');
+            setComprimiendoRobotModel(false);
+            e.target.value = '';
+            return;
+        } else {
+            console.warn('[modelo3d] El archivo ya es pequeño (' + (file.size/1048576).toFixed(1) + ' MB). Subiendo original sin comprimir...');
+            // No hacemos return, permitimos que el código siga y suba 'file' (el original)
+        }
       }
       setComprimiendoRobotModel(false);
     }
@@ -334,7 +352,7 @@ export default function App() {
         onProgress: setProgresoModelo,
       });
       if (status < 200 || status >= 300 || !contentType?.includes('application/json') || !data) {
-         notificar('Error del servidor: Posiblemente el archivo es demasiado grande.', 'error');
+         notificar(data?.message || ('Error del servidor (' + status + '). Intenta de nuevo.'), 'error');
          setUploadingRobotModel(false);
          e.target.value = '';
          return;
@@ -931,7 +949,7 @@ export default function App() {
                   transition={{ delay: 0.4 }}
                   style={{ margin: 0, color: 'var(--text)', fontWeight: 400, fontSize: '2rem', fontFamily: 'var(--font-ibm-mono)' }}
                 >
-                  {user.nombre}
+                  {user?.nombre}
                 </motion.h2>
                 <motion.div 
                   initial={{ opacity: 0 }}
@@ -1002,7 +1020,7 @@ export default function App() {
                       setLivekitToken(robot); // We repurpose this state to hold the entire robot object
                       setView("modo_control");
                     }}
-                    controlMappings={user.control_mappings}
+                    controlMappings={user?.control_mappings}
                     onUpdateMappings={async (newMappings) => {
                       try {
                         const res = await apiFetch('/api/profile/mappings', {
@@ -1038,7 +1056,7 @@ export default function App() {
             </motion.section>
           )}
 
-          {view === "controles" && livekitToken && (
+          {view === "controles" && user && livekitToken && (
             <motion.section key="controller" className="controller-view" {...pageTransition}>
               <Suspense fallback={
                 <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
@@ -1049,7 +1067,7 @@ export default function App() {
                 <ControllerApp
                   onBack={() => setView("modo_control")}
                   robot={livekitToken}
-                  controlMappings={user.control_mappings}
+                  controlMappings={user?.control_mappings}
                   mode={controlMode}
                 />
               </Suspense>

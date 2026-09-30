@@ -1,6 +1,6 @@
 import { Suspense, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { ContactShadows } from '@react-three/drei';
+import { ContactShadows, useGLTF } from '@react-three/drei';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import * as THREE from 'three';
 import { NIVEL_MAX } from '../telemetria';
@@ -36,7 +36,7 @@ import { NIVEL_MAX } from '../telemetria';
 //
 // La alternativa era el GLB de la NASA (/models/rassor.glb), que sí trae
 // materiales y malla ligera, pero no es esta máquina.
-const MODELO_STL = '/models/rassor-real.stl';
+const MODELO_STL_FALLBACK = '/models/rassor-real.stl';
 
 // Los STL de CAD vienen en milímetros y sin centrar: 479 × 455 × 262 mm. Se
 // normaliza al vuelo para que el robot mida ~1.6 de largo, que es la escala
@@ -95,65 +95,122 @@ function SombraApoyo() {
  * donde no lo hay.
  */
 function Guias({ avance, giro }) {
-  const izquierda = useRef();
-  const derecha = useRef();
   const grupo = useRef();
+  const animTime = useRef(0);
+  
+  // Custom shader para Opción 3 modificada: Amarillo + Perfil de aceleración
+  const materialGrid = useMemo(() => new THREE.ShaderMaterial({
+    uniforms: {
+      time: { value: 0 },
+      largo: { value: 1.0 },
+      curvatura: { value: 0.0 },
+      signo: { value: 1.0 },
+      centroZ: { value: CENTRO_Z },
+      colorBase: { value: new THREE.Color("#FBCA01") }, // Amarillo (Amber) solicitado
+      colorPeligro: { value: new THREE.Color("#FF3300") } // Rojo advertencia
+    },
+    vertexShader: `
+      uniform float largo;
+      uniform float curvatura;
+      uniform float signo;
+      uniform float centroZ;
+      varying vec2 vUv;
+      varying float vDist;
+      
+      void main() {
+        vUv = uv;
+        float dist = uv.y * largo;
+        vDist = dist;
+        float ang = curvatura * dist * 0.5;
+        
+        float xLocal = (uv.x - 0.5) * 1.1;
+        
+        vec3 pos = position;
+        pos.x = xLocal * cos(ang) + sin(ang) * dist * signo;
+        pos.z = (xLocal * sin(ang) - cos(ang) * dist) * signo + centroZ;
+        pos.y = 0.02; 
+        
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float time;
+      uniform float signo;
+      uniform float curvatura;
+      uniform vec3 colorBase;
+      uniform vec3 colorPeligro;
+      varying vec2 vUv;
+      varying float vDist;
+      
+      void main() {
+        float fadeY = smoothstep(1.0, 0.0, vUv.y) * smoothstep(0.0, 0.05, vUv.y);
+        float fadeX = smoothstep(0.0, 0.01, vUv.x) * smoothstep(1.0, 0.99, vUv.x);
+        
+        float leftRail = step(vUv.x, 0.04);
+        float rightRail = step(0.96, vUv.x);
+        float rails = leftRail + rightRail;
+        
+        float distMod = fract(vDist * 2.0); 
+        float horizontal = step(0.92, distMod);
+        
+        float centerLine = step(0.495, vUv.x) * step(vUv.x, 0.505);
+        float dash = step(0.5, fract(vDist * 4.0));
+        float center = centerLine * dash;
+        
+        // Scan animado basado en time (que ahora acelera realista)
+        float scan = step(0.85, fract(vUv.y * 1.5 - time * 1.2 * signo));
+        
+        float alpha = clamp(rails + horizontal + center + scan * 0.5, 0.0, 1.0);
+        
+        float peligro = smoothstep(0.3, 0.7, abs(curvatura));
+        vec3 colorFinal = mix(colorBase, colorPeligro, peligro);
+        
+        gl_FragColor = vec4(colorFinal, alpha * fadeY * fadeX * 0.9);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    side: THREE.DoubleSide
+  }), []);
 
-  const geometrias = useMemo(() => [
-    new THREE.BufferGeometry(),
-    new THREE.BufferGeometry(),
-  ], []);
-
-  useFrame(() => {
+  useFrame((state, delta) => {
     const y = conSigno(avance, 'atras');
     const x = conSigno(giro, 'izquierda');
 
-    // Sin rejilla, las guías son lo único que cuenta el movimiento: también
-    // se muestran girando sobre el eje, donde antes bastaba con ver rotar el
-    // suelo.
     const hayMando = Math.abs(y) > 0.01 || Math.abs(x) > 0.01;
     if (grupo.current) grupo.current.visible = hayMando;
     if (!hayMando) return;
 
-    // Arco de circunferencia: cuanto más giro, más cerrado. Con el mando
-    // centrado el radio tiende a infinito, así que la guía sale recta.
-    const largo = 1.2 + Math.max(Math.abs(y), Math.abs(x) * 0.5) * 2.2;
-    const curvatura = x * 0.9;
-    const signo = Math.sign(y) || 1;   // girando en parado, las guías van al frente
+    // Perfil de aceleración: la animación fluye más rápido entre más inclinas el joystick
+    const velocidadGiro = Math.abs(x) * 0.5;
+    const velocidadLineal = Math.abs(y);
+    const velocidadMax = Math.max(velocidadLineal, velocidadGiro);
+    
+    // Incrementamos el "tiempo de la animación" en función de la velocidad de entrada
+    animTime.current += delta * (0.2 + velocidadMax * 2.0);
 
-    [[-0.42, izquierda], [0.42, derecha]].forEach(([offset, ref], i) => {
-      const puntos = [];
-      for (let p = 0; p <= 16; p++) {
-        const t = (p / 16) * largo;
-        const ang = curvatura * t * 0.5;
-        puntos.push(new THREE.Vector3(
-          offset * Math.cos(ang) + Math.sin(ang) * t * signo,
-          0.02,
-          (offset * Math.sin(ang) - Math.cos(ang) * t) * signo + CENTRO_Z,
-        ));
-      }
-      geometrias[i].setFromPoints(puntos);
-      if (ref.current) ref.current.geometry = geometrias[i];
-    });
+    const largo = 1.2 + velocidadMax * 2.2;
+    const curvatura = x * 0.9;
+    const signo = Math.sign(y) || 1;
+
+    materialGrid.uniforms.time.value = animTime.current;
+    materialGrid.uniforms.largo.value = largo;
+    materialGrid.uniforms.curvatura.value = curvatura;
+    materialGrid.uniforms.signo.value = signo;
   });
 
   return (
     <group ref={grupo}>
-      <line ref={izquierda}>
-        <bufferGeometry />
-        <lineBasicMaterial color="#FBCA01" transparent opacity={0.75} />
-      </line>
-      <line ref={derecha}>
-        <bufferGeometry />
-        <lineBasicMaterial color="#FBCA01" transparent opacity={0.75} />
-      </line>
+      <mesh material={materialGrid}>
+        <planeGeometry args={[1, 1, 1, 32]} />
+      </mesh>
     </group>
   );
 }
-
-function Modelo({ imu }) {
+function ModeloSTL({ url, imu }) {
   const grupo = useRef();
-  const geometria = useLoader(STLLoader, MODELO_STL);
+  const geometria = useLoader(STLLoader, url);
 
   // Centrado, apoyo en el suelo y escala, calculados de la propia malla en vez
   // de con números a mano: si mañana se exporta otra versión del CAD, el
@@ -238,7 +295,51 @@ function Modelo({ imu }) {
   );
 }
 
-export function RassorEnVivo({ avance, giro, imu, escala = 1 }) {
+
+function ModeloGLB({ url, imu }) {
+  const grupo = useRef();
+  const { scene } = useGLTF(url);
+
+  const { escalaModelo, desplazamiento } = useMemo(() => {
+    const caja = new THREE.Box3().setFromObject(scene);
+    const tam = new THREE.Vector3();
+    caja.getSize(tam);
+    const centro = new THREE.Vector3();
+    caja.getCenter(centro);
+    const k = LARGO_OBJETIVO / Math.max(tam.x, tam.y, tam.z);
+    return {
+      escalaModelo: k,
+      desplazamiento: [-centro.x * k, -caja.min.y * k, -centro.z * k],
+    };
+  }, [scene]);
+
+  useFrame((_e, delta) => {
+    if (!grupo.current) return;
+    const filtrar = (grados) => {
+      if (grados == null || Math.abs(grados) < UMBRAL_GRADOS) return 0;
+      return ((grados - Math.sign(grados) * UMBRAL_GRADOS) * COMPRESION * Math.PI) / 180;
+    };
+    const pitch = -filtrar(imu?.pitch);
+    const roll = filtrar(imu?.roll);
+    grupo.current.rotation.x += (pitch - grupo.current.rotation.x) * Math.min(1, delta * 1.8);
+    grupo.current.rotation.z += (roll - grupo.current.rotation.z) * Math.min(1, delta * 1.8);
+  });
+
+  return (
+    <group ref={grupo} dispose={null}>
+      <primitive object={scene.clone()} scale={escalaModelo} position={desplazamiento} />
+    </group>
+  );
+}
+
+function SelectorModelo({ modelUrl, imu }) {
+  if (!modelUrl || modelUrl.match(/\.stl$/i)) {
+    return <ModeloSTL url={modelUrl || MODELO_STL_FALLBACK} imu={imu} />;
+  }
+  return <ModeloGLB url={modelUrl} imu={imu} />;
+}
+
+export function RassorEnVivo({ avance, giro, imu, escala = 1, modelUrl }) {
   return (
     <div className="hud__robot3d" style={{ width: 200 * escala, height: 120 * escala }}>
       <Canvas
@@ -258,7 +359,7 @@ export function RassorEnVivo({ avance, giro, imu, escala = 1 }) {
         <SombraApoyo />
         <Guias avance={avance} giro={giro} />
         <Suspense fallback={null}>
-          <Modelo imu={imu} />
+          <SelectorModelo modelUrl={modelUrl} imu={imu} />
         </Suspense>
       </Canvas>
     </div>
@@ -268,4 +369,4 @@ export function RassorEnVivo({ avance, giro, imu, escala = 1 }) {
 // 7 MB y 148.682 triángulos: mejor que empiecen a bajar mientras el
 // espectador mira el vídeo y no cuando el instrumento ya debería estar
 // dibujándose.
-useLoader.preload(STLLoader, MODELO_STL);
+useLoader.preload(STLLoader, MODELO_STL_FALLBACK);

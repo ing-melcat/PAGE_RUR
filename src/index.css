@@ -513,7 +513,7 @@ h1 {
 
 /* Un botón deshabilitado no debe iluminarse ni levantarse al pasar el
    ratón -- el hover global no distingue, así que se anula aquí. */
-@media (hover: hover) {
+@media (any-hover: hover) {
   .paginador-btn:disabled:hover {
     transform: none;
     box-shadow: none;
@@ -612,7 +612,7 @@ h1 {
   transition: border-color var(--mov-rapido) ease;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .contenido-publicacion a:not(.action-card):not(.primary-btn):hover {
     border-bottom-color: var(--accent);
   }
@@ -811,7 +811,7 @@ h1 {
   vertical-align: top;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .contenido-publicacion tbody tr:hover td {
     background: rgba(245, 243, 233, 0.05);
   }
@@ -902,7 +902,7 @@ h1 {
   transition: color var(--mov-rapido) ease, background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .topbar-icon:hover {
     background: rgba(245, 243, 233, 0.1);
     border-color: rgba(245, 243, 233, 0.3);
@@ -945,7 +945,7 @@ h1 {
   transition: color var(--mov-rapido) ease, background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .logout-btn-small:hover {
     border-color: var(--accent);
     color: var(--accent);
@@ -1079,7 +1079,7 @@ button[type="submit"], .action-card {
   justify-content: center;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   button[type="submit"]:hover:not(:disabled), .action-card:hover {
     background: var(--accent);
     color: var(--background);
@@ -1227,7 +1227,7 @@ button[type="submit"]:disabled {
   transition: opacity var(--mov-rapido) ease;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .action-card:hover, .menu-card:hover {
     border-color: var(--accent);
     background: var(--accent-muted);
@@ -1259,7 +1259,7 @@ button[type="submit"]:disabled {
   margin-top: 24px;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .logout-btn:hover {
     background: rgba(140, 155, 176, 0.1);
     color: var(--text);
@@ -1280,7 +1280,7 @@ button[type="submit"]:disabled {
   padding: 8px 0;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .back-link:hover {
     color: var(--text);
     text-decoration: underline;
@@ -1323,7 +1323,7 @@ button[type="submit"]:disabled {
   justify-content: center;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .primary-btn:hover {
     background: var(--accent);
     color: var(--background);
@@ -1357,7 +1357,7 @@ button[type="submit"]:disabled {
   justify-content: center;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .secondary-btn:hover {
     border-color: var(--muted);
     color: var(--text);
@@ -1379,7 +1379,7 @@ button[type="submit"]:disabled {
   transition: color var(--mov-rapido) ease, background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .social-link:hover {
     border-color: var(--accent);
     color: var(--accent);
@@ -1457,7 +1457,7 @@ button, .action-card, .logout-btn-small {
   transform: translateZ(0);
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   button:hover, .action-card:hover, .logout-btn-small:hover {
     transform: translateY(-3px);
     box-shadow: 0 5px 20px rgba(251, 202, 1, 0.3);
@@ -1498,7 +1498,7 @@ button:active::after {
 .dashboard-card {
   transition: transform var(--mov-medio) ease, box-shadow 0.4s ease;
 }
-@media (hover: hover) {
+@media (any-hover: hover) {
   .dashboard-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
@@ -1777,7 +1777,7 @@ textarea:focus-visible {
               border-color var(--mov-rapido) var(--mov-curva);
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .ayuda__boton:hover {
     color: var(--accent);
     border-color: var(--accent);
@@ -1825,7 +1825,7 @@ textarea:focus-visible {
 
 /* Con ratón basta pasar por encima; en táctil hace falta el clic, y de eso
    se encarga la clase que pone el componente. */
-@media (hover: hover) {
+@media (any-hover: hover) {
   .ayuda:hover .ayuda__globo {
     opacity: 1;
     visibility: visible;
@@ -1980,7 +1980,7 @@ textarea:focus-visible {
   transition: color var(--mov-rapido) ease, border-color var(--mov-rapido) ease;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .autores__quitar:hover {
     color: var(--muted);
     border-color: var(--muted);
@@ -2000,7 +2000,7 @@ textarea:focus-visible {
   transition: all var(--mov-rapido) ease;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   .autores__agregar:hover { 
     background: var(--accent-muted); 
   }
@@ -2039,7 +2039,7 @@ textarea:focus-visible {
   transition: color var(--mov-rapido) ease, border-color var(--mov-rapido) ease;
 }
 
-@media (hover: hover) {
+@media (any-hover: hover) {
   a.creditos__persona:hover {
     color: var(--accent);
     border-bottom-color: var(--accent);
