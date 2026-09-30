@@ -118,7 +118,7 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
 
   return (
     <div className="hud">
-      <div className="hud__grupo">
+      <div className="hud__grupo" style={{ flex: 1, justifyContent: 'flex-start' }}>
         {visible('velocidad') && <VelocidadReal velocidad={sensores?.velocidad} transicion={transicion} />}
         {visible('inclinacion') && <Horizonte imu={sensores?.imu} transicion={transicion} />}
         {visible('actuadores') && <Actuadores actuadores={telemetria.actuadores} transicion={transicion} />}
@@ -152,7 +152,7 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
             decisión de producto. */}
       </div>
 
-      <div className="hud__grupo">
+      <div className="hud__grupo" style={{ flex: 1, justifyContent: 'flex-end' }}>
         {visible('bateria') && <Bateria bateria={sensores?.bateria} transicion={transicion} />}
         {visible('enlace') && (
         <div className="hud__medidor hud__medidor--enlace">

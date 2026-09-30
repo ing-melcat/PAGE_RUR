@@ -544,7 +544,7 @@
    ocurre sin que nadie lo haya pedido, y algo que aparece de golpe en una
    barra de navegación se lee como un fallo de carga. */
 .estados {
-  animation: estados-entrada var(--mov-medio) var(--mov-curva) both;
+  animation: estados-entrada 0.8s var(--mov-spring) both;
 }
 
 @keyframes estados-entrada {

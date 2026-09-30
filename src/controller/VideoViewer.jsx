@@ -1,13 +1,70 @@
+import { useEffect, useRef, useState } from 'react';
+import Hls from 'hls.js';
 import { useLiveKitVideoTrack } from './useLiveKitVideoTrack';
 
-export function VideoViewer({ room, isConnected }) {
-  const { videoRef, hasVideo } = useLiveKitVideoTrack(room, isConnected);
+export function VideoViewer({ room, isConnected, hlsUrl }) {
+  const { videoRef: webrtcVideoRef, hasVideo: hasWebrtcVideo } = useLiveKitVideoTrack(room, isConnected);
+  const hlsVideoRef = useRef(null);
+  const [hasHlsVideo, setHasHlsVideo] = useState(false);
 
-  // showVideo SOLO depende de si realmente hay un video de LiveKit.
+  useEffect(() => {
+    if (!hlsUrl || !hlsVideoRef.current) {
+      setHasHlsVideo(false);
+      return;
+    }
+
+    const video = hlsVideoRef.current;
+    let hls = null;
+
+    if (Hls.isSupported()) {
+      hls = new Hls({ enableWorker: false });
+      hls.loadSource(hlsUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setHasHlsVideo(true);
+        video.play().catch(e => console.warn('HLS autoplay error:', e));
+      });
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          setHasHlsVideo(false);
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              hls.destroy();
+              break;
+          }
+        }
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // For Safari native HLS
+      video.src = hlsUrl;
+      video.addEventListener('loadedmetadata', () => {
+        setHasHlsVideo(true);
+        video.play().catch(e => console.warn('Native HLS autoplay error:', e));
+      });
+    }
+
+    return () => {
+      if (hls) {
+        hls.destroy();
+      }
+    };
+  }, [hlsUrl]);
+
+  // showVideo SOLO depende de si realmente hay un video de LiveKit o HLS.
   // Ignoramos "isRobotConnected" porque a veces el robot manda video antes
   // de conectarse formalmente a datos, o viceversa, lo que queremos es
   // saber si la imagen real está presente.
-  const showVideo = isConnected && hasVideo;
+  const isHlsMode = Boolean(hlsUrl);
+  const showVideo = isHlsMode ? hasHlsVideo : (isConnected && hasWebrtcVideo);
+  
+  // Decide which ref to use based on mode
+  const activeVideoRef = isHlsMode ? hlsVideoRef : webrtcVideoRef;
 
   return (
     <div
@@ -23,7 +80,7 @@ export function VideoViewer({ room, isConnected }) {
       }}
     >
       <video
-        ref={videoRef}
+        ref={activeVideoRef}
         autoPlay
         playsInline
         muted

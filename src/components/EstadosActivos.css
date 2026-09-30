@@ -154,8 +154,8 @@
   flex-shrink: 0;
   background: currentColor;
   opacity: .45;
-  transition: opacity var(--mov-medio) var(--mov-curva),
-              transform var(--mov-medio) var(--mov-curva);
+  transition: opacity var(--mov-medio) ease,
+              transform 0.8s var(--mov-spring);
 }
 
 /* El punto de la etiqueta que está desplegada se enciende. Es lo que ata
@@ -186,8 +186,8 @@
   color: var(--bone);
   opacity: 0;
   transform: translateX(-6px);
-  transition: opacity var(--mov-medio) var(--mov-curva),
-              transform var(--mov-medio) var(--mov-curva);
+  transition: opacity var(--mov-medio) ease,
+              transform 0.8s var(--mov-spring);
 }
 
 /* Sale desde el punto, no cae del cielo. */

@@ -576,6 +576,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     joystickPosRef.current = { x: deadX, y: deadY };
 
     ejesTelemetriaRef.current = { avance: deadX, giro: deadY };
+    window.dispatchEvent(new CustomEvent('joystickMove', { detail: { x: deadX, y: deadY } }));
 
     // Si hay movimiento, iniciar envío continuo; si es (0,0), frenar
     if (Math.abs(deadX) > 0 || Math.abs(deadY) > 0) {
@@ -1005,17 +1006,10 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
           esencial={!controlesOcultos}
           entrada={entradaActiva}
           accionesMenu={accionesMenu}
-          // La cuenta del operador filtra por identidad y descarta al robot;
-          // la del enlace vería un participante más y lo llamaría público.
           audiencia={audiencia}
-          // Con la tarjeta de ESTADO fuera, la audiencia tiene que venir
-          // encendida de fábrica o el operador perdería un dato que antes
-          // tenía siempre a la vista.
           widgetsIniciales={WIDGETS_OPERADOR}
-          // Estado real del robot en la sala LiveKit: el indicador de señal
-          // usa esto en lugar de `enVivo` (telemetría) para reflejar si el
-          // robot está conectado o desconectado, con overlay "NO SIGNAL".
           isRobotConnected={isRobotConnected}
+          modelUrl={robot?.model_url || robot?.modelUrl}
         />
       )}
 

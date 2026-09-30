@@ -131,7 +131,8 @@ app.post('/api/login', loginIpLimiter, async (req, res) => {
     res.cookie(CSRF_COOKIE, csrfToken, { ...baseCookieOptions(), httpOnly: false });
 
     await saveLog('success', `Usuario ${user.nombre} (${matricula}) inició sesión exitosamente.`);
-    return res.json({ success: true, user });
+    const permisos = await permisosDe({ matricula, roles: user.roles });
+    return res.json({ success: true, user: { ...user, permisos: [...permisos] } });
   }
 
   recordFailure(matricula);

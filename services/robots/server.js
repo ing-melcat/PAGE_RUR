@@ -251,22 +251,22 @@ app.post('/api/livekit-verify', verifyToken, requirePermiso('robots.gestionar'),
 });
 
 app.post('/api/livekit-token', verifyToken, livekitTokenLimiter, csrfProtection, async (req, res) => {
-  const { robotId } = req.body ?? {};
-  const { rows } = await pool.query('SELECT * FROM robots WHERE id = $1', [robotId]);
-  const robot = rows[0];
-  if (!robot) return res.status(404).json({ success: false, message: 'Robot no encontrado' });
-
-  const secret = decryptSecretSafe(robot.livekit_api_secret_encrypted);
-  if (!robot.livekit_api_key || !secret) {
-    return res.status(400).json({ success: false, message: 'El robot no tiene configuradas sus credenciales (API Key/Secret) de LiveKit.' });
-  }
-
-  const permisosUsuario = await permisosDe(req.user);
-  const isOperator = permisosUsuario.has('robots.operar');
-  const grantedRole = isOperator ? 'operador' : 'espectador';
-  const participantName = `${isOperator ? 'operator' : 'viewer'}-${req.user.matricula}`;
-
   try {
+    const { robotId } = req.body ?? {};
+    const { rows } = await pool.query('SELECT * FROM robots WHERE id = $1', [robotId]);
+    const robot = rows[0];
+    if (!robot) return res.status(404).json({ success: false, message: 'Robot no encontrado' });
+
+    const secret = decryptSecretSafe(robot.livekit_api_secret_encrypted);
+    if (!robot.livekit_api_key || !secret) {
+      return res.status(400).json({ success: false, message: 'El robot no tiene configuradas sus credenciales (API Key/Secret) de LiveKit.' });
+    }
+
+    const permisosUsuario = await permisosDe(req.user);
+    const isOperator = permisosUsuario.has('robots.operar');
+    const grantedRole = isOperator ? 'operador' : 'espectador';
+    const participantName = `${isOperator ? 'operator' : 'viewer'}-${req.user.matricula}`;
+
     const at = new AccessToken(robot.livekit_api_key, secret, { identity: participantName, ttl: TOKEN_TTL });
     at.addGrant({ roomJoin: true, room: robot.room, canPublish: isOperator, canSubscribe: true, canPublishData: isOperator });
     const token = await at.toJwt();
@@ -285,19 +285,19 @@ app.post('/api/livekit-token', verifyToken, livekitTokenLimiter, csrfProtection,
 // grant fijo de solo-lectura, sin excepciones, sin importar lo que mande el
 // cliente en el body.
 app.post('/api/livekit/public-token', publicTokenLimiter, async (req, res) => {
-  const { robotId, proposito } = req.body ?? {};
-  const { rows } = await pool.query('SELECT * FROM robots WHERE id = $1 AND is_public_event = true', [robotId]);
-  const robot = rows[0];
-  if (!robot) {
-    return res.status(404).json({ success: false, message: 'No hay transmisión pública disponible para este robot.' });
-  }
-
-  const secret = decryptSecretSafe(robot.livekit_api_secret_encrypted);
-  if (!robot.livekit_api_key || !secret) {
-    return res.status(400).json({ success: false, message: 'Robot sin credenciales de LiveKit configuradas.' });
-  }
-
   try {
+    const { robotId, proposito } = req.body ?? {};
+    const { rows } = await pool.query('SELECT * FROM robots WHERE id = $1 AND is_public_event = true', [robotId]);
+    const robot = rows[0];
+    if (!robot) {
+      return res.status(404).json({ success: false, message: 'No hay transmisión pública disponible para este robot.' });
+    }
+
+    const secret = decryptSecretSafe(robot.livekit_api_secret_encrypted);
+    if (!robot.livekit_api_key || !secret) {
+      return res.status(400).json({ success: false, message: 'Robot sin credenciales de LiveKit configuradas.' });
+    }
+
     // Las capas de OBS piden el token con proposito:'overlay' y se identifican
     // aparte. No es cosmético: la audiencia se cuenta por prefijo de identidad
     // (PREFIJOS_ESPECTADOR en ControllerApp), así que un montaje con cuatro
@@ -317,6 +317,7 @@ app.post('/api/livekit/public-token', publicTokenLimiter, async (req, res) => {
       success: true,
       token,
       livekitUrl: robot.livekit_url,
+      hlsUrl: robot.hls_url,
       room: robot.room,
       robotName: robot.name,
       modelUrl: robot.model_url,

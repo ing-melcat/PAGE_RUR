@@ -34,6 +34,7 @@ export default function SpectatorApp() {
   // El mismo modelo que se sube en Administración de Robots -- ver el
   // comentario junto a VisorModelo3D más abajo para dónde se pinta.
   const [robotModelUrl, setRobotModelUrl] = useState('');
+  const [hlsUrl, setHlsUrl] = useState(null);
   const [error, setError] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   // La conexión puede resolverse en 200 ms, y entonces la portada aparece y
@@ -91,6 +92,13 @@ export default function SpectatorApp() {
 
         setRobotName(data.robotName || robotId);
         setRobotModelUrl(data.modelUrl || '');
+
+        if (data.hlsUrl) {
+          // Si el backend provee HLS, no nos conectamos a WebRTC.
+          setHlsUrl(data.hlsUrl);
+          setIsConnected(true);
+          return;
+        }
 
         const { Room, RoomEvent, setLogLevel } = await import('livekit-client');
         // Ver la nota en ControllerApp.jsx: 'info' es demasiado verboso para
@@ -192,7 +200,7 @@ export default function SpectatorApp() {
       )}
 
       <div style={{ opacity: listo ? 1 : 0, transition: 'opacity 0.6s ease-out', width: '100%', height: '100%' }}>
-        <VideoViewer room={room} isConnected={isConnected} />
+        <VideoViewer room={room} isConnected={isConnected} hlsUrl={hlsUrl} />
       </div>
 
       {/* Identificación de la vista.
