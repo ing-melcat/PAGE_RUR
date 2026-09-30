@@ -260,7 +260,7 @@ export const AdminUsers = ({ user, setView }: any) => {
                                 defaultChecked={editingUser?.permisos_extra?.includes(clave)}
                               />
                               <span>
-                                <span className="permisos-extra__nombre">{descripcion}</span>
+                                <span className="permisos-extra__nombre">{descripcion as any}</span>
                                 <code>{clave}</code>
                               </span>
                             </label>
