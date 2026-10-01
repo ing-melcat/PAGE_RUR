@@ -749,7 +749,7 @@ export function BarraTelemetria({
   return (
     <div
       style={{
-        position: 'absolute', top: 80, left: 16, right: 16,
+        position: 'absolute', top: 15, left: 90, right: 90,
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         pointerEvents: 'none', zIndex: 1000,
       }}
@@ -770,7 +770,7 @@ export function BarraTelemetria({
              <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', margin: '0 4px' }}>·</span>
              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} title={t('telemetria.espectadores')}>
                <Users size={22} color="var(--bone)" strokeWidth={2.5} />
-               <span style={{ fontSize: '1.15rem', color: 'var(--accent)', fontWeight: 'bold' }}>
+               <span style={{ fontSize: '1.15rem', color: 'var(--bone)', fontWeight: 'bold' }}>
                  {audiencia ?? enlace?.espectadores ?? '—'}
                </span>
              </div>
@@ -780,15 +780,15 @@ export function BarraTelemetria({
 
       {/* Bloque Derecho: Widgets y Menú */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end',
+        display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end',
         maxWidth: '65vw', pointerEvents: 'auto',
       }}>
          {/* Píldora de Widgets (si hay alguno visible que no sea audiencia) */}
          {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length > 0 && (
            <div style={{
-             display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
+             display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap',
              background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px',
-             padding: '10px 16px',
+             padding: '10px 20px',
              opacity: enVivo ? 1 : 0.45,
              transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
@@ -798,12 +798,12 @@ export function BarraTelemetria({
                if (!lectura) return null;
                return (
                  <Fragment key={id}>
-                   {i > 0 && <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', margin: '0 4px' }}>·</span>}
-                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                     <span style={{ fontSize: '0.95rem', color: 'var(--muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>{lectura.etiqueta}</span>
-                     <span style={{ fontSize: '1.15rem', color: 'var(--accent)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
+                   {i > 0 && <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', color: 'var(--border)', margin: '0 8px' }}>|</span>}
+                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                     <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 'normal', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lectura.titulo}</span>
+                     <span style={{ fontSize: '1.05rem', color: 'var(--bone)', fontWeight: 'normal', fontVariantNumeric: 'tabular-nums' }}>
                        {lectura.valor}
-                       {lectura.unidad && <span style={{ fontSize: '0.85rem', marginLeft: '4px' }}>{lectura.unidad}</span>}
+                       {lectura.unidad && <span style={{ fontSize: '0.8rem', marginLeft: '4px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
                      </span>
                    </div>
                  </Fragment>
