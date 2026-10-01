@@ -1,5 +1,5 @@
 import { Fragment, Suspense, lazy, useEffect, useState } from 'react';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, Users } from 'lucide-react';
 import { ACTUADORES, NIVEL_MAX } from '../telemetria';
 import { useTelemetria, useSinMovimiento } from '../useTelemetria';
 import { useTelemetriaRobot } from '../useTelemetriaRobot';
@@ -748,93 +748,111 @@ export function BarraTelemetria({
     );
   }
 
-  // MODO ESENCIAL (Táctil, regleta fina)
+  // MODO ESENCIAL (Táctil, Top-Corners HUD)
   return (
     <div
-      className="telemetria--osd"
       style={{
-        position: 'absolute', zIndex: 1000,
-        background: 'var(--surface)',
-        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
-        borderRadius: '2px',
-        border: '1px solid var(--border)',
-        display: 'flex', flexDirection: 'column',
-        pointerEvents: 'none',
-        opacity: enVivo ? 1 : 0.45,
-        transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
+        position: 'absolute', top: 12, left: 16, right: 16,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+        pointerEvents: 'none', zIndex: 1000,
       }}
     >
-      <div
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexWrap: 'wrap', gap: '8px 4px', padding: '7px 10px',
-        }}
-      >
-        <div className="telemetria__osd">
-          {WIDGETS.filter((w) => activos.includes(w.id)).map(({ id }, i) => {
-            const lectura = lecturaCompacta(id);
-            if (!lectura) return null;
-            return (
-              <Fragment key={id}>
-                {i > 0 && <span className="telemetria__osd-sep">·</span>}
-                <LecturaEnLinea {...lectura} />
-              </Fragment>
-            );
-          })}
-        </div>
+      {/* Bloque Izquierdo: Conexión y Audiencia */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '12px',
+        background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px',
+        padding: '6px 12px',
+        pointerEvents: 'auto',
+        opacity: enVivo ? 1 : 0.45,
+        transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+      }}>
+        <CalidadEnlace conectado={isRobotConnected} enlace={enlace} t={t} />
+        {activos.includes('audiencia') && (
+           <>
+             <span className="telemetria__osd-sep">·</span>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title={t('telemetria.espectadores')}>
+               <Users size={14} color="var(--muted)" strokeWidth={2.5} />
+               <span style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 'bold' }}>
+                 {audiencia ?? enlace?.espectadores ?? '—'}
+               </span>
+             </div>
+           </>
+        )}
+      </div>
 
-        <div style={{ display: 'contents' }}>
-          {activos.includes('audiencia') && (
-            <>
-              <span className="telemetria__osd-sep">·</span>
-              <div className="telemetria__osd-item">
-                <span className="telemetria__osd-etiqueta">{t('telemetria.espectadores')}</span>
-                <span className="telemetria__osd-valor" style={{ minWidth: '3ch' }}>{audiencia ?? enlace?.espectadores ?? '—'}</span>
-              </div>
-            </>
-          )}
-          
-          {entrada && (
-            <>
-              <span className="telemetria__osd-sep">·</span>
+      {/* Bloque Derecho: Widgets y Menú */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end',
+        maxWidth: '65vw', pointerEvents: 'auto',
+      }}>
+         {/* Píldora de Widgets (si hay alguno visible que no sea audiencia) */}
+         {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length > 0 && (
+           <div style={{
+             display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
+             background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px',
+             padding: '6px 12px',
+             opacity: enVivo ? 1 : 0.45,
+             transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
+             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+           }}>
+             {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').map(({ id }, i) => {
+               const lectura = lecturaCompacta(id);
+               if (!lectura) return null;
+               return (
+                 <Fragment key={id}>
+                   {i > 0 && <span className="telemetria__osd-sep">·</span>}
+                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+                     <span style={{ fontSize: '0.72rem', color: 'var(--muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>{lectura.etiqueta}</span>
+                     <span style={{ fontSize: '0.82rem', color: 'var(--accent)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
+                       {lectura.valor}
+                       {lectura.unidad && <span style={{ fontSize: '0.68rem', marginLeft: '2px' }}>{lectura.unidad}</span>}
+                     </span>
+                   </div>
+                 </Fragment>
+               );
+             })}
+           </div>
+         )}
+
+         {/* Píldora de Control: Entrada y Menú */}
+         <div style={{
+           display: 'flex', alignItems: 'center', gap: '8px',
+           background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px',
+           padding: '4px 6px',
+           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+         }}>
+           {entrada && (
               <button
                 onClick={typeof entrada.onAlternar === 'function' ? entrada.onAlternar : undefined}
                 disabled={typeof entrada.onAlternar !== 'function'}
                 title={typeof entrada.onAlternar === 'function' ? t('telemetria.cambiarEntrada') : undefined}
-                className="telemetria__osd-item"
                 style={{
                   background: 'transparent', border: 'none',
                   pointerEvents: typeof entrada.onAlternar === 'function' ? 'auto' : 'none',
                   cursor: typeof entrada.onAlternar === 'function' ? 'pointer' : 'default',
+                  display: 'flex', alignItems: 'baseline', gap: '5px',
+                  padding: '4px 6px'
                 }}
               >
-                <span className="telemetria__osd-etiqueta">{t('telemetria.entrada')}</span>
-                <span className="telemetria__osd-valor" style={{ minWidth: '6ch' }}>{entrada.modo}</span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>{t('telemetria.entrada')}</span>
+                <span style={{ fontSize: '0.82rem', color: 'var(--bone)', fontWeight: 'bold' }}>{entrada.modo}</span>
               </button>
-            </>
-          )}
-
-          {enVivo && (
-            <>
-              <span className="telemetria__osd-sep">·</span>
-              <CalidadEnlace conectado={isRobotConnected} enlace={enlace} t={t} />
-            </>
-          )}
-
-          <button
-            onClick={() => setMenuAbierto((v) => !v)}
-            title={t('telemetria.widgets')}
-            aria-label={t('telemetria.widgets')}
-            className={`telemetria__osd-boton${menuAbierto ? ' telemetria__osd-boton--abierto' : ''}`}
-            style={{ pointerEvents: 'auto' }}
-          >
-            <LayoutGrid size={13} strokeWidth={2.5} />
-          </button>
-        </div>
+           )}
+           {entrada && <span className="telemetria__osd-sep">·</span>}
+           <button
+              onClick={() => setMenuAbierto((v) => !v)}
+              title={t('telemetria.widgets')}
+              aria-label={t('telemetria.widgets')}
+              className={`telemetria__osd-boton${menuAbierto ? ' telemetria__osd-boton--abierto' : ''}`}
+              style={{ margin: 0, padding: '4px 8px' }}
+            >
+              <LayoutGrid size={15} strokeWidth={2.5} />
+            </button>
+         </div>
       </div>
 
+      {/* El panel de menú flota de forma independiente */}
       {panelMenu}
     </div>
   );
