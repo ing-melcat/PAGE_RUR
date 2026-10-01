@@ -749,7 +749,7 @@ export function BarraTelemetria({
   return (
     <div
       style={{
-        position: 'absolute', top: 12, left: 16, right: 16,
+        position: 'absolute', top: 80, left: 16, right: 16,
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         pointerEvents: 'none', zIndex: 1000,
       }}
