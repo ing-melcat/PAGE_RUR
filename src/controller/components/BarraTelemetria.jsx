@@ -761,9 +761,11 @@ export function BarraTelemetria({
         pointerEvents: 'none', zIndex: 1000,
       }}
     >
-      {/* Bloque Izquierdo: Conexión y Audiencia */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '16px',
+      {/* Grupo Izquierdo completo */}
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', maxWidth: '65vw' }}>
+        {/* Bloque Izquierdo: Conexión y Audiencia */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '16px',
         background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px',
         padding: '10px 16px',
         pointerEvents: 'auto',
@@ -785,12 +787,7 @@ export function BarraTelemetria({
         )}
       </div>
 
-      {/* Bloque Derecho: Widgets y Menú */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end',
-        maxWidth: '65vw', pointerEvents: 'auto',
-      }}>
-         {/* Píldora de Widgets (si hay alguno visible que no sea audiencia) */}
+{/* Píldora de Widgets (si hay alguno visible que no sea audiencia) */}
          {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length > 0 && (
            <div style={{
              display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap',
@@ -819,6 +816,12 @@ export function BarraTelemetria({
            </div>
          )}
 
+               </div>
+      {/* Bloque Derecho: Widgets y Menú */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end',
+        maxWidth: '65vw', pointerEvents: 'auto',
+      }}>
          {/* Píldora de Control: Entrada y Menú */}
          <div style={{
            display: 'flex', alignItems: 'center', gap: '10px',

@@ -289,13 +289,13 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   );
 
   const handleAction = useCallback((component, action, state) => {
-    if (!roomRef.current || !isConnectedRef.current) return;
-
     if (state) {
       estadoActuadoresRef.current[component] = action;
     } else {
       delete estadoActuadoresRef.current[component];
     }
+
+    if (!roomRef.current || !isConnectedRef.current) return;
 
     const commandObj = { component, action, state };
     const commandStr = JSON.stringify(commandObj);
