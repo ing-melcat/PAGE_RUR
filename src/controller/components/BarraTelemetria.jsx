@@ -33,52 +33,6 @@ const BRILLO_ACTIVO = '0 0 8px rgba(245, 243, 233, 0.55)';
 // los paneles del panel de administración. Fondo sólido en --surface, esquinas
 // afiladas de 2px, para el menú desplegable de widgets -- es un panel flotante
 // aparte, no la barra misma.
-
-function CalidadEnlace({ conectado, enlace, t }) {
-  let quality = 0;
-  if (conectado) {
-    quality = 4;
-    if (enlace) {
-      const p = enlace.perdidaPct ?? 0;
-      const j = enlace.jitterMs ?? 0;
-      if (p > 5 || j > 100) quality = 3;
-      if (p > 15 || j > 250) quality = 2;
-      if (p > 30 || j > 500) quality = 1;
-    }
-  }
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} title={conectado ? t('telemetria.enVivo') : t('telemetria.sinRobotConectado')}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '14px' }}>
-        {[0, 1, 2, 3].map(i => {
-          const height = 5 + (i * 3);
-          const active = quality > i;
-          let color = 'var(--accent)';
-          if (!active) {
-            color = conectado ? 'var(--border)' : 'var(--error)';
-          } else if (quality <= 1) {
-            color = 'var(--error)';
-          }
-          return (
-            <div key={i} style={{
-              width: '4px',
-              height: `${height}px`,
-              background: color,
-              borderRadius: '1px',
-              transition: 'background 0.3s, opacity 0.3s',
-              opacity: active ? 1 : 0.3,
-              boxShadow: active && quality > 1 ? '0 0 5px var(--accent)' : 'none'
-            }} />
-          )
-        })}
-      </div>
-      {!conectado && (
-        <span style={{ color: 'var(--error)', fontSize: '1rem', fontWeight: 'bold', lineHeight: 1 }}>×</span>
-      )}
-    </div>
-  );
-}
-
 const TARJETA = {
   background: 'var(--surface)',
   border: '1px solid var(--border)',
@@ -541,8 +495,8 @@ export function BarraTelemetria({
                   onChange={() => alternar(id)}
                   style={{ width: 'auto', accentColor: 'var(--accent)', cursor: 'pointer' }}
                 />
-                <span style={{ flex: 1 }}>{t(`telemetria.widgetLabel.${id}`)}
-                {sinDatos && <span className="telemetria__nota">{t('telemetria.sinDatos')}}
+                <span style={{ flex: 1 }}>{t(`telemetria.widgetLabel.${id}`)}</span>
+                {sinDatos && <span className="telemetria__nota">{t('telemetria.sinDatos')}</span>}
               </label>
             );
           })}
@@ -596,7 +550,7 @@ export function BarraTelemetria({
             const chevron = telemetria.avance?.dir === 'atras' ? '▼' : '▲';
             return (
               <div className="hud__medidor">
-                <span className="hud__etiqueta">{t('telemetria.avance')}
+                <span className="hud__etiqueta">{t('telemetria.avance')}</span>
                 <div className="hud__cuerpo">
                   <span className={`hud__cifra${activo ? '' : ' hud__cifra--apagada'}`} style={{ transition: transicion }}>
                     {activo ? chevron : ''} {nivel * 10}
@@ -612,7 +566,7 @@ export function BarraTelemetria({
             const signo = telemetria.giro?.dir === 'izquierda' ? '◀' : '▶';
             return (
               <div className="hud__medidor">
-                <span className="hud__etiqueta">{t('telemetria.giro')}
+                <span className="hud__etiqueta">{t('telemetria.giro')}</span>
                 <div className="hud__cuerpo">
                   <span className={`hud__cifra${activo ? '' : ' hud__cifra--apagada'}`} style={{ transition: transicion }}>
                     {activo ? signo : ''} {nivel * 10}
@@ -624,7 +578,7 @@ export function BarraTelemetria({
           })()}
           {activos.includes('actuadores') && (
             <div className="hud__actuadores">
-              <span className="hud__etiqueta">{t('telemetria.actuadores')}
+              <span className="hud__etiqueta">{t('telemetria.actuadores')}</span>
               <div className="hud__cuerpo">
                 <div className="hud__actuadores-puntos">
                   {ACTUADORES.map(({ clave, abrev }) => (
@@ -653,9 +607,11 @@ export function BarraTelemetria({
               modelUrl={modelUrl}
             />
           </Suspense>
-          <div className="hud__subtitulo" style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="hud__subtitulo" style={{ marginTop: '4px' }}>
             <span style={{ fontSize: '1.2em', color: 'var(--text)' }}>RUR</span>
-            <CalidadEnlace conectado={isRobotConnected} enlace={enlace} t={t} />
+            {!isRobotConnected && (
+              <span className="hud__alerta"> · {t('telemetria.sinRobotConectado')}</span>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px', pointerEvents: 'auto' }}>
             {entrada && <ChipEntrada entrada={entrada} transicion={transicion} />}
@@ -680,7 +636,7 @@ export function BarraTelemetria({
         <div className="hud__grupo" style={{ flex: 1, justifyContent: 'flex-end' }}>
           {activos.includes('calidad') && (
             <div className="hud__medidor hud__medidor--enlace">
-              <span className="hud__etiqueta">{t('telemetria.enlace')}
+              <span className="hud__etiqueta">{t('telemetria.enlace')}</span>
               <div className="hud__cuerpo">
                 <span className={`hud__cifra${enlace?.calidad != null ? '' : ' hud__cifra--apagada'}`}>
                   {enlace?.calidad ?? '—'}
@@ -700,18 +656,18 @@ export function BarraTelemetria({
           )}
           {activos.includes('bitrate') && (
             <div className="hud__medidor">
-              <span className="hud__etiqueta">{t('telemetria.bitrate')}
+              <span className="hud__etiqueta">{t('telemetria.bitrate')}</span>
               <div className="hud__cuerpo">
                 <span className={`hud__cifra${enlace?.bitrateKbps != null ? '' : ' hud__cifra--apagada'}`}>
                   {enlace?.bitrateKbps ?? '—'}
                 </span>
               </div>
-              <span className="hud__unidad">{t('telemetria.kbps')}
+              <span className="hud__unidad">{t('telemetria.kbps')}</span>
             </div>
           )}
           {activos.includes('video') && (
             <div className="hud__medidor">
-              <span className="hud__etiqueta">{t('telemetria.video')}
+              <span className="hud__etiqueta">{t('telemetria.video')}</span>
               <div className="hud__cuerpo">
                 <span className={`hud__cifra${enlace?.ancho ? '' : ' hud__cifra--apagada'}`}>
                   {enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : '—'}
@@ -722,18 +678,18 @@ export function BarraTelemetria({
           )}
           {activos.includes('perdida') && (
             <div className="hud__medidor">
-              <span className="hud__etiqueta">{t('telemetria.perdida')}
+              <span className="hud__etiqueta">{t('telemetria.perdida')}</span>
               <div className="hud__cuerpo">
                 <span className={`hud__cifra${enlace?.perdidos != null ? '' : ' hud__cifra--apagada'}`}>
                   {enlace?.perdidos ?? '—'}
                 </span>
               </div>
-              <span className="hud__unidad">{t('telemetria.paquetes')}
+              <span className="hud__unidad">{t('telemetria.paquetes')}</span>
             </div>
           )}
           {activos.includes('audiencia') && (
             <div className="hud__medidor">
-              <span className="hud__etiqueta">{t('telemetria.espectadores')}
+              <span className="hud__etiqueta">{t('telemetria.espectadores')}</span>
               <div className="hud__cuerpo">
                 <span className={`hud__cifra${(audiencia ?? enlace?.espectadores) != null ? '' : ' hud__cifra--apagada'}`}>
                   {audiencia ?? enlace?.espectadores ?? '—'}
@@ -791,7 +747,7 @@ export function BarraTelemetria({
             <>
               <span className="telemetria__osd-sep">·</span>
               <div className="telemetria__osd-item">
-                <span className="telemetria__osd-etiqueta">{t('telemetria.espectadores')}
+                <span className="telemetria__osd-etiqueta">{t('telemetria.espectadores')}</span>
                 <span className="telemetria__osd-valor" style={{ minWidth: '3ch' }}>{audiencia ?? enlace?.espectadores ?? '—'}</span>
               </div>
             </>
@@ -811,17 +767,14 @@ export function BarraTelemetria({
                   cursor: typeof entrada.onAlternar === 'function' ? 'pointer' : 'default',
                 }}
               >
-                <span className="telemetria__osd-etiqueta">{t('telemetria.entrada')}
+                <span className="telemetria__osd-etiqueta">{t('telemetria.entrada')}</span>
                 <span className="telemetria__osd-valor" style={{ minWidth: '6ch' }}>{entrada.modo}</span>
               </button>
             </>
           )}
 
-          {enVivo && (
-            <>
-              <span className="telemetria__osd-sep">·</span>
-              <CalidadEnlace conectado={isRobotConnected} enlace={enlace} t={t} />
-            </>
+          {enVivo && !telemetria.robot && (
+            <span className="telemetria__osd-alerta">{t('telemetria.sinRobotConectado')}</span>
           )}
 
           <button
