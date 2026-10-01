@@ -49,26 +49,26 @@ function CalidadEnlace({ conectado, enlace, t }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} title={conectado ? t('telemetria.enVivo') : t('telemetria.sinRobotConectado')}>
       {!conectado ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <WifiOff size={13} color="var(--muted)" strokeWidth={2.5} />
-          <span style={{ fontSize: '0.72rem', color: 'var(--muted)', fontWeight: 'bold', letterSpacing: '0.05em' }}>OFFLINE</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <WifiOff size={18} color="var(--muted)" strokeWidth={2.5} />
+          <span style={{ fontSize: '0.9rem', color: 'var(--muted)', fontWeight: 'bold', letterSpacing: '0.05em' }}>OFFLINE</span>
         </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '18px' }}>
           {[0, 1, 2, 3].map(i => {
-            const height = 4 + (i * 2.6); // 4px to ~12px max height
+            const height = 6 + (i * 4); // 6px to 18px max height
             const active = quality > i;
             // Use bone white for good signal, yellow (accent) for warning, dark border for empty bars
             const color = active ? (quality <= 2 ? 'var(--accent)' : 'var(--bone)') : 'var(--border)';
             return (
               <div key={i} style={{
-                width: '3.5px',
+                width: '5px',
                 height: `${height}px`,
                 background: color,
                 borderRadius: '1px',
                 transition: 'background 0.3s, opacity 0.3s',
                 opacity: active ? 1 : 0.4,
-                boxShadow: active && quality > 1 ? `0 0 4px ${color}` : 'none'
+                boxShadow: active && quality > 1 ? `0 0 5px ${color}` : 'none'
               }} />
             )
           })}
@@ -757,9 +757,9 @@ export function BarraTelemetria({
     >
       {/* Bloque Izquierdo: Conexión y Audiencia */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: '12px',
-        background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px',
-        padding: '6px 12px',
+        display: 'flex', alignItems: 'center', gap: '16px',
+        background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px',
+        padding: '10px 16px',
         pointerEvents: 'auto',
         opacity: enVivo ? 1 : 0.45,
         transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
@@ -769,9 +769,9 @@ export function BarraTelemetria({
         {activos.includes('audiencia') && (
            <>
              <span className="telemetria__osd-sep">·</span>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title={t('telemetria.espectadores')}>
-               <Users size={13} color="var(--bone)" strokeWidth={2.5} />
-               <span style={{ fontSize: '0.82rem', color: 'var(--accent)', fontWeight: 'bold' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} title={t('telemetria.espectadores')}>
+               <Users size={18} color="var(--bone)" strokeWidth={2.5} />
+               <span style={{ fontSize: '1rem', color: 'var(--accent)', fontWeight: 'bold' }}>
                  {audiencia ?? enlace?.espectadores ?? '—'}
                </span>
              </div>
@@ -781,15 +781,15 @@ export function BarraTelemetria({
 
       {/* Bloque Derecho: Widgets y Menú */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end',
+        display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end',
         maxWidth: '65vw', pointerEvents: 'auto',
       }}>
          {/* Píldora de Widgets (si hay alguno visible que no sea audiencia) */}
          {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length > 0 && (
            <div style={{
-             display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
-             background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px',
-             padding: '6px 12px',
+             display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
+             background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px',
+             padding: '10px 16px',
              opacity: enVivo ? 1 : 0.45,
              transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
@@ -800,11 +800,11 @@ export function BarraTelemetria({
                return (
                  <Fragment key={id}>
                    {i > 0 && <span className="telemetria__osd-sep">·</span>}
-                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
-                     <span style={{ fontSize: '0.72rem', color: 'var(--muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>{lectura.etiqueta}</span>
-                     <span style={{ fontSize: '0.82rem', color: 'var(--accent)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
+                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                     <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>{lectura.etiqueta}</span>
+                     <span style={{ fontSize: '1rem', color: 'var(--accent)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
                        {lectura.valor}
-                       {lectura.unidad && <span style={{ fontSize: '0.68rem', marginLeft: '2px' }}>{lectura.unidad}</span>}
+                       {lectura.unidad && <span style={{ fontSize: '0.8rem', marginLeft: '3px' }}>{lectura.unidad}</span>}
                      </span>
                    </div>
                  </Fragment>
@@ -815,9 +815,9 @@ export function BarraTelemetria({
 
          {/* Píldora de Control: Entrada y Menú */}
          <div style={{
-           display: 'flex', alignItems: 'center', gap: '8px',
-           background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px',
-           padding: '4px 6px',
+           display: 'flex', alignItems: 'center', gap: '10px',
+           background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px',
+           padding: '6px 10px',
            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
          }}>
            {entrada && (
@@ -829,12 +829,12 @@ export function BarraTelemetria({
                   background: 'transparent', border: 'none',
                   pointerEvents: typeof entrada.onAlternar === 'function' ? 'auto' : 'none',
                   cursor: typeof entrada.onAlternar === 'function' ? 'pointer' : 'default',
-                  display: 'flex', alignItems: 'baseline', gap: '5px',
-                  padding: '4px 6px'
+                  display: 'flex', alignItems: 'baseline', gap: '6px',
+                  padding: '4px 8px'
                 }}
               >
-                <span style={{ fontSize: '0.72rem', color: 'var(--muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>{t('telemetria.entrada')}</span>
-                <span style={{ fontSize: '0.82rem', color: 'var(--bone)', fontWeight: 'bold' }}>{entrada.modo}</span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>{t('telemetria.entrada')}</span>
+                <span style={{ fontSize: '1rem', color: 'var(--bone)', fontWeight: 'bold' }}>{entrada.modo}</span>
               </button>
            )}
            {entrada && <span className="telemetria__osd-sep">·</span>}
@@ -843,9 +843,9 @@ export function BarraTelemetria({
               title={t('telemetria.widgets')}
               aria-label={t('telemetria.widgets')}
               className={`telemetria__osd-boton${menuAbierto ? ' telemetria__osd-boton--abierto' : ''}`}
-              style={{ margin: 0, padding: '4px 8px' }}
+              style={{ margin: 0, padding: '6px 10px' }}
             >
-              <LayoutGrid size={14} strokeWidth={2} />
+              <LayoutGrid size={18} strokeWidth={2} />
             </button>
          </div>
       </div>
