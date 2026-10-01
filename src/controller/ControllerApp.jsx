@@ -273,29 +273,10 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     activo: hasGamepad || hasKeyboard,
     // Solo tiene sentido alternar si de verdad hay un mando que ignorar.
     onAlternar: (hasGamepad || hasKeyboard) ? () => setForceMobileMode((v) => !v) : undefined,
+    atajo: (hasKeyboard && !forceMobileMode) ? '(Esc)' : undefined,
   };
 
-  // Rescate para cuando la Gamepad API reporta un mando que no existe: sin
-  // esto los controles táctiles se quedan ocultos y la consola inservible.
-  // Si además el mando es no-standard se muestra una nota informativa.
-  const accionesMenu = hasGamepad
-    ? [
-        ...(hasNonStandardGamepad ? [{
-          label: t('operador.controller.mandoNoEstandar'),
-          onClick: undefined, // solo informativa, no acción
-        }] : []),
-        {
-          label: t('operador.controller.olvidarMando'),
-          onClick: () => {
-            setHasGamepad(false);
-            setHasNonStandardGamepad(false);
-            setForceMobileMode(false);
-            setVisible(true);
-            setVisible1(true);
-          },
-        },
-      ]
-    : [];
+
 
   const telemetriaLocal = useCallback(
     () => construirTelemetria(
@@ -1005,7 +986,6 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
           margen={24}
           esencial={!controlesOcultos}
           entrada={entradaActiva}
-          accionesMenu={accionesMenu}
           audiencia={audiencia}
           widgetsIniciales={WIDGETS_OPERADOR}
           isRobotConnected={isRobotConnected}
@@ -1015,8 +995,8 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
 
       {/* 2. Interactive Controls Layered On Top */}
       {mode !== 'vr' && (
-      <div className="controls-overlay" style={{ pointerEvents: (hasGamepad && !forceMobileMode) || isFetchingToken ? 'none' : 'auto' }}>
-        <div style={{ opacity: (hasGamepad && !forceMobileMode) || isFetchingToken ? 0 : 1, visibility: (hasGamepad && !forceMobileMode) || isFetchingToken ? 'hidden' : 'visible', transition: 'all 0.5s ease-out', width: '100%', height: '100%' }}>
+      <div className="controls-overlay" style={{ pointerEvents: controlesOcultos || isFetchingToken ? 'none' : 'auto' }}>
+        <div style={{ opacity: controlesOcultos || isFetchingToken ? 0 : 1, visibility: controlesOcultos || isFetchingToken ? 'hidden' : 'visible', transition: 'all 0.5s ease-out', width: '100%', height: '100%' }}>
         <div id="left-panel">
           <div className='arms' style={{ opacity: visible ? '1' : '0' }}>
             <Segment id="arms">

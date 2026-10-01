@@ -214,7 +214,11 @@ export function ChipEntrada({ entrada, transicion }) {
         pointerEvents: pulsable ? 'auto' : 'none',
         cursor: pulsable ? 'pointer' : 'default',
         display: 'flex', alignItems: 'center', gap: '7px',
-        background: 'transparent', border: 'none', padding: 0,
+        background: pulsable ? 'rgba(255,255,255,0.08)' : 'transparent',
+        border: pulsable ? '1px solid var(--border)' : 'none',
+        padding: pulsable ? '4px 10px' : 0,
+        borderRadius: '4px',
+        transition: 'all 0.2s',
       }}
     >
       <div style={{
@@ -223,10 +227,17 @@ export function ChipEntrada({ entrada, transicion }) {
         boxShadow: activo ? '0 0 8px var(--success)' : 'none',
         transition: transicion,
       }} />
-      <span className="telemetria__titulo telemetria__titulo--inline">{t('telemetria.entrada')}</span>
-      <span className="telemetria__valor telemetria__valor--medio" style={{ textTransform: 'uppercase' }}>
-        {modo}
+      <span className="telemetria__titulo telemetria__titulo--inline">
+        {pulsable ? t('telemetria.volverTactil', 'Volver a táctil') : t('telemetria.entrada')}
       </span>
+      {pulsable && entrada.atajo && (
+        <span style={{ fontSize: '0.7rem', color: 'var(--muted)', fontFamily: 'var(--font-ibm-mono)' }}>{entrada.atajo}</span>
+      )}
+      {!pulsable && (
+        <span className="telemetria__valor telemetria__valor--medio" style={{ textTransform: 'uppercase' }}>
+          {modo}
+        </span>
+      )}
     </button>
   );
 }
@@ -308,7 +319,7 @@ function LecturaEnLinea({ titulo, valor, unidad, contenido, activo = true, ancho
  */
 export function BarraTelemetria({
   room, fuenteLocal, posicion = 'abajo', margen = 0, esencial = false, entrada,
-  accionesMenu = [], audiencia, widgetsIniciales = WIDGETS_POR_DEFECTO,
+  audiencia, widgetsIniciales = WIDGETS_POR_DEFECTO,
   isRobotConnected, modelUrl,
 }) {
   const { t } = useLanguage();
@@ -492,25 +503,31 @@ export function BarraTelemetria({
             {t('telemetria.seleccionGuardada')}
           </span>
 
-          {/* Acciones que no son datos y por eso no van en la barra, pero que
-              tampoco merecen un botón fijo ocupando pantalla. */}
-          {accionesMenu.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
-              {accionesMenu.map(({ label, onClick }) => (
-                <button
-                  key={label}
-                  onClick={onClick}
-                  style={{
-                    cursor: 'pointer', textAlign: 'left', background: 'transparent',
-                    border: '1px solid var(--border)', borderRadius: '2px', padding: '6px 10px',
-                  }}
-                  className="telemetria__accion"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+            <button
+              onClick={() => {
+                setActivos(widgetsIniciales);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(widgetsIniciales));
+              }}
+              style={{
+                cursor: 'pointer', textAlign: 'left', background: 'transparent',
+                border: '1px solid var(--border)', borderRadius: '2px', padding: '6px 10px',
+              }}
+              className="telemetria__accion"
+            >
+              {t('telemetria.restaurar', 'Restaurar por defecto')}
+            </button>
+            <button
+              onClick={() => setMenuAbierto(false)}
+              style={{
+                cursor: 'pointer', textAlign: 'left', background: 'transparent',
+                border: '1px solid var(--border)', borderRadius: '2px', padding: '6px 10px',
+              }}
+              className="telemetria__accion"
+            >
+              {t('telemetria.cerrarMenu', 'Cerrar menú')}
+            </button>
+          </div>
         </div>
       ) : null;
 
