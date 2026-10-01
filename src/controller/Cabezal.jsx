@@ -45,73 +45,28 @@ export function Cabezal({ onCambio, onConfigApply, onBack, titulo }) {
                     </button>
                 </div>
                 
-                {/* Demo interactivo de 3 estilos visuales para la marca de agua */}
-                <div style={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+                {/* Nombre del robot colgando directamente del borde superior (Etiqueta Amarilla) */}
+                <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)' }}>
                     <div
                         className="topbar-title"
-                        title="Haz clic para cambiar de estilo"
-                        onClick={() => {
-                            // Este es un hack temporal para que el usuario cicle entre los 3 estilos
-                            window.__styleIndex = ((window.__styleIndex || 0) + 1) % 3;
-                            document.getElementById('rassor-ui-title').setAttribute('data-style', window.__styleIndex);
-                            
-                            const el = document.getElementById('rassor-ui-title');
-                            const s = window.__styleIndex;
-                            if (s === 0) { // TAB (Pestaña)
-                                el.style.background = 'var(--surface)';
-                                el.style.color = 'var(--bone)';
-                                el.style.border = '1px solid var(--border)';
-                                el.style.borderTop = 'none';
-                                el.style.borderRadius = '0 0 12px 12px';
-                                el.style.padding = '8px 32px';
-                                el.style.fontFamily = 'var(--font-ibm-sans), sans-serif';
-                                el.style.textShadow = 'none';
-                                el.style.boxShadow = '0 8px 16px rgba(0,0,0,0.5)';
-                                el.innerText = titulo || 'RASSOR-UI';
-                            } else if (s === 1) { // CCTV 
-                                el.style.background = 'transparent';
-                                el.style.color = 'var(--bone)';
-                                el.style.border = 'none';
-                                el.style.borderRadius = '0';
-                                el.style.padding = '10px 16px';
-                                el.style.fontFamily = 'var(--font-ibm-mono), monospace';
-                                el.style.textShadow = '2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 1px 1px 0px #000';
-                                el.style.boxShadow = 'none';
-                                el.innerText = `> UNIT: ${titulo || 'RASSOR_PROD'} _`;
-                            } else if (s === 2) { // CAUTION TAPE
-                                el.style.background = 'var(--accent)';
-                                el.style.color = '#000';
-                                el.style.border = 'none';
-                                el.style.borderRadius = '2px';
-                                el.style.padding = '4px 16px';
-                                el.style.fontFamily = 'var(--font-ibm-sans), sans-serif';
-                                el.style.textShadow = 'none';
-                                el.style.boxShadow = '0 4px 12px rgba(239, 184, 24, 0.5)';
-                                el.innerText = titulo || 'RASSOR-UI';
-                            }
-                        }}
-                        id="rassor-ui-title"
+                        title={titulo || 'RASSOR-UI'}
                         style={{
-                            /* Default Style: Pestaña (Tab) */
-                            background: 'var(--surface)', 
-                            border: '1px solid var(--border)', 
-                            borderTop: 'none',
-                            borderRadius: '0 0 12px 12px',
-                            padding: '8px 32px',
-                            boxShadow: '0 8px 16px rgba(0, 0, 0, 0.5)',
-                            color: 'var(--bone)',
+                            background: 'var(--accent)', 
+                            color: '#051025',
+                            border: 'none',
+                            borderRadius: '0 0 6px 6px',
+                            padding: '6px 24px',
+                            boxShadow: '0 6px 16px rgba(239, 184, 24, 0.2)',
                             fontWeight: '900',
-                            fontSize: '1.1rem',
+                            fontSize: '1rem',
                             letterSpacing: '0.1em',
                             textTransform: 'uppercase',
                             margin: 0, 
-                            maxWidth: '100%', 
+                            maxWidth: '400px', 
                             overflow: 'hidden', 
                             textOverflow: 'ellipsis', 
                             whiteSpace: 'nowrap',
-                            cursor: 'pointer',
                             userSelect: 'none',
-                            transition: 'all 0.2s ease-in-out'
                         }}
                     >
                         {titulo || 'RASSOR-UI'}
