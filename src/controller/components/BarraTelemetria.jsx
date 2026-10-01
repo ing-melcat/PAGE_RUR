@@ -1,5 +1,5 @@
 import { Fragment, Suspense, lazy, useEffect, useState } from 'react';
-import { LayoutGrid, Users } from 'lucide-react';
+import { LayoutGrid, Users, WifiOff } from 'lucide-react';
 import { ACTUADORES, NIVEL_MAX } from '../telemetria';
 import { useTelemetria, useSinMovimiento } from '../useTelemetria';
 import { useTelemetriaRobot } from '../useTelemetriaRobot';
@@ -48,31 +48,31 @@ function CalidadEnlace({ conectado, enlace, t }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} title={conectado ? t('telemetria.enVivo') : t('telemetria.sinRobotConectado')}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '14px' }}>
-        {[0, 1, 2, 3].map(i => {
-          const height = 5 + (i * 3);
-          const active = quality > i;
-          let color = 'var(--accent)';
-          if (!active) {
-            color = conectado ? 'var(--border)' : 'var(--error)';
-          } else if (quality <= 1) {
-            color = 'var(--error)';
-          }
-          return (
-            <div key={i} style={{
-              width: '4px',
-              height: `${height}px`,
-              background: color,
-              borderRadius: '1px',
-              transition: 'background 0.3s, opacity 0.3s',
-              opacity: active ? 1 : 0.3,
-              boxShadow: active && quality > 1 ? '0 0 5px var(--accent)' : 'none'
-            }} />
-          )
-        })}
-      </div>
-      {!conectado && (
-        <span style={{ color: 'var(--error)', fontSize: '1rem', fontWeight: 'bold', lineHeight: 1 }}>×</span>
+      {!conectado ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <WifiOff size={13} color="var(--muted)" strokeWidth={2.5} />
+          <span style={{ fontSize: '0.72rem', color: 'var(--muted)', fontWeight: 'bold', letterSpacing: '0.05em' }}>OFFLINE</span>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '12px' }}>
+          {[0, 1, 2, 3].map(i => {
+            const height = 4 + (i * 2.6); // 4px to ~12px max height
+            const active = quality > i;
+            // Use bone white for good signal, yellow (accent) for warning, dark border for empty bars
+            const color = active ? (quality <= 2 ? 'var(--accent)' : 'var(--bone)') : 'var(--border)';
+            return (
+              <div key={i} style={{
+                width: '3.5px',
+                height: `${height}px`,
+                background: color,
+                borderRadius: '1px',
+                transition: 'background 0.3s, opacity 0.3s',
+                opacity: active ? 1 : 0.4,
+                boxShadow: active && quality > 1 ? `0 0 4px ${color}` : 'none'
+              }} />
+            )
+          })}
+        </div>
       )}
     </div>
   );
@@ -770,8 +770,8 @@ export function BarraTelemetria({
            <>
              <span className="telemetria__osd-sep">·</span>
              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title={t('telemetria.espectadores')}>
-               <Users size={14} color="var(--muted)" strokeWidth={2.5} />
-               <span style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 'bold' }}>
+               <Users size={13} color="var(--bone)" strokeWidth={2.5} />
+               <span style={{ fontSize: '0.82rem', color: 'var(--accent)', fontWeight: 'bold' }}>
                  {audiencia ?? enlace?.espectadores ?? '—'}
                </span>
              </div>
@@ -845,7 +845,7 @@ export function BarraTelemetria({
               className={`telemetria__osd-boton${menuAbierto ? ' telemetria__osd-boton--abierto' : ''}`}
               style={{ margin: 0, padding: '4px 8px' }}
             >
-              <LayoutGrid size={15} strokeWidth={2.5} />
+              <LayoutGrid size={14} strokeWidth={2} />
             </button>
          </div>
       </div>
