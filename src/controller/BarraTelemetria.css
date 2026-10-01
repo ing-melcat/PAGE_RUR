@@ -229,6 +229,7 @@
 }
 
 .telemetria__osd-item {
+  flex-shrink: 0;
   display: flex;
   align-items: baseline;
   gap: 8px;

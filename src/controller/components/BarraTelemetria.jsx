@@ -726,20 +726,10 @@ export function BarraTelemetria({
       <div
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexWrap: 'nowrap', gap: '4px 0', padding: '7px 10px',
+          flexWrap: 'wrap', gap: '8px 4px', padding: '7px 10px',
         }}
       >
         <div className="telemetria__osd">
-          <span
-            className={`telemetria__osd-senal telemetria__osd-senal--${enVivo ? 'vivo' : 'caido'}`}
-            role="img"
-            aria-label={enVivo ? t('telemetria.enVivo') : t('telemetria.sinSenal')}
-            title={enVivo ? t('telemetria.enVivo') : t('telemetria.sinSenal')}
-            style={{
-              color: enVivo ? 'var(--success)' : 'var(--error)',
-              boxShadow: enVivo ? '0 0 8px var(--success)' : 'none',
-            }}
-          />
           {WIDGETS.filter((w) => activos.includes(w.id)).map(({ id }, i) => {
             const lectura = lecturaCompacta(id);
             if (!lectura) return null;
