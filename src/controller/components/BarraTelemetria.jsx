@@ -50,22 +50,21 @@ function CalidadEnlace({ conectado, enlace, t }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} title={conectado ? t('telemetria.enVivo') : t('telemetria.sinRobotConectado')}>
       {!conectado ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <WifiOff size={18} color="var(--muted)" strokeWidth={2.5} />
-          <span style={{ fontSize: '0.9rem', color: 'var(--muted)', fontWeight: 'bold', letterSpacing: '0.05em' }}>OFFLINE</span>
+          <WifiOff size={22} color="var(--muted)" strokeWidth={2.5} />
+          <span style={{ fontSize: '1.05rem', color: 'var(--muted)', fontWeight: 'bold', letterSpacing: '0.05em' }}>OFFLINE</span>
         </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '18px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '22px' }}>
           {[0, 1, 2, 3].map(i => {
-            const height = 6 + (i * 4); // 6px to 18px max height
+            const height = 8 + (i * 4.6); // 8px to ~22px max height
             const active = quality > i;
-            // Use bone white for good signal, yellow (accent) for warning, dark border for empty bars
             const color = active ? (quality <= 2 ? 'var(--accent)' : 'var(--bone)') : 'var(--border)';
             return (
               <div key={i} style={{
-                width: '5px',
+                width: '6px',
                 height: `${height}px`,
                 background: color,
-                borderRadius: '1px',
+                borderRadius: '2px',
                 transition: 'background 0.3s, opacity 0.3s',
                 opacity: active ? 1 : 0.4,
                 boxShadow: active && quality > 1 ? `0 0 5px ${color}` : 'none'
@@ -768,10 +767,10 @@ export function BarraTelemetria({
         <CalidadEnlace conectado={isRobotConnected} enlace={enlace} t={t} />
         {activos.includes('audiencia') && (
            <>
-             <span className="telemetria__osd-sep">·</span>
+             <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', margin: '0 4px' }}>·</span>
              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} title={t('telemetria.espectadores')}>
-               <Users size={18} color="var(--bone)" strokeWidth={2.5} />
-               <span style={{ fontSize: '1rem', color: 'var(--accent)', fontWeight: 'bold' }}>
+               <Users size={22} color="var(--bone)" strokeWidth={2.5} />
+               <span style={{ fontSize: '1.15rem', color: 'var(--accent)', fontWeight: 'bold' }}>
                  {audiencia ?? enlace?.espectadores ?? '—'}
                </span>
              </div>
@@ -799,12 +798,12 @@ export function BarraTelemetria({
                if (!lectura) return null;
                return (
                  <Fragment key={id}>
-                   {i > 0 && <span className="telemetria__osd-sep">·</span>}
-                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                     <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>{lectura.etiqueta}</span>
-                     <span style={{ fontSize: '1rem', color: 'var(--accent)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
+                   {i > 0 && <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', margin: '0 4px' }}>·</span>}
+                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                     <span style={{ fontSize: '0.95rem', color: 'var(--muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>{lectura.etiqueta}</span>
+                     <span style={{ fontSize: '1.15rem', color: 'var(--accent)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
                        {lectura.valor}
-                       {lectura.unidad && <span style={{ fontSize: '0.8rem', marginLeft: '3px' }}>{lectura.unidad}</span>}
+                       {lectura.unidad && <span style={{ fontSize: '0.85rem', marginLeft: '4px' }}>{lectura.unidad}</span>}
                      </span>
                    </div>
                  </Fragment>
@@ -817,7 +816,7 @@ export function BarraTelemetria({
          <div style={{
            display: 'flex', alignItems: 'center', gap: '10px',
            background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px',
-           padding: '6px 10px',
+           padding: '6px 12px',
            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
          }}>
            {entrada && (
@@ -829,15 +828,15 @@ export function BarraTelemetria({
                   background: 'transparent', border: 'none',
                   pointerEvents: typeof entrada.onAlternar === 'function' ? 'auto' : 'none',
                   cursor: typeof entrada.onAlternar === 'function' ? 'pointer' : 'default',
-                  display: 'flex', alignItems: 'baseline', gap: '6px',
+                  display: 'flex', alignItems: 'baseline', gap: '8px',
                   padding: '4px 8px'
                 }}
               >
-                <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>{t('telemetria.entrada')}</span>
-                <span style={{ fontSize: '1rem', color: 'var(--bone)', fontWeight: 'bold' }}>{entrada.modo}</span>
+                <span style={{ fontSize: '0.95rem', color: 'var(--muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>{t('telemetria.entrada')}</span>
+                <span style={{ fontSize: '1.15rem', color: 'var(--bone)', fontWeight: 'bold' }}>{entrada.modo}</span>
               </button>
            )}
-           {entrada && <span className="telemetria__osd-sep">·</span>}
+           {entrada && <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', margin: '0 4px' }}>·</span>}
            <button
               onClick={() => setMenuAbierto((v) => !v)}
               title={t('telemetria.widgets')}
@@ -845,7 +844,7 @@ export function BarraTelemetria({
               className={`telemetria__osd-boton${menuAbierto ? ' telemetria__osd-boton--abierto' : ''}`}
               style={{ margin: 0, padding: '6px 10px' }}
             >
-              <LayoutGrid size={18} strokeWidth={2} />
+              <LayoutGrid size={22} strokeWidth={2} />
             </button>
          </div>
       </div>
