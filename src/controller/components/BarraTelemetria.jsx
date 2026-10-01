@@ -213,7 +213,7 @@ export function ChipEntrada({ entrada, transicion }) {
       style={{
         pointerEvents: pulsable ? 'auto' : 'none',
         cursor: pulsable ? 'pointer' : 'default',
-        display: 'flex', alignItems: 'center', gap: '7px',
+        display: 'flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap',
         background: pulsable ? 'rgba(255,255,255,0.08)' : 'transparent',
         border: pulsable ? '1px solid var(--border)' : 'none',
         padding: pulsable ? '4px 10px' : 0,
@@ -228,7 +228,9 @@ export function ChipEntrada({ entrada, transicion }) {
         transition: transicion,
       }} />
       <span className="telemetria__titulo telemetria__titulo--inline">
-        {pulsable ? t('telemetria.volverTactil', 'Volver a táctil') : t('telemetria.entrada')}
+        {pulsable 
+          ? (entrada.esTactil ? t('telemetria.volverTeclado', 'Volver a teclado') : t('telemetria.volverTactil', 'Volver a táctil')) 
+          : t('telemetria.entrada')}
       </span>
       {pulsable && entrada.atajo && (
         <span style={{ fontSize: '0.7rem', color: 'var(--muted)', fontFamily: 'var(--font-ibm-mono)' }}>{entrada.atajo}</span>
@@ -510,7 +512,7 @@ export function BarraTelemetria({
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(widgetsIniciales));
               }}
               style={{
-                cursor: 'pointer', textAlign: 'left', background: 'transparent',
+                cursor: 'pointer', textAlign: 'left', background: 'transparent', whiteSpace: 'nowrap',
                 border: '1px solid var(--border)', borderRadius: '2px', padding: '6px 10px',
               }}
               className="telemetria__accion"
@@ -520,7 +522,7 @@ export function BarraTelemetria({
             <button
               onClick={() => setMenuAbierto(false)}
               style={{
-                cursor: 'pointer', textAlign: 'left', background: 'transparent',
+                cursor: 'pointer', textAlign: 'left', background: 'transparent', whiteSpace: 'nowrap',
                 border: '1px solid var(--border)', borderRadius: '2px', padding: '6px 10px',
               }}
               className="telemetria__accion"

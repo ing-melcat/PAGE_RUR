@@ -273,7 +273,8 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     activo: hasGamepad || hasKeyboard,
     // Solo tiene sentido alternar si de verdad hay un mando que ignorar.
     onAlternar: (hasGamepad || hasKeyboard) ? () => setForceMobileMode((v) => !v) : undefined,
-    atajo: (hasKeyboard && !forceMobileMode) ? '(Esc)' : undefined,
+    atajo: hasKeyboard ? '(Esc)' : undefined,
+    esTactil: !controlesOcultos,
   };
 
 
@@ -797,7 +798,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     
     const alDetectarTeclado = (e) => {
       if (e.key === 'Escape') {
-        setForceMobileMode(true);
+        setForceMobileMode((prev) => !prev);
         return;
       }
       if (e.key.startsWith('F') || e.key === 'Meta' || e.key === 'Alt' || e.key === 'Control' || e.key === 'Shift' || e.key === 'Tab') return;
