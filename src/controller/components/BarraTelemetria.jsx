@@ -1,5 +1,5 @@
 import { Fragment, Suspense, lazy, useEffect, useState } from 'react';
-import { LayoutGrid, Users, WifiOff } from 'lucide-react';
+import { LayoutGrid, Users, WifiOff, Gamepad2, Keyboard, Pointer, MoveUp, MoveLeft, Cpu } from 'lucide-react';
 import { ACTUADORES, NIVEL_MAX } from '../telemetria';
 import { useTelemetria, useSinMovimiento } from '../useTelemetria';
 import { useTelemetriaRobot } from '../useTelemetriaRobot';
@@ -51,7 +51,7 @@ function CalidadEnlace({ conectado, enlace, t }) {
       {!conectado ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <WifiOff size={22} color="var(--muted)" strokeWidth={2.5} />
-          <span style={{ fontSize: '1.05rem', color: 'var(--muted)', fontWeight: 'bold', letterSpacing: '0.05em' }}>OFFLINE</span>
+          
         </div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '22px' }}>
@@ -432,15 +432,20 @@ export function BarraTelemetria({
     );
 
     switch (id) {
-      case 'avance': {
+            case 'avance': {
         const nivel = telemetria.avance?.nivel ?? 0;
         const atras = telemetria.avance?.dir === 'atras';
         const activo = nivel > 0 && Boolean(telemetria.avance?.dir);
         return {
-          titulo: t('telemetria.avance'),
+          titulo: null,
           activo,
           ancho: '7ch',
-          contenido: <>{flecha(atras ? '▼' : '▲', atras ? 'abajo' : 'arriba', activo)} {nivel * 10}%</>,
+          contenido: (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <MoveUp size={18} style={{ transform: atras ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s ease', color: activo ? 'var(--bone)' : 'var(--muted)' }} />
+              <span style={{ minWidth: '3ch', textAlign: 'right' }}>{nivel * 10}%</span>
+            </div>
+          ),
         };
       }
       case 'giro': {
@@ -448,42 +453,44 @@ export function BarraTelemetria({
         const izquierda = telemetria.giro?.dir === 'izquierda';
         const activo = nivel > 0 && Boolean(telemetria.giro?.dir);
         return {
-          titulo: t('telemetria.giro'),
+          titulo: null,
           activo,
           ancho: '7ch',
-          contenido: <>{flecha(izquierda ? '◀' : '▶', izquierda ? 'izquierda' : 'derecha', activo)} {nivel * 10}%</>,
+          contenido: (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <MoveLeft size={18} style={{ transform: izquierda ? 'none' : 'rotate(180deg)', transition: 'transform 0.3s ease', color: activo ? 'var(--bone)' : 'var(--muted)' }} />
+              <span style={{ minWidth: '3ch', textAlign: 'right' }}>{nivel * 10}%</span>
+            </div>
+          ),
         };
       }
       case 'actuadores': {
-        // Un punto por actuador, siempre los cuatro y siempre en el orden del
-        // catálogo -- el mismo que el de los botones en pantalla. Las
-        // abreviaturas completas (BRZ-D, TMB-T...) son 23 caracteres: en una
-        // franja de teléfono se comen el resto de las lecturas, y aquí el
-        // operador ya tiene los botones debajo del pulgar para saber cuál
-        // está tocando. El desglose con nombres sigue estando en modo mando.
         const encendidos = ACTUADORES.filter(({ clave }) => telemetria.actuadores[clave]);
         return {
-          titulo: t('telemetria.actuadores'),
+          titulo: null,
           activo: encendidos.length > 0,
           ancho: 'auto',
           contenido: (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-              {ACTUADORES.map(({ clave, abrev }) => {
-                const encendido = Boolean(telemetria.actuadores[clave]);
-                return (
-                  <span
-                    key={clave}
-                    title={abrev}
-                    style={{
-                      width: '6px', height: '6px', borderRadius: '50%',
-                      background: encendido ? 'var(--bone)' : APAGADO,
-                      boxShadow: encendido ? BRILLO_ACTIVO : 'none',
-                      transition: transicion,
-                    }}
-                  />
-                );
-              })}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Cpu size={18} color={encendidos.length > 0 ? 'var(--bone)' : 'var(--muted)'} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                {ACTUADORES.map(({ clave, abrev }) => {
+                  const encendido = Boolean(telemetria.actuadores[clave]);
+                  return (
+                    <span
+                      key={clave}
+                      title={abrev}
+                      style={{
+                        width: '6px', height: '6px', borderRadius: '50%',
+                        background: encendido ? 'var(--bone)' : 'rgba(255, 255, 255, 0.1)',
+                        boxShadow: encendido ? '0 0 5px var(--bone)' : 'none',
+                        transition: transicion,
+                      }}
+                    />
+                  );
+                })}
+              </span>
+            </div>
           ),
         };
       }
@@ -800,9 +807,9 @@ export function BarraTelemetria({
                  <Fragment key={id}>
                    {i > 0 && <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', color: 'var(--border)', margin: '0 8px' }}>|</span>}
                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                     <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 'normal', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lectura.titulo}</span>
+                     {lectura.titulo && <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 'normal', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lectura.titulo}</span>}
                      <span style={{ fontSize: '1.05rem', color: 'var(--bone)', fontWeight: 'normal', fontVariantNumeric: 'tabular-nums' }}>
-                       {lectura.valor}
+                       {lectura.contenido || lectura.valor}
                        {lectura.unidad && <span style={{ fontSize: '0.8rem', marginLeft: '4px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
                      </span>
                    </div>
@@ -832,8 +839,7 @@ export function BarraTelemetria({
                   padding: '4px 8px'
                 }}
               >
-                <span style={{ fontSize: '0.95rem', color: 'var(--muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>{t('telemetria.entrada')}</span>
-                <span style={{ fontSize: '1.15rem', color: 'var(--bone)', fontWeight: 'bold' }}>{entrada.modo}</span>
+                {entrada.modo === 'TÁCTIL' ? <Pointer size={22} color="var(--muted)" /> : entrada.modo === 'TECLADO' ? <Keyboard size={22} color="var(--muted)" /> : <Gamepad2 size={22} color="var(--muted)" />}
               </button>
            )}
            {entrada && <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', margin: '0 4px' }}>·</span>}
