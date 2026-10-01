@@ -34,10 +34,18 @@ export function ConfigPanel({ onApply }) {
                 className={`config-toggle ${isOpen ? 'open' : ''}`}
                 onClick={() => setIsOpen(!isOpen)}
                 aria-label={t('operador.configPanel.toggleAriaLabel')}
+                style={{
+                    background: 'var(--surface)', 
+                    border: '1px solid var(--border)', 
+                    borderRadius: '6px',
+                    color: 'var(--bone)', 
+                    cursor: 'pointer', 
+                    padding: '8px 12px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
             >
-                <span className="hud-bracket">[</span>
-                <Settings size={22} className="hud-icon" style={{ margin: '0 4px' }} />
-                <span className="hud-bracket">]</span>
+                <Settings size={22} className="hud-icon" />
             </button>
 
             {createPortal(

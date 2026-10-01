@@ -23,10 +23,19 @@ export function Cabezal({ onCambio, onConfigApply, onBack, titulo }) {
                 boxSizing: 'border-box'
             }}>
                 {/* Back button on the left to return to Dashboard */}
-                <div style={{ width: '40px', display: 'flex', justifyContent: 'flex-start' }}>
+                <div style={{ width: '60px', display: 'flex', justifyContent: 'flex-start' }}>
                     <button 
                         onClick={onBack}
-                        style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '8px' }}
+                        style={{ 
+                            background: 'var(--surface)', 
+                            border: '1px solid var(--border)', 
+                            borderRadius: '6px',
+                            color: 'var(--bone)', 
+                            cursor: 'pointer', 
+                            padding: '10px',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}
                         aria-label={t('operador.controller.volverMenuAria')}
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -40,19 +49,34 @@ export function Cabezal({ onCambio, onConfigApply, onBack, titulo }) {
                     se recorta con puntos suspensivos en vez de empujar al
                     botón de volver o al de configuración. El nombre completo
                     queda en el title. */}
-                <div
-                    className="topbar-title"
-                    title={titulo || 'RASSOR-UI'}
-                    style={{
-                        margin: 0, flex: 1, textAlign: 'center', color: 'var(--text)',
-                        minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}
-                >
-                    {titulo || 'RASSOR-UI'}
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+                    <div
+                        className="topbar-title"
+                        title={titulo || 'RASSOR-UI'}
+                        style={{
+                            background: 'var(--surface)', 
+                            border: '1px solid var(--border)', 
+                            borderRadius: '6px',
+                            padding: '8px 16px',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+                            color: 'var(--bone)',
+                            fontWeight: 'bold',
+                            fontSize: '1rem',
+                            letterSpacing: '0.1em',
+                            textTransform: 'uppercase',
+                            margin: 0, 
+                            maxWidth: '100%', 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis', 
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        {titulo || 'RASSOR-UI'}
+                    </div>
                 </div>
                 
                 {/* ConfigPanel placed inside the header on the right */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', width: 'auto', minWidth: '40px' }}>
+                <div style={{ width: '60px', display: 'flex', justifyContent: 'flex-end' }}>
                     <ConfigPanel onApply={onConfigApply} />
                 </div>
 

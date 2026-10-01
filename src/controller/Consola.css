@@ -145,8 +145,9 @@
 /* El Cabezal */
 .cabezal {
   z-index: 100;
-  background-color: rgba(5, 16, 37, 0.6);
-  border-bottom: 2px solid var(--accent);
+  background-color: transparent;
+  border-top: 2px solid var(--accent);
+  border-bottom: none;
   color: var(--text);
   padding: 15px 0;
   width: 100%;
@@ -155,6 +156,12 @@
   left: 0;
   text-align: center;
   font-family: var(--font-ibm-sans), Inter, sans-serif;
+  pointer-events: none; /* Let clicks pass through the transparent header area */
+}
+
+/* Allow clicking on the nav buttons inside the transparent header */
+.cabezal nav {
+  pointer-events: auto;
 }
 
 
