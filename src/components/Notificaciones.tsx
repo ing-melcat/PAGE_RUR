@@ -134,7 +134,7 @@ export function NotificacionesProvider({ children }: { children: React.ReactNode
           de robots (overlay oscuro + tarjeta con borde ámbar). */}
       {peticion && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001,  }}
           onKeyDown={(e) => { if (e.key === 'Escape') responder(false); }}
         >
           <div style={{ background: 'var(--background)', border: '1px solid var(--accent)', borderRadius: '8px', padding: '28px', width: '100%', maxWidth: '420px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
@@ -158,7 +158,7 @@ export function NotificacionesProvider({ children }: { children: React.ReactNode
           generada. Campo de solo lectura + botón de copiar de verdad (ver
           lib/clipboard.ts, con respaldo para HTTP sin contexto seguro). */}
       {peticionValor && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001,  }}>
           <div style={{ background: 'var(--background)', border: '1px solid var(--accent)', borderRadius: '8px', padding: '28px', width: '100%', maxWidth: '420px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
             <p style={{ margin: '0 0 16px', color: 'var(--text)', fontSize: '0.95rem', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
               {peticionValor.mensaje}

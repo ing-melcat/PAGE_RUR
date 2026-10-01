@@ -23,8 +23,6 @@
   border: 1px solid var(--border);
   border-radius: 2px;
   box-shadow: 0 18px 40px rgba(0, 0, 0, .55);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   /* Entra desde abajo y no desde el borde derecho: un deslizamiento lateral
      se parece demasiado a un anuncio. El rebote final es mínimo — lo justo
      para que la tarjeta se sienta física y no dibujada de golpe. */

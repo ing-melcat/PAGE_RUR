@@ -237,6 +237,8 @@ export const es = {
     widgets: 'Widgets',
     restaurar: 'Restaurar por defecto',
     cerrarMenu: 'Cerrar menú',
+    volverTactil: 'Volver a táctil',
+    volverTeclado: 'Volver a teclado',
     enlace: 'Enlace',
     bitrate: 'Bitrate',
     video: 'Video',

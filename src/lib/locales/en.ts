@@ -233,6 +233,8 @@ export const en: Dictionary = {
     widgets: 'Widgets',
     restaurar: 'Reset to default',
     cerrarMenu: 'Close menu',
+    volverTactil: 'Back to touch',
+    volverTeclado: 'Back to keyboard',
     enlace: 'Link',
     bitrate: 'Bitrate',
     video: 'Video',

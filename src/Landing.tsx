@@ -469,7 +469,7 @@ export const PublicationPage = () => {
         </div>
 
       {post.pages && post.pages.length > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 60px', borderTop: '1px solid var(--border)', background: 'rgba(5,16,37,0.8)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 60px', borderTop: '1px solid var(--border)', background: 'rgba(5,16,37,0.8)',  }}>
           <button className="paginador-btn" onClick={prev} disabled={currentPage === 0}>{t('publicacion.anterior')}</button>
           <span style={{ fontFamily: 'var(--font-ibm-mono)', color: 'var(--accent)', letterSpacing: '4px', fontSize: '1.2rem' }}>
             {t('publicacion.pagina')} {currentPage + 1} / {post.pages.length}

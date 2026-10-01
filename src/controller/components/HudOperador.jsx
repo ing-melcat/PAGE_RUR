@@ -105,8 +105,6 @@ function MedidorDato({ etiqueta, valor, unidad, pieCifra }) {
 
 const TARJETA = {
   background: 'rgba(15, 20, 30, 0.95)',
-  backdropFilter: 'blur(8px)',
-  WebkitBackdropFilter: 'blur(8px)',
   border: '1px solid var(--border)',
   borderRadius: '8px',
   boxShadow: '0 4px 20px rgba(0,0,0,0.5)',

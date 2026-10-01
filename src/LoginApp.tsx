@@ -1154,7 +1154,7 @@ export default function App() {
 
                 {/* MODAL DE EDICIÓN (Overlay) */}
                 {editingRobot && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}>
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999,  }}>
                         <div style={{ background: 'var(--background)', border: '1px solid var(--accent)', borderRadius: '8px', padding: '32px', width: '100%', maxWidth: '600px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
                             <h3 style={{ marginTop: 0, marginBottom: '24px', fontFamily: 'var(--font-titulo)', fontSize: '1.1rem', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 400 }}>
                                 {editingRobot.isNew ? t('adminRobots.registrarNuevaUnidad') : t('adminRobots.editarUnidad')}

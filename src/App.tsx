@@ -434,7 +434,7 @@ const ComingSoon = () => {
         <VisorModelo3D url="/models/DeliveryBotv1.glb" variante="publicacion" />
       </Suspense>
     </div>
-    <div style={{ position: 'relative', zIndex: 10, background: 'rgba(3,8,22,0.7)', padding: '40px', borderRadius: '16px', backdropFilter: 'blur(10px)', border: '1px solid var(--border)' }}>
+    <div style={{ position: 'relative', zIndex: 10, background: 'rgba(3,8,22,0.7)', padding: '40px', borderRadius: '16px', border: '1px solid var(--border)' }}>
       <h1 style={{ fontFamily: 'var(--font-titulo)', fontSize: '3.6rem', color: 'var(--accent)', marginBottom: '20px' }}>{t('comingSoon.titulo') || 'PRÓXIMAMENTE'}</h1>
       <p style={{ color: 'var(--text)', fontSize: '1.2rem', maxWidth: '600px', lineHeight: '1.6', margin: '0 auto' }}>
         {t('comingSoon.texto') || 'Estamos construyendo algo increíble en el laboratorio de robótica. ¡Vuelve pronto!'}

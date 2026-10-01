@@ -983,7 +983,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
         <BarraTelemetria
           room={room}
           fuenteLocal={telemetriaLocal}
-          posicion="abajo"
+          posicion={controlesOcultos ? "abajo" : "arriba"}
           margen={24}
           esencial={!controlesOcultos}
           entrada={entradaActiva}

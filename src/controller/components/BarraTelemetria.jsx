@@ -83,8 +83,6 @@ const TARJETA = {
   border: '1px solid var(--border)',
   borderRadius: '2px',
   boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
-  backdropFilter: 'blur(4px)',
-  WebkitBackdropFilter: 'blur(4px)',
 };
 
 // A qué BLOQUE visual pertenece cada widget del catálogo. Es un agrupamiento

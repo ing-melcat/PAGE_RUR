@@ -323,8 +323,6 @@ h1 {
      mismo azul de la superficie, casi transparente, lo justo para que el
      texto no se apoye directamente en la imagen. */
   background: rgba(5, 16, 37, 0.55);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   padding: 6px 16px;
   border-radius: 4px;
   font-family: var(--font-ibm-mono), monospace;
