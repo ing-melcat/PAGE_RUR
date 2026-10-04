@@ -166,7 +166,7 @@ export function HudOperador({ room, fuenteLocal, modelUrl, isRobotConnected, ent
           <span className="hud__reloj-signo">T+</span> <RelojMision desde={inicioMision} />
         </div>
         <div className="hud__subtitulo">
-          <span style={{ fontSize: '1.2em', color: 'var(--text)' }}>{tituloMision || 'RUR'}</span>
+          <span style={{ fontSize: '1.2em', color: 'var(--text)' }}>{tituloMision || ''}</span>
           {!isRobotConnected && (
             <span className="hud__alerta"> · {t('telemetria.sinRobotConectado')}</span>
           )}

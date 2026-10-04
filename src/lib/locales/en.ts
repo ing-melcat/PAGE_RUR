@@ -4,6 +4,16 @@ import type { Dictionary } from './es';
 // (mismas secciones, mismas claves) -- TypeScript avisa en build si una
 // clave falta o sobra, gracias al tipo `Dictionary` importado de es.ts.
 export const en: Dictionary = {
+  mision: {
+    panelTitulo: 'Mission',
+    nuevoObjetivo: 'New objective...',
+    iniciar: 'Start Mission',
+    detener: 'Stop Mission',
+    abrirTransmision: 'Open Broadcast',
+    cerrarTransmision: 'Close Broadcast',
+    abrirGrabador: 'Open Recorder',
+  },
+
   modelos3d: {
     origenRobot: 'Robot',
     origenPublicacion: 'Post',

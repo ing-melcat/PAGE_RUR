@@ -32,23 +32,23 @@ function guardarIdioma(lang: Lang) {
 
 // Busca por ruta de puntos ('seccion.clave') dentro del diccionario activo.
 // Si la clave no existe todavía (archivo aún no traducido, o typo), devuelve
-// la clave misma en vez de tronar -- nunca debe romper la UI por esto.
-function buscar(diccionario: Record<string, unknown>, ruta: string): string {
+// fallback si se proporcionó, o la clave misma en vez de tronar -- nunca debe romper la UI por esto.
+function buscar(diccionario: Record<string, unknown>, ruta: string, fallback?: string): string {
   const partes = ruta.split('.');
   let actual: unknown = diccionario;
   for (const parte of partes) {
     if (typeof actual !== 'object' || actual === null || !(parte in actual)) {
-      return ruta;
+      return fallback !== undefined ? fallback : ruta;
     }
     actual = (actual as Record<string, unknown>)[parte];
   }
-  return typeof actual === 'string' ? actual : ruta;
+  return typeof actual === 'string' ? actual : (fallback !== undefined ? fallback : ruta);
 }
 
 interface LanguageContextValue {
   lang: Lang;
   setLang: (lang: Lang) => void;
-  t: (ruta: string) => string;
+  t: (ruta: string, fallback?: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -65,7 +65,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     guardarIdioma(siguiente);
   };
 
-  const t = (ruta: string) => buscar(DICCIONARIOS[lang], ruta);
+  const t = (ruta: string, fallback?: string) => buscar(DICCIONARIOS[lang], ruta, fallback);
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, t }}>

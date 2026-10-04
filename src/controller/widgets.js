@@ -16,7 +16,6 @@ export const WIDGETS = [
   { id: 'avance', fuente: 'operador' },
   { id: 'giro', fuente: 'operador' },
   { id: 'actuadores', fuente: 'operador' },
-  { id: 'calidad', fuente: 'enlace' },
   { id: 'bitrate', fuente: 'enlace' },
   { id: 'video', fuente: 'enlace' },
   { id: 'perdida', fuente: 'enlace' },

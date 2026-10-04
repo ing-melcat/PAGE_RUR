@@ -73,17 +73,26 @@ const dosDigitos = (n) => String(n).padStart(2, '0');
  * hay un instante de ignición que anticipar, pero el tiempo transcurrido sí
  * es real y da la misma sensación de acontecimiento en marcha.
  */
-function RelojMision({ desde }) {
+function RelojMision({ desde, missionHls, playingDate }) {
   const [ahora, setAhora] = useState(() => Date.now());
 
   useEffect(() => {
+    if (playingDate) return;
     const id = setInterval(() => setAhora(Date.now()), 500);
     return () => clearInterval(id);
-  }, []);
+  }, [playingDate]);
 
-  if (!desde) return <span className="hud__reloj-cifra">--:--:--</span>;
+  const startedAt = missionHls?.started_at || desde;
+  if (!startedAt) {
+    if (missionHls && !missionHls.started_at) {
+      // Countdown or not started yet
+      return <span className="hud__reloj-cifra">PRE-FLIGHT</span>;
+    }
+    return <span className="hud__reloj-cifra">--:--:--</span>;
+  }
 
-  const s = Math.max(0, Math.floor((ahora - desde) / 1000));
+  const currentNow = playingDate ? playingDate.getTime() : ahora;
+  const s = Math.max(0, Math.floor((currentNow - startedAt) / 1000));
   return (
     <span className="hud__reloj-cifra">
       {dosDigitos(Math.floor(s / 3600))}:{dosDigitos(Math.floor(s / 60) % 60)}:{dosDigitos(s % 60)}
@@ -96,25 +105,19 @@ function RelojMision({ desde }) {
  *                 la capa de OBS para componer escenas distintas con la misma
  *                 ruta (?widgets=avance,giro), sin necesidad de tocar código.
  */
-export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl }) {
+export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl, missionHls, playingDate }) {
   const visible = (id) => !widgets || widgets.includes(id);
   const { t } = useLanguage();
   const { telemetria, enVivo } = useTelemetria(room);
   const mision = useMision(room);
-  // Sensores del robot. Devuelve null mientras nadie los publique, y cada
-  // instrumento se apaga solo: ninguno dibuja un valor por defecto.
   const sensores = useTelemetriaRobot(room, simular);
   const sinMovimiento = useSinMovimiento();
   const enlace = useEstadisticasEnlace(room, true);
 
-  // Instante en que empezó a llegar telemetría. Es el arranque del reloj de
-  // misión, y se fija una sola vez: si el enlace parpadea, el cronómetro no
-  // vuelve a cero como si la sesión hubiera empezado de nuevo.
-
-
-  // Se iguala al periodo de la telemetría (100 ms): suaviza el salto entre
-  // paquetes sin añadir retraso perceptible sobre lo que ya tarda el dato.
   const transicion = sinMovimiento ? 'none' : 'all 0.1s linear';
+
+  // Determine active objective
+  const activeObj = missionHls?.objectives?.find(o => !o.completed_at) || mision?.objetivo;
 
   return (
     <div className="hud">
@@ -125,25 +128,19 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
       </div>
 
       <div className="hud__centro">
-        {/* El robot preside el HUD: es de lo que trata la transmisión. El
-            reloj y el nombre de la unidad quedan debajo, como su pie. */}
         {visible('robot3d') && (
           <Suspense fallback={null}>
             <RassorEnVivo avance={telemetria.avance} giro={telemetria.giro} imu={sensores?.imu} modelUrl={modelUrl} />
           </Suspense>
         )}
-        <div className="hud__reloj">
-          <span className="hud__reloj-signo">T+</span> <RelojMision desde={mision.inicio} />
-        </div>
         <div className="hud__subtitulo">
-          <span style={{ fontSize: '1.2em', color: 'var(--text)' }}>{mision.titulo ? mision.titulo : titulo}</span>
           {enVivo && !telemetria.robot && (
             <span className="hud__alerta"> · {t('telemetria.sinRobotConectado')}</span>
           )}
         </div>
-        {mision.objetivo && (
+        {activeObj && (
           <div className="hud__objetivo" style={{ color: 'var(--accent)', fontSize: '0.9em', marginTop: '6px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            OBJETIVO: {mision.objetivo}
+            OBJETIVO: {activeObj.text || activeObj}
           </div>
         )}
         {/* Aquí es donde iría la línea de fases de la misión. Está fuera a

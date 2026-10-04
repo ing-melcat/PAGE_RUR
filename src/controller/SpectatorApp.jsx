@@ -14,6 +14,32 @@ import './Espectador.css';
 import { lazyConRecarga } from '../lib/lazyConRecarga';
 const VisorModelo3D = lazyConRecarga(() => import('../VisorModelo3D'));
 
+const dosDigitos = (n) => String(n).padStart(2, '0');
+
+function SpectatorTimer({ mission, playingDate }) {
+  const [ahora, setAhora] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (playingDate) return;
+    const id = setInterval(() => setAhora(Date.now()), 500);
+    return () => clearInterval(id);
+  }, [playingDate]);
+
+  const startedAt = mission?.started_at;
+
+  if (!startedAt) {
+    return <span>T- <span style={{ color: 'var(--muted)' }}>--:--:--</span></span>;
+  }
+
+  const currentNow = playingDate ? playingDate.getTime() : ahora;
+  const s = Math.max(0, Math.floor((currentNow - startedAt) / 1000));
+  return (
+    <span>
+      T+ {dosDigitos(Math.floor(s / 3600))}:{dosDigitos(Math.floor(s / 60) % 60)}:{dosDigitos(s % 60)}
+    </span>
+  );
+}
+
 /**
  * Espectador público de una unidad. Ruta: /espectador/:robotId
  *
@@ -37,6 +63,8 @@ export default function SpectatorApp() {
   const [hlsUrl, setHlsUrl] = useState(null);
   const [error, setError] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [mission, setMission] = useState(null);
+  const [playingDate, setPlayingDate] = useState(null);
   // La conexión puede resolverse en 200 ms, y entonces la portada aparece y
   // desaparece de un tirón mientras el vídeo y el HUD todavía se están
   // montando: se ve como un fallo, no como una carga. Con un mínimo en
@@ -92,6 +120,7 @@ export default function SpectatorApp() {
 
         setRobotName(data.robotName || robotId);
         setRobotModelUrl(data.modelUrl || '');
+        if (data.mission) setMission(data.mission);
 
         if (data.hlsUrl) {
           // Si el backend provee HLS, no nos conectamos a WebRTC.
@@ -200,7 +229,7 @@ export default function SpectatorApp() {
       )}
 
       <div style={{ opacity: listo ? 1 : 0, transition: 'opacity 0.6s ease-out', width: '100%', height: '100%' }}>
-        <VideoViewer room={room} isConnected={isConnected} hlsUrl={hlsUrl} />
+        <VideoViewer room={room} isConnected={isConnected} hlsUrl={hlsUrl} onPlayingDateChange={setPlayingDate} />
       </div>
 
       {/* Identificación de la vista.
@@ -210,19 +239,47 @@ export default function SpectatorApp() {
           delata la interfaz. Aquí basta con decir quién eres y de qué unidad,
           en el tono de un rótulo de esquina — se lee cuando se busca y
           desaparece cuando no. */}
-      <div className="espectador__marca">
+      <div className="espectador__marca" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Link to="/" className="espectador__salir">
           <ArrowLeft size={14} /> {t('operador.espectador.salir')}
         </Link>
         <span className="espectador__sep">·</span>
         <Eye size={13} />
-        <span>{robotName || robotId}</span>
+        <span>MODO ESPECTADOR</span>
+      </div>
+
+      <img 
+        src="/logo-wordmark.png" 
+        alt="RUR Logo"
+        style={{
+            position: 'absolute',
+            right: '40px',
+            top: '25px',
+            height: '24px',
+            opacity: 0.3,
+            filter: 'invert(1)',
+            pointerEvents: 'none',
+            zIndex: 100
+        }}
+      />
+
+      <div style={{
+        position: 'absolute',
+        right: '40px',
+        top: '65px',
+        zIndex: 100,
+        fontFamily: 'var(--font-ibm-mono), monospace',
+        color: 'var(--accent)',
+        fontSize: '1.2rem',
+        textShadow: '0 2px 4px rgba(0,0,0,0.8)'
+      }}>
+        <SpectatorTimer mission={mission} playingDate={playingDate} />
       </div>
 
       {/* Telemetría de lo que está haciendo el operador, con el lenguaje de
           una retransmisión de lanzamiento. Solo se pinta con la sala ya
           conectada: antes de eso no hay canal de datos que escuchar. */}
-      {listo && <HudEspectador room={room} titulo={robotName || robotId} simular={simular} modelUrl={robotModelUrl} />}
+      {listo && <HudEspectador room={room} titulo={robotName || robotId} simular={simular} modelUrl={robotModelUrl} missionHls={mission} playingDate={playingDate} />}
     </div>
   );
 }

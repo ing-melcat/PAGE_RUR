@@ -4,6 +4,16 @@
 // el plan de traducción -- no todas las claves usadas en el código existen
 // aquí todavía hasta terminar ese barrido.
 export const es = {
+  mision: {
+    panelTitulo: 'Misión',
+    nuevoObjetivo: 'Nuevo objetivo...',
+    iniciar: 'Iniciar Misión',
+    detener: 'Detener Misión',
+    abrirTransmision: 'Abrir Transmisión',
+    cerrarTransmision: 'Cerrar Transmisión',
+    abrirGrabador: 'Abrir Grabador',
+  },
+
   // Compartido entre el selector de modelos del panel de robots
   // (LoginApp.tsx) y el del editor de publicaciones (AdminContent.tsx): un
   // modelo subido en cualquiera de los dos aparece en el selector del otro,

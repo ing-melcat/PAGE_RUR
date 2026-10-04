@@ -15,6 +15,7 @@ import imgLine from './assets/real_images/line.jpeg';
 // Carga diferida: arrastra livekit-client, que no tiene por qué pesar en el
 // bundle de quien solo entra a la web pública.
 const SpectatorApp = lazyConRecarga(() => import('./controller/SpectatorApp'));
+const RecorderApp = lazyConRecarga(() => import('./controller/RecorderApp'));
 const OverlayApp = lazyConRecarga(() => import('./controller/OverlayApp'));
 const VisorModelo3D = lazyConRecarga(() => import('./VisorModelo3D'));
 // Igual con el panel: arrastra el visor 3D de la selección de unidad, y con él
@@ -527,6 +528,14 @@ function App() {
           element={
             <Suspense fallback={null}>
               <PageTransition><SpectatorApp /></PageTransition>
+            </Suspense>
+          }
+        />
+        <Route
+          path="/recorder/:robotId"
+          element={
+            <Suspense fallback={null}>
+              <PageTransition><RecorderApp /></PageTransition>
             </Suspense>
           }
         />

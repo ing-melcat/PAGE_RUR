@@ -44,29 +44,44 @@ export function Cabezal({ onCambio, onConfigApply, onBack, titulo }) {
                         </svg>
                     </button>
                 </div>
-                
-                {/* Nombre del robot colgando directamente del borde superior (Etiqueta Amarilla) */}
-                <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)' }}>
+
+                {/* Nombre del robot como NOTCH de la barra amarilla superior */}
+                <div style={{ 
+                    position: 'absolute', 
+                    top: 0, 
+                    left: '50%', 
+                    transform: 'translateX(-50%)', 
+                    zIndex: 110,
+                    pointerEvents: 'auto'
+                }}>
                     <div
-                        className="topbar-title"
+                        className="cabezal-notch-robot"
                         title={titulo || 'RASSOR-UI'}
                         style={{
                             background: 'var(--accent)', 
-                            color: '#051025',
-                            border: 'none',
-                            borderRadius: '0 0 6px 6px',
-                            padding: '6px 24px',
-                            boxShadow: '0 6px 16px rgba(239, 184, 24, 0.2)',
-                            fontWeight: '900',
-                            fontSize: '1rem',
-                            letterSpacing: '0.1em',
+                            color: 'var(--background)',
+                            borderBottomLeftRadius: '8px',
+                            borderBottomRightRadius: '8px',
+                            borderTopLeftRadius: 0,
+                            borderTopRightRadius: 0,
+                            padding: '5px 24px',
+                            boxShadow: '0 4px 14px rgba(251, 202, 1, 0.35)',
+                            fontWeight: 'bold',
+                            fontFamily: 'var(--font-ibm-mono), monospace',
+                            fontSize: '0.85rem',
+                            letterSpacing: '0.12em',
                             textTransform: 'uppercase',
                             margin: 0, 
-                            maxWidth: '400px', 
+                            maxWidth: '60vw', 
                             overflow: 'hidden', 
                             textOverflow: 'ellipsis', 
                             whiteSpace: 'nowrap',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             userSelect: 'none',
+                            transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease',
+                            cursor: 'default'
                         }}
                     >
                         {titulo || 'RASSOR-UI'}

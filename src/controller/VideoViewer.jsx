@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { useLiveKitVideoTrack } from './useLiveKitVideoTrack';
 
-export function VideoViewer({ room, isConnected, hlsUrl }) {
+export function VideoViewer({ room, isConnected, hlsUrl, onPlayingDateChange }) {
   const { videoRef: webrtcVideoRef, hasVideo: hasWebrtcVideo } = useLiveKitVideoTrack(room, isConnected);
   const hlsVideoRef = useRef(null);
   const [hasHlsVideo, setHasHlsVideo] = useState(false);
@@ -15,6 +15,7 @@ export function VideoViewer({ room, isConnected, hlsUrl }) {
 
     const video = hlsVideoRef.current;
     let hls = null;
+    let intervalId = null;
 
     if (Hls.isSupported()) {
       hls = new Hls({ enableWorker: false });
@@ -23,6 +24,13 @@ export function VideoViewer({ room, isConnected, hlsUrl }) {
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setHasHlsVideo(true);
         video.play().catch(e => console.warn('HLS autoplay error:', e));
+        if (onPlayingDateChange) {
+          intervalId = setInterval(() => {
+            if (hls.playingDate) {
+              onPlayingDateChange(hls.playingDate);
+            }
+          }, 500);
+        }
       });
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
@@ -50,11 +58,12 @@ export function VideoViewer({ room, isConnected, hlsUrl }) {
     }
 
     return () => {
+      if (intervalId) clearInterval(intervalId);
       if (hls) {
         hls.destroy();
       }
     };
-  }, [hlsUrl]);
+  }, [hlsUrl, onPlayingDateChange]);
 
   // showVideo SOLO depende de si realmente hay un video de LiveKit o HLS.
   // Ignoramos "isRobotConnected" porque a veces el robot manda video antes

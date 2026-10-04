@@ -1,11 +1,12 @@
 import { Fragment, Suspense, lazy, useEffect, useState } from 'react';
-import { LayoutGrid, Users, WifiOff, Gamepad2, Keyboard, Pointer, MoveUp, MoveLeft, Cpu } from 'lucide-react';
+import { LayoutGrid, Users, WifiOff, Gamepad2, Keyboard, Pointer, MoveUp, MoveLeft, Cpu, Flag, Radio } from 'lucide-react';
 import { ACTUADORES, NIVEL_MAX } from '../telemetria';
 import { useTelemetria, useSinMovimiento } from '../useTelemetria';
 import { useTelemetriaRobot } from '../useTelemetriaRobot';
 import { WIDGETS, WIDGETS_POR_DEFECTO } from '../widgets';
 import { useEstadisticasEnlace } from '../useEstadisticasEnlace';
 import { useLanguage } from '../../lib/i18n';
+import { PanelMision } from './PanelMision';
 import '../BarraTelemetria.css';
 import '../HudEspectador.css';
 
@@ -77,11 +78,13 @@ function CalidadEnlace({ conectado, enlace, t }) {
   );
 }
 
+const STORAGE_KEY = 'rur_telemetria_widgets_v1';
+
 const TARJETA = {
   background: 'var(--surface)',
   border: '1px solid var(--border)',
-  borderRadius: '2px',
-  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
+  borderRadius: '6px',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
 };
 
 // A qué BLOQUE visual pertenece cada widget del catálogo. Es un agrupamiento
@@ -93,7 +96,6 @@ const BLOQUES = {
   avance: 'movimiento',
   giro: 'movimiento',
   actuadores: 'actuadores',
-  calidad: 'conexion',
   bitrate: 'conexion',
   video: 'conexion',
   perdida: 'conexion',
@@ -364,7 +366,7 @@ function LecturaEnLinea({ titulo, valor, unidad, contenido, activo = true, ancho
 export function BarraTelemetria({
   room, fuenteLocal, posicion = 'abajo', margen = 0, esencial = false, entrada,
   audiencia, widgetsIniciales = WIDGETS_POR_DEFECTO,
-  isRobotConnected, modelUrl,
+  isRobotConnected, modelUrl, robot, onRobotUpdate,
 }) {
   const { t } = useLanguage();
   // Estado, decodificación e inactividad viven en el hook: el HUD del
@@ -379,11 +381,23 @@ export function BarraTelemetria({
   const sinMovimiento = useSinMovimiento();
   // Sensores del robot para el modelo 3D (IMU → inclinación) y batería.
   const sensores = useTelemetriaRobot(room, false);
-  // Sin persistencia: el espectador público no tiene cuenta, así que no hay
-  // dónde guardar esto salvo el navegador — y aquí no se guarda nada en el
-  // navegador. El tablero vuelve a los widgets por defecto en cada visita.
-  const [activos, setActivos] = useState(widgetsIniciales);
+  const [activos, setActivos] = useState(() => {
+    try {
+      const guardado = localStorage.getItem(STORAGE_KEY);
+      if (guardado) {
+        const parseado = JSON.parse(guardado);
+        if (Array.isArray(parseado)) {
+          const validos = parseado.filter((id) => WIDGETS.some((w) => w.id === id));
+          if (validos.length > 0) return validos;
+        }
+      }
+    } catch {
+      // Ignorar fallo si localStorage está restringido
+    }
+    return widgetsIniciales;
+  });
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [misionAbierta, setMisionAbierta] = useState(false);
 
   // Las estadísticas del enlace solo se piden si hay algún widget que las use:
   // sin esto se estaría sondeando la conexión cada segundo para nada.
@@ -393,9 +407,17 @@ export function BarraTelemetria({
   const enlace = useEstadisticasEnlace(room, necesitaEnlace);
 
   const alternar = (id) => {
-    setActivos((previos) =>
-      previos.includes(id) ? previos.filter((x) => x !== id) : [...previos, id]
-    );
+    setActivos((previos) => {
+      const nuevos = previos.includes(id)
+        ? previos.filter((x) => x !== id)
+        : [...previos, id];
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(nuevos));
+      } catch {
+        // Ignorar fallo de almacenamiento
+      }
+      return nuevos;
+    });
   };
 
   useEffect(() => {
@@ -494,14 +516,17 @@ export function BarraTelemetria({
           ),
         };
       }
-      case 'calidad':
-        return { titulo: t('telemetria.enlace'), valor: enlace?.calidad, ancho: '4ch' };
       case 'bitrate':
         return { titulo: t('telemetria.bitrate'), valor: enlace?.bitrateKbps, unidad: t('telemetria.kbps'), ancho: '5ch' };
       case 'video':
-        return { titulo: t('telemetria.video'), valor: enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : null, ancho: '9ch' };
+        return {
+          titulo: t('telemetria.video'),
+          valor: enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : null,
+          unidad: enlace?.fps != null ? `${enlace.fps} ${t('telemetria.fps')}` : null,
+          ancho: '12ch',
+        };
       case 'perdida':
-        return { titulo: t('telemetria.perdida'), valor: enlace?.perdidos, ancho: '4ch' };
+        return { titulo: t('telemetria.perdida'), valor: enlace?.perdidos, unidad: t('telemetria.paquetes'), ancho: '6ch' };
       case 'audiencia':
         return { titulo: t('telemetria.espectadores'), valor: audiencia ?? enlace?.espectadores, ancho: '3ch' };
       default:
@@ -511,6 +536,7 @@ export function BarraTelemetria({
 
   const panelMenu = menuAbierto ? (
         <div
+          className={`telemetria__panel-animado${arriba ? '' : ' telemetria__panel-animado--abajo'}`}
           style={{
             pointerEvents: 'auto',
             position: 'absolute', right: esencial ? 0 : (compacta ? '20px' : '40px'), minWidth: '230px',
@@ -519,6 +545,7 @@ export function BarraTelemetria({
               : { bottom: '100%', marginBottom: '10px' }),
             ...TARJETA, padding: '14px 16px',
             display: 'flex', flexDirection: 'column', gap: '10px',
+            zIndex: 1000,
           }}
         >
           <p className="telemetria__titulo">{t('telemetria.elegirQueVer')}</p>
@@ -558,7 +585,9 @@ export function BarraTelemetria({
             <button
               onClick={() => {
                 setActivos(widgetsIniciales);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(widgetsIniciales));
+                try {
+                  localStorage.setItem(STORAGE_KEY, JSON.stringify(widgetsIniciales));
+                } catch {}
               }}
               style={{
                 cursor: 'pointer', textAlign: 'left', background: 'transparent', whiteSpace: 'nowrap',
@@ -581,6 +610,41 @@ export function BarraTelemetria({
           </div>
         </div>
       ) : null;
+
+  const panelMisionContainer = (misionAbierta && robot) ? (
+    <div
+      className={`telemetria__panel-animado${arriba ? '' : ' telemetria__panel-animado--abajo'}`}
+      style={{
+        pointerEvents: 'auto',
+        position: 'absolute', right: esencial ? '40px' : (compacta ? '60px' : '80px'), minWidth: '320px',
+        ...(arriba
+          ? { top: '100%', marginTop: '10px' }
+          : { bottom: '100%', marginBottom: '10px' }),
+        ...TARJETA, padding: '14px 16px',
+        display: 'flex', flexDirection: 'column', gap: '10px',
+        zIndex: 1000,
+      }}
+    >
+      <PanelMision 
+        robotId={robot.id} 
+        mission={robot.settings?.mission} 
+        isPublicEvent={robot.is_public_event}
+        onMissionUpdate={(newMission) => {
+          if (onRobotUpdate) onRobotUpdate({
+            ...robot,
+            settings: { ...robot.settings, mission: newMission }
+          });
+        }}
+        onTransmissionToggle={(isPublic) => {
+          if (onRobotUpdate) onRobotUpdate({
+            ...robot,
+            is_public_event: isPublic
+          });
+        }}
+      />
+    </div>
+  ) : null;
+
 
   if (!esencial) {
     return (
@@ -656,51 +720,28 @@ export function BarraTelemetria({
               modelUrl={modelUrl}
             />
           </Suspense>
-          <div className="hud__subtitulo" style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.2em', color: 'var(--text)' }}>RUR</span>
-            <CalidadEnlace conectado={isRobotConnected} enlace={enlace} t={t} />
+          <div className="hud__subtitulo" style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+            <MissionTimer mission={robot?.mission} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px', pointerEvents: 'auto' }}>
             {entrada && <ChipEntrada entrada={entrada} transicion={transicion} />}
             <button
-              onClick={() => setMenuAbierto((v) => !v)}
-              style={{
-                cursor: 'pointer', background: 'transparent',
-                border: `1px solid ${menuAbierto ? 'var(--accent)' : 'var(--border)'}`,
-                color: menuAbierto ? 'var(--accent)' : 'var(--muted)',
-                borderRadius: '4px', padding: '4px 10px',
-                textTransform: 'uppercase', fontFamily: 'var(--font-ibm-mono), monospace',
-                fontSize: '0.68rem', letterSpacing: '0.08em',
-                display: 'flex', alignItems: 'center', gap: '4px',
-              }}
+              className={`telemetria-btn ${misionAbierta ? 'telemetria-btn--abierto' : ''}`}
+              onClick={() => { setMisionAbierta((v) => !v); setMenuAbierto(false); }}
+            >
+              <Flag size={14} /> Misión
+            </button>
+            <button
+              className={`telemetria-btn ${menuAbierto ? 'telemetria-btn--abierto' : ''}`}
+              onClick={() => { setMenuAbierto((v) => !v); setMisionAbierta(false); }}
             >
               <LayoutGrid size={14} /> {t('telemetria.widgets')}
             </button>
           </div>
         </div>
 
-        {/* GRUPO DERECHO: datos REALES de conexión */}
+        {/* GRUPO DERECHO: conexión y audiencia */}
         <div className="hud__grupo" style={{ flex: 1, justifyContent: 'flex-end' }}>
-          {activos.includes('calidad') && (
-            <div className="hud__medidor hud__medidor--enlace">
-              <span className="hud__etiqueta">{t('telemetria.enlace')}</span>
-              <div className="hud__cuerpo">
-                <span className={`hud__cifra${enlace?.calidad != null ? '' : ' hud__cifra--apagada'}`}>
-                  {enlace?.calidad ?? '—'}
-                </span>
-              </div>
-              <span className="hud__senal">
-                <span
-                  className={`hud__punto hud__punto--${isRobotConnected ? 'vivo' : 'caido'}`}
-                  style={{
-                    color: isRobotConnected ? 'var(--success)' : 'var(--error)',
-                    boxShadow: isRobotConnected ? '0 0 8px var(--success)' : 'none',
-                  }}
-                />
-                {isRobotConnected ? 'CONNECTED' : 'NO SIGNAL'}
-              </span>
-            </div>
-          )}
           {activos.includes('bitrate') && (
             <div className="hud__medidor">
               <span className="hud__etiqueta">{t('telemetria.bitrate')}</span>
@@ -747,7 +788,8 @@ export function BarraTelemetria({
           )}
         </div>
         
-        {panelMenu}
+        {panelMisionContainer}
+      {panelMenu}
       </div>
     );
   }
@@ -762,7 +804,7 @@ export function BarraTelemetria({
       }}
     >
       {/* Grupo Izquierdo completo */}
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', maxWidth: '65vw' }}>
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', maxWidth: '45vw' }}>
         {/* Bloque Izquierdo: Conexión y Audiencia */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '16px',
@@ -787,8 +829,8 @@ export function BarraTelemetria({
         )}
       </div>
 
-{/* Píldora de Widgets (si hay alguno visible que no sea audiencia) */}
-         {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length > 0 && (
+        {/* Píldora de Widgets Izquierda */}
+         {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(0, Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).length > 0 && (
            <div style={{
              display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap',
              background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px',
@@ -797,7 +839,7 @@ export function BarraTelemetria({
              transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
            }}>
-             {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').map(({ id }, i) => {
+             {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(0, Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).map(({ id }, i) => {
                const lectura = lecturaCompacta(id);
                if (!lectura) return null;
                return (
@@ -820,8 +862,36 @@ export function BarraTelemetria({
       {/* Bloque Derecho: Widgets y Menú */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end',
-        maxWidth: '65vw', pointerEvents: 'auto',
+        maxWidth: '45vw', pointerEvents: 'auto',
       }}>
+         {/* Píldora de Widgets Derecha */}
+         {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).length > 0 && (
+           <div style={{
+             display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap',
+             background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px',
+             padding: '10px 20px',
+             opacity: enVivo ? 1 : 0.45,
+             transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
+             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+           }}>
+             {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).map(({ id }, i) => {
+               const lectura = lecturaCompacta(id);
+               if (!lectura) return null;
+               return (
+                 <Fragment key={id}>
+                   {i > 0 && <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', color: 'var(--border)', margin: '0 8px' }}>|</span>}
+                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                     {lectura.titulo && <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 'normal', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lectura.titulo}</span>}
+                     <span style={{ fontSize: '1.05rem', color: 'var(--bone)', fontWeight: 'normal', fontVariantNumeric: 'tabular-nums' }}>
+                       {lectura.contenido || lectura.valor}
+                       {lectura.unidad && <span style={{ fontSize: '0.8rem', marginLeft: '4px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
+                     </span>
+                   </div>
+                 </Fragment>
+               );
+             })}
+           </div>
+         )}
          {/* Píldora de Control: Entrada y Menú */}
          <div style={{
            display: 'flex', alignItems: 'center', gap: '10px',
@@ -847,11 +917,18 @@ export function BarraTelemetria({
            )}
            {entrada && <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', margin: '0 4px' }}>·</span>}
            <button
-              onClick={() => setMenuAbierto((v) => !v)}
+              onClick={() => { setMisionAbierta((v) => !v); setMenuAbierto(false); }}
+              title={t('mision.panelTitulo', 'Misión')}
+              aria-label={t('mision.panelTitulo', 'Misión')}
+              className={`telemetria__osd-boton${misionAbierta ? ' telemetria__osd-boton--abierto' : ''}`}
+            >
+              <Flag size={22} strokeWidth={2} />
+            </button>
+           <button
+              onClick={() => { setMenuAbierto((v) => !v); setMisionAbierta(false); }}
               title={t('telemetria.widgets')}
               aria-label={t('telemetria.widgets')}
               className={`telemetria__osd-boton${menuAbierto ? ' telemetria__osd-boton--abierto' : ''}`}
-              style={{ margin: 0, padding: '6px 10px' }}
             >
               <LayoutGrid size={22} strokeWidth={2} />
             </button>
@@ -859,7 +936,38 @@ export function BarraTelemetria({
       </div>
 
       {/* El panel de menú flota de forma independiente */}
+      {panelMisionContainer}
       {panelMenu}
+    </div>
+  );
+}
+
+function MissionTimer({ mission }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!mission?.started_at) return;
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [mission?.started_at]);
+
+  if (!mission?.started_at) return <span style={{ fontSize: '1.2em', color: 'var(--muted)' }}>STANDBY</span>;
+
+  const diff = Math.floor((now - mission.started_at) / 1000);
+  const m = Math.floor(diff / 60).toString().padStart(2, '0');
+  const s = (diff % 60).toString().padStart(2, '0');
+  
+  const currentObj = mission.objectives?.find(o => !o.completed_at);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <span style={{ fontSize: '1.2em', color: 'var(--accent)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
+        T+ {m}:{s}
+      </span>
+      {currentObj && (
+        <span style={{ fontSize: '0.85em', color: 'var(--bone)', marginTop: '2px', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {currentObj.text}
+        </span>
+      )}
     </div>
   );
 }

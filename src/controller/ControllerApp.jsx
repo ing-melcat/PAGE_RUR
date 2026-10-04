@@ -195,6 +195,8 @@ function construirTelemetria({ avance: ejeAvance, giro: ejeGiro }, actuadoresInt
 
 export default function ControllerApp({ onBack, robot, controlMappings, mode = 'manual' }) {
   const { t } = useLanguage();
+  const [robotState, setRobotState] = useState(robot);
+  useEffect(() => { setRobotState(robot); }, [robot]);
   const [isMobile] = useState(window.innerWidth <= 932);
   const [hasKeyboard, setHasKeyboard] = useState(false);
   const [visible, setVisible] = useState(true);
@@ -237,6 +239,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     armBack: null,
   });
   const roomRef = useRef(null);
+  const dataTrackRef = useRef(null);
   const isConnectedRef = useRef(false);
   // Evita apilar múltiples await para paquetes del joystick: si hay un envío
   // en vuelo, el próximo tick usa el valor actualizado de joystickPosRef en
@@ -303,14 +306,9 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     const data = encoder.encode(commandStr);
 
     const sendCommand = async () => {
-      // Un array vacío en destinationIdentities significa DIFUNDIR A TODOS en
-      // LiveKit, no "a nadie". Si el robot no está en la sala hay que omitir el
-      // envío por completo, o los comandos acabarían llegando a los
-      // espectadores justo cuando no hay robot que los reciba.
-      const destinos = identidadesDeRobots(roomRef.current);
-      if (destinos.length === 0) return;
+      if (!dataTrackRef.current) return;
       try {
-        await roomRef.current.localParticipant.publishData(data, { reliable: false, topic: TOPIC });
+        await dataTrackRef.current.tryPush({ payload: data });
       } catch (err) {
         console.error('Error sending command:', err);
       }
@@ -377,15 +375,14 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
 
   // Envía un paquete directamente por LiveKit
   const sendPacketNow = useCallback(async (pkt) => {
-    if (roomRef.current && isConnectedRef.current && pkt) {
-      const destinos = identidadesDeRobots(roomRef.current);
-      if (destinos.length === 0) return;
+    if (roomRef.current && isConnectedRef.current && pkt && dataTrackRef.current) {
       // Last-write-wins: si ya hay un envío del joystick en vuelo, se descarta
       // este paquete — el siguiente tick traerá el valor más reciente.
       if (isSendingJoystickRef.current) return;
       isSendingJoystickRef.current = true;
       try {
-        await roomRef.current.localParticipant.publishData(pkt, { reliable: false, topic: TOPIC });
+        const payloadBytes = pkt instanceof Uint8Array ? pkt : new Uint8Array(pkt);
+        await dataTrackRef.current.tryPush({ payload: payloadBytes });
       } catch (err) {
         console.error('Error sending joystick data:', err);
       } finally {
@@ -423,12 +420,10 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   const cameraActiveRef = useRef(false);
 
   const sendCameraPacketNow = useCallback(async (pan, tilt) => {
-    if (!roomRef.current || !isConnectedRef.current) return;
-    const destinos = identidadesDeRobots(roomRef.current);
-    if (destinos.length === 0) return;
+    if (!roomRef.current || !isConnectedRef.current || !dataTrackRef.current) return;
     try {
       const data = new TextEncoder().encode(JSON.stringify({ component: 'Camera', pan, tilt }));
-      await roomRef.current.localParticipant.publishData(data, { reliable: false, topic: TOPIC });
+      await dataTrackRef.current.tryPush({ payload: data });
     } catch (err) {
       console.error('Error sending camera data:', err);
     }
@@ -845,13 +840,24 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
       // producción llena la consola con cada cambio de estado de la señal.
       // 'warn' conserva lo que sí importa: advertencias y errores reales.
       setLogLevel('warn');
-      const roomInstance = new Room();
+      const roomInstance = new Room({
+        adaptiveStream: false,
+        dynacast: false,
+      });
       const finalUrl = customUrl || SERVER_URL;
 
       await roomInstance.connect(finalUrl, authToken, {
         autoSubscribe: true
       });
 
+
+      // Publicar el DataTrack para el control del robot, que es lo que espera ROS
+      try {
+        const dt = await roomInstance.localParticipant.publishDataTrack({ name: TOPIC });
+        dataTrackRef.current = dt;
+      } catch (err) {
+        console.error('Error publishing data track:', err);
+      }
 
       setIsConnected(true);
       isConnectedRef.current = true;
@@ -919,7 +925,12 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     if (room) {
       stopContinuousSend();
       stopCameraContinuousSend();
-
+      if (dataTrackRef.current) {
+        try {
+          await dataTrackRef.current.unpublish();
+        } catch (e) {}
+        dataTrackRef.current = null;
+      }
       room.disconnect();
       setRoom(null);
       roomRef.current = null;
@@ -991,6 +1002,8 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
           widgetsIniciales={WIDGETS_OPERADOR}
           isRobotConnected={isRobotConnected}
           modelUrl={robot?.model_url || robot?.modelUrl}
+          robot={robotState}
+          onRobotUpdate={setRobotState}
         />
       )}
 

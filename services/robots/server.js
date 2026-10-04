@@ -222,6 +222,40 @@ app.delete('/api/robots/:id', verifyToken, requirePermiso('robots.gestionar'), c
   res.json({ success: true, message: 'Robot eliminado' });
 });
 
+app.put('/api/robots/:id/mision', verifyToken, requirePermiso('robots.operar'), csrfProtection, async (req, res) => {
+  const { rows: existingRows } = await pool.query('SELECT * FROM robots WHERE id = $1', [req.params.id]);
+  const existing = existingRows[0];
+  if (!existing) return res.status(404).json({ message: 'Robot no encontrado' });
+
+  const missionPatch = req.body ?? {};
+  const settings = existing.settings ?? {};
+  const mergedSettings = { ...settings, mission: missionPatch };
+
+  const { rows } = await pool.query(
+    'UPDATE robots SET settings=$1::jsonb WHERE id=$2 RETURNING *',
+    [JSON.stringify(mergedSettings), req.params.id]
+  );
+  await saveLog('info', `Operador ${req.user.matricula} actualizó la misión del robot ${req.params.id}.`);
+  res.json({ success: true, message: 'Misión actualizada', robot: rowToRobot(rows[0], { includeAdminFields: false }) });
+});
+
+app.put('/api/robots/:id/transmision', verifyToken, requirePermiso('transmision.gestionar'), csrfProtection, async (req, res) => {
+  const { isPublicEvent } = req.body ?? {};
+  if (isPublicEvent === undefined) {
+    return res.status(400).json({ message: 'Falta isPublicEvent' });
+  }
+
+  const { rows } = await pool.query(
+    'UPDATE robots SET is_public_event=$1 WHERE id=$2 RETURNING *',
+    [Boolean(isPublicEvent), req.params.id]
+  );
+  if (rows.length === 0) return res.status(404).json({ message: 'Robot no encontrado' });
+
+  const estado = isPublicEvent ? 'abrió' : 'cerró';
+  await saveLog('info', `Usuario ${req.user.matricula} ${estado} la transmisión pública del robot ${req.params.id}.`);
+  res.json({ success: true, message: 'Transmisión actualizada', robot: rowToRobot(rows[0], { includeAdminFields: false }) });
+});
+
 // Probar unas credenciales de LiveKit antes de guardarlas.
 //
 // Esta ruta hace que el servidor abra una conexión saliente a una URL que
@@ -321,6 +355,7 @@ app.post('/api/livekit/public-token', publicTokenLimiter, async (req, res) => {
       room: robot.room,
       robotName: robot.name,
       modelUrl: robot.model_url,
+      mission: robot.settings?.mission,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error interno al generar el token' });

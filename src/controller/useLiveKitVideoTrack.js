@@ -14,6 +14,12 @@ export function useLiveKitVideoTrack(room, isConnected) {
     const attachTrack = (track) => {
       if (track.kind === Track.Kind.Video && videoRef.current) {
         track.attach(videoRef.current);
+        // Desactiva el jitter buffer de WebRTC para mínima latencia.
+        // Si hay inestabilidad de red puede haber saltos, pero es vital
+        // para teleoperación no acumular retraso en la pantalla.
+        if (typeof track.setPlayoutDelay === 'function') {
+          track.setPlayoutDelay(0);
+        }
         setHasVideo(true);
       }
     };
