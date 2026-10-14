@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Robot3DPreview } from './components/Robot3DPreview';
-import { Gamepad2 } from 'lucide-react';
+import { Gamepad2, X } from 'lucide-react';
 import { useLanguage } from '../lib/i18n';
 
 // Índice de botón (API estándar de Gamepad, W3C) -> etiqueta que ya usa
@@ -20,27 +21,88 @@ const INDICE_A_ETIQUETA_GAMEPAD = {
 // pueden reasignar a otra acción desde este panel.
 const INDICES_RESERVADOS_GAMEPAD = new Set([6, 7]);
 
+const LABELS_ACCIONES = {
+    Forward: 'adelante',
+    Backward: 'atras',
+    Left: 'izquierda',
+    Right: 'derecha',
+    ArmFrontUp: 'brazoFrenteSubir',
+    ArmFrontDown: 'brazoFrenteBajar',
+    ArmBackUp: 'brazoTraseroSubir',
+    ArmBackDown: 'brazoTraseroBajar',
+    DrumFrontCw: 'tamborFrenteHorario',
+    DrumFrontCcw: 'tamborFrenteAntihorario',
+    DrumBackCw: 'tamborTraseroHorario',
+    DrumBackCcw: 'tamborTraseroAntihorario',
+};
+
+const TECLAS_RAPIDAS = [
+    'KeyW', 'KeyA', 'KeyS', 'KeyD',
+    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+    'KeyI', 'KeyK', 'KeyO', 'KeyL',
+    'KeyR', 'KeyF', 'KeyT', 'KeyG',
+    'KeyQ', 'KeyE', 'KeyJ', 'KeyU',
+    'Space'
+];
+
 // Shared style tokens
 const S = {
-  label: { fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  input: { padding: '12px 14px', fontSize: '0.95rem', background: 'var(--background)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', outline: 'none', fontFamily: 'var(--font-ibm-mono)', width: '100%', transition: 'border-color 0.2s ease' },
-  sectionTitle: { margin: 0, color: 'var(--text)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.95rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500, paddingBottom: '12px', borderBottom: '1px solid var(--border)' },
-  panel: { background: 'var(--surface)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border)' },
+  label: { fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  input: { padding: '10px 14px', fontSize: '0.88rem', background: 'var(--background)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', outline: 'none', fontFamily: 'var(--font-ibm-mono)', width: '100%', transition: 'all 0.2s ease', boxSizing: 'border-box' },
+  sectionTitle: { margin: 0, color: 'var(--text)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, paddingBottom: '8px', borderBottom: '1px solid var(--border)' },
+  panel: { background: 'var(--surface)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' },
   btn: { background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s ease' },
 };
+
+function formatearTecla(codigo) {
+    if (!codigo) return '—';
+    if (codigo === 'ArrowUp') return '↑ (Arriba)';
+    if (codigo === 'ArrowDown') return '↓ (Abajo)';
+    if (codigo === 'ArrowLeft') return '← (Izquierda)';
+    if (codigo === 'ArrowRight') return '→ (Derecha)';
+    if (codigo === 'Space') return 'Espacio';
+    const match = codigo.match(/^(Key|Digit)(.+)$/);
+    return match ? match[2] : codigo;
+}
+
+function normalizarCodigoTecla(e) {
+    if (e.code && e.code !== 'Unidentified') return e.code;
+    if (e.key) {
+        if (e.key === 'ArrowUp') return 'ArrowUp';
+        if (e.key === 'ArrowDown') return 'ArrowDown';
+        if (e.key === 'ArrowLeft') return 'ArrowLeft';
+        if (e.key === 'ArrowRight') return 'ArrowRight';
+        if (e.key === ' ' || e.key === 'Spacebar') return 'Space';
+        if (e.key === 'Escape') return 'Escape';
+        if (e.key.length === 1) {
+            const char = e.key.toUpperCase();
+            if (/[A-Z]/.test(char)) return `Key${char}`;
+            if (/[0-9]/.test(char)) return `Digit${char}`;
+        }
+    }
+    const code = e.keyCode || e.which;
+    if (code) {
+        if (code === 27) return 'Escape';
+        if (code >= 65 && code <= 90) return `Key${String.fromCharCode(code)}`;
+        if (code >= 48 && code <= 57) return `Digit${String.fromCharCode(code)}`;
+        if (code === 38) return 'ArrowUp';
+        if (code === 40) return 'ArrowDown';
+        if (code === 37) return 'ArrowLeft';
+        if (code === 39) return 'ArrowRight';
+        if (code === 32) return 'Space';
+    }
+    return null;
+}
 
 export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobot, onBack, controlMappings, onUpdateMappings }) {
     const { t } = useLanguage();
     const [loading, setLoading] = useState(false);
     const [columns, setColumns] = useState(3);
+    const [activeTab, setActiveTab] = useState('keyboard'); // 'keyboard' | 'gamepad'
+    const hiddenInputRef = useRef(null);
 
     // Mapping state
     const [showMappingsModal, setShowMappingsModal] = useState(false);
-    // En mando los brazos ya no son bindeables aquí: sostener LT/RT sube y
-    // baja el brazo de esa mano moviendo el propio stick (ver pollGamepad en
-    // ControllerApp.jsx), así que el panel de mando solo ofrece las 4
-    // acciones de tambor. Teclado no tiene gatillos analógicos y conserva
-    // sus 8 teclas de siempre.
     const [mappingForm, setMappingForm] = useState({
         gamepad: {
             DrumFrontCw: "Y", DrumFrontCcw: "X", DrumBackCw: "B", DrumBackCcw: "A"
@@ -53,20 +115,11 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
             Forward: "KeyW", Backward: "KeyS", Left: "KeyA", Right: "KeyD"
         }
     });
-    // Nombre de la acción (ej. "ArmFrontUp") que está esperando la siguiente
-    // tecla que se presione, o null si no se está capturando ninguna. Así el
-    // operador ya no tiene que saber de memoria el nombre de `event.code`
-    // ("KeyW", "ArrowUp", etc.) para escribirlo a mano.
+
     const [capturandoTecla, setCapturandoTecla] = useState(null);
-    // Resalte al pasar el mouse sobre el botón de una tecla -- por estado,
-    // no por :hover/whileHover (ver por qué en el comentario donde se usa).
     const [hoverTecla, setHoverTecla] = useState(null);
-    // Mismo mecanismo que capturandoTecla/hoverTecla, pero para el botón del
-    // mando físico que se está esperando.
     const [capturandoBoton, setCapturandoBoton] = useState(null);
     const [hoverBoton, setHoverBoton] = useState(null);
-
-    // We use props.controlMappings instead of local user since we are not directly holding user here, wait I need to add controlMappings and onUpdateMappings to the component props:
 
     useEffect(() => {
         const updateColumns = () => {
@@ -84,10 +137,6 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
     useEffect(() => {
         if (controlMappings && Object.keys(controlMappings).length > 0) {
             setMappingForm(prev => {
-                // Un perfil guardado antes de este cambio puede traer claves
-                // de brazo en `gamepad` (ArmFrontUp, etc.) -- ya no existen
-                // como fila en este panel, así que se descartan aquí en vez
-                // de arrastrarlas de vuelta a la UI.
                 const gamepadValido = Object.fromEntries(
                     Object.entries(controlMappings.gamepad || {}).filter(([clave]) => clave in prev.gamepad)
                 );
@@ -106,9 +155,6 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
         }
     }, [controlMappings]);
 
-    // Si se cierra el modal a medio capturar (clic afuera, Cancelar), no debe
-    // quedar un listener de teclado ni un sondeo de mando colgado esperando
-    // en el resto de la página.
     useEffect(() => {
         if (!showMappingsModal) {
             setCapturandoTecla(null);
@@ -116,87 +162,75 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
         }
     }, [showMappingsModal]);
 
-    // Mientras `capturandoTecla` tiene una acción, la siguiente tecla que se
-    // presione en toda la ventana se guarda como su mapeo -- Escape cancela
-    // sin cambiar nada. preventDefault() evita que la tecla capturada, de
-    // paso, haga scroll o dispare algún atajo del navegador.
+    const asignarTecla = (codigo) => {
+        if (!capturandoTecla || !codigo) return;
+        setMappingForm(prev => {
+            const isMovement = prev.keyboardMovement && capturandoTecla in prev.keyboardMovement;
+            if (isMovement) {
+                return { ...prev, keyboardMovement: { ...prev.keyboardMovement, [capturandoTecla]: codigo } };
+            }
+            return { ...prev, keyboard: { ...prev.keyboard, [capturandoTecla]: codigo } };
+        });
+        setCapturandoTecla(null);
+    };
+
+    // Auto focus hidden input for mobile/virtual keyboards
+    useEffect(() => {
+        if (capturandoTecla && hiddenInputRef.current) {
+            hiddenInputRef.current.focus();
+        }
+    }, [capturandoTecla]);
+
+    // Listener global de keydown con fase de captura
     useEffect(() => {
         if (!capturandoTecla) return;
         const alPresionar = (e) => {
-            e.preventDefault();
-            if (e.code === 'Escape') {
+            const codigo = normalizarCodigoTecla(e);
+            if (codigo === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
                 setCapturandoTecla(null);
                 return;
             }
-            setMappingForm(prev => {
-                const isMovement = prev.keyboardMovement && capturandoTecla in prev.keyboardMovement;
-                if (isMovement) {
-                    return { ...prev, keyboardMovement: { ...prev.keyboardMovement, [capturandoTecla]: e.code } };
-                }
-                return { ...prev, keyboard: { ...prev.keyboard, [capturandoTecla]: e.code } };
-            });
-            setCapturandoTecla(null);
+            if (codigo) {
+                e.preventDefault();
+                e.stopPropagation();
+                asignarTecla(codigo);
+            }
         };
-        window.addEventListener('keydown', alPresionar);
-        return () => window.removeEventListener('keydown', alPresionar);
+        window.addEventListener('keydown', alPresionar, true);
+        return () => window.removeEventListener('keydown', alPresionar, true);
     }, [capturandoTecla]);
 
-    // "KeyW" -> "W", "Digit1" -> "1", "ArrowUp" se queda igual: para que el
-    // botón muestre algo legible en vez del nombre crudo de event.code.
-    const formatearTecla = (codigo) => {
-        if (!codigo) return '—';
-        const conPrefijo = codigo.match(/^(Key|Digit)(.+)$/);
-        return conPrefijo ? conPrefijo[2] : codigo;
-    };
-
-    // Escape cancela la captura de botón de mando igual que la de teclado.
+    // Gamepad button polling
     useEffect(() => {
         if (!capturandoBoton) return;
-        const alCancelar = (e) => {
-            if (e.code === 'Escape') setCapturandoBoton(null);
-        };
-        window.addEventListener('keydown', alCancelar);
-        return () => window.removeEventListener('keydown', alCancelar);
-    }, [capturandoBoton]);
-
-    // No hay evento "gamepadbuttondown" en el navegador -- hay que sondear
-    // frame a frame mientras se espera, igual que hace ControllerApp.jsx
-    // para leer el mando durante la partida. Se guarda una foto de qué
-    // botones ya estaban presionados al empezar a escuchar, para que uno
-    // que el operador sigue sosteniendo de antes no se lea como "se acaba
-    // de presionar".
-    useEffect(() => {
-        if (!capturandoBoton) return;
+        let animationFrameId;
         const yaPresionados = new Set();
-        const gpInicial = navigator.getGamepads?.()[0];
-        if (gpInicial) {
-            gpInicial.buttons.forEach((b, i) => { if (b?.pressed) yaPresionados.add(i); });
+        const mandosIniciales = navigator.getGamepads ? navigator.getGamepads() : [];
+        for (const mando of mandosIniciales) {
+            if (!mando) continue;
+            mando.buttons.forEach((b, i) => {
+                if (b.pressed) yaPresionados.add(i);
+            });
         }
 
-        let animationFrameId;
         const sondear = () => {
-            const gp = navigator.getGamepads?.()[0];
-            if (gp) {
-                for (let i = 0; i < gp.buttons.length; i++) {
-                    const presionado = Boolean(gp.buttons[i]?.pressed);
+            const mandos = navigator.getGamepads ? navigator.getGamepads() : [];
+            for (const mando of mandos) {
+                if (!mando) continue;
+                for (let i = 0; i < mando.buttons.length; i++) {
+                    const presionado = mando.buttons[i].pressed;
                     if (presionado && !yaPresionados.has(i)) {
-                        if (INDICES_RESERVADOS_GAMEPAD.has(i)) {
-                            // Gatillo reservado: no se captura, pero se marca
-                            // para no reintentar cada frame mientras se sostiene.
-                            yaPresionados.add(i);
-                            continue;
-                        }
-                        const etiqueta = INDICE_A_ETIQUETA_GAMEPAD[i];
-                        if (etiqueta) {
+                        if (!INDICES_RESERVADOS_GAMEPAD.has(i)) {
+                            const etiqueta = INDICE_A_ETIQUETA_GAMEPAD[i] ?? `B${i}`;
                             setMappingForm(prev => ({
                                 ...prev,
-                                gamepad: { ...prev.gamepad, [capturandoBoton]: etiqueta },
+                                gamepad: { ...prev.gamepad, [capturandoBoton]: etiqueta }
                             }));
                             setCapturandoBoton(null);
                             return;
                         }
-                        // Botón sin nombre en la tabla (ej. stick central): se
-                        // ignora, pero se marca para no reintentar cada frame.
                         yaPresionados.add(i);
                     } else if (!presionado) {
                         yaPresionados.delete(i);
@@ -209,10 +243,6 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
         return () => cancelAnimationFrame(animationFrameId);
     }, [capturandoBoton]);
 
-    // Todos van a la rejilla, encendidos o no. Antes solo entraban los que
-    // estaban 'online' y el resto acababa en una fila diminuta abajo; desde que
-    // el estado refleja de verdad si el receptor del robot esta en la sala, eso
-    // dejaba la pantalla de seleccion practicamente vacia.
     const robotsOrdenados = [...robots].sort(
         (a, b) => (a.status === 'online' ? 0 : 1) - (b.status === 'online' ? 0 : 1)
     );
@@ -222,8 +252,28 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
         onSelectRobot(robot);
     };
 
+    const getActionLabel = (action) => {
+        const key = LABELS_ACCIONES[action];
+        return key ? t(`operador.configPanel.${key}`) : action.replace(/([A-Z])/g, ' $1').trim();
+    };
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: '600px' }}>
+            {/* Hidden input for mobile keyboard focus */}
+            <input
+                ref={hiddenInputRef}
+                type="text"
+                style={{ position: 'fixed', opacity: 0, pointerEvents: 'none', top: -100, left: -100 }}
+                onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) {
+                        const lastChar = val.slice(-1).toUpperCase();
+                        asignarTecla(`Key${lastChar}`);
+                        e.target.value = '';
+                    }
+                }}
+            />
+
             {/* HEADER */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '48px', borderBottom: '1px solid var(--border)', paddingBottom: '24px' }}>
                 <div style={{ flex: 1, paddingRight: '40px' }}>
@@ -257,9 +307,6 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                 animate="show"
                 style={{ display: 'grid', gap: '24px', gridTemplateColumns: `repeat(${columns}, 1fr)`, flex: 1 }}
             >
-                {/* Sin esto, un fallo al pedir la lista dejaba la rejilla
-                    vacía y muda: parecía que la pantalla no cargaba, cuando lo
-                    que fallaba era la petición. */}
                 {robotsOrdenados.length === 0 && (
                     <div style={{ ...S.panel, gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'flex-start' }}>
                         <h3 style={{ ...S.sectionTitle, borderBottom: 'none', paddingBottom: 0, color: errorRobots ? 'var(--error)' : 'var(--muted)' }}>
@@ -312,9 +359,6 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                             <span>{robot.id.toUpperCase()}</span>
                             <span style={{ color: 'var(--accent)' }}>{robot.room || `room-${robot.id.toLowerCase()}`}</span>
                         </div>
-                        {/* Se puede abrir igual: la consola sirve para prepararla
-                            o para esperar a que el robot arranque, y ya avisa por
-                            su cuenta cuando no hay nadie escuchando. */}
                         {!enLinea && (
                             <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', color: 'var(--muted)' }}>
                                 {t('operador.seleccion.abrirConsola')}
@@ -325,149 +369,402 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                 })}
             </motion.div>
 
-            {/* LOADING OVERLAY */}
-            <AnimatePresence>
-                {loading && (
+            {/* FOOTER */}
+            <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: '32px' }}>
+                <button className="back-link" onClick={onBack}>{t('operador.seleccion.volverMenu')}</button>
+            </div>
+
+            {/* ============================================================ */}
+            {/*  LOADING OVERLAY (POPUP PORTAL)                             */}
+            {/* ============================================================ */}
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {loading && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            style={{
+                                position: 'fixed',
+                                top: 0,
+                                left: 0,
+                                width: '100vw',
+                                height: '100vh',
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                backdropFilter: 'blur(8px)',
+                                WebkitBackdropFilter: 'blur(8px)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                zIndex: 99999,
+                            }}
+                        >
+                            <div style={{ width: '48px', height: '48px', border: '3px solid var(--surface)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '24px' }} />
+                            <span style={{ fontFamily: 'var(--font-ibm-mono)', color: 'var(--accent)', letterSpacing: '0.1em', fontSize: '1.2rem' }}>
+                                {t('operador.seleccion.conectando')}
+                            </span>
+                        </motion.div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
+
+            {/* ============================================================ */}
+            {/*  MODAL DE MAPEO DE CONTROLES (POPUP PORTAL)                 */}
+            {/* ============================================================ */}
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                {showMappingsModal && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        onClick={() => setShowMappingsModal(false)}
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100vw',
+                            height: '100vh',
+                            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                            backdropFilter: 'blur(8px)',
+                            WebkitBackdropFilter: 'blur(8px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 99999,
+                            padding: '20px',
+                            boxSizing: 'border-box',
+                        }}
                     >
-                        <div style={{ width: '48px', height: '48px', border: '3px solid var(--surface)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '24px' }} />
-                        <span style={{ fontFamily: 'var(--font-ibm-mono)', color: 'var(--accent)', letterSpacing: '0.1em', fontSize: '1.2rem' }}>
-                            {t('operador.seleccion.conectando')}
-                        </span>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* FOOTER */}
-            <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: '32px' }}>
-                <button className="back-link" onClick={onBack}>{t('operador.seleccion.volverMenu')}</button>
-                {/* Los robots apagados ya no viven aquí abajo: ahora salen en
-                    la rejilla como los demás, marcados en rojo. Tenerlos en una
-                    lista aparte dejaba la pantalla vacía cuando ninguno estaba
-                    encendido, que es lo normal hasta que arranca el receptor. */}
-            </div>
-
-            {/* ============================================================ */}
-            {/*  MODAL DE MAPEO DE CONTROLES                               */}
-            {/* ============================================================ */}
-            <AnimatePresence>
-            {showMappingsModal && (
-                <motion.div
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
-                    onClick={() => setShowMappingsModal(false)}
-                >
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.3 }}
-                        onClick={e => e.stopPropagation()}
-                        style={{ background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px', padding: '32px', width: '100%', maxWidth: '800px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
-                    >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
-                            <div>
-                                <h3 style={{ ...S.sectionTitle, borderBottom: 'none', paddingBottom: 0, fontSize: '1.1rem' }}>{t('operador.seleccion.mapeoModalTitulo')}</h3>
-                                <p style={{ margin: '6px 0 0 0', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)' }}>{t('operador.seleccion.mapeoModalDesc')}</p>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                                background: 'var(--surface)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '12px',
+                                padding: '24px 28px',
+                                width: '100%',
+                                maxWidth: '720px',
+                                maxHeight: '88vh',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.6)',
+                                overflow: 'hidden',
+                                boxSizing: 'border-box',
+                            }}
+                        >
+                            {/* Modal Header */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', paddingBottom: '14px', borderBottom: '1px solid var(--border)' }}>
+                                <div>
+                                    <h3 style={{ margin: 0, color: 'var(--accent)', fontFamily: 'var(--font-titulo)', fontSize: '1.25rem', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 400 }}>
+                                        {t('operador.seleccion.mapeoModalTitulo')}
+                                    </h3>
+                                    <p style={{ margin: '6px 0 0 0', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)' }}>
+                                        {t('operador.seleccion.mapeoModalDesc')}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowMappingsModal(false)}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: 'var(--muted)',
+                                        cursor: 'pointer',
+                                        padding: '4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'color 0.2s ease',
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+                                    onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}
+                                    title={t('operador.seleccion.cancelar')}
+                                >
+                                    <X size={20} />
+                                </button>
                             </div>
-                        </div>
 
-                        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                            {['gamepad', 'keyboard', 'keyboardMovement'].map(type => (
-                                <div key={type} style={{ ...S.panel, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    <h4 style={{ ...S.sectionTitle }}>
-                                        {type === 'gamepad' ? t('operador.seleccion.mando') : 
-                                         type === 'keyboardMovement' ? t('operador.seleccion.tecladoMovimiento') || 'Teclado (Movimiento)' : 
-                                         t('operador.seleccion.teclado')}
-                                    </h4>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                        {Object.keys(mappingForm[type]).map(action => (
-                                            <label key={action} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                <span style={S.label}>{action.replace(/([A-Z])/g, ' $1').trim()}</span>
-                                                {/* Sin escribir el código/nombre a mano en ninguno de los dos:
-                                                    se toca el botón y se presiona la tecla o el botón del
-                                                    mando que se quiera asignar. El puntito con pulse es el
-                                                    mismo lenguaje visual que ya usa el sitio para "esto está
-                                                    pasando ahora" (ej. el badge de aviso activo del header) --
-                                                    no es una animación nueva.
+                            {/* Modal Tabs */}
+                            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('keyboard')}
+                                    style={{
+                                        ...S.btn,
+                                        padding: '6px 14px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 600,
+                                        color: activeTab === 'keyboard' ? 'var(--accent)' : 'var(--muted)',
+                                        borderColor: activeTab === 'keyboard' ? 'var(--border)' : 'transparent',
+                                        background: activeTab === 'keyboard' ? 'var(--background)' : 'transparent',
+                                    }}
+                                >
+                                    ⌨️ {t('operador.seleccion.teclado')}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('gamepad')}
+                                    style={{
+                                        ...S.btn,
+                                        padding: '6px 14px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 600,
+                                        color: activeTab === 'gamepad' ? 'var(--accent)' : 'var(--muted)',
+                                        borderColor: activeTab === 'gamepad' ? 'var(--border)' : 'transparent',
+                                        background: activeTab === 'gamepad' ? 'var(--background)' : 'transparent',
+                                    }}
+                                >
+                                    🎮 {t('operador.seleccion.mando')}
+                                </button>
+                            </div>
 
-                                                    El resalte al pasar el mouse va por estado de React + la
-                                                    transición CSS nativa de S.input, no por whileHover de
-                                                    Motion: Motion no interpola bien un var(--...) crudo como
-                                                    valor de animación (el color salía mal, tipo negro), y en
-                                                    pantallas táctiles whileHover se queda pegado hasta el
-                                                    siguiente toque en otra parte. */}
-                                                {type === 'keyboard' || type === 'keyboardMovement' ? (
-                                                    <motion.button
-                                                        type="button"
-                                                        onClick={() => setCapturandoTecla(action)}
-                                                        onMouseEnter={() => setHoverTecla(action)}
-                                                        onMouseLeave={() => setHoverTecla(null)}
-                                                        title={t('operador.seleccion.cambiarTecla')}
-                                                        whileTap={{ scale: 0.97 }}
-                                                        style={{
-                                                            ...S.input,
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                                            cursor: 'pointer', fontWeight: 600, letterSpacing: '0.05em',
-                                                            color: capturandoTecla === action ? 'var(--accent)' : 'var(--text)',
-                                                            borderColor: (capturandoTecla === action || hoverTecla === action) ? 'var(--accent)' : 'var(--border)',
-                                                        }}
-                                                    >
-                                                        {capturandoTecla === action ? (
-                                                            <>
-                                                                <span style={{ width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0, backgroundColor: 'var(--accent)', animation: 'pulse 1.5s infinite' }} />
-                                                                {t('operador.seleccion.presionaTecla')}
-                                                            </>
-                                                        ) : (
-                                                            formatearTecla(mappingForm[type][action])
-                                                        )}
-                                                    </motion.button>
-                                                ) : (
-                                                    <motion.button
-                                                        type="button"
-                                                        onClick={() => setCapturandoBoton(action)}
-                                                        onMouseEnter={() => setHoverBoton(action)}
-                                                        onMouseLeave={() => setHoverBoton(null)}
-                                                        title={t('operador.seleccion.cambiarBoton')}
-                                                        whileTap={{ scale: 0.97 }}
-                                                        style={{
-                                                            ...S.input,
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                                            cursor: 'pointer', fontWeight: 600, letterSpacing: '0.05em',
-                                                            color: capturandoBoton === action ? 'var(--accent)' : 'var(--text)',
-                                                            borderColor: (capturandoBoton === action || hoverBoton === action) ? 'var(--accent)' : 'var(--border)',
-                                                        }}
-                                                    >
-                                                        {capturandoBoton === action ? (
-                                                            <>
-                                                                <span style={{ width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0, backgroundColor: 'var(--accent)', animation: 'pulse 1.5s infinite' }} />
-                                                                {t('operador.seleccion.presionaBoton')}
-                                                            </>
-                                                        ) : (
-                                                            mappingForm.gamepad[action] || '—'
-                                                        )}
-                                                    </motion.button>
-                                                )}
-                                            </label>
+                            {/* Quick Select Key Palette when Capturing */}
+                            {capturandoTecla && (
+                                <div style={{
+                                    background: 'var(--background)',
+                                    border: '1px solid var(--accent)',
+                                    borderRadius: '8px',
+                                    padding: '12px 16px',
+                                    marginBottom: '16px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '8px',
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.78rem', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: 'var(--accent)', animation: 'pulse 1.5s infinite' }} />
+                                            {t('operador.seleccion.presionaTecla')} ({getActionLabel(capturandoTecla)})
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCapturandoTecla(null)}
+                                            style={{ background: 'transparent', border: 'none', color: 'var(--muted)', fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)' }}
+                                        >
+                                            [Esc {t('operador.seleccion.cancelar')}]
+                                        </button>
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                        {TECLAS_RAPIDAS.map(kCode => (
+                                            <button
+                                                key={kCode}
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    asignarTecla(kCode);
+                                                }}
+                                                style={{
+                                                    background: 'var(--surface)',
+                                                    border: '1px solid var(--border)',
+                                                    color: 'var(--text)',
+                                                    borderRadius: '4px',
+                                                    padding: '4px 8px',
+                                                    fontFamily: 'var(--font-ibm-mono)',
+                                                    fontSize: '0.78rem',
+                                                    cursor: 'pointer',
+                                                    fontWeight: 600,
+                                                    transition: 'all 0.15s ease',
+                                                }}
+                                                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+                                                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text)'; }}
+                                            >
+                                                {formatearTecla(kCode)}
+                                            </button>
                                         ))}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
+                            )}
 
-                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-                            <button onClick={() => setShowMappingsModal(false)} style={S.btn}>{t('operador.seleccion.cancelar')}</button>
-                            <button
-                                onClick={() => {
-                                    if (onUpdateMappings) onUpdateMappings(mappingForm);
-                                    setShowMappingsModal(false);
-                                }}
-                                style={{ ...S.btn, background: 'var(--accent)', color: 'var(--background)', borderColor: 'var(--accent)', fontWeight: 600 }}
-                            >{t('operador.seleccion.guardarMapeo')}</button>
-                        </div>
+                            {/* Modal Body */}
+                            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', paddingRight: '4px' }}>
+                                {activeTab === 'keyboard' && (
+                                    <>
+                                        {/* Movimiento Chasis */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            <h4 style={{ margin: 0, color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+                                                {t('operador.configPanel.movimiento')}
+                                            </h4>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                {Object.keys(mappingForm.keyboardMovement).map(action => (
+                                                    <label key={action} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <span style={S.label}>{getActionLabel(action)}</span>
+                                                        <motion.button
+                                                            type="button"
+                                                            onClick={() => setCapturandoTecla(action)}
+                                                            onMouseEnter={() => setHoverTecla(action)}
+                                                            onMouseLeave={() => setHoverTecla(null)}
+                                                            title={t('operador.seleccion.cambiarTecla')}
+                                                            whileTap={{ scale: 0.97 }}
+                                                            style={{
+                                                                ...S.input,
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                                cursor: 'pointer', fontWeight: 600, letterSpacing: '0.05em',
+                                                                color: capturandoTecla === action ? 'var(--accent)' : 'var(--text)',
+                                                                borderColor: (capturandoTecla === action || hoverTecla === action) ? 'var(--accent)' : 'var(--border)',
+                                                            }}
+                                                        >
+                                                            {capturandoTecla === action ? (
+                                                                <>
+                                                                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0, backgroundColor: 'var(--accent)', animation: 'pulse 1.5s infinite' }} />
+                                                                    {t('operador.seleccion.presionaTecla')}
+                                                                </>
+                                                            ) : (
+                                                                formatearTecla(mappingForm.keyboardMovement[action])
+                                                            )}
+                                                        </motion.button>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Brazos Mecánicos */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            <h4 style={{ margin: 0, color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+                                                {t('operador.configPanel.brazos')}
+                                            </h4>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                {['ArmFrontUp', 'ArmFrontDown', 'ArmBackUp', 'ArmBackDown'].map(action => (
+                                                    <label key={action} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <span style={S.label}>{getActionLabel(action)}</span>
+                                                        <motion.button
+                                                            type="button"
+                                                            onClick={() => setCapturandoTecla(action)}
+                                                            onMouseEnter={() => setHoverTecla(action)}
+                                                            onMouseLeave={() => setHoverTecla(null)}
+                                                            title={t('operador.seleccion.cambiarTecla')}
+                                                            whileTap={{ scale: 0.97 }}
+                                                            style={{
+                                                                ...S.input,
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                                cursor: 'pointer', fontWeight: 600, letterSpacing: '0.05em',
+                                                                color: capturandoTecla === action ? 'var(--accent)' : 'var(--text)',
+                                                                borderColor: (capturandoTecla === action || hoverTecla === action) ? 'var(--accent)' : 'var(--border)',
+                                                            }}
+                                                        >
+                                                            {capturandoTecla === action ? (
+                                                                <>
+                                                                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0, backgroundColor: 'var(--accent)', animation: 'pulse 1.5s infinite' }} />
+                                                                    {t('operador.seleccion.presionaTecla')}
+                                                                </>
+                                                            ) : (
+                                                                formatearTecla(mappingForm.keyboard[action])
+                                                            )}
+                                                        </motion.button>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Tambores */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            <h4 style={{ margin: 0, color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+                                                {t('operador.configPanel.tambores')}
+                                            </h4>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                {['DrumFrontCw', 'DrumFrontCcw', 'DrumBackCw', 'DrumBackCcw'].map(action => (
+                                                    <label key={action} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <span style={S.label}>{getActionLabel(action)}</span>
+                                                        <motion.button
+                                                            type="button"
+                                                            onClick={() => setCapturandoTecla(action)}
+                                                            onMouseEnter={() => setHoverTecla(action)}
+                                                            onMouseLeave={() => setHoverTecla(null)}
+                                                            title={t('operador.seleccion.cambiarTecla')}
+                                                            whileTap={{ scale: 0.97 }}
+                                                            style={{
+                                                                ...S.input,
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                                cursor: 'pointer', fontWeight: 600, letterSpacing: '0.05em',
+                                                                color: capturandoTecla === action ? 'var(--accent)' : 'var(--text)',
+                                                                borderColor: (capturandoTecla === action || hoverTecla === action) ? 'var(--accent)' : 'var(--border)',
+                                                            }}
+                                                        >
+                                                            {capturandoTecla === action ? (
+                                                                <>
+                                                                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0, backgroundColor: 'var(--accent)', animation: 'pulse 1.5s infinite' }} />
+                                                                    {t('operador.seleccion.presionaTecla')}
+                                                                </>
+                                                            ) : (
+                                                                formatearTecla(mappingForm.keyboard[action])
+                                                            )}
+                                                        </motion.button>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {activeTab === 'gamepad' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--muted)', fontFamily: 'var(--font-ibm-mono)' }}>
+                                            Stick Izquierdo: Movimiento · Gatillos LT/RT: Control de Brazos Frontal/Trasero.
+                                        </p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            <h4 style={{ margin: 0, color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+                                                {t('operador.configPanel.tambores')}
+                                            </h4>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                {Object.keys(mappingForm.gamepad).map(action => (
+                                                    <label key={action} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <span style={S.label}>{getActionLabel(action)}</span>
+                                                        <motion.button
+                                                            type="button"
+                                                            onClick={() => setCapturandoBoton(action)}
+                                                            onMouseEnter={() => setHoverBoton(action)}
+                                                            onMouseLeave={() => setHoverBoton(null)}
+                                                            title={t('operador.seleccion.cambiarBoton')}
+                                                            whileTap={{ scale: 0.97 }}
+                                                            style={{
+                                                                ...S.input,
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                                cursor: 'pointer', fontWeight: 600, letterSpacing: '0.05em',
+                                                                color: capturandoBoton === action ? 'var(--accent)' : 'var(--text)',
+                                                                borderColor: (capturandoBoton === action || hoverBoton === action) ? 'var(--accent)' : 'var(--border)',
+                                                            }}
+                                                        >
+                                                            {capturandoBoton === action ? (
+                                                                <>
+                                                                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0, backgroundColor: 'var(--accent)', animation: 'pulse 1.5s infinite' }} />
+                                                                    {t('operador.seleccion.presionaBoton')}
+                                                                </>
+                                                            ) : (
+                                                                mappingForm.gamepad[action] || '—'
+                                                            )}
+                                                        </motion.button>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                                <button onClick={() => setShowMappingsModal(false)} style={S.btn}>{t('operador.seleccion.cancelar')}</button>
+                                <button
+                                    onClick={() => {
+                                        if (onUpdateMappings) onUpdateMappings(mappingForm);
+                                        setShowMappingsModal(false);
+                                    }}
+                                    style={{ ...S.btn, background: 'var(--accent)', color: 'var(--background)', borderColor: 'var(--accent)', fontWeight: 700 }}
+                                >{t('operador.seleccion.guardarMapeo')}</button>
+                            </div>
+                        </motion.div>
                     </motion.div>
-                </motion.div>
+                )}
+                </AnimatePresence>,
+                document.body
             )}
-            </AnimatePresence>
         </div>
     );
 }

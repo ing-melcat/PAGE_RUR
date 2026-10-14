@@ -38,6 +38,7 @@
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.1",
+    "source-map-js": "^1.2.2",
     "three": "^0.185.1"
   },
   "devDependencies": {

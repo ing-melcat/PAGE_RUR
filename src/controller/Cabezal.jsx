@@ -9,7 +9,7 @@ import { useLanguage } from '../lib/i18n';
  *                QUÉ unidad tiene en las manos —sobre todo con varias dadas de
  *                alta—. Si no llega ninguno, se cae al nombre de la aplicación.
  */
-export function Cabezal({ onCambio, onConfigApply, onBack, titulo }) {
+export function Cabezal({ onCambio, onConfigApply, onBack, titulo, controlMappings, onUpdateMappings }) {
     const { t } = useLanguage();
     return (
         // Simplemente un cabezal con el nombre de la aplicacion, se pueden agregar mas cosas despues
@@ -17,7 +17,7 @@ export function Cabezal({ onCambio, onConfigApply, onBack, titulo }) {
             <nav style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                justifyContent: 'space-between',
+                justifyContent: 'space-between', 
                 padding: '0 20px',
                 width: '100%',
                 boxSizing: 'border-box'
@@ -90,7 +90,7 @@ export function Cabezal({ onCambio, onConfigApply, onBack, titulo }) {
                 
                 {/* ConfigPanel placed inside the header on the right */}
                 <div style={{ width: '60px', display: 'flex', justifyContent: 'flex-end' }}>
-                    <ConfigPanel onApply={onConfigApply} />
+                    <ConfigPanel onApply={onConfigApply} controlMappings={controlMappings} onUpdateMappings={onUpdateMappings} />
                 </div>
 
             </nav>

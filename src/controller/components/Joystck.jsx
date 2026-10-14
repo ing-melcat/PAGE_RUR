@@ -89,6 +89,23 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
             }
         };
 
+        const normalizarCodigo = (e) => {
+            if (e.code && e.code !== 'Unidentified') return e.code;
+            if (e.key) {
+                if (e.key === 'ArrowUp') return 'ArrowUp';
+                if (e.key === 'ArrowDown') return 'ArrowDown';
+                if (e.key === 'ArrowLeft') return 'ArrowLeft';
+                if (e.key === 'ArrowRight') return 'ArrowRight';
+                if (e.key === ' ' || e.key === 'Spacebar') return 'Space';
+                if (e.key.length === 1) {
+                    const char = e.key.toUpperCase();
+                    if (/[A-Z]/.test(char)) return `Key${char}`;
+                    if (/[0-9]/.test(char)) return `Digit${char}`;
+                }
+            }
+            return e.code || e.key;
+        };
+
         const handleKeyDown = (e) => {
             if (e.repeat) return;
             if (e.key === 'Shift') {
@@ -96,11 +113,12 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
                 updateJoystickFromKeys();
                 return;
             }
+            const code = normalizarCodigo(e);
             let match = null;
-            if (e.code === maps.Forward || e.key === 'ArrowUp') match = 'Forward';
-            if (e.code === maps.Backward || e.key === 'ArrowDown') match = 'Backward';
-            if (e.code === maps.Left || e.key === 'ArrowLeft') match = 'Left';
-            if (e.code === maps.Right || e.key === 'ArrowRight') match = 'Right';
+            if (code === maps.Forward) match = 'Forward';
+            else if (code === maps.Backward) match = 'Backward';
+            else if (code === maps.Left) match = 'Left';
+            else if (code === maps.Right) match = 'Right';
             
             if (match) {
                 rapido = e.shiftKey;
@@ -115,11 +133,12 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
                 updateJoystickFromKeys();
                 return;
             }
+            const code = normalizarCodigo(e);
             let match = null;
-            if (e.code === maps.Forward || e.key === 'ArrowUp') match = 'Forward';
-            if (e.code === maps.Backward || e.key === 'ArrowDown') match = 'Backward';
-            if (e.code === maps.Left || e.key === 'ArrowLeft') match = 'Left';
-            if (e.code === maps.Right || e.key === 'ArrowRight') match = 'Right';
+            if (code === maps.Forward) match = 'Forward';
+            else if (code === maps.Backward) match = 'Backward';
+            else if (code === maps.Left) match = 'Left';
+            else if (code === maps.Right) match = 'Right';
 
             if (match) {
                 keys[match] = false;

@@ -130,7 +130,7 @@ const MAPEO_GAMEPAD_DEFECTO = {
   DrumFrontCw: 'Y', DrumFrontCcw: 'X', DrumBackCw: 'B', DrumBackCcw: 'A',
 };
 const MAPEO_TECLADO_DEFECTO = {
-  ArmFrontUp: 'KeyW', ArmFrontDown: 'KeyS', ArmBackUp: 'KeyE', ArmBackDown: 'KeyD',
+  ArmFrontUp: 'KeyI', ArmFrontDown: 'KeyK', ArmBackUp: 'KeyO', ArmBackDown: 'KeyL',
   DrumFrontCw: 'KeyR', DrumFrontCcw: 'KeyF', DrumBackCw: 'KeyT', DrumBackCcw: 'KeyG',
 };
 
@@ -193,10 +193,21 @@ function construirTelemetria({ avance: ejeAvance, giro: ejeGiro }, actuadoresInt
   };
 }
 
-export default function ControllerApp({ onBack, robot, controlMappings, mode = 'manual' }) {
+export default function ControllerApp({ onBack, robot, controlMappings, mode = 'manual', onUpdateMappings }) {
   const { t } = useLanguage();
   const [robotState, setRobotState] = useState(robot);
   useEffect(() => { setRobotState(robot); }, [robot]);
+  const [controlMappingsState, setControlMappingsState] = useState(controlMappings);
+  useEffect(() => {
+    if (controlMappings) setControlMappingsState(controlMappings);
+  }, [controlMappings]);
+
+  const handleUpdateMappings = useCallback(async (newMappings) => {
+    setControlMappingsState(newMappings);
+    if (onUpdateMappings) {
+      await onUpdateMappings(newMappings);
+    }
+  }, [onUpdateMappings]);
   const [isMobile] = useState(window.innerWidth <= 932);
   const [hasKeyboard, setHasKeyboard] = useState(false);
   const [visible, setVisible] = useState(true);
@@ -334,7 +345,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   // `${Componente}${Accion}`), que es como se va a consultar en cada frame o
   // en cada evento de teclado.
   const mapaGamepadPorIndice = useMemo(() => {
-    const mapeo = { ...MAPEO_GAMEPAD_DEFECTO, ...(controlMappings?.gamepad || {}) };
+    const mapeo = { ...MAPEO_GAMEPAD_DEFECTO, ...(controlMappingsState?.gamepad || {}) };
     const porIndice = {};
     for (const { clave, component, action } of MAPEO_ACCIONES) {
       // Los brazos ya no son bindeables en mando (los maneja el esquema de
@@ -350,17 +361,17 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
       }
     }
     return porIndice;
-  }, [controlMappings]);
+  }, [controlMappingsState]);
 
   const mapaTecladoPorCodigo = useMemo(() => {
-    const mapeo = { ...MAPEO_TECLADO_DEFECTO, ...(controlMappings?.keyboard || {}) };
+    const mapeo = { ...MAPEO_TECLADO_DEFECTO, ...(controlMappingsState?.keyboard || {}) };
     const porCodigo = {};
     for (const { clave, component, action } of MAPEO_ACCIONES) {
       const codigo = mapeo[clave];
       if (codigo) porCodigo[codigo] = { component, action };
     }
     return porCodigo;
-  }, [controlMappings]);
+  }, [controlMappingsState]);
 
   // Construye un paquete binario con la posición actual
   const buildPacket = useCallback((deadX, deadY) => {
@@ -778,15 +789,17 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     const presionadas = new Set();
 
     const alPresionar = (e) => {
-      const entrada = mapaTecladoPorCodigo[e.code];
-      if (!entrada || presionadas.has(e.code)) return;
-      presionadas.add(e.code);
+      const code = e.code || (e.key && e.key.length === 1 ? `Key${e.key.toUpperCase()}` : e.key);
+      const entrada = mapaTecladoPorCodigo[code] || mapaTecladoPorCodigo[e.code];
+      if (!entrada || presionadas.has(code)) return;
+      presionadas.add(code);
       handleAction(entrada.component, entrada.action, true);
     };
     const alSoltar = (e) => {
-      const entrada = mapaTecladoPorCodigo[e.code];
+      const code = e.code || (e.key && e.key.length === 1 ? `Key${e.key.toUpperCase()}` : e.key);
+      const entrada = mapaTecladoPorCodigo[code] || mapaTecladoPorCodigo[e.code];
       if (!entrada) return;
-      presionadas.delete(e.code);
+      presionadas.delete(code);
       handleAction(entrada.component, entrada.action, false);
     };
 
@@ -1038,6 +1051,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
                 onStop={handleMove}
                 setBinPack={setBinPacket}
                 size={isMobile && mode === 'manual' ? Math.round(joystickSize * 0.75) : joystickSize}
+                keyboardMappings={controlMappingsState?.keyboardMovement}
               />
               {/* En mobile no hay espacio para un segundo Segment aparte, así
                   que la cámara comparte fila con el joystick de movimiento. */}
@@ -1117,6 +1131,8 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
           }}
           onBack={onBack}
           titulo={robot?.name}
+          controlMappings={controlMappingsState}
+          onUpdateMappings={handleUpdateMappings}
         />
 
       <div style={{ position: 'relative', zIndex: 110, opacity: hasGamepad ? 0 : 1, visibility: hasGamepad ? 'hidden' : 'visible', transition: 'all 0.5s ease-out', pointerEvents: 'none' }}>

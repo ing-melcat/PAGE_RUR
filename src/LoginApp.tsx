@@ -1069,6 +1069,23 @@ export default function App() {
                   robot={livekitToken}
                   controlMappings={user?.control_mappings}
                   mode={controlMode}
+                  onUpdateMappings={async (newMappings: any) => {
+                    try {
+                      const res = await apiFetch('/api/profile/mappings', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ control_mappings: newMappings })
+                      });
+                      if (res.ok) {
+                        setUser({ ...user, control_mappings: newMappings });
+                        notificar(t('alertas.controlesGuardados'), 'exito');
+                      } else {
+                        notificar(t('alertas.errorGuardarControles'), 'error');
+                      }
+                    } catch (e) {
+                      notificar(t('perfil.errorConexion'), 'error');
+                    }
+                  }}
                 />
               </Suspense>
             </motion.section>
