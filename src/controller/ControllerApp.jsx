@@ -282,9 +282,20 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   // más abajo), y ese hueco es el que aprovecha la barra para expandirse.
   const controlesOcultos = (hasGamepad || hasKeyboard) && !forceMobileMode;
 
+  const tipoEntrada = (hasGamepad && !forceMobileMode)
+    ? 'mando'
+    : (hasKeyboard && !forceMobileMode)
+    ? 'teclado'
+    : 'tactil';
+
   const entradaActiva = {
-    modo: controlesOcultos ? (hasGamepad ? t('telemetria.mando') : (t('telemetria.teclado') || 'Teclado')) : t('telemetria.tactil'),
-    activo: hasGamepad || hasKeyboard,
+    tipo: tipoEntrada,
+    modo: tipoEntrada === 'mando'
+      ? t('telemetria.mando')
+      : tipoEntrada === 'teclado'
+      ? (t('telemetria.teclado') || 'Teclado')
+      : t('telemetria.tactil'),
+    activo: (hasGamepad || hasKeyboard) && !forceMobileMode,
     // Solo tiene sentido alternar si de verdad hay un mando que ignorar.
     onAlternar: (hasGamepad || hasKeyboard) ? () => setForceMobileMode((v) => !v) : undefined,
     atajo: hasKeyboard ? '(Esc)' : undefined,
@@ -317,9 +328,17 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     const data = encoder.encode(commandStr);
 
     const sendCommand = async () => {
-      if (!dataTrackRef.current) return;
+      if (!roomRef.current || !isConnectedRef.current) return;
       try {
-        await dataTrackRef.current.tryPush({ payload: data });
+        const destinos = identidadesDeRobots(roomRef.current);
+        await roomRef.current.localParticipant.publishData(data, {
+          reliable: true,
+          topic: TOPIC,
+          destinationIdentities: destinos.length > 0 ? destinos : undefined,
+        });
+        if (dataTrackRef.current) {
+          dataTrackRef.current.tryPush({ payload: data }).catch(() => {});
+        }
       } catch (err) {
         console.error('Error sending command:', err);
       }
@@ -386,27 +405,37 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
 
   // Envía un paquete directamente por LiveKit
   const sendPacketNow = useCallback(async (pkt) => {
-    if (roomRef.current && isConnectedRef.current && pkt && dataTrackRef.current) {
+    if (roomRef.current && isConnectedRef.current && pkt) {
       // Last-write-wins: si ya hay un envío del joystick en vuelo, se descarta
       // este paquete — el siguiente tick traerá el valor más reciente.
       if (isSendingJoystickRef.current) return;
       isSendingJoystickRef.current = true;
       try {
         const payloadBytes = pkt instanceof Uint8Array ? pkt : new Uint8Array(pkt);
-        await dataTrackRef.current.tryPush({ payload: payloadBytes });
+        const destinos = identidadesDeRobots(roomRef.current);
+        await roomRef.current.localParticipant.publishData(payloadBytes, {
+          reliable: false,
+          topic: TOPIC,
+          destinationIdentities: destinos.length > 0 ? destinos : undefined,
+        });
+        if (dataTrackRef.current) {
+          dataTrackRef.current.tryPush({ payload: payloadBytes }).catch(() => {});
+        }
       } catch (err) {
         console.error('Error sending joystick data:', err);
       } finally {
         isSendingJoystickRef.current = false;
       }
     }
-  }, [])
+  }, []);
 
-  // Inicia el envío continuo del joystick (dead-man's switch): el tick
-  // maestro de abajo lo recoge en cuanto está activo.
+  // Inicia el envío continuo del joystick (dead-man's switch): envía de inmediato
+  // el primer paquete y deja activo el flag para el tick maestro
   const startContinuousSend = useCallback(() => {
     continuousSendActiveRef.current = true;
-  }, [])
+    const { x, y } = joystickPosRef.current;
+    sendPacketNow(buildPacket(x, y));
+  }, [buildPacket, sendPacketNow]);
 
   // Detiene el envío continuo y manda un último paquete de frenado (0,0) de
   // inmediato, sin esperar al próximo tick.
@@ -414,7 +443,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     continuousSendActiveRef.current = false;
     const stopPkt = buildPacket(0, 0);
     sendPacketNow(stopPkt);
-  }, [buildPacket, sendPacketNow])
+  }, [buildPacket, sendPacketNow]);
 
   // ---------------------------------------------------------------------------
   // Joystick de cámara (pan/tilt), solo en modo manual
@@ -431,10 +460,18 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   const cameraActiveRef = useRef(false);
 
   const sendCameraPacketNow = useCallback(async (pan, tilt) => {
-    if (!roomRef.current || !isConnectedRef.current || !dataTrackRef.current) return;
+    if (!roomRef.current || !isConnectedRef.current) return;
     try {
       const data = new TextEncoder().encode(JSON.stringify({ component: 'Camera', pan, tilt }));
-      await dataTrackRef.current.tryPush({ payload: data });
+      const destinos = identidadesDeRobots(roomRef.current);
+      await roomRef.current.localParticipant.publishData(data, {
+        reliable: false,
+        topic: TOPIC,
+        destinationIdentities: destinos.length > 0 ? destinos : undefined,
+      });
+      if (dataTrackRef.current) {
+        dataTrackRef.current.tryPush({ payload: data }).catch(() => {});
+      }
     } catch (err) {
       console.error('Error sending camera data:', err);
     }
@@ -524,8 +561,12 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
             const stopObj = { component, action, state: false };
             const data = new TextEncoder().encode(JSON.stringify(stopObj));
             const destinos = identidadesDeRobots(roomRef.current);
-            if (destinos.length > 0 && roomRef.current) {
-              roomRef.current.localParticipant.publishData(data, { reliable: true, topic: TOPIC }).catch(() => {});
+            if (roomRef.current && isConnectedRef.current) {
+              roomRef.current.localParticipant.publishData(data, {
+                reliable: true,
+                topic: TOPIC,
+                destinationIdentities: destinos.length > 0 ? destinos : undefined,
+              }).catch(() => {});
             }
           }
         }
@@ -598,16 +639,26 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     let animationFrameId;
     const pollGamepad = () => {
       if (navigator.getGamepads) {
-        const gamepads = navigator.getGamepads();
-        for (let i = 0; i < gamepads.length; i++) {
-          const gp = gamepads[i];
+        const rawGamepads = navigator.getGamepads();
+        const connectedGamepads = Array.from(rawGamepads || []).filter((gp) => gp && gp.connected);
+
+        if (connectedGamepads.length > 0) {
+          const deadZone = 0.15;
+          // Buscar gamepad que tenga actividad de usuario o tomar el primero conectado
+          const gp = connectedGamepads.find((g) => {
+            const tieneEjes = g.axes && g.axes.some((a) => Math.abs(a) > deadZone);
+            const tieneBotones = g.buttons && g.buttons.some((b) => b.pressed || (b.value != null && b.value > deadZone));
+            return tieneEjes || tieneBotones;
+          }) || connectedGamepads[0];
+
           if (gp) {
-            const deadZone = 0.15;
-            // Un mando puede conectarse sin haber disparado 'gamepadconnected'
-            // (algunos navegadores solo lo hacen al pulsar un botón). Se comprueba
-            // el mapping aquí también por si ese primer poll llega antes del evento.
-            if (!hasGamepad && (gp.axes.some(a => Math.abs(a) > deadZone) || gp.buttons.some(b => b.pressed))) {
+            const tieneActividad = (gp.axes && gp.axes.some((a) => Math.abs(a) > deadZone)) ||
+                                   (gp.buttons && gp.buttons.some((b) => b.pressed || (b.value != null && b.value > deadZone)));
+
+            // Si hay actividad de mando, activar modo gamepad y desactivar forzado móvil
+            if (tieneActividad) {
               setHasGamepad(true);
+              setForceMobileMode(false);
               setHasNonStandardGamepad(gp.mapping !== 'standard');
             }
 
@@ -639,11 +690,12 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
             // conducción; LT comparte el stick izquierdo con el movimiento,
             // así que sostenerlo sí lo congela.
             const gatillo = gatilloArmRef.current;
-            const ltPresionado = esEstandar ? Boolean(gp.buttons[INDICE_LT]?.pressed) : false;
-            const rtPresionado = esEstandar ? Boolean(gp.buttons[INDICE_RT]?.pressed) : false;
+            const ltPresionado = esEstandar ? Boolean(gp.buttons[INDICE_LT]?.pressed || (gp.buttons[INDICE_LT]?.value > deadZone)) : false;
+            const rtPresionado = esEstandar ? Boolean(gp.buttons[INDICE_RT]?.pressed || (gp.buttons[INDICE_RT]?.value > deadZone)) : false;
 
-            if ((ltPresionado || rtPresionado) && !hasGamepad) {
+            if (ltPresionado || rtPresionado) {
               setHasGamepad(true);
+              setForceMobileMode(false);
             }
 
             if (ltPresionado && !gatillo.lt) {
@@ -715,16 +767,14 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
               if (Math.abs(ly) < deadZone) ly = 0;
 
               // En -1..1 y con el mismo orden que el joystick táctil: primero
-              // el avance, luego el giro. Antes iba en -100..100 y con los
-              // ejes al revés, así que con mando el robot recibía el giro
-              // donde esperaba el avance, y cien veces más grande de lo que
-              // manda el táctil.
+              // el avance, luego el giro.
               const x = -ly;
               const y = lx;
 
               if (x !== gamepadStateRef.current.x || y !== gamepadStateRef.current.y) {
-                if (!hasGamepad && (Math.abs(x) > 0 || Math.abs(y) > 0)) {
+                if (Math.abs(x) > 0 || Math.abs(y) > 0) {
                   setHasGamepad(true);
+                  setForceMobileMode(false);
                 }
                 handleMove(x, y);
                 gamepadStateRef.current.x = x;
@@ -733,12 +783,12 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
             }
 
             const checkButton = (index, component, action) => {
-              const pressed = gp.buttons[index]?.pressed;
+              const btn = gp.buttons[index];
+              const pressed = Boolean(btn?.pressed || (btn?.value != null && btn.value > 0.5));
               const wasPressed = gamepadStateRef.current.buttons[index];
               if (pressed && !wasPressed) {
-                if (!hasGamepad) {
-                  setHasGamepad(true);
-                }
+                setHasGamepad(true);
+                setForceMobileMode(false);
                 handleAction(component, action, true);
                 gamepadStateRef.current.buttons[index] = true;
               } else if (!pressed && wasPressed) {
@@ -864,12 +914,12 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
       });
 
 
-      // Publicar el DataTrack para el control del robot, que es lo que espera ROS
+      // Publicar el DataTrack para el control del robot si está soportado
       try {
         const dt = await roomInstance.localParticipant.publishDataTrack({ name: TOPIC });
         dataTrackRef.current = dt;
       } catch (err) {
-        console.error('Error publishing data track:', err);
+        console.warn('DataTrack no disponible, usando DataChannel publishData estándar:', err);
       }
 
       setIsConnected(true);

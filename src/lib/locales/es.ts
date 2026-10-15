@@ -280,6 +280,7 @@ export const es = {
     buffer: 'búfer',
     ms: 'ms',
     mando: 'Mando',
+    teclado: 'Teclado',
     tactil: 'Táctil',
     direccionAvance: { adelante: 'ADELANTE', atras: 'ATRÁS' },
     direccionGiro: { izquierda: 'IZQUIERDA', derecha: 'DERECHA' },

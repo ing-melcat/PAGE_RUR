@@ -246,14 +246,23 @@ function ModuloActuadores({ actuadores, transicion, chica }) {
 export function ChipEntrada({ entrada, transicion }) {
   const { t } = useLanguage();
   if (!entrada) return null;
-  const { modo, activo, onAlternar } = entrada;
+
+  const { modo, tipo, activo, onAlternar } = entrada;
   const pulsable = typeof onAlternar === 'function';
+
+  const icono = tipo === 'mando' ? (
+    <Gamepad2 size={15} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+  ) : tipo === 'teclado' ? (
+    <Keyboard size={15} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+  ) : (
+    <Pointer size={15} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+  );
 
   return (
     <button
       onClick={pulsable ? onAlternar : undefined}
       disabled={!pulsable}
-      title={pulsable ? t('telemetria.cambiarEntrada') : undefined}
+      title={pulsable ? (entrada.esTactil ? t('telemetria.volverTeclado', 'Volver a teclado/mando') : t('telemetria.volverTactil', 'Volver a táctil')) : undefined}
       style={{
         pointerEvents: pulsable ? 'auto' : 'none',
         cursor: pulsable ? 'pointer' : 'default',
@@ -271,18 +280,14 @@ export function ChipEntrada({ entrada, transicion }) {
         boxShadow: activo ? '0 0 8px var(--success)' : 'none',
         transition: transicion,
       }} />
-      <span className="telemetria__titulo telemetria__titulo--inline">
-        {pulsable 
-          ? (entrada.esTactil ? t('telemetria.volverTeclado', 'Volver a teclado') : t('telemetria.volverTactil', 'Volver a táctil')) 
-          : t('telemetria.entrada')}
+      <span className="telemetria__titulo telemetria__titulo--inline" style={{ display: 'flex', alignItems: 'center' }}>
+        {icono} {t('telemetria.entrada')}:
+      </span>
+      <span className="telemetria__valor telemetria__valor--medio" style={{ textTransform: 'uppercase', color: activo ? 'var(--accent, #38bdf8)' : 'var(--text)' }}>
+        {modo}
       </span>
       {pulsable && entrada.atajo && (
         <span style={{ fontSize: '0.7rem', color: 'var(--muted)', fontFamily: 'var(--font-ibm-mono)' }}>{entrada.atajo}</span>
-      )}
-      {!pulsable && (
-        <span className="telemetria__valor telemetria__valor--medio" style={{ textTransform: 'uppercase' }}>
-          {modo}
-        </span>
       )}
     </button>
   );
@@ -912,7 +917,13 @@ export function BarraTelemetria({
                   padding: '4px 8px'
                 }}
               >
-                {entrada.modo === 'TÁCTIL' ? <Pointer size={22} color="var(--muted)" /> : entrada.modo === 'TECLADO' ? <Keyboard size={22} color="var(--muted)" /> : <Gamepad2 size={22} color="var(--muted)" />}
+                {entrada.tipo === 'tactil' ? (
+                  <Pointer size={22} color="var(--muted)" />
+                ) : entrada.tipo === 'teclado' ? (
+                  <Keyboard size={22} color="var(--accent, #38bdf8)" />
+                ) : (
+                  <Gamepad2 size={22} color="var(--accent, #38bdf8)" />
+                )}
               </button>
            )}
            {entrada && <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', margin: '0 4px' }}>·</span>}

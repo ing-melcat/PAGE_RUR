@@ -276,6 +276,7 @@ export const en: Dictionary = {
     buffer: 'buffer',
     ms: 'ms',
     mando: 'Controller',
+    teclado: 'Keyboard',
     tactil: 'Touch',
     direccionAvance: { adelante: 'FORWARD', atras: 'BACKWARD' },
     direccionGiro: { izquierda: 'LEFT', derecha: 'RIGHT' },
