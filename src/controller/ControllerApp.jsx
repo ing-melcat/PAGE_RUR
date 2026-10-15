@@ -487,19 +487,18 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   }, [sendCameraPacketNow]);
 
   const handleCameraMove = useCallback((pan, tilt) => {
-    const deadZone = 0.05;
-    const applyDeadZone = (v) => Math.abs(v) < deadZone ? 0 : v;
-    const deadPan = applyDeadZone(pan);
-    const deadTilt = applyDeadZone(tilt);
+    const rawPan = Math.max(-1, Math.min(1, pan));
+    const rawTilt = Math.max(-1, Math.min(1, tilt));
 
-    cameraPosRef.current = { pan: deadPan, tilt: deadTilt };
+    cameraPosRef.current = { pan: rawPan, tilt: rawTilt };
 
-    if (Math.abs(deadPan) > 0 || Math.abs(deadTilt) > 0) {
+    if (Math.abs(rawPan) > 0 || Math.abs(rawTilt) > 0) {
       startCameraContinuousSend();
+      sendCameraPacketNow(rawPan, rawTilt);
     } else {
       stopCameraContinuousSend();
     }
-  }, [startCameraContinuousSend, stopCameraContinuousSend]);
+  }, [sendCameraPacketNow, startCameraContinuousSend, stopCameraContinuousSend]);
 
   // Tick maestro único a 100ms: antes había tres setInterval de 100ms
   // desalineados (botones mantenidos, telemetría, reenvío del joystick),
@@ -588,35 +587,31 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   // con x de avance e y de giro. Antes cada una traía su propia escala y su
   // propio orden de ejes, así que el robot recibía cosas distintas según con
   // qué estuvieras conduciendo.
+  // Las tres entradas —táctil, teclado y mando— entregan ya lo mismo: -1..1,
+  // con x de avance e y de giro.
+  // Modo crudo: directo 1:1, sin curvas de potencia ni suavizados
   const handleMove = useCallback((x, y) => {
-    const deadZone = 0.05
-    const applyDeadZone = (v) => Math.abs(v) < deadZone ? 0 : v
-
-    const applySensivity = (value) => {
-      const sign = Math.sign(value)
-      const magnitude = Math.abs(value)
-      return sign * Math.pow(magnitude, 1 / sensitivity)
-    }
-
-    const deadX = applySensivity(applyDeadZone(x))
-    const deadY = applySensivity(applyDeadZone(y))
+    // Valores crudos directos dentro de [-1, 1]
+    const rawX = Math.max(-1, Math.min(1, x));
+    const rawY = Math.max(-1, Math.min(1, y));
 
     // Guardar posición actual en el ref
-    joystickPosRef.current = { x: deadX, y: deadY };
+    joystickPosRef.current = { x: rawX, y: rawY };
 
-    ejesTelemetriaRef.current = { avance: deadX, giro: deadY };
-    window.dispatchEvent(new CustomEvent('joystickMove', { detail: { x: deadX, y: deadY } }));
+    ejesTelemetriaRef.current = { avance: rawX, giro: rawY };
+    window.dispatchEvent(new CustomEvent('joystickMove', { detail: { x: rawX, y: rawY } }));
 
-    // Si hay movimiento, iniciar envío continuo; si es (0,0), frenar
-    if (Math.abs(deadX) > 0 || Math.abs(deadY) > 0) {
+    // Si hay movimiento, iniciar envío continuo y despachar de inmediato; si es (0,0), frenar
+    if (Math.abs(rawX) > 0 || Math.abs(rawY) > 0) {
       startContinuousSend();
+      sendPacketNow(buildPacket(rawX, rawY));
     } else {
       stopContinuousSend();
     }
 
     // También devolver el paquete para el setBinPack del Joystick component
-    return buildPacket(deadX, deadY)
-  }, [sensitivity, buildPacket, startContinuousSend, stopContinuousSend])
+    return buildPacket(rawX, rawY);
+  }, [buildPacket, sendPacketNow, startContinuousSend, stopContinuousSend]);
 
   useEffect(() => {
     const handleGamepadConnected = (e) => {
@@ -643,7 +638,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
         const connectedGamepads = Array.from(rawGamepads || []).filter((gp) => gp && gp.connected);
 
         if (connectedGamepads.length > 0) {
-          const deadZone = 0.15;
+          const deadZone = 0.02; // Micro-zona sólo para filtrar drift mecánico en reposo
           // Buscar gamepad que tenga actividad de usuario o tomar el primero conectado
           const gp = connectedGamepads.find((g) => {
             const tieneEjes = g.axes && g.axes.some((a) => Math.abs(a) > deadZone);

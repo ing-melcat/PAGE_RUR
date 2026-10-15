@@ -172,7 +172,7 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
             // cuantizaciones de 100ms (hasta ~200ms dedo->paquete en el peor
             // caso). 30ms solo evita renders de sobra en el arrastre del
             // stick, sin sumarle su propia latencia al camino de control.
-            throttle={30}
+            throttle={0}
             stickShape="square"
             baseColor="var(--surface-strong)"
             stickColor="var(--accent)"
@@ -181,7 +181,7 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                transition: 'all 0.2s ease-out' // Smooth spring
+                transition: 'none' // Sin suavizado ni resortes con delay
             }}
             move={handleMoveEvent}
             stop={handleStopEvent}
