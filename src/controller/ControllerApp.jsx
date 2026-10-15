@@ -429,13 +429,10 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     }
   }, []);
 
-  // Inicia el envío continuo del joystick (dead-man's switch): envía de inmediato
-  // el primer paquete y deja activo el flag para el tick maestro
+  // Inicia el envío continuo del joystick (dead-man's switch): activa el flag para el tick maestro
   const startContinuousSend = useCallback(() => {
     continuousSendActiveRef.current = true;
-    const { x, y } = joystickPosRef.current;
-    sendPacketNow(buildPacket(x, y));
-  }, [buildPacket, sendPacketNow]);
+  }, []);
 
   // Detiene el envío continuo y manda un último paquete de frenado (0,0) de
   // inmediato, sin esperar al próximo tick.
@@ -487,8 +484,9 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   }, [sendCameraPacketNow]);
 
   const handleCameraMove = useCallback((pan, tilt) => {
-    const rawPan = Math.max(-1, Math.min(1, pan));
-    const rawTilt = Math.max(-1, Math.min(1, tilt));
+    const deadZone = 0.05;
+    const rawPan = Math.abs(pan) < deadZone ? 0 : Math.max(-1, Math.min(1, pan));
+    const rawTilt = Math.abs(tilt) < deadZone ? 0 : Math.max(-1, Math.min(1, tilt));
 
     cameraPosRef.current = { pan: rawPan, tilt: rawTilt };
 
@@ -589,11 +587,12 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   // qué estuvieras conduciendo.
   // Las tres entradas —táctil, teclado y mando— entregan ya lo mismo: -1..1,
   // con x de avance e y de giro.
-  // Modo crudo: directo 1:1, sin curvas de potencia ni suavizados
+  // Modo crudo con zona muerta de 0.05: directo 1:1, sin curvas de potencia ni suavizados
   const handleMove = useCallback((x, y) => {
-    // Valores crudos directos dentro de [-1, 1]
-    const rawX = Math.max(-1, Math.min(1, x));
-    const rawY = Math.max(-1, Math.min(1, y));
+    // Zona muerta de 0.05 para reposo absoluto; directo y crudo fuera de ella
+    const deadZone = 0.05;
+    const rawX = Math.abs(x) < deadZone ? 0 : Math.max(-1, Math.min(1, x));
+    const rawY = Math.abs(y) < deadZone ? 0 : Math.max(-1, Math.min(1, y));
 
     // Guardar posición actual en el ref
     joystickPosRef.current = { x: rawX, y: rawY };
@@ -616,16 +615,18 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   useEffect(() => {
     const handleGamepadConnected = (e) => {
       setHasGamepad(true);
-      // Detectar si el mando tiene el mapping estándar del W3C o uno propio.
-      // Controladores PS, Nintendo, algunos BLE y la mayoría de wands de VR
-      // reportan mapping='' (vacío) porque el navegador no sabe cómo remapearlos.
-      // En ese caso se avisa al operador y se usa un modo heurístico en pollGamepad.
-      const esEstandar = e.gamepad?.mapping === 'standard';
+      setForceMobileMode(false);
+      const gp = e.gamepad;
+      const esXbox = gp?.id && /xbox|x-box|microsoft/i.test(gp.id);
+      const esEstandar = gp?.mapping === 'standard' || esXbox;
       setHasNonStandardGamepad(!esEstandar);
     };
-    const handleGamepadDisconnected = (e) => {
-      setHasGamepad(false);
-      setHasNonStandardGamepad(false);
+    const handleGamepadDisconnected = () => {
+      const remaining = Array.from(navigator.getGamepads ? navigator.getGamepads() : []).filter(Boolean);
+      if (remaining.length === 0) {
+        setHasGamepad(false);
+        setHasNonStandardGamepad(false);
+      }
     };
 
     window.addEventListener("gamepadconnected", handleGamepadConnected);
@@ -635,11 +636,12 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     const pollGamepad = () => {
       if (navigator.getGamepads) {
         const rawGamepads = navigator.getGamepads();
-        const connectedGamepads = Array.from(rawGamepads || []).filter((gp) => gp && gp.connected);
+        // Filtrar elementos válidos (sin exigir gp.connected que en varios navegadores es falsy/undefined)
+        const connectedGamepads = Array.from(rawGamepads || []).filter(Boolean);
 
         if (connectedGamepads.length > 0) {
-          const deadZone = 0.02; // Micro-zona sólo para filtrar drift mecánico en reposo
-          // Buscar gamepad que tenga actividad de usuario o tomar el primero conectado
+          const deadZone = 0.05;
+          // Buscar gamepad que tenga actividad de usuario o tomar el primero presente
           const gp = connectedGamepads.find((g) => {
             const tieneEjes = g.axes && g.axes.some((a) => Math.abs(a) > deadZone);
             const tieneBotones = g.buttons && g.buttons.some((b) => b.pressed || (b.value != null && b.value > deadZone));
@@ -647,43 +649,16 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
           }) || connectedGamepads[0];
 
           if (gp) {
-            const tieneActividad = (gp.axes && gp.axes.some((a) => Math.abs(a) > deadZone)) ||
-                                   (gp.buttons && gp.buttons.some((b) => b.pressed || (b.value != null && b.value > deadZone)));
-
-            // Si hay actividad de mando, activar modo gamepad y desactivar forzado móvil
-            if (tieneActividad) {
+            // Mando detectado físicamente
+            if (!hasGamepad) {
               setHasGamepad(true);
               setForceMobileMode(false);
-              setHasNonStandardGamepad(gp.mapping !== 'standard');
             }
 
-            // ----------------------------------------------------------------
-            // Detección de mapeo: standard vs. no-standard
-            //
-            // 'standard' (Xbox, la mayoría de mandos USB en Windows/Linux):
-            //   Axes: 0=LX, 1=LY, 2=RX, 3=RY
-            //   Buttons: 0=A, 1=B, 2=X, 3=Y, 4=LB, 5=RB, 6=LT, 7=RT, ...
-            //
-            // No-standard (PS en macOS sin driver, Nintendo Switch Pro,
-            // wands de VR como Oculus/Meta/Valve Index):
-            //   - PS: axes 0/1=LStick, 2/5=RStick, botones reordenados
-            //   - Nintendo: A/B/X/Y rotados 90°
-            //   - VR wands: pueden tener 6+ ejes (6DOF: pos+rot) y ningún
-            //     botón coincide con el mapa estándar.
-            //
-            // Estrategia para no-standard: primer stick funcional = movimiento.
-            // Se busca el primer par de ejes (0,1), (2,3), etc. con algún valor
-            // fuera de la dead zone. Así un PS/Nintendo/VR wand mueve el robot
-            // en cuanto se mueve el stick principal, sin config extra.
-            // ----------------------------------------------------------------
-            const esEstandar = gp.mapping === 'standard';
+            const esXbox = gp.id && /xbox|x-box|microsoft/i.test(gp.id);
+            const esEstandar = gp.mapping === 'standard' || esXbox;
+            setHasNonStandardGamepad(!esEstandar);
 
-            // --- Gatillo + stick: mientras se sostiene LT/RT, el stick de esa
-            // misma mano deja de mover el robot y sube/baja el brazo
-            // correspondiente en su lugar. RT usa el stick DERECHO, que el
-            // movimiento nunca lee, así que sostenerlo no afecta la
-            // conducción; LT comparte el stick izquierdo con el movimiento,
-            // así que sostenerlo sí lo congela.
             const gatillo = gatilloArmRef.current;
             const ltPresionado = esEstandar ? Boolean(gp.buttons[INDICE_LT]?.pressed || (gp.buttons[INDICE_LT]?.value > deadZone)) : false;
             const rtPresionado = esEstandar ? Boolean(gp.buttons[INDICE_RT]?.pressed || (gp.buttons[INDICE_RT]?.value > deadZone)) : false;
@@ -801,6 +776,9 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
               checkButton(Number(indice), component, action);
             }
           }
+        } else if (hasGamepad) {
+          setHasGamepad(false);
+          setHasNonStandardGamepad(false);
         }
       }
       animationFrameId = requestAnimationFrame(pollGamepad);
