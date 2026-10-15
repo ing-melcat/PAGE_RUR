@@ -399,7 +399,8 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     const timestamp = Math.floor(performance.now())
     view.setUint32(0, timestamp, true)
     view.setFloat32(4, deadX, true)
-    view.setFloat32(8, deadY, true)
+    // Eje de giro invertido para coincidir con la convención del chasis (derecha/izquierda)
+    view.setFloat32(8, -deadY, true)
     return new Uint8Array(packet)
   }, [])
 
