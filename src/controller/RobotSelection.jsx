@@ -96,6 +96,11 @@ function normalizarCodigoTecla(e) {
 
 export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobot, onBack, controlMappings, onUpdateMappings }) {
     const { t } = useLanguage();
+    useEffect(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+    }, []);
     const [loading, setLoading] = useState(false);
     const [columns, setColumns] = useState(3);
     const [activeTab, setActiveTab] = useState('keyboard'); // 'keyboard' | 'gamepad'

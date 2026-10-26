@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, Suspense, lazy } from "react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { Loader2, CheckCircle, ChevronDown, ChevronUp, Globe, Lock, Upload, TriangleAlert, Star, Eye, EyeOff, Languages, X } from "lucide-react";
 import { CambiarPassword } from "./components/CambiarPassword";
@@ -179,6 +179,14 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [mainContext, setMainContext] = useState(() => sessionStorage.getItem('loginApp_mainContext') || "modules");
   useEffect(() => { sessionStorage.setItem('loginApp_mainContext', mainContext); }, [mainContext]);
+
+  // Al cambiar de pantalla o contexto interno en LoginApp, restablece el scroll a arriba
+  // de inmediato para que la nueva pantalla no cargue desplazada.
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [view, mainContext]);
   const [activeModule, setActiveModule] = useState<any>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const loadingActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -509,6 +517,7 @@ export default function App() {
         name: formData.get('name'),
         room: formData.get('room'),
         status: formData.get('status'),
+        locomotionType: formData.get('locomotionType') || 'tank',
         modelUrl: formData.get('modelUrl') || "",
         livekitUrl: formData.get('livekitUrl') || "",
         livekitApiKey: formData.get('livekitApiKey') || "",
@@ -758,7 +767,12 @@ export default function App() {
     initial: { opacity: 0, y: 12 },
     animate: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: -8 },
-    transition: { duration: 0.3 }
+    transition: { duration: 0.3 },
+    onAnimationStart: () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
   };
 
   return (
@@ -1113,7 +1127,7 @@ export default function App() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left', flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '8px' }}>
                     <h3 style={{ margin: 0, color: 'var(--accent)' }}>{t('adminRobots.tituloTabla')}</h3>
-                    <button onClick={() => setEditingRobot({ isNew: true, id: `rassor-${Date.now().toString().slice(-4)}`, name: '', room: '', status: 'online', modelUrl: '', livekitUrl: '', isPublicEvent: false })} style={{ width: 'auto' }}>{t('adminRobots.registrarNueva')}</button>
+                    <button onClick={() => setEditingRobot({ isNew: true, id: `rassor-${Date.now().toString().slice(-4)}`, name: '', room: '', status: 'online', locomotionType: 'tank', modelUrl: '', livekitUrl: '', isPublicEvent: false })} style={{ width: 'auto' }}>{t('adminRobots.registrarNueva')}</button>
                 </div>
 
                 <div style={{ overflowX: 'auto', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px' }}>
@@ -1124,13 +1138,16 @@ export default function App() {
                                 <th style={{ padding: '16px' }}>{t('adminRobots.colUnidad')}</th>
                                 <th style={{ padding: '16px' }}>{t('adminRobots.colId')}</th>
                                 <th style={{ padding: '16px' }}>{t('adminRobots.colRoom')}</th>
+                                <th style={{ padding: '16px' }}>{t('adminRobots.colLocomocion')}</th>
                                 <th style={{ padding: '16px' }}>{t('adminRobots.colTransmision')}</th>
                                 <th style={{ padding: '16px' }}>{t('adminRobots.colModelo')}</th>
                                 <th style={{ padding: '16px', textAlign: 'right' }}>{t('adminRobots.colAcciones')}</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {robots.map(r => (
+                            {robots.map(r => {
+                                const tipoLocomocion = r.locomotionType || (String(r.id || '').toLowerCase().includes('rassor') || String(r.name || '').toLowerCase().includes('rassor') ? 'tank' : 'joystick');
+                                return (
                                 <tr key={r.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }}>
                                     <td style={{ padding: '16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1141,6 +1158,11 @@ export default function App() {
                                     <td style={{ padding: '16px', fontWeight: 500, fontFamily: 'var(--font-ibm-mono)', fontSize: '0.95rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{r.name}</td>
                                     <td style={{ padding: '16px', color: 'var(--muted)' }}>{r.id}</td>
                                     <td style={{ padding: '16px', color: 'var(--accent)' }}>{r.room}</td>
+                                    <td style={{ padding: '16px' }}>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem', letterSpacing: '0.05em', border: `1px solid ${tipoLocomocion === 'tank' ? 'var(--accent)' : 'var(--border)'}`, color: tipoLocomocion === 'tank' ? 'var(--accent)' : 'var(--muted)', background: tipoLocomocion === 'tank' ? 'rgba(251,202,1,0.08)' : 'transparent' }}>
+                                            {tipoLocomocion === 'tank' ? t('adminRobots.locomocionTanqueCorto') : t('adminRobots.locomocionJoystickCorto')}
+                                        </span>
+                                    </td>
                                     <td style={{ padding: '16px' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
                                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem', letterSpacing: '0.05em', border: `1px solid ${r.isPublicEvent ? 'var(--accent)' : 'var(--border)'}`, color: r.isPublicEvent ? 'var(--accent)' : 'var(--muted)', background: r.isPublicEvent ? 'rgba(251,202,1,0.08)' : 'transparent' }}>
@@ -1157,10 +1179,11 @@ export default function App() {
                                         <button onClick={() => handleDeleteRobot(r.id)} style={{ background: 'transparent', color: 'var(--muted)', border: '1px solid var(--muted)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>{t('adminRobots.eliminar')}</button>
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
                             {robots.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: errorRobots ? 'var(--error)' : 'var(--muted)' }}>
+                                    <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: errorRobots ? 'var(--error)' : 'var(--muted)' }}>
                                         {errorRobots ? `${t('adminRobots.errorCargarUnidadesPrefijo')} ${errorRobots}` : t('adminRobots.sinUnidades')}
                                     </td>
                                 </tr>
@@ -1195,6 +1218,16 @@ export default function App() {
                                         <select name="status" defaultValue={editingRobot.status}>
                                             <option value="online">{t('adminRobots.onlineVerde')}</option>
                                             <option value="offline">{t('adminRobots.offlineRojo')}</option>
+                                        </select>
+                                    </div>
+                                    <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                                        <label>{t('adminRobots.sistemaLocomocion')}</label>
+                                        <select
+                                            name="locomotionType"
+                                            defaultValue={editingRobot.locomotionType || (String(editingRobot.id || '').toLowerCase().includes('rassor') || String(editingRobot.name || '').toLowerCase().includes('rassor') ? 'tank' : 'joystick')}
+                                        >
+                                            <option value="tank">{t('adminRobots.locomocionTanque')}</option>
+                                            <option value="joystick">{t('adminRobots.locomocionJoystick')}</option>
                                         </select>
                                     </div>
                                     <div className="input-group" style={{ gridColumn: 'span 2' }}>

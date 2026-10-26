@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Glasses, Gamepad2 } from 'lucide-react';
 import { useLanguage } from '../lib/i18n';
@@ -13,6 +13,11 @@ const S = {
 
 export function ModeSelect({ onSelectMode, onBack }) {
   const { t } = useLanguage();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
   const [loading, setLoading] = useState(false);
 
   const handleSelect = (modo) => {

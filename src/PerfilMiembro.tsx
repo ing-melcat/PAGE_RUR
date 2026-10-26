@@ -40,6 +40,12 @@ export function PerfilMiembro() {
   useTitulo(miembro?.nombre);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [slug]);
+
+  useEffect(() => {
     let cancelado = false;
     setEstado('cargando');
     fetch(`/api/miembros/${slug}`)

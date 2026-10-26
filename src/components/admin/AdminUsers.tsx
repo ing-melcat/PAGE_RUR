@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useLayoutEffect } from "react";
 import { motion } from "framer-motion";
 import { useLanguage } from "../../lib/i18n";
 import { apiFetch } from "../../lib/apiClient";
@@ -32,6 +32,12 @@ export const AdminUsers = ({ user, setView }: any) => {
   // causa: el rol se guardaba bien y era el dueño quien, al día siguiente, no
   // podía entrar. Un campo que no está en el DOM no se autorrellena.
   const [cambiarPassword, setCambiarPassword] = useState(false);
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [pestanaPersonal, isCreatingUser, editingUser]);
 
   const { data: usersList = [] } = useUsers();
   const { data: rolesDisponibles = [] } = useRolesDisponibles();

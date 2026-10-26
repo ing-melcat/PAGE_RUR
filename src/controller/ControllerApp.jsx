@@ -10,6 +10,7 @@ import { apiFetch } from '../lib/apiClient';
 import { ControlButton } from './components/ControlButton';
 import { ControlGroup } from './components/ControlGroup';
 import { Joystck } from './components/Joystck';
+import { TankPad, TANK_GEARS } from './components/TankPad';
 import { WIDGETS_OPERADOR } from './widgets';
 import { BarraTelemetria } from './components/BarraTelemetria';
 import { TOPIC_TELEMETRIA } from './telemetria';
@@ -195,8 +196,32 @@ function construirTelemetria({ avance: ejeAvance, giro: ejeGiro }, actuadoresInt
 
 export default function ControllerApp({ onBack, robot, controlMappings, mode = 'manual', onUpdateMappings }) {
   const { t } = useLanguage();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
   const [robotState, setRobotState] = useState(robot);
   useEffect(() => { setRobotState(robot); }, [robot]);
+
+  // Tipo de locomoción configurado desde Administración de Robots ('tank' | 'joystick').
+  // Si una unidad RASSOR existente aún no tiene el campo guardado en BD, usa 'tank' por defecto.
+  const locomotionType =
+    robotState?.locomotionType ||
+    (String(robotState?.id || '').toLowerCase().includes('rassor') ||
+     String(robotState?.name || '').toLowerCase().includes('rassor')
+      ? 'tank'
+      : 'joystick');
+  const isTankMode = locomotionType === 'tank';
+
+  const [tankGearIndex, setTankGearIndex] = useState(0);
+  const tankGearRef = useRef(0);
+  const handleTankGearChange = useCallback((idx) => {
+    const clamped = Math.max(0, Math.min(TANK_GEARS.length - 1, idx));
+    tankGearRef.current = clamped;
+    setTankGearIndex(clamped);
+  }, []);
   const [controlMappingsState, setControlMappingsState] = useState(controlMappings);
   useEffect(() => {
     if (controlMappings) setControlMappingsState(controlMappings);
@@ -737,10 +762,32 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
               if (Math.abs(lx) < deadZone) lx = 0;
               if (Math.abs(ly) < deadZone) ly = 0;
 
+              // En modo tanque también permitimos usar la cruceta (D-Pad 12..15) del mando
+              // si esos botones no están asignados a un actuador.
+              if (isTankMode && esEstandar && lx === 0 && ly === 0) {
+                if (!mapaGamepadPorIndice[12] && gp.buttons[12]?.pressed) ly = -1;
+                else if (!mapaGamepadPorIndice[13] && gp.buttons[13]?.pressed) ly = 1;
+                else if (!mapaGamepadPorIndice[14] && gp.buttons[14]?.pressed) lx = -1;
+                else if (!mapaGamepadPorIndice[15] && gp.buttons[15]?.pressed) lx = 1;
+              }
+
               // En -1..1 y con el mismo orden que el joystick táctil: primero
               // el avance, luego el giro.
-              const x = -ly;
-              const y = lx;
+              let x = -ly;
+              let y = lx;
+
+              // En modo tanque (Opción A): bloqueo axial puro (sin diagonales)
+              // y escalado directo a los rangos de la marcha seleccionada (0.4 / 0.7 / 1.0).
+              if (isTankMode && (x !== 0 || y !== 0)) {
+                const gear = TANK_GEARS[tankGearRef.current] || TANK_GEARS[0];
+                if (Math.abs(x) >= Math.abs(y)) {
+                  x = Math.sign(x) * gear.linear;
+                  y = 0;
+                } else {
+                  x = 0;
+                  y = Math.sign(y) * gear.angular;
+                }
+              }
 
               if (x !== gamepadStateRef.current.x || y !== gamepadStateRef.current.y) {
                 if (Math.abs(x) > 0 || Math.abs(y) > 0) {
@@ -751,6 +798,25 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
                 gamepadStateRef.current.x = x;
                 gamepadStateRef.current.y = y;
               }
+            }
+
+            // En modo tanque: LB (4) y RB (5) cambian la velocidad (0.4 / 0.7 / 1.0)
+            // siempre que el operador no los haya asignado a otra acción.
+            if (isTankMode && esEstandar) {
+              const checkGearButton = (index, delta) => {
+                if (mapaGamepadPorIndice[index]) return;
+                const pressed = Boolean(gp.buttons[index]?.pressed);
+                const key = `gear_${index}`;
+                const wasPressed = gamepadStateRef.current.buttons[key];
+                if (pressed && !wasPressed) {
+                  handleTankGearChange(tankGearRef.current + delta);
+                  gamepadStateRef.current.buttons[key] = true;
+                } else if (!pressed && wasPressed) {
+                  gamepadStateRef.current.buttons[key] = false;
+                }
+              };
+              checkGearButton(4, -1); // LB baja velocidad
+              checkGearButton(5, +1); // RB sube velocidad
             }
 
             const checkButton = (index, component, action) => {
@@ -802,7 +868,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
       window.removeEventListener("gamepaddisconnected", handleGamepadDisconnected);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [hasGamepad, handleMove, handleAction, mapaGamepadPorIndice]);
+  }, [hasGamepad, handleMove, handleAction, mapaGamepadPorIndice, isTankMode, handleTankGearChange]);
 
   // Teclado para brazos y tambores, según el mapeo del operador. Aparte del
   // movimiento (W/A/S/D/flechas), que ya maneja Joystck.jsx -- esas teclas no
@@ -1068,15 +1134,26 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
           </div>
 
           <Segment id="joystick" style={{ display: visible1 ? 'flex' : 'none', height: Math.max(230, joystickSize + 80) }}>
-            <h3>{t('operador.controller.controlJoystick')}</h3>
-            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile && mode === 'manual' ? 16 : 0 }}>
-              <Joystck
-                onMove={handleMove}
-                onStop={handleMove}
-                setBinPack={setBinPacket}
-                size={isMobile && mode === 'manual' ? Math.round(joystickSize * 0.75) : joystickSize}
-                keyboardMappings={controlMappingsState?.keyboardMovement}
-              />
+            <h3>{isTankMode ? t('operador.controller.controlTanque') : t('operador.controller.controlJoystick')}</h3>
+            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile && mode === 'manual' ? 16 : 0, width: '100%' }}>
+              {isTankMode ? (
+                <TankPad
+                  onMove={handleMove}
+                  onStop={handleMove}
+                  setBinPack={setBinPacket}
+                  keyboardMappings={controlMappingsState?.keyboardMovement}
+                  gearIndex={tankGearIndex}
+                  onGearChange={handleTankGearChange}
+                />
+              ) : (
+                <Joystck
+                  onMove={handleMove}
+                  onStop={handleMove}
+                  setBinPack={setBinPacket}
+                  size={isMobile && mode === 'manual' ? Math.round(joystickSize * 0.75) : joystickSize}
+                  keyboardMappings={controlMappingsState?.keyboardMovement}
+                />
+              )}
               {/* En mobile no hay espacio para un segundo Segment aparte, así
                   que la cámara comparte fila con el joystick de movimiento. */}
               {isMobile && mode === 'manual' && (

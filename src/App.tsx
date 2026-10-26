@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, Suspense } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useRef, Suspense } from 'react';
 import { Routes, Route, Link, Outlet, useLocation } from 'react-router-dom';
 import { lazyConRecarga, marcarArranqueCorrecto } from './lib/lazyConRecarga';
 import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion';
@@ -34,9 +34,44 @@ import { NotFound } from './components/NotFound';
 import { NotificacionesProvider } from './components/Notificaciones';
 import { useTitulo } from './lib/useTitulo';
 
+// --- RESTAURACIÓN DE SCROLL GLOBAL ---
+function ScrollToTop() {
+  const { pathname, search, hash } = useLocation();
+
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    if (hash) {
+      const id = hash.replace('#', '');
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView();
+        return;
+      }
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [pathname, search, hash]);
+
+  return null;
+}
+
 // --- ANIMACIONES DE TRANSICIÓN ---
 const PageTransition = ({ children }: { children: React.ReactNode }) => {
   const ref = useRef<HTMLDivElement>(null);
+
+  // Al montar la pantalla nueva, resetea el scroll inmediatamente antes del
+  // repintado para evitar que inicie a la altura de la página anterior.
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
 
   // Al acabar, framer deja `filter: blur(0px)` puesto, no `none`. Un filter
   // distinto de none convierte este div en bloque contenedor, y entonces el
@@ -57,6 +92,11 @@ const PageTransition = ({ children }: { children: React.ReactNode }) => {
       animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
       exit={{ opacity: 0, y: -15, filter: 'blur(10px)' }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      onAnimationStart={() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }}
       onAnimationComplete={limpiarFiltro}
     >
       {children}
@@ -488,8 +528,10 @@ function App() {
   }, [location.pathname]);
   
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
+    <>
+      <ScrollToTop />
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
         <Route element={<LandingLayout />}>
           <Route path="/" element={<PageTransition><Home /></PageTransition>} />
           <Route path="/explora" element={<PageTransition><Explora /></PageTransition>} />
@@ -561,6 +603,7 @@ function App() {
         />
       </Routes>
     </AnimatePresence>
+    </>
   );
 }
 

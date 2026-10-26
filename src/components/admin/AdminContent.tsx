@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TriangleAlert, Star, Eye, EyeOff, Upload, X, ChevronDown, ChevronUp, HelpCircle } from "lucide-react";
 import MDEditor from '@uiw/react-md-editor';
@@ -27,6 +27,12 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
   const confirmar = useConfirmar();
   const [viewMode, setViewMode] = useState<'list'|'create'|'edit'>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [viewMode]);
 
   const { data: postsList = [], isLoading: postsLoading } = usePosts();
   const { data: personas = [] } = usePersonas(puede(user, 'publicaciones.firmar'));

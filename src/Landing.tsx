@@ -263,6 +263,15 @@ export const PublicationPage = () => {
     }
   }, [id, lang]);
 
+  useEffect(() => {
+    // Al pasar de página o cargar una publicación el contenido cambiaba pero
+    // el scroll se quedaba donde estuviera, así que la nueva pantalla empezaba
+    // a media lectura o con la cabecera oculta arriba. Se resetea arriba de inmediato.
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [id, post?.id]);
+
   if (noExiste) {
     return <NotFound />;
   }
@@ -271,13 +280,11 @@ export const PublicationPage = () => {
     return <div style={{ minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div className="animate-spin" style={{ width: '32px', height: '32px', border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%' }} /></div>;
   }
 
-  // Al pasar de página el contenido cambiaba pero el scroll se quedaba
-  // donde estuviera, así que la página nueva empezaba a media lectura y
-  // parecía que no había pasado nada. Se vuelve arriba, como al abrir
-  // cualquier publicación.
   const irAPagina = (n: number) => {
     setCurrentPage(n);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   };
   const next = () => irAPagina(Math.min(currentPage + 1, post.pages.length - 1));
   const prev = () => irAPagina(Math.max(currentPage - 1, 0));

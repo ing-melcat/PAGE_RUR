@@ -52,6 +52,11 @@ function SpectatorTimer({ mission, playingDate }) {
 export default function SpectatorApp() {
   const { t } = useLanguage();
   const { robotId } = useParams();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
   // ?demo=1 simula los sensores del robot para poder ver el comportamiento de
   // los instrumentos sin hardware (ver docs/TELEMETRIA_ROBOT.md §8).
   const [searchParams] = useSearchParams();
