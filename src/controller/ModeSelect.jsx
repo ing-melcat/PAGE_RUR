@@ -108,11 +108,6 @@ export function ModeSelect({ onSelectMode, onBack }) {
           </p>
         </motion.div>
       </motion.div>
-
-      {/* FOOTER */}
-      <div style={{ marginTop: 'auto', paddingTop: '32px' }}>
-        <button className="back-link" onClick={onBack}>{t('operador.modo.volver')}</button>
-      </div>
     </div>
   );
 }

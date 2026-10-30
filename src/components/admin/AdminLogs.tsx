@@ -86,7 +86,6 @@ export const AdminLogs = ({ crowdsecMetrics, logsList, setView }: any) => {
                   })
                 )}
               </div>
-              <button className="back-link" onClick={() => setView("dashboard")}>{t('adminLogs.volverPanel')}</button>
             </div>
     </>
   );

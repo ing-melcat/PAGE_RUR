@@ -498,15 +498,6 @@ export const AdminUsers = ({ user, setView }: any) => {
                   </table>
                 </div>
               )}
-    
-              <button className="back-link" onClick={() => {
-                if (isCreatingUser || editingUser) {
-                  setIsCreatingUser(false);
-                  setEditingUser(null); setCambiarPassword(false);
-                } else {
-                  setView("dashboard");
-                }
-              }}>{t('adminUsuarios.volver')}</button>
             </div>
 
             {resetModal && (

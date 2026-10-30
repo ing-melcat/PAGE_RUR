@@ -156,7 +156,6 @@ export function PanelTransmision({ robots, onBack }) {
           <h2 className="tx__titulo" style={{ margin: 0 }}><Radio size={20} /> {t('transmision.titulo')}</h2>
         </header>
         <p className="tx-nota tx-nota--vacio">{t('transmision.sinRobotsPublicos')}</p>
-        <button className="back-link" onClick={onBack}>{t('transmision.volver')}</button>
       </div>
     );
   }
@@ -247,8 +246,6 @@ export function PanelTransmision({ robots, onBack }) {
       {robot && !robot.livekitUrl && (
         <p className="tx-nota tx-nota--aviso">{t('transmision.sinLivekit')}</p>
       )}
-
-      <button className="back-link" onClick={onBack}>{t('transmision.volver')}</button>
     </div>
   );
 }

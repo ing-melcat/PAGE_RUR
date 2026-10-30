@@ -1341,7 +1341,6 @@ export default function App() {
                     </div>
                 )}
               </div>
-              <button className="back-link" onClick={() => setView("dashboard")}>{t('adminRobots.volverMenu')}</button>
             </motion.section>
           )}
 
@@ -1371,7 +1370,6 @@ export default function App() {
                   </button>
                 )}
               </div>
-              <button className="back-link" onClick={() => setView(user ? "dashboard" : "login")}>{t('ajustes.volverInicio')}</button>
             </motion.section>
           )}
 
@@ -1421,7 +1419,6 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              <button className="back-link" onClick={() => setView("settings_menu")}>{t('accesibilidad.atras')}</button>
             </motion.section>
           )}
 

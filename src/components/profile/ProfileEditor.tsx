@@ -242,7 +242,6 @@ export const ProfileEditor = ({
           }}>
             {t('perfil.guardarCambios')}
           </button>
-          <button className="back-link" onClick={() => setMainContext("modules")}>{t('perfil.cancelarVolver')}</button>
         </div>
       </div>
     </motion.div>

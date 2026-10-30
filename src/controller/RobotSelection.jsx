@@ -390,11 +390,6 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                 })}
             </motion.div>
 
-            {/* FOOTER */}
-            <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: '32px' }}>
-                <button className="back-link" onClick={onBack}>{t('operador.seleccion.volverMenu')}</button>
-            </div>
-
             {/* ============================================================ */}
             {/*  LOADING OVERLAY (POPUP PORTAL)                             */}
             {/* ============================================================ */}
