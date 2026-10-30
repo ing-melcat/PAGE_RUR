@@ -205,8 +205,6 @@ export default function App() {
     };
   }, [view, mainContext]);
   const [activeModule, setActiveModule] = useState<any>(null);
-  const [loadingAction, setLoadingAction] = useState<string | null>(null);
-  const loadingActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Solo después de haber preguntado a /api/me. Antes el estado inicial venía

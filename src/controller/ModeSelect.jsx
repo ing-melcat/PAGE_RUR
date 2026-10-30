@@ -68,7 +68,7 @@ export function ModeSelect({ onSelectMode, onBack }) {
           onClick={() => handleSelect('vr')}
           style={{
             ...S.panel, display: 'flex', flexDirection: 'column', gap: '16px',
-            cursor: 'pointer', pointerEvents: loading ? 'none' : 'auto', transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+            cursor: 'pointer', pointerEvents: 'auto', transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
           }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(251, 202, 1, 0.08)'; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}
@@ -94,7 +94,7 @@ export function ModeSelect({ onSelectMode, onBack }) {
           onClick={() => handleSelect('manual')}
           style={{
             ...S.panel, display: 'flex', flexDirection: 'column', gap: '16px',
-            cursor: 'pointer', pointerEvents: loading ? 'none' : 'auto', transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+            cursor: 'pointer', pointerEvents: 'auto', transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
           }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(251, 202, 1, 0.08)'; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}
