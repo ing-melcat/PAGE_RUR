@@ -2814,3 +2814,189 @@ textarea:focus-visible {
     opacity: 0;
   }
 }
+
+/* ==================================================================
+   Barra de herramientas y ergonomía del editor Markdown (AdminContent)
+   ================================================================== */
+.editor-toolbar-superior {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.editor-toolbar-grupo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.editor-separador {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+.editor-modo-selector {
+  display: inline-flex;
+  background: var(--surface-strong);
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  gap: 3px;
+}
+
+.editor-modo-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--mov-rapido) ease;
+  user-select: none;
+}
+
+.editor-modo-tab:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.editor-modo-tab.activo {
+  background: var(--surface);
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.editor-btn-herramienta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-strong);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  cursor: pointer;
+  transition: all var(--mov-rapido) ease;
+  user-select: none;
+}
+
+.editor-btn-herramienta:hover {
+  background: var(--background);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.editor-btn-herramienta.activo {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.editor-btn-zen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-strong);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--mov-rapido) ease;
+  user-select: none;
+}
+
+.editor-btn-zen:hover {
+  background: var(--background);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.editor-btn-zen.activo {
+  background: var(--accent-muted);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.editor-callout-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1100;
+  min-width: 210px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.editor-callout-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--mov-rapido) ease;
+  user-select: none;
+}
+
+.editor-callout-item:hover {
+  background: var(--surface-strong);
+  border-color: var(--border);
+}
+
+.editor-zen-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-strong);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: var(--font-ibm-mono);
+  font-size: var(--t-xs);
+}
+
+/* Ocultar botones redundantes del menú extra de MDEditor para dar protagonismo a las pestañas superiores */
+.w-md-editor-toolbar li[aria-label="preview"],
+.w-md-editor-toolbar button[data-name="preview"],
+.w-md-editor-toolbar li[aria-label="edit"],
+.w-md-editor-toolbar button[data-name="edit"],
+.w-md-editor-toolbar li[aria-label="live"],
+.w-md-editor-toolbar button[data-name="live"] {
+  display: none !important;
+}
+

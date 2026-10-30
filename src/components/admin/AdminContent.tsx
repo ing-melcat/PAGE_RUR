@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useLayoutEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TriangleAlert, Star, Eye, EyeOff, Upload, X, ChevronDown, ChevronUp, HelpCircle, Clock, RotateCcw, Trash2 } from "lucide-react";
+import { TriangleAlert, Star, Eye, EyeOff, Upload, X, ChevronDown, ChevronUp, HelpCircle, Clock, RotateCcw, Trash2, Maximize2, Minimize2, Code, Table, PenLine, Columns2, Sparkles } from "lucide-react";
 import MDEditor from '@uiw/react-md-editor';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -98,6 +98,145 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
   // Modelos ya subidos en cualquier robot o publicación, para elegir uno en
   // vez de tener que volver a subir el mismo archivo. Ver useModelos3D.
   const { data: modelos3d = [] } = useModelos3D();
+
+  // Ergonomía y edición del editor Markdown
+  const [modoEditor, setModoEditor] = useState<'edit' | 'preview' | 'live'>(() => {
+    const guardado = typeof window !== 'undefined' ? localStorage.getItem('rur_editor_mode') : null;
+    if (guardado === 'edit' || guardado === 'preview' || guardado === 'live') {
+      return guardado;
+    }
+    return 'edit';
+  });
+  const [modoZen, setModoZen] = useState(false);
+  const [menuCalloutsAbierto, setMenuCalloutsAbierto] = useState(false);
+
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const dropdownCalloutsRef = useRef<HTMLDivElement>(null);
+  const lastSelectionRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
+
+  const cambiarModoEditor = (nuevoModo: 'edit' | 'preview' | 'live') => {
+    setModoEditor(nuevoModo);
+    try {
+      localStorage.setItem('rur_editor_mode', nuevoModo);
+    } catch (err) {
+      console.warn('Error al guardar rur_editor_mode:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!modoZen) return;
+    const scrollOriginal = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setModoZen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = scrollOriginal;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [modoZen]);
+
+  useEffect(() => {
+    if (!menuCalloutsAbierto) return;
+    const handleClickAfuera = (e: MouseEvent) => {
+      if (dropdownCalloutsRef.current && !dropdownCalloutsRef.current.contains(e.target as Node)) {
+        setMenuCalloutsAbierto(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickAfuera);
+    return () => document.removeEventListener('mousedown', handleClickAfuera);
+  }, [menuCalloutsAbierto]);
+
+  const guardarSeleccion = (e: React.SyntheticEvent) => {
+    if (e.target instanceof HTMLTextAreaElement) {
+      lastSelectionRef.current = {
+        start: e.target.selectionStart,
+        end: e.target.selectionEnd,
+      };
+    }
+  };
+
+  const insertarEnCursor = (plantilla: string) => {
+    if (modoEditor === 'preview') {
+      cambiarModoEditor('edit');
+    }
+
+    const container = editorContainerRef.current;
+    const textarea = container?.querySelector('textarea') as HTMLTextAreaElement | null;
+
+    let start = content.length;
+    let end = content.length;
+
+    if (textarea) {
+      if (typeof textarea.selectionStart === 'number' && typeof textarea.selectionEnd === 'number') {
+        start = textarea.selectionStart;
+        end = textarea.selectionEnd;
+      } else if (lastSelectionRef.current.start <= content.length) {
+        start = lastSelectionRef.current.start;
+        end = lastSelectionRef.current.end;
+      }
+    }
+
+    const before = content.slice(0, start);
+    const after = content.slice(end);
+
+    const saltoAntes = before.length === 0 || before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n';
+    const saltoDespues = after.length === 0 || after.startsWith('\n\n') ? '' : after.startsWith('\n') ? '\n' : '\n\n';
+
+    const textoAInsertar = `${saltoAntes}${plantilla}${saltoDespues}`;
+    const nuevoContenido = `${before}${textoAInsertar}${after}`;
+
+    setContent(nuevoContenido);
+
+    setTimeout(() => {
+      const elTextarea = editorContainerRef.current?.querySelector('textarea') as HTMLTextAreaElement | null;
+      if (elTextarea) {
+        elTextarea.focus();
+        const posFinal = before.length + textoAInsertar.length;
+        elTextarea.setSelectionRange(posFinal, posFinal);
+        lastSelectionRef.current = { start: posFinal, end: posFinal };
+      }
+    }, 10);
+  };
+
+  const CALLOUTS = [
+    {
+      tipo: 'NOTE',
+      label: 'Nota',
+      color: 'var(--info)',
+      snippet: '> [!NOTE]\n> Contenido de la nota',
+    },
+    {
+      tipo: 'TIP',
+      label: 'Consejo',
+      color: 'var(--success)',
+      snippet: '> [!TIP]\n> Consejo técnico',
+    },
+    {
+      tipo: 'IMPORTANT',
+      label: 'Importante',
+      color: 'var(--accent)',
+      snippet: '> [!IMPORTANT]\n> Información importante',
+    },
+    {
+      tipo: 'WARNING',
+      label: 'Advertencia',
+      color: 'var(--warning)',
+      snippet: '> [!WARNING]\n> Advertencia sobre el procedimiento',
+    },
+    {
+      tipo: 'CAUTION',
+      label: 'Precaución',
+      color: 'var(--error)',
+      snippet: '> [!CAUTION]\n> Precaución crítica',
+    },
+  ];
+
 
 
   const handleDelete = async (id: string) => {
@@ -1144,7 +1283,19 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
 
         {(type === 'simple' || type === 'aviso' || type === 'evento' || type === '3d_model') ? (
             <div 
-              style={{ 
+              ref={editorContainerRef}
+              style={modoZen ? {
+                position: 'fixed',
+                inset: 0,
+                zIndex: 1000,
+                background: 'var(--background)',
+                padding: '24px',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                border: isDraggingOver ? '2px dashed var(--accent)' : 'none',
+              } : {
                 flex: 1, 
                 minHeight: '600px', 
                 display: 'flex', 
@@ -1162,6 +1313,9 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                 setIsDraggingOver(false);
                 handleDropContent(e);
               }}
+              onSelectCapture={guardarSeleccion}
+              onKeyUpCapture={guardarSeleccion}
+              onMouseUpCapture={guardarSeleccion}
             >
               {isDraggingOver && (
                 <div style={{
@@ -1219,48 +1373,185 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
-                <label 
-                  style={{ 
-                    cursor: 'pointer', 
-                    color: 'var(--text)', 
-                    backgroundColor: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    padding: '6px 12px',
-                    borderRadius: '4px',
-                    fontSize: '0.85rem', 
-                    fontFamily: 'var(--font-ibm-mono)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--background)';
-                    e.currentTarget.style.borderColor = 'var(--accent)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--surface)';
-                    e.currentTarget.style.borderColor = 'var(--border)';
-                  }}
-                  title="Sube una imagen desde tu computadora para añadirla automáticamente al documento (también puedes arrastrarla o pegarla con Ctrl+V)."
-                >
-                  <Upload size={14} />
-                  {t('adminPublicaciones.insertarImagen') || 'Subir Imagen'}
-                  <HelpCircle size={14} style={{ color: 'var(--muted)', marginLeft: '4px' }} />
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    style={{ display: 'none' }} 
-                    onChange={(e) => handleImageUpload(e, (url) => setContent(c => c ? `${c}\n\n![imagen](${url})\n` : `![imagen](${url})\n`))} 
-                  />
-                </label>
+              {/* Barra superior de ergonomía y edición */}
+              <div className="editor-toolbar-superior">
+                {/* Grupo Izquierdo: Pestañas de modo + Atajos técnicos */}
+                <div className="editor-toolbar-grupo">
+                  {/* Selector de Pestañas: Escribir / Vista Previa / Dividido */}
+                  <div className="editor-modo-selector" role="tablist" aria-label="Modo de visualización">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={modoEditor === 'edit'}
+                      className={`editor-modo-tab ${modoEditor === 'edit' ? 'activo' : ''}`}
+                      onClick={() => cambiarModoEditor('edit')}
+                      title="100% ancho para escribir cómodamente, sin columnas partidas ni lag"
+                    >
+                      <PenLine size={13} />
+                      <span>{t('adminPublicaciones.modoEscribir', 'Escribir')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={modoEditor === 'preview'}
+                      className={`editor-modo-tab ${modoEditor === 'preview' ? 'activo' : ''}`}
+                      onClick={() => cambiarModoEditor('preview')}
+                      title="100% ancho mostrando el visor real con callouts y estilos"
+                    >
+                      <Eye size={13} />
+                      <span>{t('adminPublicaciones.modoVistaPrevia', 'Vista Previa')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={modoEditor === 'live'}
+                      className={`editor-modo-tab ${modoEditor === 'live' ? 'activo' : ''}`}
+                      onClick={() => cambiarModoEditor('live')}
+                      title="Pantalla dividida tradicional para monitores muy anchos"
+                    >
+                      <Columns2 size={13} />
+                      <span>{t('adminPublicaciones.modoDividido', 'Dividido')}</span>
+                    </button>
+                  </div>
+
+                  <div className="editor-separador" />
+
+                  {/* Atajos de documentación técnica */}
+                  {/* Desplegable de Callouts */}
+                  <div style={{ position: 'relative' }} ref={dropdownCalloutsRef}>
+                    <button
+                      type="button"
+                      className={`editor-btn-herramienta ${menuCalloutsAbierto ? 'activo' : ''}`}
+                      onClick={() => setMenuCalloutsAbierto(!menuCalloutsAbierto)}
+                      title="Insertar bloques de advertencia o notas técnicas (GitHub Callouts)"
+                      aria-expanded={menuCalloutsAbierto}
+                    >
+                      <Sparkles size={13} style={{ color: 'var(--accent)' }} />
+                      <span>Callouts</span>
+                      <ChevronDown
+                        size={12}
+                        style={{
+                          transform: menuCalloutsAbierto ? 'rotate(180deg)' : 'none',
+                          transition: 'transform var(--mov-rapido) ease',
+                        }}
+                      />
+                    </button>
+
+                    {menuCalloutsAbierto && (
+                      <div className="editor-callout-menu">
+                        {CALLOUTS.map((c) => (
+                          <button
+                            key={c.tipo}
+                            type="button"
+                            className="editor-callout-item"
+                            onClick={() => {
+                              insertarEnCursor(c.snippet);
+                              setMenuCalloutsAbierto(false);
+                            }}
+                          >
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                background: c.color,
+                                flexShrink: 0,
+                              }}
+                            />
+                            <strong style={{ color: c.color }}>[!{c.tipo}]</strong>
+                            <span style={{ color: 'var(--muted)', fontSize: '0.75rem', marginLeft: 'auto' }}>
+                              {c.label}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Botón Código */}
+                  <button
+                    type="button"
+                    className="editor-btn-herramienta"
+                    onClick={() => insertarEnCursor('```typescript\n// Escribe tu código aquí\n```')}
+                    title="Insertar bloque de código resaltado"
+                  >
+                    <Code size={13} />
+                    <span>Código</span>
+                  </button>
+
+                  {/* Botón Tabla */}
+                  <button
+                    type="button"
+                    className="editor-btn-herramienta"
+                    onClick={() =>
+                      insertarEnCursor(
+                        '| Columna 1 | Columna 2 | Columna 3 |\n| --- | --- | --- |\n| Elemento 1 | Descripción | Estado |\n| Elemento 2 | Descripción | Estado |'
+                      )
+                    }
+                    title="Insertar plantilla de tabla Markdown"
+                  >
+                    <Table size={13} />
+                    <span>Tabla</span>
+                  </button>
+                </div>
+
+                {/* Grupo Derecho: Subir Imagen, Modo Zen y Badge Zen */}
+                <div className="editor-toolbar-grupo">
+                  {modoZen && (
+                    <span className="editor-zen-badge">
+                      Modo Enfoque · Esc para salir
+                    </span>
+                  )}
+
+                  <label
+                    className="editor-btn-herramienta"
+                    style={{ cursor: 'pointer' }}
+                    title="Sube una imagen desde tu computadora para añadirla automáticamente al documento (también puedes arrastrarla o pegarla con Ctrl+V)."
+                  >
+                    <Upload size={13} />
+                    <span>{t('adminPublicaciones.insertarImagen') || 'Subir Imagen'}</span>
+                    <HelpCircle size={13} style={{ color: 'var(--muted)', marginLeft: '2px' }} />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) =>
+                        handleImageUpload(e, (url) =>
+                          insertarEnCursor(`![imagen](${url})`)
+                        )
+                      }
+                    />
+                  </label>
+
+                  {/* Botón Modo Enfoque / Pantalla Zen */}
+                  <button
+                    type="button"
+                    className={`editor-btn-zen ${modoZen ? 'activo' : ''}`}
+                    onClick={() => setModoZen(!modoZen)}
+                    title={modoZen ? "Salir del modo enfoque (Escape)" : "Maximizar a pantalla completa para concentrarte"}
+                  >
+                    {modoZen ? (
+                      <>
+                        <Minimize2 size={13} style={{ color: 'var(--accent)' }} />
+                        <span>Salir</span>
+                      </>
+                    ) : (
+                      <>
+                        <Maximize2 size={13} />
+                        <span>Modo Enfoque</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
+
               <MDEditor
                 value={content}
                 onChange={(val) => setContent(val || '')}
-                height={600}
-                preview="live"
+                height={modoZen ? 'calc(100vh - 140px)' : 600}
+                preview={modoEditor}
+                extraCommands={[]}
                 components={{ preview: renderSanitizedPreview }}
               />
             </div>
@@ -1330,7 +1621,8 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                       setPages(newPages);
                     }}
                     height={300}
-                    preview="live"
+                    preview={modoEditor}
+                    extraCommands={[]}
                     components={{ preview: renderSanitizedPreview }}
                   />
                 </div>
