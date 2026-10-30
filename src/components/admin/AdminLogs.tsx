@@ -29,12 +29,7 @@ export const AdminLogs = ({ crowdsecMetrics, logsList, setView }: any) => {
     <>
             <div className="full-container" style={{ maxWidth: '1200px', padding: '0 20px' }}>
               <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <button className="back-link" onClick={() => setView("dashboard")} style={{ margin: 0 }}>
-                    {t('adminLogs.volverPanel')}
-                  </button>
-                  <h2 className="titulo-panel" style={{ margin: 0 }}>{t('adminLogs.titulo')}</h2>
-                </div>
+                <h2 className="titulo-panel" style={{ margin: 0 }}>{t('adminLogs.titulo')}</h2>
               </div>
 
               {crowdsecMetrics ? (
@@ -85,6 +80,12 @@ export const AdminLogs = ({ crowdsecMetrics, logsList, setView }: any) => {
                     );
                   })
                 )}
+              </div>
+
+              <div style={{ marginTop: '24px', paddingTop: '16px', display: 'flex', justifyContent: 'flex-start' }}>
+                <button className="back-link" onClick={() => setView("dashboard")} style={{ margin: 0 }}>
+                  {t('adminLogs.volverPanel')}
+                </button>
               </div>
             </div>
     </>

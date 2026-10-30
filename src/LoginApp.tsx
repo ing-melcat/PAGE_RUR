@@ -1143,10 +1143,7 @@ export default function App() {
             <motion.section key="admin_config" className="full-container" style={{ maxWidth: '1600px', padding: '0 40px' }} {...pageTransition}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left', flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '16px', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <button className="back-link" onClick={() => setView("dashboard")} style={{ margin: 0 }}>
-                            {t('adminRobots.volverMenu')}
-                        </button>
+                    <div>
                         <h3 style={{ margin: 0, color: 'var(--accent)' }}>{t('adminRobots.tituloTabla')}</h3>
                     </div>
                     <button onClick={() => setEditingRobot({ isNew: true, id: `rassor-${Date.now().toString().slice(-4)}`, name: '', room: '', status: 'online', locomotionType: 'tank', modelUrl: '', livekitUrl: '', isPublicEvent: false })} style={{ width: 'auto' }}>{t('adminRobots.registrarNueva')}</button>
@@ -1340,6 +1337,12 @@ export default function App() {
                         </div>
                     </div>
                 )}
+
+                <div style={{ marginTop: '24px', paddingTop: '16px', display: 'flex', justifyContent: 'flex-start' }}>
+                  <button className="back-link" onClick={() => setView("dashboard")} style={{ margin: 0 }}>
+                    {t('adminRobots.volverMenu')}
+                  </button>
+                </div>
               </div>
             </motion.section>
           )}
@@ -1353,11 +1356,8 @@ export default function App() {
           )}
           {view === "settings_menu" && (
             <motion.section key="settings_menu" className="dashboard-card" {...pageTransition}>
-              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div className="panel-header" style={{ marginBottom: '16px' }}>
                 <h2 style={{margin: '0', fontSize: '1.25rem'}}>{t('ajustes.menuAjustes')}</h2>
-                <button className="back-link" onClick={() => setView(user ? "dashboard" : "login")} style={{ margin: 0 }}>
-                  {t('ajustes.volverInicio')}
-                </button>
               </div>
               <p className="user-welcome">{t('ajustes.seleccionaApartado')}</p>
               <div className="action-grid" style={{ marginBottom: '24px' }}>
@@ -1370,16 +1370,19 @@ export default function App() {
                   </button>
                 )}
               </div>
+
+              <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-start' }}>
+                <button className="back-link" onClick={() => setView(user ? "dashboard" : "login")} style={{ margin: 0 }}>
+                  {t('ajustes.volverInicio')}
+                </button>
+              </div>
             </motion.section>
           )}
 
           {view === "accessibility" && (
             <motion.section key="accessibility" className="dashboard-card" {...pageTransition}>
-              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div className="panel-header" style={{ marginBottom: '16px' }}>
                 <h2 style={{margin: '0', fontSize: '1.25rem'}}>{t('ajustes.accesibilidad')}</h2>
-                <button className="back-link" onClick={() => setView("settings_menu")} style={{ margin: 0 }}>
-                  {t('accesibilidad.atras')}
-                </button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left' }}>
                 <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--border)', background: 'var(--background)', cursor: 'pointer' }}>
@@ -1418,6 +1421,12 @@ export default function App() {
                     <button type="button" onClick={() => setLang('en')} style={{ flex: 1, padding: '10px', background: lang === 'en' ? 'var(--surface-strong)' : 'transparent', color: lang === 'en' ? 'var(--accent)' : 'var(--muted)', border: '1px solid var(--border)', borderLeft: 'none', fontFamily: 'var(--font-ibm-mono)', cursor: 'pointer', borderRadius: '0 4px 4px 0', fontWeight: 'bold', fontSize: '0.8rem' }}>{t('accesibilidad.ingles')}</button>
                   </div>
                 </div>
+              </div>
+
+              <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-start' }}>
+                <button className="back-link" onClick={() => setView("settings_menu")} style={{ margin: 0 }}>
+                  {t('accesibilidad.atras')}
+                </button>
               </div>
             </motion.section>
           )}

@@ -40,9 +40,6 @@ export function ModeSelect({ onSelectMode, onBack }) {
     <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: '600px' }}>
       {/* HEADER */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '36px', borderBottom: '1px solid var(--border)', paddingBottom: '20px' }}>
-        <button className="back-link" onClick={onBack} style={{ margin: 0, alignSelf: 'flex-start' }}>
-          {t('operador.modo.volver')}
-        </button>
         <h2 style={{ margin: 0, fontSize: '3.2rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: '1', fontWeight: 400 }}>
           {t('operador.modo.titulo')}
         </h2>
@@ -108,6 +105,11 @@ export function ModeSelect({ onSelectMode, onBack }) {
           </p>
         </motion.div>
       </motion.div>
+
+      {/* FOOTER */}
+      <div style={{ marginTop: 'auto', paddingTop: '32px' }}>
+        <button className="back-link" onClick={onBack}>{t('operador.modo.volver')}</button>
+      </div>
     </div>
   );
 }

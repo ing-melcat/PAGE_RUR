@@ -22,12 +22,7 @@ export const ProfileEditor = ({
   return (
     <motion.div key="edit_profile" variants={pageMotionVariants} initial="initial" animate="animate" exit="exit" transition={pageMotionTransition}>
       <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button className="back-link" onClick={() => setMainContext("modules")} style={{ margin: 0 }}>
-            {t('perfil.cancelarVolver')}
-          </button>
-          <h2 className="titulo-panel titulo-panel--acento" style={{ margin: 0 }}>{t('perfil.titulo')}</h2>
-        </div>
+        <h2 className="titulo-panel titulo-panel--acento" style={{ margin: 0 }}>{t('perfil.titulo')}</h2>
       </div>
 
       <div className="perfil-editor">
@@ -213,7 +208,10 @@ export const ProfileEditor = ({
 
         </div>
 
-        <div className="perfil-editor__acciones">
+        <div className="perfil-editor__acciones" style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <button className="back-link" onClick={() => setMainContext("modules")} style={{ margin: 0 }}>
+            {t('perfil.cancelarVolver')}
+          </button>
           <button className="primary-btn" onClick={async () => {
             try {
               // que se puede cambiar desde aquí.

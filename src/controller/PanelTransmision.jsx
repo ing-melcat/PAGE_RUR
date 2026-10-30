@@ -152,10 +152,12 @@ export function PanelTransmision({ robots, onBack }) {
     return (
       <div className="tx">
         <header className="tx__cabecera" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <button className="back-link" onClick={onBack} style={{ margin: 0 }}>{t('transmision.volver')}</button>
           <h2 className="tx__titulo" style={{ margin: 0 }}><Radio size={20} /> {t('transmision.titulo')}</h2>
         </header>
         <p className="tx-nota tx-nota--vacio">{t('transmision.sinRobotsPublicos')}</p>
+        <div style={{ marginTop: '24px', paddingTop: '16px', display: 'flex', justifyContent: 'flex-start' }}>
+          <button className="back-link" onClick={onBack}>{t('transmision.volver')}</button>
+        </div>
       </div>
     );
   }
@@ -163,7 +165,6 @@ export function PanelTransmision({ robots, onBack }) {
   return (
     <div className="tx">
       <header className="tx__cabecera" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-        <button className="back-link" onClick={onBack} style={{ margin: 0 }}>{t('transmision.volver')}</button>
         <div style={{ flex: 1, minWidth: '240px' }}>
           <h2 className="tx__titulo" style={{ margin: 0 }}><Radio size={20} /> {t('transmision.titulo')}</h2>
           <p className="tx-nota" style={{ margin: '4px 0 0 0' }}>{t('transmision.intro')}</p>
@@ -246,6 +247,10 @@ export function PanelTransmision({ robots, onBack }) {
       {robot && !robot.livekitUrl && (
         <p className="tx-nota tx-nota--aviso">{t('transmision.sinLivekit')}</p>
       )}
+
+      <div style={{ marginTop: '24px', paddingTop: '16px', display: 'flex', justifyContent: 'flex-start' }}>
+        <button className="back-link" onClick={onBack}>{t('transmision.volver')}</button>
+      </div>
     </div>
   );
 }

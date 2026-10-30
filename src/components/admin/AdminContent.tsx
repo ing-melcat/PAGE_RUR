@@ -296,10 +296,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minHeight: '60vh' }}>
         <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <button className="back-link" onClick={onBack}>{t('adminPublicaciones.volverMenu')}</button>
-          <div>
-            <h2 className="titulo-panel">{t('adminPublicaciones.titulo')}</h2>
-          </div>
+          <h2 className="titulo-panel">{t('adminPublicaciones.titulo')}</h2>
         </div>
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '32px' }}>
@@ -400,6 +397,10 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
             </motion.div>
           )})}
         </div>
+
+        <div style={{ marginTop: 'auto', paddingTop: '32px', display: 'flex', justifyContent: 'flex-start' }}>
+          <button className="back-link" onClick={onBack}>{t('adminPublicaciones.volverMenu')}</button>
+        </div>
       </div>
     );
   }
@@ -408,7 +409,6 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
     <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '32px', height: '100%', minHeight: '80vh' }}>
       {/* Sidebar de Configuración */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <button className="back-link" onClick={() => setViewMode('list')} style={{ marginBottom: '16px', alignSelf: 'flex-start' }}>{t('adminPublicaciones.cancelarVolver')}</button>
         <div>
           <h2 className="titulo-panel titulo-panel--acento">{viewMode === 'edit' ? t('adminPublicaciones.editar') : t('adminPublicaciones.crear')}</h2>
         </div>
@@ -565,9 +565,14 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
           </div>
         )}
 
-        <button onClick={handleSubmit} disabled={isSubmitting} className="action-card" style={{ marginTop: 'auto' }}>
-          {isSubmitting ? t('adminPublicaciones.guardando') : (viewMode === 'edit' ? t('adminPublicaciones.guardarCambios') : t('adminPublicaciones.publicarAhora'))}
-        </button>
+        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <button onClick={handleSubmit} disabled={isSubmitting} className="action-card" style={{ width: '100%' }}>
+            {isSubmitting ? t('adminPublicaciones.guardando') : (viewMode === 'edit' ? t('adminPublicaciones.guardarCambios') : t('adminPublicaciones.publicarAhora'))}
+          </button>
+          <button className="back-link" onClick={() => setViewMode('list')} style={{ margin: 0, width: '100%' }}>
+            {t('adminPublicaciones.cancelarVolver')}
+          </button>
+        </div>
       </div>
 
       {/* Editor Principal */}

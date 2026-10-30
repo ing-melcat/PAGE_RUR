@@ -295,9 +295,6 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
             {/* HEADER */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '36px', borderBottom: '1px solid var(--border)', paddingBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
                 <div style={{ flex: 1, minWidth: '280px' }}>
-                    <button className="back-link" onClick={onBack} style={{ margin: '0 0 16px 0', alignSelf: 'flex-start' }}>
-                        {t('operador.seleccion.volverMenu')}
-                    </button>
                     <h2 style={{ margin: 0, fontSize: '3.2rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: '1', fontWeight: 400 }}>
                         {t('operador.seleccion.titulo')}
                     </h2>
@@ -389,6 +386,11 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                     );
                 })}
             </motion.div>
+
+            {/* FOOTER */}
+            <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-start', paddingTop: '32px' }}>
+                <button className="back-link" onClick={onBack}>{t('operador.seleccion.volverMenu')}</button>
+            </div>
 
             {/* ============================================================ */}
             {/*  LOADING OVERLAY (POPUP PORTAL)                             */}

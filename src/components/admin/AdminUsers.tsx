@@ -165,18 +165,7 @@ export const AdminUsers = ({ user, setView }: any) => {
     <>
             <div className="dashboard-card" style={{ marginTop: '32px', marginBottom: '40px' }}>
               <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                  <button className="back-link" onClick={() => {
-                    if (isCreatingUser || editingUser) {
-                      setIsCreatingUser(false);
-                      setEditingUser(null);
-                      setCambiarPassword(false);
-                    } else {
-                      setView("dashboard");
-                    }
-                  }} style={{ margin: 0 }}>
-                    {t('adminUsuarios.volver')}
-                  </button>
+                <div>
                   <h2 className="titulo-panel" style={{ margin: 0 }}>{t('adminUsuarios.titulo')}</h2>
                 </div>
                 <div>
@@ -498,6 +487,20 @@ export const AdminUsers = ({ user, setView }: any) => {
                   </table>
                 </div>
               )}
+
+              <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-start' }}>
+                <button className="back-link" onClick={() => {
+                  if (isCreatingUser || editingUser) {
+                    setIsCreatingUser(false);
+                    setEditingUser(null);
+                    setCambiarPassword(false);
+                  } else {
+                    setView("dashboard");
+                  }
+                }} style={{ margin: 0 }}>
+                  {t('adminUsuarios.volver')}
+                </button>
+              </div>
             </div>
 
             {resetModal && (
