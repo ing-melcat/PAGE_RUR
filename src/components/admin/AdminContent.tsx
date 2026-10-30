@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TriangleAlert, Star, Eye, EyeOff, Upload, X, ChevronDown, ChevronUp, HelpCircle, Clock, RotateCcw, Trash2, Maximize2, Minimize2, Code, Table, PenLine, Columns2, Sparkles } from "lucide-react";
+import { TriangleAlert, Star, Eye, EyeOff, Upload, X, ChevronDown, ChevronUp, HelpCircle, Clock, RotateCcw, Trash2 } from "lucide-react";
+import {
+  IconoModoEscribir,
+  IconoModoPrevisualizar,
+  IconoModoDividido,
+  IconoModoZen,
+  IconoSalirZen,
+  IconoCodigoTecnico,
+  IconoMatrizTabla,
+  IconoSubirTelemetria,
+  IconoProtocoloCallout,
+} from "../iconos/IconosEditor";
 import MDEditor from '@uiw/react-md-editor';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -207,33 +218,33 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
   const CALLOUTS = [
     {
       tipo: 'NOTE',
-      label: 'Nota',
-      color: 'var(--info)',
-      snippet: '> [!NOTE]\n> Contenido de la nota',
+      label: 'NOTA TÉCNICA',
+      color: '#3A82EE',
+      snippet: '> [!NOTE]\n> Registro de especificación técnica o bitácora de telemetría.',
     },
     {
       tipo: 'TIP',
-      label: 'Consejo',
-      color: 'var(--success)',
-      snippet: '> [!TIP]\n> Consejo técnico',
+      label: 'CALIBRACIÓN / TIP',
+      color: '#10B981',
+      snippet: '> [!TIP]\n> Parámetro recomendado de calibración u optimización.',
     },
     {
       tipo: 'IMPORTANT',
-      label: 'Importante',
+      label: 'DIRECTRIZ CRÍTICA',
       color: 'var(--accent)',
-      snippet: '> [!IMPORTANT]\n> Información importante',
+      snippet: '> [!IMPORTANT]\n> Requisito indispensable para la operación del sistema.',
     },
     {
       tipo: 'WARNING',
-      label: 'Advertencia',
+      label: 'PRECAUCIÓN OPERACIONAL',
       color: 'var(--warning)',
-      snippet: '> [!WARNING]\n> Advertencia sobre el procedimiento',
+      snippet: '> [!WARNING]\n> Procedimiento con riesgo de fallo mecánico o desconexión.',
     },
     {
       tipo: 'CAUTION',
-      label: 'Precaución',
+      label: 'PARO DE EMERGENCIA',
       color: 'var(--error)',
-      snippet: '> [!CAUTION]\n> Precaución crítica',
+      snippet: '> [!CAUTION]\n> Alerta de seguridad crítica. Desactivación o bypass inmediato.',
     },
   ];
 
@@ -1387,8 +1398,8 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                       onClick={() => cambiarModoEditor('edit')}
                       title="100% ancho para escribir cómodamente, sin columnas partidas ni lag"
                     >
-                      <PenLine size={13} />
-                      <span>{t('adminPublicaciones.modoEscribir', 'Escribir')}</span>
+                      <IconoModoEscribir size={13} />
+                      <span>{t('adminPublicaciones.modoEscribir', 'ESCRIBIR')}</span>
                     </button>
                     <button
                       type="button"
@@ -1398,8 +1409,8 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                       onClick={() => cambiarModoEditor('preview')}
                       title="100% ancho mostrando el visor real con callouts y estilos"
                     >
-                      <Eye size={13} />
-                      <span>{t('adminPublicaciones.modoVistaPrevia', 'Vista Previa')}</span>
+                      <IconoModoPrevisualizar size={13} />
+                      <span>{t('adminPublicaciones.modoVistaPrevia', 'VISOR FINAL')}</span>
                     </button>
                     <button
                       type="button"
@@ -1409,27 +1420,27 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                       onClick={() => cambiarModoEditor('live')}
                       title="Pantalla dividida tradicional para monitores muy anchos"
                     >
-                      <Columns2 size={13} />
-                      <span>{t('adminPublicaciones.modoDividido', 'Dividido')}</span>
+                      <IconoModoDividido size={13} />
+                      <span>{t('adminPublicaciones.modoDividido', 'PANEL DUAL')}</span>
                     </button>
                   </div>
 
                   <div className="editor-separador" />
 
                   {/* Atajos de documentación técnica */}
-                  {/* Desplegable de Callouts */}
+                  {/* Desplegable de Callouts / Protocolos */}
                   <div style={{ position: 'relative' }} ref={dropdownCalloutsRef}>
                     <button
                       type="button"
                       className={`editor-btn-herramienta ${menuCalloutsAbierto ? 'activo' : ''}`}
                       onClick={() => setMenuCalloutsAbierto(!menuCalloutsAbierto)}
-                      title="Insertar bloques de advertencia o notas técnicas (GitHub Callouts)"
+                      title="Insertar bloques de protocolo, advertencia o calibración técnica"
                       aria-expanded={menuCalloutsAbierto}
                     >
-                      <Sparkles size={13} style={{ color: 'var(--accent)' }} />
-                      <span>Callouts</span>
+                      <IconoProtocoloCallout size={13} style={{ color: 'var(--accent)' }} />
+                      <span>PROTOCOLOS</span>
                       <ChevronDown
-                        size={12}
+                        size={11}
                         style={{
                           transform: menuCalloutsAbierto ? 'rotate(180deg)' : 'none',
                           transition: 'transform var(--mov-rapido) ease',
@@ -1452,15 +1463,15 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                             <span
                               style={{
                                 display: 'inline-block',
-                                width: '8px',
-                                height: '8px',
-                                borderRadius: '50%',
+                                width: '7px',
+                                height: '7px',
+                                borderRadius: '1px',
                                 background: c.color,
                                 flexShrink: 0,
                               }}
                             />
-                            <strong style={{ color: c.color }}>[!{c.tipo}]</strong>
-                            <span style={{ color: 'var(--muted)', fontSize: '0.75rem', marginLeft: 'auto' }}>
+                            <strong style={{ color: c.color, letterSpacing: '0.04em' }}>[!{c.tipo}]</strong>
+                            <span style={{ color: 'var(--muted)', fontSize: '0.7rem', marginLeft: 'auto', letterSpacing: '0.04em' }}>
                               {c.label}
                             </span>
                           </button>
@@ -1469,30 +1480,30 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                     )}
                   </div>
 
-                  {/* Botón Código */}
+                  {/* Botón Código / Script */}
                   <button
                     type="button"
                     className="editor-btn-herramienta"
-                    onClick={() => insertarEnCursor('```typescript\n// Escribe tu código aquí\n```')}
+                    onClick={() => insertarEnCursor('```typescript\n// Script o instrucción técnica\n```')}
                     title="Insertar bloque de código resaltado"
                   >
-                    <Code size={13} />
-                    <span>Código</span>
+                    <IconoCodigoTecnico size={13} />
+                    <span>SCRIPT</span>
                   </button>
 
-                  {/* Botón Tabla */}
+                  {/* Botón Tabla / Matriz */}
                   <button
                     type="button"
                     className="editor-btn-herramienta"
                     onClick={() =>
                       insertarEnCursor(
-                        '| Columna 1 | Columna 2 | Columna 3 |\n| --- | --- | --- |\n| Elemento 1 | Descripción | Estado |\n| Elemento 2 | Descripción | Estado |'
+                        '| Módulo | Protocolo | Frecuencia | Estado |\n| :--- | :--- | :---: | :--- |\n| TELEM-01 | CAN Bus | 20 Hz | ACTIVO |\n| SENSOR-V2 | WebRTC | 60 fps | CALIBRADO |'
                       )
                     }
-                    title="Insertar plantilla de tabla Markdown"
+                    title="Insertar matriz de telemetría / tabla Markdown"
                   >
-                    <Table size={13} />
-                    <span>Tabla</span>
+                    <IconoMatrizTabla size={13} />
+                    <span>MATRIZ</span>
                   </button>
                 </div>
 
@@ -1500,18 +1511,17 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                 <div className="editor-toolbar-grupo">
                   {modoZen && (
                     <span className="editor-zen-badge">
-                      Modo Enfoque · Esc para salir
+                      ENFOQUE ACTIVO · ESC
                     </span>
                   )}
 
                   <label
                     className="editor-btn-herramienta"
                     style={{ cursor: 'pointer' }}
-                    title="Sube una imagen desde tu computadora para añadirla automáticamente al documento (también puedes arrastrarla o pegarla con Ctrl+V)."
+                    title="Subir archivo de telemetría o imagen técnica (también puedes arrastrarla o pegarla con Ctrl+V)."
                   >
-                    <Upload size={13} />
-                    <span>{t('adminPublicaciones.insertarImagen') || 'Subir Imagen'}</span>
-                    <HelpCircle size={13} style={{ color: 'var(--muted)', marginLeft: '2px' }} />
+                    <IconoSubirTelemetria size={13} />
+                    <span>{t('adminPublicaciones.insertarImagen') || 'SUBIR IMAGEN'}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -1529,17 +1539,17 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                     type="button"
                     className={`editor-btn-zen ${modoZen ? 'activo' : ''}`}
                     onClick={() => setModoZen(!modoZen)}
-                    title={modoZen ? "Salir del modo enfoque (Escape)" : "Maximizar a pantalla completa para concentrarte"}
+                    title={modoZen ? "Restaurar vista estándar (Escape)" : "Modo enfoque a pantalla completa"}
                   >
                     {modoZen ? (
                       <>
-                        <Minimize2 size={13} style={{ color: 'var(--accent)' }} />
-                        <span>Salir</span>
+                        <IconoSalirZen size={13} style={{ color: 'var(--accent)' }} />
+                        <span>SALIR (ESC)</span>
                       </>
                     ) : (
                       <>
-                        <Maximize2 size={13} />
-                        <span>Modo Enfoque</span>
+                        <IconoModoZen size={13} />
+                        <span>PANTALLA COMPLETA</span>
                       </>
                     )}
                   </button>

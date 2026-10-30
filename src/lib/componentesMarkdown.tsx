@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
+import { Copy, Check } from 'lucide-react';
 import {
-  Info,
-  Lightbulb,
-  AlertCircle,
-  AlertTriangle,
-  OctagonAlert,
-  Copy,
-  Check,
-} from 'lucide-react';
+  IconoCalloutNota,
+  IconoCalloutTip,
+  IconoCalloutImportante,
+  IconoCalloutWarning,
+  IconoCalloutCaution,
+} from '../components/iconos/IconosCallout';
 import { copiarAlPortapapeles } from './clipboard';
 import { slugify, extraerTexto } from './markdownUtils';
 
@@ -31,11 +30,11 @@ interface CalloutConfig {
 }
 
 const CALLOUT_CONFIGS: Record<string, CalloutConfig> = {
-  NOTE: { tipo: 'note', titulo: 'NOTA', Icono: Info },
-  TIP: { tipo: 'tip', titulo: 'CONSEJO', Icono: Lightbulb },
-  IMPORTANT: { tipo: 'important', titulo: 'IMPORTANTE', Icono: AlertCircle },
-  WARNING: { tipo: 'warning', titulo: 'ADVERTENCIA', Icono: AlertTriangle },
-  CAUTION: { tipo: 'caution', titulo: 'PRECAUCIÓN', Icono: OctagonAlert },
+  NOTE: { tipo: 'note', titulo: 'PROTOCOLO // NOTA TÉCNICA', Icono: IconoCalloutNota },
+  TIP: { tipo: 'tip', titulo: 'CALIBRACIÓN // TIP', Icono: IconoCalloutTip },
+  IMPORTANT: { tipo: 'important', titulo: 'DIRECTRIZ // REQUERIMIENTO', Icono: IconoCalloutImportante },
+  WARNING: { tipo: 'warning', titulo: 'PRECAUCIÓN OPERACIONAL', Icono: IconoCalloutWarning },
+  CAUTION: { tipo: 'caution', titulo: 'ALERTA // PARO CRÍTICO', Icono: IconoCalloutCaution },
 };
 
 function procesarCallout(children: React.ReactNode): { config: CalloutConfig; content: React.ReactNode } | null {

@@ -848,37 +848,38 @@ h1 {
 }
 
 /* ------------------------------------------------------------------
-   Callouts / Alertas tipo GitHub ([!NOTE], [!TIP], etc.)
+   Callouts / Fichas Técnicas de Protocolo RUR ([!NOTE], [!TIP], etc.)
+   Diseño de instrumentación de laboratorio: esquinas técnicas de 2px,
+   fondo de superficie institucional, encabezado monospace y glifos vectoriales.
    ------------------------------------------------------------------ */
 .markdown-callout {
-  margin: 1.5em 0;
+  margin: 1.8em 0;
   padding: 14px 18px;
-  border-radius: 6px;
+  border-radius: 2px;
   border: 1px solid var(--border);
-  border-left-width: 4px;
+  border-left-width: 3px;
   border-left-style: solid;
+  background: var(--surface);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   transition: border-color var(--mov-rapido) ease;
 }
 
 .markdown-callout-note {
-  border-left-color: var(--info);
-  background: var(--info-muted);
+  border-left-color: #3b82f6;
 }
 .markdown-callout-note .markdown-callout__header {
-  color: var(--info);
+  color: #60a5fa;
 }
 
 .markdown-callout-tip {
-  border-left-color: var(--success);
-  background: var(--success-muted);
+  border-left-color: #10b981;
 }
 .markdown-callout-tip .markdown-callout__header {
-  color: var(--success);
+  color: #34d399;
 }
 
 .markdown-callout-important {
   border-left-color: var(--accent);
-  background: var(--accent-muted);
 }
 .markdown-callout-important .markdown-callout__header {
   color: var(--accent);
@@ -886,7 +887,6 @@ h1 {
 
 .markdown-callout-warning {
   border-left-color: var(--warning);
-  background: var(--warning-muted);
 }
 .markdown-callout-warning .markdown-callout__header {
   color: var(--warning);
@@ -894,22 +894,23 @@ h1 {
 
 .markdown-callout-caution {
   border-left-color: var(--error);
-  background: var(--error-muted);
 }
 .markdown-callout-caution .markdown-callout__header {
-  color: var(--error);
+  color: #f87171;
 }
 
 .markdown-callout__header {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: var(--font-etiqueta), sans-serif;
-  font-weight: 700;
-  font-size: var(--t-xs);
-  letter-spacing: 0.06em;
+  font-family: var(--font-codigo);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  margin-bottom: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
   user-select: none;
 }
 
@@ -917,9 +918,15 @@ h1 {
   flex-shrink: 0;
 }
 
+.markdown-callout__title {
+  display: inline-block;
+  line-height: 1;
+}
+
 .markdown-callout__content {
+  font-family: var(--font-texto);
   font-size: var(--t-sm);
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--text);
   font-style: normal;
 }
@@ -2817,6 +2824,8 @@ textarea:focus-visible {
 
 /* ==================================================================
    Barra de herramientas y ergonomía del editor Markdown (AdminContent)
+   Estética de instrumentación técnica RUR: esquinas de 2px, tipografía
+   monoespaciada en mayúsculas, botones táctiles y feedback preciso.
    ================================================================== */
 .editor-toolbar-superior {
   display: flex;
@@ -2828,7 +2837,7 @@ textarea:focus-visible {
   padding: 8px 12px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 2px;
 }
 
 .editor-toolbar-grupo {
@@ -2848,10 +2857,10 @@ textarea:focus-visible {
 .editor-modo-selector {
   display: inline-flex;
   background: var(--surface-strong);
-  padding: 3px;
-  border-radius: 6px;
+  padding: 2px;
+  border-radius: 2px;
   border: 1px solid var(--border);
-  gap: 3px;
+  gap: 2px;
 }
 
 .editor-modo-tab {
@@ -2859,13 +2868,15 @@ textarea:focus-visible {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  font-family: var(--font-ibm-mono);
-  font-size: var(--t-xs);
+  font-family: var(--font-codigo);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   font-weight: 500;
   color: var(--muted);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: 2px;
   cursor: pointer;
   transition: all var(--mov-rapido) ease;
   user-select: none;
@@ -2873,14 +2884,13 @@ textarea:focus-visible {
 
 .editor-modo-tab:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .editor-modo-tab.activo {
   background: var(--surface);
   color: var(--accent);
   border-color: var(--accent);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .editor-btn-herramienta {
@@ -2890,10 +2900,12 @@ textarea:focus-visible {
   background: var(--surface-strong);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 2px;
   padding: 6px 10px;
-  font-family: var(--font-ibm-mono);
-  font-size: var(--t-xs);
+  font-family: var(--font-codigo);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
   transition: all var(--mov-rapido) ease;
   user-select: none;
@@ -2917,10 +2929,12 @@ textarea:focus-visible {
   background: var(--surface-strong);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 2px;
   padding: 6px 12px;
-  font-family: var(--font-ibm-mono);
-  font-size: var(--t-xs);
+  font-family: var(--font-codigo);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--mov-rapido) ease;
@@ -2944,28 +2958,29 @@ textarea:focus-visible {
   top: calc(100% + 6px);
   left: 0;
   z-index: 1100;
-  min-width: 210px;
+  min-width: 250px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  border-radius: 2px;
+  padding: 4px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .editor-callout-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 7px 10px;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: 2px;
   color: var(--text);
-  font-family: var(--font-ibm-mono);
-  font-size: var(--t-xs);
+  font-family: var(--font-codigo);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
   cursor: pointer;
   text-align: left;
   transition: all var(--mov-rapido) ease;
@@ -2985,9 +3000,11 @@ textarea:focus-visible {
   border: 1px solid var(--accent);
   color: var(--accent);
   padding: 4px 8px;
-  border-radius: 4px;
-  font-family: var(--font-ibm-mono);
-  font-size: var(--t-xs);
+  border-radius: 2px;
+  font-family: var(--font-codigo);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 /* Ocultar botones redundantes del menú extra de MDEditor para dar protagonismo a las pestañas superiores */
