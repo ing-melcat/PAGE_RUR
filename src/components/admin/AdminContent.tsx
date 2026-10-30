@@ -29,9 +29,23 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useLayoutEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    const forzarScroll = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (document.scrollingElement) {
+        document.scrollingElement.scrollTop = 0;
+      }
+    };
+    forzarScroll();
+    const rafId = requestAnimationFrame(forzarScroll);
+    const t1 = setTimeout(forzarScroll, 40);
+    const t2 = setTimeout(forzarScroll, 120);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [viewMode]);
 
   const { data: postsList = [], isLoading: postsLoading } = usePosts();

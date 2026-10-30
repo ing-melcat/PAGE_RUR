@@ -18,6 +18,7 @@ import { apiFetch, apiUpload } from "./lib/apiClient";
 import { useLanguage } from "./lib/i18n";
 import { Ayuda } from "./components/Ayuda";
 import { PanelRoles } from "./components/PanelRoles";
+import { pageMotionVariants, pageMotionTransition } from "./lib/motionTokens";
 
 const ControllerApp = lazy(() => import("./controller/ControllerApp"));
 
@@ -183,9 +184,25 @@ export default function App() {
   // Al cambiar de pantalla o contexto interno en LoginApp, restablece el scroll a arriba
   // de inmediato para que la nueva pantalla no cargue desplazada.
   useLayoutEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    const forzarScroll = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (document.scrollingElement) {
+        document.scrollingElement.scrollTop = 0;
+      }
+    };
+
+    forzarScroll();
+    const rafId = requestAnimationFrame(forzarScroll);
+    const t1 = setTimeout(forzarScroll, 40);
+    const t2 = setTimeout(forzarScroll, 120);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [view, mainContext]);
   const [activeModule, setActiveModule] = useState<any>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
@@ -764,14 +781,18 @@ export default function App() {
   };
 
   const pageTransition = {
-    initial: { opacity: 0, y: 12 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -8 },
-    transition: { duration: 0.3 },
+    variants: pageMotionVariants,
+    initial: "initial",
+    animate: "animate",
+    exit: "exit",
+    transition: pageMotionTransition,
     onAnimationStart: () => {
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
+      if (document.scrollingElement) {
+        document.scrollingElement.scrollTop = 0;
+      }
     }
   };
 
@@ -812,7 +833,7 @@ export default function App() {
       </header>
       )}
 
-      <main className={view === "login" ? "container" : view === "controles" ? "controller-main" : "full-container"} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <main className={view === "controles" ? "controller-main" : "full-container"} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <AnimatePresence mode="wait">
           {/* `sessionChecked` y no solo `view`: la vista arranca en "login"
               porque no hay nada en el navegador que diga lo contrario, y quien
@@ -821,7 +842,7 @@ export default function App() {
               formulario de acceso antes de entrar a su panel: parece que te ha
               echado y que vuelve a entrar solo. */}
           {view === "login" && sessionChecked && (
-            <motion.section key="login" className="login-panel" {...pageTransition}>
+            <motion.section key="login" className="container login-panel" {...pageTransition}>
               <div className="panel-header">
                 <h1>{t('login.titulo')}</h1>
               </div>
@@ -984,7 +1005,7 @@ export default function App() {
               <main className="main-content" style={{ position: 'relative' }}>
                 <AnimatePresence mode="wait">
                   {mainContext === "modules" && (
-                      <DashboardMain user={user} loadingAction={loadingAction} setLoadingAction={setLoadingAction} setView={setView} loadingActionTimerRef={loadingActionTimerRef} />
+                      <DashboardMain user={user} setView={setView} />
                   )}
 
                   {mainContext === "edit_profile" && (
@@ -992,7 +1013,7 @@ export default function App() {
                   )}
 
                   {mainContext === "cambiar_password" && (
-                    <motion.div key="cambiar_password" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                    <motion.div key="cambiar_password" variants={pageMotionVariants} initial="initial" animate="animate" exit="exit" transition={pageMotionTransition}>
                       <CambiarPassword
                         alTerminar={(u) => { setUser(u); notificar(t('password.listo'), 'exito'); setMainContext("modules"); }}
                         alCancelar={() => setMainContext("modules")}
@@ -1017,46 +1038,44 @@ export default function App() {
               </Suspense>
             </motion.section>
           )}
-          {(() => {
-            return view === "robot_selection" && user && puede(user, "robots.operar") && (
-              <motion.section key="robot_selection" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
-                <Suspense fallback={
-                  <div style={{ height: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
-                    <Loader2 className="animate-spin" size={64} style={{ marginBottom: '24px' }} />
-                  </div>
-                }>
-                  <RobotSelection
-                    robots={robots}
-                    errorRobots={errorRobots}
-                    onReintentar={fetchRobots}
-                    onBack={() => setView("dashboard")}
-                    onSelectRobot={(robot) => {
-                      setLivekitToken(robot); // We repurpose this state to hold the entire robot object
-                      setView("modo_control");
-                    }}
-                    controlMappings={user?.control_mappings}
-                    onUpdateMappings={async (newMappings) => {
-                      try {
-                        const res = await apiFetch('/api/profile/mappings', {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ control_mappings: newMappings })
-                        });
-                        if (res.ok) {
-                          setUser({ ...user, control_mappings: newMappings });
-                          notificar(t('alertas.controlesGuardados'), 'exito');
-                        } else {
-                          notificar(t('alertas.errorGuardarControles'), 'error');
-                        }
-                      } catch (e) {
-                        notificar(t('perfil.errorConexion'), 'error');
+          {view === "robot_selection" && user && puede(user, "robots.operar") && (
+            <motion.section key="robot_selection" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
+              <Suspense fallback={
+                <div style={{ height: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
+                  <Loader2 className="animate-spin" size={64} style={{ marginBottom: '24px' }} />
+                </div>
+              }>
+                <RobotSelection
+                  robots={robots}
+                  errorRobots={errorRobots}
+                  onReintentar={fetchRobots}
+                  onBack={() => setView("dashboard")}
+                  onSelectRobot={(robot) => {
+                    setLivekitToken(robot); // We repurpose this state to hold the entire robot object
+                    setView("modo_control");
+                  }}
+                  controlMappings={user?.control_mappings}
+                  onUpdateMappings={async (newMappings) => {
+                    try {
+                      const res = await apiFetch('/api/profile/mappings', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ control_mappings: newMappings })
+                      });
+                      if (res.ok) {
+                        setUser({ ...user, control_mappings: newMappings });
+                        notificar(t('alertas.controlesGuardados'), 'exito');
+                      } else {
+                        notificar(t('alertas.errorGuardarControles'), 'error');
                       }
-                    }}
-                  />
-                </Suspense>
+                    } catch (e) {
+                      notificar(t('perfil.errorConexion'), 'error');
+                    }
+                  }}
+                />
+              </Suspense>
             </motion.section>
-            );
-          })()}
+          )}
 
           {view === "modo_control" && user && puede(user, "robots.operar") && (
             <motion.section key="modo_control" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
@@ -1119,14 +1138,19 @@ export default function App() {
 
           {view === "admin_logs" && (
             <motion.section key="admin_logs" className="full-container" {...pageTransition} style={{ maxWidth: '1400px', margin: '40px auto', display: 'flex', flexDirection: 'column' }}>
-              <AdminLogs crowdsecMetrics={crowdsecMetrics} logsList={logsList} setView={setView} pageTransition={pageTransition} />
+              <AdminLogs crowdsecMetrics={crowdsecMetrics} logsList={logsList} setView={setView} />
             </motion.section>
           )}
           {view === "admin_config" && (
             <motion.section key="admin_config" className="full-container" style={{ maxWidth: '1600px', padding: '0 40px' }} {...pageTransition}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left', flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '8px' }}>
-                    <h3 style={{ margin: 0, color: 'var(--accent)' }}>{t('adminRobots.tituloTabla')}</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '16px', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <button className="back-link" onClick={() => setView("dashboard")} style={{ margin: 0 }}>
+                            {t('adminRobots.volverMenu')}
+                        </button>
+                        <h3 style={{ margin: 0, color: 'var(--accent)' }}>{t('adminRobots.tituloTabla')}</h3>
+                    </div>
                     <button onClick={() => setEditingRobot({ isNew: true, id: `rassor-${Date.now().toString().slice(-4)}`, name: '', room: '', status: 'online', locomotionType: 'tank', modelUrl: '', livekitUrl: '', isPublicEvent: false })} style={{ width: 'auto' }}>{t('adminRobots.registrarNueva')}</button>
                 </div>
 
@@ -1332,8 +1356,11 @@ export default function App() {
           )}
           {view === "settings_menu" && (
             <motion.section key="settings_menu" className="dashboard-card" {...pageTransition}>
-              <div className="panel-header">
+              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h2 style={{margin: '0', fontSize: '1.25rem'}}>{t('ajustes.menuAjustes')}</h2>
+                <button className="back-link" onClick={() => setView(user ? "dashboard" : "login")} style={{ margin: 0 }}>
+                  {t('ajustes.volverInicio')}
+                </button>
               </div>
               <p className="user-welcome">{t('ajustes.seleccionaApartado')}</p>
               <div className="action-grid" style={{ marginBottom: '24px' }}>
@@ -1352,8 +1379,11 @@ export default function App() {
 
           {view === "accessibility" && (
             <motion.section key="accessibility" className="dashboard-card" {...pageTransition}>
-              <div className="panel-header">
+              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h2 style={{margin: '0', fontSize: '1.25rem'}}>{t('ajustes.accesibilidad')}</h2>
+                <button className="back-link" onClick={() => setView("settings_menu")} style={{ margin: 0 }}>
+                  {t('accesibilidad.atras')}
+                </button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left' }}>
                 <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--border)', background: 'var(--background)', cursor: 'pointer' }}>

@@ -33,8 +33,18 @@ import { PortadaSeccion } from './components/PortadaSeccion';
 import { NotFound } from './components/NotFound';
 import { NotificacionesProvider } from './components/Notificaciones';
 import { useTitulo } from './lib/useTitulo';
+import { pageMotionVariants, pageMotionTransition } from './lib/motionTokens';
 
 // --- RESTAURACIÓN DE SCROLL GLOBAL ---
+export const forzarScrollArriba = () => {
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  if (document.scrollingElement) {
+    document.scrollingElement.scrollTop = 0;
+  }
+};
+
 function ScrollToTop() {
   const { pathname, search, hash } = useLocation();
 
@@ -53,9 +63,15 @@ function ScrollToTop() {
         return;
       }
     }
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    forzarScrollArriba();
+    const rafId = requestAnimationFrame(forzarScrollArriba);
+    const t1 = setTimeout(forzarScrollArriba, 40);
+    const t2 = setTimeout(forzarScrollArriba, 120);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [pathname, search, hash]);
 
   return null;
@@ -63,41 +79,26 @@ function ScrollToTop() {
 
 // --- ANIMACIONES DE TRANSICIÓN ---
 const PageTransition = ({ children }: { children: React.ReactNode }) => {
-  const ref = useRef<HTMLDivElement>(null);
-
   // Al montar la pantalla nueva, resetea el scroll inmediatamente antes del
   // repintado para evitar que inicie a la altura de la página anterior.
   useLayoutEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    forzarScrollArriba();
+    const rafId = requestAnimationFrame(forzarScrollArriba);
+    const t = setTimeout(forzarScrollArriba, 40);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t);
+    };
   }, []);
-
-  // Al acabar, framer deja `filter: blur(0px)` puesto, no `none`. Un filter
-  // distinto de none convierte este div en bloque contenedor, y entonces el
-  // `background-attachment: fixed` de la publicación deja de referirse al
-  // viewport y pasa a referirse a este div, que mide toda la página. Con
-  // `background-size: cover` la imagen se escalaba contra la caja
-  // equivocada: se veía recortada o con otro encuadre hasta que un scroll
-  // forzaba el repintado. Quitar el filter al terminar cierra el desajuste
-  // sin renunciar al desenfoque de entrada.
-  const limpiarFiltro = () => {
-    if (ref.current) ref.current.style.filter = 'none';
-  };
 
   return (
     <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 15, filter: 'blur(10px)' }}
-      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-      exit={{ opacity: 0, y: -15, filter: 'blur(10px)' }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      onAnimationStart={() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-      }}
-      onAnimationComplete={limpiarFiltro}
+      variants={pageMotionVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={pageMotionTransition}
+      onAnimationStart={forzarScrollArriba}
     >
       {children}
     </motion.div>
@@ -185,7 +186,7 @@ const Explora = () => {
   const { t } = useLanguage();
   useTitulo(t('nav.explora'));
   return (
-  <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
+  <div>
     <PortadaSeccion
       imagen={imgProjects}
       titulo={t('explora.heroTitulo')}
@@ -209,7 +210,7 @@ const Descubre = () => {
   const { t } = useLanguage();
   useTitulo(t('nav.descubre'));
   return (
-  <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
+  <div>
     <PortadaSeccion
       imagen={imgProjects}
       titulo={t('descubre.heroTitulo')}
@@ -233,7 +234,7 @@ const Conecta = () => {
   const { t } = useLanguage();
   useTitulo(t('nav.conecta'));
   return (
-  <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
+  <div>
     <PortadaSeccion
       imagen={imgMembers}
       titulo={t('conecta.heroTitulo')}
@@ -279,12 +280,6 @@ const Footer = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0' }}>
           <Mail size={18} style={{ flexShrink: 0 }} /> <Link to="/contacto" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>research.unit.robotics@gmail.com</Link>
         </div>
-      </div>
-      <div>
-        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-titulo)', marginBottom: '20px', letterSpacing: '0.1em' }}>Comunidad</h4>
-        <p style={{ margin: '12px 0' }}><a href="https://discord.gg/YCJxw6NfD" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>Servidor de Discord</a></p>
-        <p style={{ margin: '12px 0' }}><a href="#" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>Grupo de WhatsApp</a></p>
-        <p style={{ margin: '12px 0' }}><a href="#" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>Foro RUR</a></p>
       </div>
       <div>
         <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-titulo)', marginBottom: '20px', letterSpacing: '0.1em' }}>{t('footer.legal')}</h4>
@@ -448,7 +443,19 @@ const LandingLayout = () => {
       )}
 
       <main className="app-main">
-        <Outlet />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            variants={pageMotionVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={pageMotionTransition}
+            onAnimationStart={forzarScrollArriba}
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       <Footer />
@@ -530,18 +537,17 @@ function App() {
   return (
     <>
       <ScrollToTop />
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
+      <Routes location={location}>
         <Route element={<LandingLayout />}>
-          <Route path="/" element={<PageTransition><Home /></PageTransition>} />
-          <Route path="/explora" element={<PageTransition><Explora /></PageTransition>} />
-          <Route path="/descubre" element={<PageTransition><Descubre /></PageTransition>} />
-          <Route path="/conecta" element={<PageTransition><Conecta /></PageTransition>} />
-          <Route path="/contacto" element={<PageTransition><ContactPage /></PageTransition>} />
-          <Route path="/miembros" element={<PageTransition><Miembros /></PageTransition>} />
-          <Route path="/archivo" element={<PageTransition><ArchiveDashboard /></PageTransition>} />
-          <Route path="/coming-soon" element={<PageTransition><ComingSoon /></PageTransition>} />
-          <Route path="/publicacion/:id" element={<PageTransition><PublicationPage /></PageTransition>} />
+          <Route path="/" element={<Home />} />
+          <Route path="/explora" element={<Explora />} />
+          <Route path="/descubre" element={<Descubre />} />
+          <Route path="/conecta" element={<Conecta />} />
+          <Route path="/contacto" element={<ContactPage />} />
+          <Route path="/miembros" element={<Miembros />} />
+          <Route path="/archivo" element={<ArchiveDashboard />} />
+          <Route path="/coming-soon" element={<ComingSoon />} />
+          <Route path="/publicacion/:id" element={<PublicationPage />} />
           {/* El perfil de un miembro va en la raíz ("/member-1"), no bajo
               /miembros/, porque así lo pidió el usuario -- no le gustaba un
               id pelón ni un prefijo de sección delante. React Router v6
@@ -551,7 +557,7 @@ function App() {
               rutas de un solo tramo es seguro. Solo "/member-<número>"
               entra -- lo valida el propio backend
               (services/identity/server.js) antes de tocar la base. */}
-          <Route path="/:slug" element={<PageTransition><PerfilMiembro /></PageTransition>} />
+          <Route path="/:slug" element={<PerfilMiembro />} />
           {/* Comodín: cubre cualquier ruta de más de un tramo que no exista
               (ej. /algo/random) -- ninguna otra Route la reclama. Un tramo
               único inválido (ej. /asdf) en cambio SIEMPRE cae en "/:slug" de
@@ -560,7 +566,7 @@ function App() {
               Ahí es PerfilMiembro.tsx quien pinta este mismo <NotFound/> al
               ver que la API no devuelve un miembro real -- mismo resultado
               para quien visita, camino distinto por dentro. */}
-          <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+          <Route path="*" element={<NotFound />} />
         </Route>
         {/* Fuera de LandingLayout: ocupa la pantalla completa, sin cabecera
             ni pie. Es un enlace público que se le pasa a quien no tiene
@@ -602,7 +608,6 @@ function App() {
           }
         />
       </Routes>
-    </AnimatePresence>
     </>
   );
 }

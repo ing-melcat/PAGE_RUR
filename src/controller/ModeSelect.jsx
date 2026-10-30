@@ -14,25 +14,36 @@ const S = {
 export function ModeSelect({ onSelectMode, onBack }) {
   const { t } = useLanguage();
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    const forzarScroll = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (document.scrollingElement) {
+        document.scrollingElement.scrollTop = 0;
+      }
+    };
+    forzarScroll();
+    const rafId = requestAnimationFrame(forzarScroll);
+    const t1 = setTimeout(forzarScroll, 40);
+    const t2 = setTimeout(forzarScroll, 120);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, []);
-  const [loading, setLoading] = useState(false);
-
   const handleSelect = (modo) => {
-    setLoading(true);
-    setTimeout(() => {
-      onSelectMode(modo);
-      setLoading(false);
-    }, 400);
+    onSelectMode(modo);
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: '600px' }}>
       {/* HEADER */}
-      <div style={{ marginBottom: '48px', borderBottom: '1px solid var(--border)', paddingBottom: '24px' }}>
-        <h2 style={{ margin: '16px 0', fontSize: '3.5rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: '1', fontWeight: 400 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '36px', borderBottom: '1px solid var(--border)', paddingBottom: '20px' }}>
+        <button className="back-link" onClick={onBack} style={{ margin: 0, alignSelf: 'flex-start' }}>
+          {t('operador.modo.volver')}
+        </button>
+        <h2 style={{ margin: 0, fontSize: '3.2rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: '1', fontWeight: 400 }}>
           {t('operador.modo.titulo')}
         </h2>
         <p style={{ ...S.label, textTransform: 'none', margin: 0 }}>{t('operador.modo.subtitulo')}</p>
@@ -97,17 +108,6 @@ export function ModeSelect({ onSelectMode, onBack }) {
           </p>
         </motion.div>
       </motion.div>
-
-      {/* LOADING OVERLAY */}
-      <AnimatePresence>
-        {loading && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          >
-            <div style={{ width: '48px', height: '48px', border: '3px solid var(--surface)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* FOOTER */}
       <div style={{ marginTop: 'auto', paddingTop: '32px' }}>

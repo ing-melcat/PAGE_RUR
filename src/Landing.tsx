@@ -267,9 +267,21 @@ export const PublicationPage = () => {
     // Al pasar de página o cargar una publicación el contenido cambiaba pero
     // el scroll se quedaba donde estuviera, así que la nueva pantalla empezaba
     // a media lectura o con la cabecera oculta arriba. Se resetea arriba de inmediato.
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    const forzarScroll = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (document.scrollingElement) {
+        document.scrollingElement.scrollTop = 0;
+      }
+    };
+    forzarScroll();
+    const rafId = requestAnimationFrame(forzarScroll);
+    const t = setTimeout(forzarScroll, 50);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t);
+    };
   }, [id, post?.id]);
 
   if (noExiste) {
@@ -534,7 +546,7 @@ export const ArchiveDashboard = () => {
   });
 
   return (
-    <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
+    <div>
       <section className="portada">
         <div className="portada__marco portada__marco--seccion">
           {/* El archivo no tiene foto: el fondo es el azul institucional,

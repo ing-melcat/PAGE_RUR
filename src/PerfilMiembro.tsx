@@ -40,9 +40,21 @@ export function PerfilMiembro() {
   useTitulo(miembro?.nombre);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    const forzarScroll = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (document.scrollingElement) {
+        document.scrollingElement.scrollTop = 0;
+      }
+    };
+    forzarScroll();
+    const rafId = requestAnimationFrame(forzarScroll);
+    const t = setTimeout(forzarScroll, 50);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t);
+    };
   }, [slug]);
 
   useEffect(() => {

@@ -6,6 +6,7 @@ import { apiFetch } from "../../lib/apiClient";
 import { AREAS } from "../../lib/authUtils";
 import { Configurar2FA } from "./Configurar2FA";
 import { useNotificar } from "../Notificaciones";
+import { pageMotionVariants, pageMotionTransition } from "../../lib/motionTokens";
 import "./ProfileEditor.css";
 
 export const ProfileEditor = ({
@@ -19,9 +20,14 @@ export const ProfileEditor = ({
   const notificar = useNotificar();
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   return (
-    <motion.div key="edit_profile" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-      <div className="panel-header" style={{ marginBottom: '32px' }}>
-        <h2 className="titulo-panel titulo-panel--acento">{t('perfil.titulo')}</h2>
+    <motion.div key="edit_profile" variants={pageMotionVariants} initial="initial" animate="animate" exit="exit" transition={pageMotionTransition}>
+      <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button className="back-link" onClick={() => setMainContext("modules")} style={{ margin: 0 }}>
+            {t('perfil.cancelarVolver')}
+          </button>
+          <h2 className="titulo-panel titulo-panel--acento" style={{ margin: 0 }}>{t('perfil.titulo')}</h2>
+        </div>
       </div>
 
       <div className="perfil-editor">

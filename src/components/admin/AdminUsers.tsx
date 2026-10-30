@@ -34,9 +34,23 @@ export const AdminUsers = ({ user, setView }: any) => {
   const [cambiarPassword, setCambiarPassword] = useState(false);
 
   useLayoutEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    const forzarScroll = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (document.scrollingElement) {
+        document.scrollingElement.scrollTop = 0;
+      }
+    };
+    forzarScroll();
+    const rafId = requestAnimationFrame(forzarScroll);
+    const t1 = setTimeout(forzarScroll, 40);
+    const t2 = setTimeout(forzarScroll, 120);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [pestanaPersonal, isCreatingUser, editingUser]);
 
   const { data: usersList = [] } = useUsers();
@@ -147,18 +161,25 @@ export const AdminUsers = ({ user, setView }: any) => {
     } catch(err: any) { notificar(err.message, 'error'); }
   };
 
-  const pageTransition = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -20 },
-    transition: { duration: 0.2 }
-  };
   return (
     <>
-            <motion.section key="admin_users" className="dashboard-card" {...pageTransition} style={{ marginTop: '120px', marginBottom: '60px' }}>
+            <div className="dashboard-card" style={{ marginTop: '32px', marginBottom: '40px' }}>
               <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                  <button className="back-link" onClick={() => {
+                    if (isCreatingUser || editingUser) {
+                      setIsCreatingUser(false);
+                      setEditingUser(null);
+                      setCambiarPassword(false);
+                    } else {
+                      setView("dashboard");
+                    }
+                  }} style={{ margin: 0 }}>
+                    {t('adminUsuarios.volver')}
+                  </button>
+                  <h2 className="titulo-panel" style={{ margin: 0 }}>{t('adminUsuarios.titulo')}</h2>
+                </div>
                 <div>
-                  <h2 className="titulo-panel">{t('adminUsuarios.titulo')}</h2>
                   <div className="pestanas">
                     <button
                       className={`pestanas__boton${pestanaPersonal === 'personas' ? ' pestanas__boton--activa' : ''}`}
@@ -486,7 +507,7 @@ export const AdminUsers = ({ user, setView }: any) => {
                   setView("dashboard");
                 }
               }}>{t('adminUsuarios.volver')}</button>
-            </motion.section>
+            </div>
 
             {resetModal && (
               <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>

@@ -1,15 +1,40 @@
-import React from "react";
+import React, { useLayoutEffect } from "react";
 import { motion } from "framer-motion";
 import { useLanguage } from "../../lib/i18n";
 
-export const AdminLogs = ({ crowdsecMetrics, logsList, setView, pageTransition }: any) => {
+export const AdminLogs = ({ crowdsecMetrics, logsList, setView }: any) => {
   const { t } = useLanguage();
+
+  useLayoutEffect(() => {
+    const forzarScroll = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (document.scrollingElement) {
+        document.scrollingElement.scrollTop = 0;
+      }
+    };
+    forzarScroll();
+    const rafId = requestAnimationFrame(forzarScroll);
+    const t1 = setTimeout(forzarScroll, 40);
+    const t2 = setTimeout(forzarScroll, 120);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+
   return (
     <>
-            <motion.section key="admin_logs" className="full-container" style={{ maxWidth: '1200px', padding: '0 20px' }} {...pageTransition}>
-              <div className="panel-header" style={{ marginBottom: '24px' }}>
-              
-                <h2 className="titulo-panel">{t('adminLogs.titulo')}</h2>
+            <div className="full-container" style={{ maxWidth: '1200px', padding: '0 20px' }}>
+              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <button className="back-link" onClick={() => setView("dashboard")} style={{ margin: 0 }}>
+                    {t('adminLogs.volverPanel')}
+                  </button>
+                  <h2 className="titulo-panel" style={{ margin: 0 }}>{t('adminLogs.titulo')}</h2>
+                </div>
               </div>
 
               {crowdsecMetrics ? (
@@ -62,7 +87,7 @@ export const AdminLogs = ({ crowdsecMetrics, logsList, setView, pageTransition }
                 )}
               </div>
               <button className="back-link" onClick={() => setView("dashboard")}>{t('adminLogs.volverPanel')}</button>
-            </motion.section>
+            </div>
     </>
   );
 };

@@ -108,6 +108,26 @@ export function PanelTransmision({ robots, onBack }) {
   const base = window.location.origin;
   const robot = publicos.find((r) => r.id === robotId);
 
+  useEffect(() => {
+    const forzarScroll = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (document.scrollingElement) {
+        document.scrollingElement.scrollTop = 0;
+      }
+    };
+    forzarScroll();
+    const rafId = requestAnimationFrame(forzarScroll);
+    const t1 = setTimeout(forzarScroll, 40);
+    const t2 = setTimeout(forzarScroll, 120);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+
   const urlEspectador = `${base}/espectador/${robotId}`;
 
   const urlOverlay = useMemo(() => {
@@ -131,8 +151,9 @@ export function PanelTransmision({ robots, onBack }) {
   if (publicos.length === 0) {
     return (
       <div className="tx">
-        <header className="tx__cabecera">
-          <h2 className="tx__titulo"><Radio size={20} /> {t('transmision.titulo')}</h2>
+        <header className="tx__cabecera" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <button className="back-link" onClick={onBack} style={{ margin: 0 }}>{t('transmision.volver')}</button>
+          <h2 className="tx__titulo" style={{ margin: 0 }}><Radio size={20} /> {t('transmision.titulo')}</h2>
         </header>
         <p className="tx-nota tx-nota--vacio">{t('transmision.sinRobotsPublicos')}</p>
         <button className="back-link" onClick={onBack}>{t('transmision.volver')}</button>
@@ -142,9 +163,12 @@ export function PanelTransmision({ robots, onBack }) {
 
   return (
     <div className="tx">
-      <header className="tx__cabecera">
-        <h2 className="tx__titulo"><Radio size={20} /> {t('transmision.titulo')}</h2>
-        <p className="tx-nota">{t('transmision.intro')}</p>
+      <header className="tx__cabecera" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+        <button className="back-link" onClick={onBack} style={{ margin: 0 }}>{t('transmision.volver')}</button>
+        <div style={{ flex: 1, minWidth: '240px' }}>
+          <h2 className="tx__titulo" style={{ margin: 0 }}><Radio size={20} /> {t('transmision.titulo')}</h2>
+          <p className="tx-nota" style={{ margin: '4px 0 0 0' }}>{t('transmision.intro')}</p>
+        </div>
       </header>
 
       <section className="tx__bloque">

@@ -97,9 +97,23 @@ function normalizarCodigoTecla(e) {
 export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobot, onBack, controlMappings, onUpdateMappings }) {
     const { t } = useLanguage();
     useEffect(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
+        const forzarScroll = () => {
+            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+            if (document.scrollingElement) {
+                document.scrollingElement.scrollTop = 0;
+            }
+        };
+        forzarScroll();
+        const rafId = requestAnimationFrame(forzarScroll);
+        const t1 = setTimeout(forzarScroll, 40);
+        const t2 = setTimeout(forzarScroll, 120);
+        return () => {
+            cancelAnimationFrame(rafId);
+            clearTimeout(t1);
+            clearTimeout(t2);
+        };
     }, []);
     const [loading, setLoading] = useState(false);
     const [columns, setColumns] = useState(3);
@@ -253,7 +267,6 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
     );
 
     const handleSelect = (robot) => {
-        setLoading(true);
         onSelectRobot(robot);
     };
 
@@ -280,13 +293,16 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
             />
 
             {/* HEADER */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '48px', borderBottom: '1px solid var(--border)', paddingBottom: '24px' }}>
-                <div style={{ flex: 1, paddingRight: '40px' }}>
-                    <h2 style={{ margin: '16px 0', fontSize: '3.5rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: '1', fontWeight: 400 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '36px', borderBottom: '1px solid var(--border)', paddingBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+                <div style={{ flex: 1, minWidth: '280px' }}>
+                    <button className="back-link" onClick={onBack} style={{ margin: '0 0 16px 0', alignSelf: 'flex-start' }}>
+                        {t('operador.seleccion.volverMenu')}
+                    </button>
+                    <h2 style={{ margin: 0, fontSize: '3.2rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: '1', fontWeight: 400 }}>
                         {t('operador.seleccion.titulo')}
                     </h2>
                 </div>
-                <div style={{ paddingTop: '12px', display: 'flex', gap: '12px' }}>
+                <div style={{ paddingTop: '8px', display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <button
                         onClick={() => setShowMappingsModal(true)}
                         style={{ ...S.btn, display: 'flex', alignItems: 'center', gap: '8px' }}
@@ -294,7 +310,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                         onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
                         title={t('operador.seleccion.mapeoTitle')}
                     >
-                        <Gamepad2 size={24} /> <span style={{display: 'none'}}>{t('operador.seleccion.mapeoTitle')}</span>
+                        <Gamepad2 size={22} /> <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.78rem' }}>{t('operador.seleccion.mapeoTitle')}</span>
                     </button>
                 </div>
             </div>
@@ -347,7 +363,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                             pointerEvents: loading ? 'none' : 'auto', position: 'relative',
                             ...S.panel, cursor: 'pointer', transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(251, 202, 1, 0.08)'; }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(251, 202, 1, 0.12)'; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}
                     >
                         <Robot3DPreview status={robot.status} modelUrl={robot.modelUrl} />
@@ -454,7 +470,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                             style={{
                                 background: 'var(--surface)',
                                 border: '1px solid var(--border)',
-                                borderRadius: '12px',
+                                borderRadius: '4px',
                                 padding: '24px 28px',
                                 width: '100%',
                                 maxWidth: '720px',
