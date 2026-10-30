@@ -98,6 +98,10 @@ export const en: Dictionary = {
     pagina: 'PAGE',
     siguiente: 'NEXT →',
     sinContenido: 'No additional content.',
+    indice: 'Table of Contents',
+    enEstaPagina: 'On this page',
+    ocultarIndice: 'Hide index',
+    mostrarIndice: 'Show index',
   },
   operador: {
     seleccion: {
@@ -372,6 +376,12 @@ export const en: Dictionary = {
     destinoExplora: 'Page: Explore',
     destinoDescubre: 'Page: Discover',
     destinoConecta: 'Page: Connect',
+    borradorDetectado: 'You have an unsaved draft from',
+    restaurarBorrador: 'Restore draft',
+    descartarBorrador: 'Discard',
+    borradorRestaurado: 'Draft restored successfully.',
+    borradorDescartado: 'Draft discarded.',
+    guardadoLocal: 'Local save:',
     tituloLabel: 'Title',
     tituloPlaceholder: 'Title...',
     fechaExpiracion: 'Expiration Date (Optional)',

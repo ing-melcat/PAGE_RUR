@@ -33,7 +33,7 @@ export const markdownSanitizeSchema: Schema = {
   tagNames: [...(defaultSchema.tagNames ?? []), 'iframe'],
   attributes: {
     ...sinReglasDeClase,
-    '*': [...(atributosBase['*'] ?? []), 'className', 'style'],
+    '*': [...(atributosBase['*'] ?? []), 'className', 'style', 'id', 'aria-hidden', 'aria-label', 'role'],
     a: [...(sinReglasDeClase.a ?? []), 'target', 'rel'],
     iframe: [
       'src',

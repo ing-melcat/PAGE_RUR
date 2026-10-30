@@ -1,6 +1,6 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TriangleAlert, Star, MapPin } from 'lucide-react';
+import { TriangleAlert, Star, MapPin, List, ChevronDown, ChevronUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -12,7 +12,7 @@ import logoUrl from './assets/isotipo.png';
 import logoBlancoUrl from './assets/real_images/isotipo_blanco.png';
 import { markdownSanitizeSchema } from './lib/markdownSanitizeSchema';
 import { rehypeQuitarTituloDuplicado } from './lib/rehypeQuitarTituloDuplicado';
-import { componentesMarkdown } from './lib/componentesMarkdown';
+import { componentesMarkdown, extraerEncabezadosMarkdown, type TocItem } from './lib/componentesMarkdown';
 import { NotFound } from './components/NotFound';
 import { useTitulo } from './lib/useTitulo';
 import { useLanguage } from './lib/i18n';
@@ -221,6 +221,93 @@ export const Landing = ({ category = 'landing', limit }: { category?: string, li
   );
 };
 
+const PublicacionToc = ({
+  items,
+  t,
+}: {
+  items: TocItem[];
+  t: (ruta: string, fallback?: string) => string;
+}) => {
+  const [estaAbierto, setEstaAbierto] = useState(true);
+  const [seccionActiva, setSeccionActiva] = useState<string>(items[0]?.id || '');
+
+  useEffect(() => {
+    if (items.length === 0) return;
+
+    const handleScroll = () => {
+      let activa = items[0]?.id || '';
+      for (const item of items) {
+        const el = document.getElementById(item.id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= 140) {
+            activa = item.id;
+          }
+        }
+      }
+      setSeccionActiva(activa);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [items]);
+
+  const irASeccion = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.history.replaceState(null, '', `#${id}`);
+    }
+  };
+
+  return (
+    <nav className="publicacion-toc" aria-label={t('publicacion.indice', 'Índice de contenido')}>
+      <div className="publicacion-toc__cabecera">
+        <div className="publicacion-toc__titulo-wrap">
+          <List size={16} className="publicacion-toc__icono" aria-hidden="true" />
+          <span className="publicacion-toc__titulo">
+            {t('publicacion.enEstaPagina', 'En esta página')}
+          </span>
+          <span className="publicacion-toc__contador">({items.length})</span>
+        </div>
+        <button
+          type="button"
+          className="publicacion-toc__toggle"
+          onClick={() => setEstaAbierto(!estaAbierto)}
+          aria-expanded={estaAbierto}
+          aria-label={estaAbierto ? t('publicacion.ocultarIndice', 'Ocultar índice') : t('publicacion.mostrarIndice', 'Mostrar índice')}
+          title={estaAbierto ? t('publicacion.ocultarIndice', 'Ocultar índice') : t('publicacion.mostrarIndice', 'Mostrar índice')}
+        >
+          {estaAbierto ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+      </div>
+
+      {estaAbierto && (
+        <ul className="publicacion-toc__lista">
+          {items.map((item) => (
+            <li
+              key={item.id}
+              className={`publicacion-toc__item publicacion-toc__item--nivel-${item.level} ${
+                seccionActiva === item.id ? 'publicacion-toc__item--activo' : ''
+              }`}
+            >
+              <a
+                href={`#${item.id}`}
+                onClick={(e) => irASeccion(e, item.id)}
+                className="publicacion-toc__enlace"
+              >
+                {item.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </nav>
+  );
+};
+
 export const PublicationPage = () => {
   const { t, lang } = useLanguage();
   const { id } = useParams();
@@ -284,6 +371,17 @@ export const PublicationPage = () => {
     };
   }, [id, post?.id]);
 
+  const contenidoMarkdown = post
+    ? (post.pages && post.pages.length > 0)
+      ? (post.pages[currentPage]?.content || '')
+      : (post.content || '')
+    : '';
+
+  const tocItems = useMemo(() => {
+    if (!contenidoMarkdown) return [];
+    return extraerEncabezadosMarkdown(contenidoMarkdown);
+  }, [contenidoMarkdown]);
+
   if (noExiste) {
     return <NotFound />;
   }
@@ -330,6 +428,8 @@ export const PublicationPage = () => {
   const fechaFormateada = post.date
     ? new Date(post.date).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })
     : null;
+
+  const tieneToc = tocItems.length >= 3;
 
   return (
     <>
@@ -464,27 +564,38 @@ export const PublicationPage = () => {
              </div>
            )}
 
-           <motion.div 
-             initial={{ opacity: 0 }}
-             animate={{ opacity: 1 }}
-             transition={{ duration: 0.6 }}
-             style={{ width: '100%', height: '100%' }}
-           >
-              <div className="contenido-publicacion">
-                {/* rehypePrism va DESPUÉS del saneado a propósito: es él quien
-                    genera los <span class="token ..."> del coloreado, y si
-                    corriera antes, rehypeSanitize los volvería a mezclar con
-                    el HTML del redactor en vez de tratarlos como salida ya
-                    verificada. */}
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema], [rehypePrism, { ignoreMissing: true }], [rehypeQuitarTituloDuplicado, esPortada ? post.title : undefined]]}
-                  components={componentesMarkdown}
-                >
-                  {(post.pages && post.pages.length > 0) ? post.pages[currentPage].content : (post.content || '')}
-                </ReactMarkdown>
-              </div>
-           </motion.div>
+           <div className={`publicacion-layout ${tieneToc ? 'publicacion-layout--con-toc' : ''}`}>
+             <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               transition={{ duration: 0.6 }}
+               className="publicacion-layout__cuerpo"
+               style={{ width: '100%', height: '100%' }}
+             >
+                <div className="contenido-publicacion">
+                  {/* rehypePrism va DESPUÉS del saneado a propósito: es él quien
+                      genera los <span class="token ..."> del coloreado, y si
+                      corriera antes, rehypeSanitize los volvería a mezclar con
+                      el HTML del redactor en vez de tratarlos como salida ya
+                      verificada. */}
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema], [rehypePrism, { ignoreMissing: true }], [rehypeQuitarTituloDuplicado, esPortada ? post.title : undefined]]}
+                    components={componentesMarkdown}
+                  >
+                    {contenidoMarkdown}
+                  </ReactMarkdown>
+                </div>
+             </motion.div>
+
+             {tieneToc && (
+               <aside className="publicacion-layout__toc-columna" aria-label={t('publicacion.indice', 'Índice de contenido')}>
+                 <div className="publicacion-layout__toc-pegajoso">
+                   <PublicacionToc items={tocItems} t={t} />
+                 </div>
+               </aside>
+             )}
+           </div>
         </div>
 
       {post.pages && post.pages.length > 1 && (

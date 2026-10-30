@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TriangleAlert, Star, Eye, EyeOff, Upload, X, ChevronDown, ChevronUp, HelpCircle } from "lucide-react";
+import { TriangleAlert, Star, Eye, EyeOff, Upload, X, ChevronDown, ChevronUp, HelpCircle, Clock, RotateCcw, Trash2 } from "lucide-react";
 import MDEditor from '@uiw/react-md-editor';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -21,12 +21,31 @@ import { usePosts, useMutatePost } from "../../hooks/queries/usePosts";
 import { usePersonas } from "../../hooks/queries/useUsers";
 import { useModelos3D } from "../../hooks/queries/useModelos3D";
 
+const DRAFT_KEY = 'rur_admin_post_draft';
+
+interface PostDraft {
+  title: string;
+  content: string;
+  type: string;
+  category: string;
+  image: string;
+  backgroundImage: string;
+  modelUrl: string;
+  location: string;
+  countdownDate?: string;
+  pages: { content: string; image: string }[];
+  autores: { userId: number; papel: string; lider: boolean }[];
+  timestamp: string;
+}
+
 export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }) => {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const notificar = useNotificar();
   const confirmar = useConfirmar();
   const [viewMode, setViewMode] = useState<'list'|'create'|'edit'>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftAvailable, setDraftAvailable] = useState<PostDraft | null>(null);
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
 
   useLayoutEffect(() => {
     const forzarScroll = () => {
@@ -64,6 +83,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
   const [modelUrl, setModelUrl] = useState('');
   const [autores, setAutores] = useState<{ _key?: string; userId: number; papel: string; lider: boolean }[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [uploadingModel, setUploadingModel] = useState(false);
   // Ver LoginApp.tsx (handleRobotModelUpload) para el porqué completo: un
   // modelo grande se comprime en el navegador antes de subirlo, y eso por sí
@@ -130,6 +150,175 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
     setPages([{ content: '', image: '', _key: Math.random().toString() }]);
     setModelUrl('');
     setAutores([]);
+    setDraftAvailable(null);
+    setLastSavedTime(null);
+  };
+
+  const formatearFechaDraft = (isoOrMs?: string) => {
+    if (!isoOrMs) return '';
+    try {
+      const d = new Date(isoOrMs);
+      if (isNaN(d.getTime())) return isoOrMs;
+      return d.toLocaleString(lang === 'en' ? 'en-US' : 'es-ES', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return isoOrMs;
+    }
+  };
+
+  const isFormEmpty = () => {
+    return (
+      !title.trim() &&
+      !content.trim() &&
+      !image.trim() &&
+      !backgroundImage.trim() &&
+      !modelUrl.trim() &&
+      !location.trim() &&
+      !countdownDate.trim() &&
+      pages.every(p => !p.content?.trim() && !p.image?.trim()) &&
+      autores.length === 0
+    );
+  };
+
+  const hayContenidoRelevante = Boolean(
+    title.trim() ||
+    content.trim() ||
+    image.trim() ||
+    backgroundImage.trim() ||
+    modelUrl.trim() ||
+    location.trim() ||
+    pages.some(p => (p.content && p.content.trim()) || (p.image && p.image.trim()))
+  );
+
+  // Detección de borrador al entrar o montar en modo creación
+  useEffect(() => {
+    if (viewMode === 'create') {
+      try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (raw) {
+          const parsed: PostDraft = JSON.parse(raw);
+          if (isFormEmpty()) {
+            setDraftAvailable(parsed);
+          }
+        }
+      } catch (err) {
+        console.warn('Error al verificar borrador local:', err);
+      }
+    } else {
+      setDraftAvailable(null);
+    }
+  }, [viewMode]);
+
+  // Auto-guardado debounced (1.2s tras último cambio) en localStorage
+  useEffect(() => {
+    if (viewMode !== 'create') return;
+    if (draftAvailable) return;
+    if (!hayContenidoRelevante) return;
+
+    const timer = setTimeout(() => {
+      try {
+        const draft: PostDraft = {
+          title,
+          content,
+          type,
+          category,
+          image,
+          backgroundImage,
+          modelUrl,
+          location,
+          countdownDate,
+          pages: pages.map(p => ({ content: p.content, image: p.image })),
+          autores: autores.map(a => ({ userId: a.userId, papel: a.papel, lider: a.lider })),
+          timestamp: new Date().toISOString()
+        };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        setLastSavedTime(`${hh}:${mm}`);
+      } catch (err) {
+        console.warn('Error al auto-guardar borrador:', err);
+      }
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [
+    viewMode,
+    draftAvailable,
+    hayContenidoRelevante,
+    title,
+    content,
+    type,
+    category,
+    image,
+    backgroundImage,
+    modelUrl,
+    location,
+    countdownDate,
+    pages,
+    autores
+  ]);
+
+  const restaurarBorrador = () => {
+    if (!draftAvailable) return;
+    setTitle(draftAvailable.title || '');
+    setContent(draftAvailable.content || '');
+    setType(draftAvailable.type || 'simple');
+    setCategory(draftAvailable.category || 'landing');
+    setImage(draftAvailable.image || '');
+    setBackgroundImage(draftAvailable.backgroundImage || '');
+    setModelUrl(draftAvailable.modelUrl || '');
+    setLocation(draftAvailable.location || '');
+    setCountdownDate(draftAvailable.countdownDate || '');
+    if (draftAvailable.pages && Array.isArray(draftAvailable.pages) && draftAvailable.pages.length > 0) {
+      setPages(draftAvailable.pages.map(p => ({
+        content: p.content || '',
+        image: p.image || '',
+        _key: Math.random().toString()
+      })));
+    } else {
+      setPages([{ content: '', image: '', _key: Math.random().toString() }]);
+    }
+    if (draftAvailable.autores && Array.isArray(draftAvailable.autores)) {
+      setAutores(draftAvailable.autores.map(a => ({
+        userId: a.userId,
+        papel: a.papel || '',
+        lider: Boolean(a.lider),
+        _key: Math.random().toString()
+      })));
+    } else {
+      setAutores([]);
+    }
+
+    if (draftAvailable.timestamp) {
+      try {
+        const d = new Date(draftAvailable.timestamp);
+        if (!isNaN(d.getTime())) {
+          const hh = String(d.getHours()).padStart(2, '0');
+          const mm = String(d.getMinutes()).padStart(2, '0');
+          setLastSavedTime(`${hh}:${mm}`);
+        }
+      } catch {}
+    }
+
+    setDraftAvailable(null);
+    notificar(t('adminPublicaciones.borradorRestaurado', 'Borrador restaurado correctamente.'), 'exito');
+  };
+
+  const descartarBorrador = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch (err) {
+      console.warn('Error al descartar borrador:', err);
+    }
+    setDraftAvailable(null);
+    setLastSavedTime(null);
+    notificar(t('adminPublicaciones.borradorDescartado', 'Borrador descartado.'), 'info');
   };
 
   const renderSanitizedPreview = (source: string) => (
@@ -149,26 +338,75 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
     </div>
   );
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
+  const subirArchivoImagen = async (file: File): Promise<string> => {
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error('La imagen es demasiado grande. El tamaño máximo permitido es 10MB.');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const { status, contentType, json: data } = await apiUpload('/api/upload', formData);
+    if (status < 200 || status >= 300 || !contentType?.includes('application/json') || !data) {
+      throw new Error('Error del servidor: Posiblemente la imagen es demasiado grande o hubo un error de red.');
+    }
+    if (!data.url) {
+      throw new Error(data.message || t('alertas.errorSubirImagen'));
+    }
+    return data.url;
+  };
+
+  const handleImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    callback: (url: string) => void,
+    esPortada = false
+  ) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
 
+    if (!file.type.startsWith('image/')) {
+      notificar('El archivo seleccionado debe ser una imagen.', 'error');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      notificar('La imagen es demasiado grande. El tamaño máximo permitido es 10MB.', 'error');
+      e.target.value = '';
+      return;
+    }
+
     const isValid = await new Promise<boolean>((resolve) => {
       const img = new window.Image();
+      const objectUrl = URL.createObjectURL(file);
       img.onload = () => {
-        const aspect = img.width / img.height;
-        if (img.width < 1280 || img.height < 720) {
-          notificar(`La imagen es muy pequeña (${img.width}x${img.height}). Para que se vea nítida en todas las pantallas, debe medir al menos 1280x720 píxeles.`, 'error');
-          resolve(false);
-        } else if (Math.abs(aspect - 16/9) > 0.02) {
-          notificar(`Para mantener el diseño actual, la imagen debe ser exactamente 16:9 (ej. 1920x1080 o 1280x720). Tu imagen mide ${img.width}x${img.height} píxeles. Por favor expórtala en 16:9 para evitar recortes.`, 'error');
-          resolve(false);
+        URL.revokeObjectURL(objectUrl);
+        if (esPortada) {
+          const aspect = img.width / img.height;
+          if (img.width < 1280 || img.height < 720) {
+            notificar(`La imagen es muy pequeña (${img.width}x${img.height}). Para que se vea nítida en todas las pantallas, debe medir al menos 1280x720 píxeles.`, 'error');
+            resolve(false);
+          } else if (Math.abs(aspect - 16/9) > 0.02) {
+            notificar(`Para mantener el diseño actual, la imagen debe ser exactamente 16:9 (ej. 1920x1080 o 1280x720). Tu imagen mide ${img.width}x${img.height} píxeles. Por favor expórtala en 16:9 para evitar recortes.`, 'error');
+            resolve(false);
+          } else {
+            resolve(true);
+          }
         } else {
-          resolve(true);
+          if (img.width < 10 || img.height < 10) {
+            notificar(`La imagen es demasiado pequeña (${img.width}x${img.height} px).`, 'error');
+            resolve(false);
+          } else {
+            resolve(true);
+          }
         }
       };
-      img.onerror = () => resolve(false);
-      img.src = URL.createObjectURL(file);
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        notificar('El archivo no es una imagen válida o está dañado.', 'error');
+        resolve(false);
+      };
+      img.src = objectUrl;
     });
 
     if (!isValid) {
@@ -176,26 +414,150 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
       return;
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
-    
     setUploadingImage(true);
     try {
-      const response = await apiFetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-         notificar('Error del servidor: Posiblemente la imagen es demasiado grande o hubo un error de red.', 'error');
-         setUploadingImage(false);
-         return;
+      const url = await subirArchivoImagen(file);
+      callback(url);
+    } catch(err: any) {
+      notificar(err.message || t('alertas.errorConexionImagen'), 'error');
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const procesarSubidaImagenMarkdown = async (
+    file: File,
+    insertarMarkdown: (markdownText: string) => void
+  ) => {
+    if (!file.type.startsWith('image/')) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      notificar('La imagen es demasiado grande. El tamaño máximo permitido es 10MB.', 'error');
+      return;
+    }
+
+    const esValida = await new Promise<boolean>((resolve) => {
+      const img = new window.Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(img.width >= 10 && img.height >= 10);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(false);
+      };
+      img.src = objectUrl;
+    });
+
+    if (!esValida) {
+      notificar('La imagen es demasiado pequeña (mínimo 10x10 px) o no es válida.', 'error');
+      return;
+    }
+
+    setUploadingImage(true);
+    notificar('Subiendo imagen...', 'info');
+    try {
+      const url = await subirArchivoImagen(file);
+      insertarMarkdown(`![imagen](${url})`);
+      notificar('Imagen insertada correctamente.', 'exito');
+    } catch (err: any) {
+      notificar(err.message || t('alertas.errorConexionImagen'), 'error');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const crearManejadorPegar = (
+    setter: (fn: (prev: string) => string) => void
+  ) => (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+
+          let cursorStart: number | null = null;
+          let cursorEnd: number | null = null;
+          if (e.target instanceof HTMLTextAreaElement) {
+            cursorStart = e.target.selectionStart;
+            cursorEnd = e.target.selectionEnd;
+          }
+
+          procesarSubidaImagenMarkdown(file, (md) => {
+            setter((prev) => {
+              if (cursorStart !== null && cursorEnd !== null && cursorStart <= prev.length) {
+                const before = prev.slice(0, cursorStart);
+                const after = prev.slice(cursorEnd);
+                const sepBefore = before.length > 0 && !before.endsWith('\n') ? '\n' : '';
+                const sepAfter = after.length > 0 && !after.startsWith('\n') ? '\n' : '';
+                return `${before}${sepBefore}${md}${sepAfter}${after}`;
+              }
+              return prev ? `${prev}\n\n${md}\n` : `${md}\n`;
+            });
+          });
+          break;
+        }
       }
-      const data = await response.json();
-      if (data.url) callback(data.url);
-      else notificar(t('alertas.errorSubirImagen'), 'error');
-    } catch(err) { notificar(t('alertas.errorConexionImagen'), 'error'); }
-    setUploadingImage(false);
+    }
+  };
+
+  const crearManejadorSoltar = (
+    setter: (fn: (prev: string) => string) => void,
+    setDragState?: (dragging: boolean) => void
+  ) => (e: React.DragEvent) => {
+    if (setDragState) setDragState(false);
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+
+    const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length > 0) {
+      e.preventDefault();
+
+      let cursorStart: number | null = null;
+      let cursorEnd: number | null = null;
+      if (e.target instanceof HTMLTextAreaElement) {
+        cursorStart = e.target.selectionStart;
+        cursorEnd = e.target.selectionEnd;
+      }
+
+      for (const file of imageFiles) {
+        procesarSubidaImagenMarkdown(file, (md) => {
+          setter((prev) => {
+            if (cursorStart !== null && cursorEnd !== null && cursorStart <= prev.length) {
+              const before = prev.slice(0, cursorStart);
+              const after = prev.slice(cursorEnd);
+              const sepBefore = before.length > 0 && !before.endsWith('\n') ? '\n' : '';
+              const sepAfter = after.length > 0 && !after.startsWith('\n') ? '\n' : '';
+              return `${before}${sepBefore}${md}${sepAfter}${after}`;
+            }
+            return prev ? `${prev}\n\n${md}\n` : `${md}\n`;
+          });
+        });
+      }
+    }
+  };
+
+  const handlePasteContent = crearManejadorPegar((fn) => setContent(fn));
+  const handleDropContent = crearManejadorSoltar((fn) => setContent(fn), setIsDraggingOver);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer?.types?.includes('Files')) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      setIsDraggingOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDraggingOver(false);
+    }
   };
 
   // Subida del modelo 3D. No reutiliza handleImageUpload a propósito: aquel
@@ -285,6 +647,14 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
         method: viewMode === 'edit' ? 'PUT' : 'POST',
         postData
       });
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch (err) {
+        console.warn('Error al limpiar borrador:', err);
+      }
+      setLastSavedTime(null);
+      setDraftAvailable(null);
+      resetForm();
       notificar(viewMode === 'edit' ? t('alertas.publicacionActualizada') : t('alertas.publicacionCreada'), 'exito');
       setViewMode('list');
     } catch(err) {
@@ -406,12 +776,126 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '32px', height: '100%', minHeight: '80vh' }}>
-      {/* Sidebar de Configuración */}
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div>
-          <h2 className="titulo-panel titulo-panel--acento">{viewMode === 'edit' ? t('adminPublicaciones.editar') : t('adminPublicaciones.crear')}</h2>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%', minHeight: '80vh' }}>
+      <AnimatePresence>
+        {viewMode === 'create' && draftAvailable && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--accent)',
+              borderLeft: '4px solid var(--accent)',
+              borderRadius: '6px',
+              padding: '14px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px',
+              flexWrap: 'wrap',
+              fontFamily: 'var(--font-ibm-mono)',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Clock size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <span style={{ fontSize: '0.85rem', color: 'var(--text)' }}>
+                {t('adminPublicaciones.borradorDetectado', 'Tienes un borrador sin guardar del')}{' '}
+                <strong style={{ color: 'var(--accent)' }}>
+                  {formatearFechaDraft(draftAvailable.timestamp)}
+                </strong>
+                .
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={restaurarBorrador}
+                style={{
+                  background: 'var(--accent)',
+                  color: 'var(--background)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '7px 14px',
+                  fontSize: '0.8rem',
+                  fontFamily: 'var(--font-ibm-mono)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.filter = 'brightness(1.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.filter = 'brightness(1)';
+                }}
+              >
+                <RotateCcw size={14} />
+                {t('adminPublicaciones.restaurarBorrador', 'Restaurar borrador')}
+              </button>
+
+              <button
+                type="button"
+                onClick={descartarBorrador}
+                style={{
+                  background: 'transparent',
+                  color: 'var(--muted)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '4px',
+                  padding: '7px 14px',
+                  fontSize: '0.8rem',
+                  fontFamily: 'var(--font-ibm-mono)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--muted)';
+                  e.currentTarget.style.color = 'var(--text)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border)';
+                  e.currentTarget.style.color = 'var(--muted)';
+                }}
+              >
+                <Trash2 size={14} />
+                {t('adminPublicaciones.descartarBorrador', 'Descartar')}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '32px', flex: 1 }}>
+        {/* Sidebar de Configuración */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <h2 className="titulo-panel titulo-panel--acento" style={{ margin: 0 }}>{viewMode === 'edit' ? t('adminPublicaciones.editar') : t('adminPublicaciones.crear')}</h2>
+            {lastSavedTime && viewMode === 'create' && (
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontFamily: 'var(--font-ibm-mono)',
+                fontSize: '0.75rem',
+                color: 'var(--muted)',
+                background: 'var(--surface-strong)',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                border: '1px solid var(--border)'
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} />
+                <span>{t('adminPublicaciones.guardadoLocal', 'Guardado local:')} {lastSavedTime}</span>
+              </div>
+            )}
+          </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '24px' }}>
           <div className="input-group" style={{ marginBottom: 0 }}>
@@ -460,10 +944,10 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
         <div className="input-group">
           <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <span>{t('adminPublicaciones.portada')}</span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>Min: 1280x720 | 16:9</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 'normal' }}>Min: 1280x720 | 16:9</span>
           </label>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-            <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setImage)} style={{ display: 'none' }} id="upload-cover" />
+            <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setImage, true)} style={{ display: 'none' }} id="upload-cover" />
             <label htmlFor="upload-cover" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px', background: 'var(--surface-strong)', color: 'white', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem' }}>
               {uploadingImage ? t('adminPublicaciones.subiendo') : <><Upload size={14} /> {t('adminPublicaciones.subirLocal')}</>}
             </label>
@@ -479,7 +963,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                   la publicación (.portada-publicacion, index.css), un tramo de
                   62vh -- máximo 620px -- con el título anclado abajo. */}
               <span>Imagen de Cabecera (Opcional)</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>Rec: 2560x1440 | 16:9</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 'normal' }}>Rec: 2560x1440 | 16:9</span>
             </label>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setBackgroundImage)} style={{ display: 'none' }} id="upload-bg" />
@@ -566,10 +1050,25 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
         )}
 
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {lastSavedTime && viewMode === 'create' && (
+            <div style={{
+              textAlign: 'center',
+              fontFamily: 'var(--font-ibm-mono)',
+              fontSize: '0.72rem',
+              color: 'var(--muted)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} />
+              <span>{t('adminPublicaciones.guardadoLocal', 'Guardado local:')} {lastSavedTime}</span>
+            </div>
+          )}
           <button onClick={handleSubmit} disabled={isSubmitting} className="action-card" style={{ width: '100%' }}>
             {isSubmitting ? t('adminPublicaciones.guardando') : (viewMode === 'edit' ? t('adminPublicaciones.guardarCambios') : t('adminPublicaciones.publicarAhora'))}
           </button>
-          <button className="back-link" onClick={() => setViewMode('list')} style={{ margin: 0, width: '100%' }}>
+          <button className="back-link" onClick={() => { resetForm(); setViewMode('list'); }} style={{ margin: 0, width: '100%' }}>
             {t('adminPublicaciones.cancelarVolver')}
           </button>
         </div>
@@ -644,7 +1143,82 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
         )}
 
         {(type === 'simple' || type === 'aviso' || type === 'evento' || type === '3d_model') ? (
-            <div style={{ flex: 1, minHeight: '600px', display: 'flex', flexDirection: 'column' }} data-color-mode="dark">
+            <div 
+              style={{ 
+                flex: 1, 
+                minHeight: '600px', 
+                display: 'flex', 
+                flexDirection: 'column',
+                position: 'relative',
+                border: isDraggingOver ? '2px dashed var(--accent)' : '2px solid transparent',
+                borderRadius: '8px',
+                transition: 'border-color 0.2s ease',
+              }} 
+              data-color-mode="dark"
+              onPaste={handlePasteContent}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => {
+                setIsDraggingOver(false);
+                handleDropContent(e);
+              }}
+            >
+              {isDraggingOver && (
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                  backdropFilter: 'blur(3px)',
+                  zIndex: 50,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '12px',
+                  borderRadius: '6px',
+                  pointerEvents: 'none',
+                  color: 'var(--accent)',
+                  fontFamily: 'var(--font-ibm-mono)',
+                  border: '2px dashed var(--accent)',
+                }}>
+                  <Upload size={40} />
+                  <span style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
+                    Suelta la imagen aquí para insertarla en el contenido
+                  </span>
+                </div>
+              )}
+
+              {uploadingImage && (
+                <div style={{
+                  position: 'absolute',
+                  top: 12,
+                  right: 12,
+                  background: 'var(--surface)',
+                  border: '1px solid var(--accent)',
+                  color: 'var(--accent)',
+                  padding: '6px 14px',
+                  borderRadius: '4px',
+                  fontFamily: 'var(--font-ibm-mono)',
+                  fontSize: '0.8rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  zIndex: 60,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                }}>
+                  <span style={{
+                    display: 'inline-block',
+                    width: '12px',
+                    height: '12px',
+                    border: '2px solid var(--accent)',
+                    borderTopColor: 'transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                  Subiendo imagen...
+                </div>
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
                 <label 
                   style={{ 
@@ -669,7 +1243,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                     e.currentTarget.style.backgroundColor = 'var(--surface)';
                     e.currentTarget.style.borderColor = 'var(--border)';
                   }}
-                  title="Sube una imagen desde tu computadora para añadirla automáticamente al documento."
+                  title="Sube una imagen desde tu computadora para añadirla automáticamente al documento (también puedes arrastrarla o pegarla con Ctrl+V)."
                 >
                   <Upload size={14} />
                   {t('adminPublicaciones.insertarImagen') || 'Subir Imagen'}
@@ -678,7 +1252,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                     type="file" 
                     accept="image/*" 
                     style={{ display: 'none' }} 
-                    onChange={(e) => handleImageUpload(e, (url) => setContent(c => c + `\n![Imagen](${url})\n`))} 
+                    onChange={(e) => handleImageUpload(e, (url) => setContent(c => c ? `${c}\n\n![imagen](${url})\n` : `![imagen](${url})\n`))} 
                   />
                 </label>
               </div>
@@ -704,7 +1278,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                   <div className="input-group">
                     <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                       <span>{t('adminPublicaciones.imagenPagina')}</span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>Min: 1280x720 | 16:9</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 'normal' }}>Min: 1280x720 | 16:9</span>
                     </label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (url) => {
@@ -723,7 +1297,30 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                     </div>
                   </div>
                 </div>
-                <div className="input-group" data-color-mode="dark">
+                <div 
+                  className="input-group" 
+                  data-color-mode="dark"
+                  onPaste={crearManejadorPegar((fn) => {
+                    setPages(current => {
+                      const copy = [...current];
+                      copy[idx] = { ...copy[idx], content: fn(copy[idx].content || '') };
+                      return copy;
+                    });
+                  })}
+                  onDragOver={(e) => {
+                    if (e.dataTransfer?.types?.includes('Files')) {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'copy';
+                    }
+                  }}
+                  onDrop={crearManejadorSoltar((fn) => {
+                    setPages(current => {
+                      const copy = [...current];
+                      copy[idx] = { ...copy[idx], content: fn(copy[idx].content || '') };
+                      return copy;
+                    });
+                  })}
+                >
                   <label>{t('adminPublicaciones.estructuraHtml')}</label>
                   <MDEditor
                     value={page.content}
@@ -745,6 +1342,7 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 };

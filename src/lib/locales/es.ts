@@ -102,6 +102,10 @@ export const es = {
     pagina: 'PÁGINA',
     siguiente: 'SIGUIENTE →',
     sinContenido: 'Sin contenido adicional.',
+    indice: 'Índice de contenido',
+    enEstaPagina: 'En esta página',
+    ocultarIndice: 'Ocultar índice',
+    mostrarIndice: 'Mostrar índice',
   },
   operador: {
     seleccion: {
@@ -378,6 +382,12 @@ export const es = {
     destinoExplora: 'Página: Explora',
     destinoDescubre: 'Página: Descubre',
     destinoConecta: 'Página: Conecta',
+    borradorDetectado: 'Tienes un borrador sin guardar del',
+    restaurarBorrador: 'Restaurar borrador',
+    descartarBorrador: 'Descartar',
+    borradorRestaurado: 'Borrador restaurado correctamente.',
+    borradorDescartado: 'Borrador descartado.',
+    guardadoLocal: 'Guardado local:',
     tituloLabel: 'Título',
     tituloPlaceholder: 'Título...',
     fechaExpiracion: 'Fecha de Expiración (Opcional)',
