@@ -2840,6 +2840,19 @@ textarea:focus-visible {
   border-radius: 2px;
 }
 
+/* Blindaje contra la regla global button:hover { color: var(--background) !important; } */
+.editor-toolbar-superior button,
+.editor-toolbar-superior label.editor-btn-herramienta,
+.editor-callout-menu button {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.editor-toolbar-superior button::after,
+.editor-callout-menu button::after {
+  display: none !important;
+}
+
 .editor-toolbar-grupo {
   display: flex;
   align-items: center;
@@ -2873,33 +2886,41 @@ textarea:focus-visible {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-weight: 500;
-  color: var(--muted);
-  background: transparent;
-  border: 1px solid transparent;
+  color: var(--muted) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
   border-radius: 2px;
   cursor: pointer;
   transition: all var(--mov-rapido) ease;
   user-select: none;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .editor-modo-tab:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.04);
+  color: #FFFFFF !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--border) !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
-.editor-modo-tab.activo {
-  background: var(--surface);
-  color: var(--accent);
-  border-color: var(--accent);
+.editor-modo-tab.activo,
+.editor-modo-tab.activo:hover {
+  background: var(--surface) !important;
+  color: var(--accent) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 10px rgba(251, 202, 1, 0.15) !important;
+  transform: none !important;
 }
 
 .editor-btn-herramienta {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--surface-strong);
-  color: var(--text);
-  border: 1px solid var(--border);
+  background: var(--surface-strong) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
   border-radius: 2px;
   padding: 6px 10px;
   font-family: var(--font-codigo);
@@ -2909,26 +2930,30 @@ textarea:focus-visible {
   cursor: pointer;
   transition: all var(--mov-rapido) ease;
   user-select: none;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .editor-btn-herramienta:hover {
-  background: var(--background);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--surface) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  box-shadow: 0 0 8px rgba(251, 202, 1, 0.15) !important;
+  transform: none !important;
 }
 
 .editor-btn-herramienta.activo {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
 }
 
 .editor-btn-zen {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--surface-strong);
-  color: var(--text);
-  border: 1px solid var(--border);
+  background: var(--surface-strong) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
   border-radius: 2px;
   padding: 6px 12px;
   font-family: var(--font-codigo);
@@ -2939,18 +2964,22 @@ textarea:focus-visible {
   cursor: pointer;
   transition: all var(--mov-rapido) ease;
   user-select: none;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .editor-btn-zen:hover {
-  background: var(--background);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--surface) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  box-shadow: 0 0 8px rgba(251, 202, 1, 0.15) !important;
+  transform: none !important;
 }
 
 .editor-btn-zen.activo {
-  background: var(--accent-muted);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--accent-muted) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
 }
 
 .editor-callout-menu {
@@ -2974,10 +3003,10 @@ textarea:focus-visible {
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
-  background: transparent;
-  border: 1px solid transparent;
+  background: transparent !important;
+  border: 1px solid transparent !important;
   border-radius: 2px;
-  color: var(--text);
+  color: var(--text) !important;
   font-family: var(--font-codigo);
   font-size: 0.7rem;
   letter-spacing: 0.06em;
@@ -2985,11 +3014,16 @@ textarea:focus-visible {
   text-align: left;
   transition: all var(--mov-rapido) ease;
   user-select: none;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .editor-callout-item:hover {
-  background: var(--surface-strong);
-  border-color: var(--border);
+  background: var(--surface-strong) !important;
+  border-color: var(--border) !important;
+  color: #FFFFFF !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .editor-zen-badge {
