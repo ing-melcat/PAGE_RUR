@@ -121,7 +121,11 @@
 }
 
 @media (hover: hover) {
-  .filtros__boton:hover { border-color: var(--accent); color: var(--accent); }
+  .filtros__boton:hover {
+    border-color: #ffffff;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
+  }
 }
 
 .filtros__boton--activo {

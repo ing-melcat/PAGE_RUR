@@ -72,7 +72,7 @@ export const DashboardMain = ({ user, setView }: any) => {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activar(); } }}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', ...(action.view === "controles" ? { background: 'var(--accent)', color: 'black' } : {}) }}
               >
-                <motion.span layout style={{ fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 1 }}>
+                <motion.span layout style={{ fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', position: 'relative', zIndex: 2 }}>
                   {action.view === 'controles' ? <><ConsoleIcon /> {action.title}</> : action.title}
                 </motion.span>
               </motion.div>

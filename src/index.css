@@ -1414,12 +1414,12 @@ input[type="checkbox"], input[type="radio"] {
 }
 
 /* Buttons - Physical Actuators */
-button[type="submit"], .action-card {
+button[type="submit"] {
   width: 100%;
   padding: 16px;
   border: 1px solid var(--accent);
-  background: var(--accent-muted);
-  color: var(--accent);
+  background: var(--accent);
+  color: #000;
   font-family: var(--font-etiqueta), sans-serif;
   font-size: var(--t-sm);
   text-transform: uppercase;
@@ -1434,9 +1434,13 @@ button[type="submit"], .action-card {
 }
 
 @media (any-hover: hover) {
-  button[type="submit"]:hover:not(:disabled), .action-card:hover {
-    background: var(--accent);
-    color: var(--background);
+  button[type="submit"]:hover:not(:disabled) {
+    border-color: #ffffff;
+    box-shadow: 
+      0 0 16px rgba(255, 255, 255, 0.45),
+      0 0 4px #ffffff,
+      inset 0 0 8px rgba(255, 255, 255, 0.2);
+    filter: brightness(1.08);
   }
 }
 
@@ -1560,37 +1564,71 @@ button[type="submit"]:disabled {
 
 .action-card, .menu-card {
   justify-content: space-between;
+  align-items: center;
   text-align: left;
   background: var(--background);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 2px;
-  padding: 16px;
-  font-family: var(--font-ibm-mono), monospace;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 3px;
+  padding: 16px 20px;
+  font-family: var(--font-etiqueta), sans-serif;
   font-size: var(--t-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tech);
+  text-indent: calc(var(--tracking-tech) * 0.5);
   text-transform: uppercase;
   text-decoration: none;
   display: flex;
+  position: relative;
+  overflow: hidden;
+  transition: 
+    color 0.16s ease,
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.action-card > *, .menu-card > * {
+  position: relative;
+  z-index: 2;
+  transition: color 0.16s ease, text-shadow 0.16s ease;
 }
 
 .action-card::after, .menu-card::after {
   content: "→";
   font-family: monospace;
   color: var(--accent);
-  opacity: 0;
-  transition: opacity var(--mov-rapido) ease;
+  font-weight: 700;
+  font-size: 1.1rem;
+  opacity: 0.85;
+  position: relative;
+  z-index: 2;
+  transition: opacity var(--mov-rapido) ease, transform 0.2s ease, color 0.16s ease;
 }
 
 @media (any-hover: hover) {
   .action-card:hover, .menu-card:hover {
-    border-color: var(--accent);
-    background: var(--accent-muted);
-    color: var(--accent);
+    border-color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+    box-shadow: 
+      0 0 18px rgba(255, 255, 255, 0.42),
+      0 0 4px rgba(255, 255, 255, 0.9),
+      inset 0 0 12px rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
   }
-}
 
-.action-card:hover::after, .menu-card:hover::after {
-  opacity: 1;
+  .action-card:hover > *, .menu-card:hover > * {
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.45), 0 1px 3px rgba(0, 0, 0, 0.95);
+  }
+
+  .action-card:hover::after, .menu-card:hover::after {
+    opacity: 1;
+    color: #ffffff;
+    transform: translateX(4px);
+  }
 }
 
 .logout-btn {
@@ -1863,7 +1901,18 @@ button, .action-card, .logout-btn-small, .paginador-btn {
     filter 0.16s ease;
 }
 
-/* Haz de luz de barrido tecnológico en hover (en vez de ripple circular) */
+/* El texto y elementos hijos se sitúan en z-index: 2 para que el haz de luz
+   blanco pase por detrás y NUNCA tape ni desvanezca las letras */
+button > *,
+.action-card > *,
+.logout-btn-small > *,
+.paginador-btn > * {
+  position: relative;
+  z-index: 2;
+  transition: color 0.16s ease, text-shadow 0.16s ease;
+}
+
+/* Haz de luz de barrido tecnológico blanco en hover */
 button::before, .action-card::before, .logout-btn-small::before, .paginador-btn::before {
   content: '';
   position: absolute;
@@ -1874,12 +1923,15 @@ button::before, .action-card::before, .logout-btn-small::before, .paginador-btn:
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(251, 202, 1, 0.22) 50%,
+    rgba(255, 255, 255, 0.08) 30%,
+    rgba(255, 255, 255, 0.38) 50%,
+    rgba(255, 255, 255, 0.08) 70%,
     transparent 100%
   );
   transform: skewX(-20deg);
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
+  mix-blend-mode: screen;
   z-index: 1;
 }
 
@@ -1891,29 +1943,43 @@ button::before, .action-card::before, .logout-btn-small::before, .paginador-btn:
     transform: skewX(-20deg) translateX(340%);
   }
 
+  /* Iluminación de borde y halo perimetral en blanco */
   button:hover:not(:disabled),
   .action-card:hover:not(:disabled),
   .logout-btn-small:hover:not(:disabled),
   .paginador-btn:hover:not(:disabled) {
     transform: translateY(-1px);
-    border-color: var(--accent);
+    border-color: #ffffff;
     box-shadow: 
-      0 0 14px rgba(251, 202, 1, 0.24),
-      inset 0 0 10px rgba(251, 202, 1, 0.05);
+      0 0 16px rgba(255, 255, 255, 0.4),
+      0 0 3px rgba(255, 255, 255, 0.85),
+      inset 0 0 10px rgba(255, 255, 255, 0.08);
   }
 
-  /* Botones primarios (fondo amarillo): iluminar con resplandor dorado */
+  /* Botones primarios (fondo amarillo): borde blanco láser y realce blanco sin perder contraste con el texto oscuro */
   button[type="submit"]:hover:not(:disabled),
   button.btn-primary:hover:not(:disabled) {
     filter: brightness(1.08);
-    box-shadow: 0 0 18px rgba(251, 202, 1, 0.45);
+    border-color: #ffffff;
+    box-shadow: 
+      0 0 18px rgba(255, 255, 255, 0.45),
+      0 0 4px #ffffff,
+      inset 0 0 8px rgba(255, 255, 255, 0.25);
   }
 
-  /* Botones outline / transparentes: matiz tenue sin alterar legibilidad */
+  /* Botones outline y tarjetas de acción: texto blanco de alto contraste con sombra protectora */
+  .action-card:hover:not(:disabled),
   .logout-btn-small:hover:not(:disabled),
   .paginador-btn:hover:not(:disabled) {
-    background-color: rgba(251, 202, 1, 0.08);
-    color: var(--accent);
+    background-color: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+  }
+
+  .action-card:hover:not(:disabled) > *,
+  .logout-btn-small:hover:not(:disabled) > *,
+  .paginador-btn:hover:not(:disabled) > * {
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.45), 0 1px 3px rgba(0, 0, 0, 0.95);
   }
 }
 
@@ -1923,9 +1989,11 @@ button:active:not(:disabled),
 .logout-btn-small:active:not(:disabled),
 .paginador-btn:active:not(:disabled) {
   transform: translateY(1px);
+  border-color: #ffffff;
   box-shadow: 
-    0 0 20px rgba(251, 202, 1, 0.5),
-    inset 0 0 10px rgba(251, 202, 1, 0.25);
+    0 0 22px rgba(255, 255, 255, 0.6),
+    0 0 5px #ffffff,
+    inset 0 0 10px rgba(255, 255, 255, 0.25);
   transition-duration: 0.05s;
 }
 
