@@ -1211,130 +1211,195 @@ export default function App() {
                     </table>
                 </div>
 
-                {/* MODAL DE EDICIÓN (Overlay) */}
+                {/* MODAL DE EDICIÓN (Diseño redondeado, scroll interno y sin requerir zoom) */}
                 {editingRobot && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999,  }}>
-                        <div style={{ background: 'var(--background)', border: '1px solid var(--accent)', borderRadius: '8px', padding: '32px', width: '100%', maxWidth: '600px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
-                            <h3 style={{ marginTop: 0, marginBottom: '24px', fontFamily: 'var(--font-titulo)', fontSize: '1.1rem', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 400 }}>
-                                {editingRobot.isNew ? t('adminRobots.registrarNuevaUnidad') : t('adminRobots.editarUnidad')}
-                            </h3>
-                            <form onSubmit={handleSaveRobot} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                    <div className="input-group">
-                                        <label>{t('adminRobots.idInterno')}</label>
-                                        <input name="id" defaultValue={editingRobot.id} readOnly={!editingRobot.isNew} required />
+                    <div
+                        style={{
+                            position: "fixed",
+                            inset: 0,
+                            background: "rgba(3, 8, 22, 0.8)",
+                            backdropFilter: "blur(8px)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            zIndex: 9999,
+                            padding: "20px",
+                        }}
+                        onClick={() => setEditingRobot(null)}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.96, y: 15 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.96, y: 15 }}
+                            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                background: "var(--surface)",
+                                border: "1px solid var(--border)",
+                                borderRadius: "8px",
+                                width: "100%",
+                                maxWidth: "720px",
+                                maxHeight: "90vh",
+                                display: "flex",
+                                flexDirection: "column",
+                                boxShadow: "0 25px 60px rgba(0,0,0,0.7)",
+                                overflow: "hidden",
+                                boxSizing: "border-box",
+                            }}
+                        >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "24px 28px 16px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+                                <div>
+                                    <h3 style={{ margin: 0, fontFamily: "var(--font-titulo)", fontSize: "1.25rem", color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 400 }}>
+                                        {editingRobot.isNew ? t("adminRobots.registrarNuevaUnidad") : t("adminRobots.editarUnidad")}
+                                    </h3>
+                                    <p style={{ margin: "6px 0 0 0", fontFamily: "var(--font-ibm-mono)", fontSize: "0.8rem", color: "var(--muted)" }}>
+                                        {editingRobot.isNew ? "Registra y vincula una nueva unidad robótica al sistema" : `Parámetros técnicos y enlace para ${editingRobot.name || editingRobot.id}`}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingRobot(null)}
+                                    style={{ background: "transparent", border: "none", color: "var(--muted)", cursor: "pointer", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", transition: "color 0.2s ease" }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted)")}
+                                    title={t("adminRobots.cancelar")}
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSaveRobot} style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, margin: 0 }}>
+                                <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px", display: "flex", flexDirection: "column", gap: "24px" }}>
+                                    
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                                        <h4 style={{ margin: 0, color: "var(--accent)", fontFamily: "var(--font-ibm-mono)", fontSize: "0.82rem", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
+                                            1. Identificación y Control
+                                        </h4>
+                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
+                                            <div className="input-group">
+                                                <label>{t("adminRobots.idInterno")}</label>
+                                                <input name="id" defaultValue={editingRobot.id} readOnly={!editingRobot.isNew} required style={{ background: !editingRobot.isNew ? "rgba(255,255,255,0.03)" : "var(--background)" }} />
+                                            </div>
+                                            <div className="input-group">
+                                                <label>{t("adminRobots.nombrePublico")}</label>
+                                                <input name="name" defaultValue={editingRobot.name} required />
+                                            </div>
+                                            <div className="input-group">
+                                                <label>{t("adminRobots.estadoSimulacion")}</label>
+                                                <select name="status" defaultValue={editingRobot.status}>
+                                                    <option value="online">{t("adminRobots.onlineVerde")}</option>
+                                                    <option value="offline">{t("adminRobots.offlineRojo")}</option>
+                                                </select>
+                                            </div>
+                                            <div className="input-group">
+                                                <label>{t("adminRobots.sistemaLocomocion")}</label>
+                                                <select
+                                                    name="locomotionType"
+                                                    defaultValue={editingRobot.locomotionType || (String(editingRobot.id || "").toLowerCase().includes("rassor") || String(editingRobot.name || "").toLowerCase().includes("rassor") ? "tank" : "joystick")}
+                                                >
+                                                    <option value="tank">{t("adminRobots.locomocionTanque")}</option>
+                                                    <option value="joystick">{t("adminRobots.locomocionJoystick")}</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="input-group">
-                                        <label>{t('adminRobots.nombrePublico')}</label>
-                                        <input name="name" defaultValue={editingRobot.name} required />
+
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "14px", paddingTop: "16px", borderTop: "1px solid var(--border)" }}>
+                                        <h4 style={{ margin: 0, color: "var(--accent)", fontFamily: "var(--font-ibm-mono)", fontSize: "0.82rem", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
+                                            2. Parámetros de Enlace LiveKit
+                                        </h4>
+                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
+                                            <div className="input-group" style={{ gridColumn: "1 / -1" }}>
+                                                <label>{t("adminRobots.livekitRoom")}</label>
+                                                <input name="room" defaultValue={editingRobot.room} required style={{ border: "1px solid var(--accent)" }} />
+                                            </div>
+                                            <div className="input-group" style={{ gridColumn: "1 / -1" }}>
+                                                <label>{t("adminRobots.urlLivekit")}</label>
+                                                <input name="livekitUrl" defaultValue={editingRobot.livekitUrl} placeholder="wss://rur-livekit-server-8b010r3b.livekit.cloud" />
+                                            </div>
+                                            <div className="input-group">
+                                                <label>{t("adminRobots.livekitApiKey")}</label>
+                                                <input type="password" name="livekitApiKey" defaultValue={editingRobot.livekitApiKey} placeholder={t("adminRobots.apiSecretPlaceholder")} />
+                                            </div>
+                                            <div className="input-group">
+                                                <label>{t("adminRobots.livekitApiSecret")}</label>
+                                                <input type="password" name="livekitApiSecret" placeholder={editingRobot.livekitApiSecretMasked ? `${t("adminRobots.apiSecretGuardado")} (${editingRobot.livekitApiSecretMasked}) ${t("adminRobots.apiSecretReemplazar")}` : t("adminRobots.apiSecretPlaceholder")} />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="input-group">
-                                        <label>{t('adminRobots.livekitRoom')}</label>
-                                        <input name="room" defaultValue={editingRobot.room} required style={{ border: '1px solid var(--accent)' }} />
-                                    </div>
-                                    <div className="input-group">
-                                        <label>{t('adminRobots.estadoSimulacion')}</label>
-                                        <select name="status" defaultValue={editingRobot.status}>
-                                            <option value="online">{t('adminRobots.onlineVerde')}</option>
-                                            <option value="offline">{t('adminRobots.offlineRojo')}</option>
-                                        </select>
-                                    </div>
-                                    <div className="input-group" style={{ gridColumn: 'span 2' }}>
-                                        <label>{t('adminRobots.sistemaLocomocion')}</label>
-                                        <select
-                                            name="locomotionType"
-                                            defaultValue={editingRobot.locomotionType || (String(editingRobot.id || '').toLowerCase().includes('rassor') || String(editingRobot.name || '').toLowerCase().includes('rassor') ? 'tank' : 'joystick')}
-                                        >
-                                            <option value="tank">{t('adminRobots.locomocionTanque')}</option>
-                                            <option value="joystick">{t('adminRobots.locomocionJoystick')}</option>
-                                        </select>
-                                    </div>
-                                    <div className="input-group" style={{ gridColumn: 'span 2' }}>
-                                        <label>{t('adminRobots.urlLivekit')}</label>
-                                        <input name="livekitUrl" defaultValue={editingRobot.livekitUrl} placeholder="wss://rur-livekit-server-8b010r3b.livekit.cloud" />
-                                    </div>
-                                    <div className="input-group" style={{ gridColumn: 'span 1' }}>
-                                        <label>{t('adminRobots.livekitApiKey')}</label>
-                                        <input type="password" name="livekitApiKey" defaultValue={editingRobot.livekitApiKey} placeholder={t('adminRobots.apiSecretPlaceholder')} />
-                                    </div>
-                                    <div className="input-group" style={{ gridColumn: 'span 1' }}>
-                                        <label>{t('adminRobots.livekitApiSecret')}</label>
-                                        {/* Se deja vacío a propósito: el backend solo re-cifra si mandas
-                                            un valor nuevo, así que vacío = conservar el ya guardado. */}
-                                        <input type="password" name="livekitApiSecret" placeholder={editingRobot.livekitApiSecretMasked ? `${t('adminRobots.apiSecretGuardado')} (${editingRobot.livekitApiSecretMasked}) ${t('adminRobots.apiSecretReemplazar')}` : t('adminRobots.apiSecretPlaceholder')} />
-                                    </div>
-                                    <div className="input-group" style={{ gridColumn: 'span 2' }}>
-                                        <label>{t('adminRobots.rutaModelo')}</label>
-                                        {modelos3d.length > 0 && (
-                                          <select
-                                            defaultValue=""
-                                            onChange={(e) => {
-                                              if (e.target.value && robotModelInputRef.current) {
-                                                robotModelInputRef.current.value = e.target.value;
-                                              }
-                                              // El selector es una acción rápida, no un dato guardado -- se
-                                              // devuelve al placeholder tras elegir, en vez de quedarse
-                                              // "seleccionado" como si fuera el valor real del campo (ese
-                                              // es el <input> de abajo).
-                                              e.target.value = '';
-                                            }}
-                                            style={{ marginBottom: '8px' }}
-                                          >
-                                            <option value="">{t('adminRobots.elegirModeloExistente')}</option>
-                                            {modelos3d.map((m) => (
-                                              <option key={m.url} value={m.url}>
-                                                {m.etiqueta} — {m.origen === 'robot' ? t('modelos3d.origenRobot') : t('modelos3d.origenPublicacion')}
-                                              </option>
-                                            ))}
-                                          </select>
-                                        )}
-                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                            <input ref={robotModelInputRef} name="modelUrl" defaultValue={editingRobot.modelUrl} placeholder="/models/mi-robot.glb" style={{ flex: 1 }} />
-                                            <input type="file" accept=".glb,.gltf" onChange={handleRobotModelUpload} style={{ display: 'none' }} id="upload-robot-model" />
-                                            <label htmlFor="upload-robot-model" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '12px 16px', background: 'var(--surface-strong)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', textAlign: 'center', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                                                {comprimiendoRobotModel ? t('adminRobots.comprimiendo') : uploadingRobotModel ? t('adminRobots.subiendo') : <><Upload size={14} /> {t('adminRobots.subir')}</>}
+
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "14px", paddingTop: "16px", borderTop: "1px solid var(--border)" }}>
+                                        <h4 style={{ margin: 0, color: "var(--accent)", fontFamily: "var(--font-ibm-mono)", fontSize: "0.82rem", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
+                                            3. Modelo 3D y Transmisión
+                                        </h4>
+                                        <div className="input-group">
+                                            <label>{t("adminRobots.rutaModelo")}</label>
+                                            {modelos3d.length > 0 && (
+                                              <select
+                                                defaultValue=""
+                                                onChange={(e) => {
+                                                  if (e.target.value && robotModelInputRef.current) {
+                                                    robotModelInputRef.current.value = e.target.value;
+                                                  }
+                                                  e.target.value = "";
+                                                }}
+                                                style={{ marginBottom: "8px" }}
+                                              >
+                                                <option value="">{t("adminRobots.elegirModeloExistente")}</option>
+                                                {modelos3d.map((m) => (
+                                                  <option key={m.url} value={m.url}>
+                                                    {m.etiqueta} — {m.origen === "robot" ? t("modelos3d.origenRobot") : t("modelos3d.origenPublicacion")}
+                                                  </option>
+                                                ))}
+                                              </select>
+                                            )}
+                                            <div style={{ display: "flex", gap: "8px" }}>
+                                                <input ref={robotModelInputRef} name="modelUrl" defaultValue={editingRobot.modelUrl} placeholder="/models/mi-robot.glb" style={{ flex: 1 }} />
+                                                <input type="file" accept=".glb,.gltf" onChange={handleRobotModelUpload} style={{ display: "none" }} id="upload-robot-model" />
+                                                <label htmlFor="upload-robot-model" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "12px 16px", background: "var(--surface-strong)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: "4px", textAlign: "center", cursor: "pointer", fontFamily: "var(--font-ibm-mono)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                                                    {comprimiendoRobotModel ? t("adminRobots.comprimiendo") : uploadingRobotModel ? t("adminRobots.subiendo") : <><Upload size={14} /> {t("adminRobots.subir")}</>}
+                                                </label>
+                                            </div>
+                                            {(comprimiendoRobotModel || uploadingRobotModel) && (
+                                              <div style={{ marginTop: "10px" }}>
+                                                <div style={{ height: "4px", background: "var(--background)", border: "1px solid var(--border)", borderRadius: "2px", overflow: "hidden" }}>
+                                                  <div style={{
+                                                    height: "100%",
+                                                    width: `${Math.round(progresoModelo * 100)}%`,
+                                                    background: "var(--accent)",
+                                                    transition: "width 0.15s linear",
+                                                  }} />
+                                                </div>
+                                                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "6px", fontFamily: "var(--font-ibm-mono)", fontSize: "0.7rem", letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--muted)" }}>
+                                                  <span>{comprimiendoRobotModel ? t("adminRobots.comprimiendo") : t("adminRobots.subiendo")}</span>
+                                                  <span>{Math.round(progresoModelo * 100)}%</span>
+                                                </div>
+                                              </div>
+                                            )}
+                                        </div>
+
+                                        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "16px", background: "var(--background)", border: "1px solid var(--border)", borderRadius: "4px", cursor: "pointer", fontFamily: "var(--font-ibm-mono)", fontSize: "0.85rem", color: "var(--muted)" }}>
+                                            <input type="checkbox" id="check-public-event" name="isPublicEvent" defaultChecked={Boolean(editingRobot.isPublicEvent)} style={{ width: "auto", marginTop: "3px", cursor: "pointer" }} />
+                                            <label htmlFor="check-public-event" style={{ display: "flex", flexDirection: "column", gap: "4px", cursor: "pointer" }}>
+                                                <span style={{ color: "var(--text)", letterSpacing: "0.05em", fontWeight: 600 }}>{t("adminRobots.transmisionPublica")}</span>
+                                                <span style={{ fontSize: "0.75rem", lineHeight: 1.5 }}>
+                                                    {t("adminRobots.transmisionDescripcion")} <span style={{ color: "var(--accent)" }}>/espectador/{editingRobot.id}</span>{t("adminRobots.transmisionDescripcion2")}
+                                                </span>
                                             </label>
                                         </div>
-                                        {/* Misma superficie que cualquier <input> del panel (fondo
-                                            --background, borde --border, radio 2px): es una barra de
-                                            progreso, no una tarjeta nueva, así que toma prestado el
-                                            marco que ya usa todo lo demás en vez de inventar uno. */}
-                                        {(comprimiendoRobotModel || uploadingRobotModel) && (
-                                          <div style={{ marginTop: '10px' }}>
-                                            <div style={{ height: '4px', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
-                                              <div style={{
-                                                height: '100%',
-                                                width: `${Math.round(progresoModelo * 100)}%`,
-                                                background: 'var(--accent)',
-                                                // El ancho ya lo anima React re-renderizando en cada aviso
-                                                // de progreso; esta transición solo suaviza el salto entre
-                                                // un aviso y el siguiente, que si no se nota a saltos.
-                                                transition: 'width 0.15s linear',
-                                              }} />
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--muted)' }}>
-                                              <span>{comprimiendoRobotModel ? t('adminRobots.comprimiendo') : t('adminRobots.subiendo')}</span>
-                                              <span>{Math.round(progresoModelo * 100)}%</span>
-                                            </div>
-                                          </div>
-                                        )}
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', gridColumn: 'span 2', padding: '16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', color: 'var(--muted)' }}>
-                                        <input type="checkbox" name="isPublicEvent" defaultChecked={Boolean(editingRobot.isPublicEvent)} style={{ width: 'auto', marginTop: '3px', cursor: 'pointer' }} />
-                                        <span style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                            <span style={{ color: 'var(--text)', letterSpacing: '0.05em' }}>{t('adminRobots.transmisionPublica')}</span>
-                                            <span style={{ fontSize: '0.75rem', lineHeight: 1.6 }}>
-                                                {t('adminRobots.transmisionDescripcion')} <span style={{ color: 'var(--accent)' }}>/espectador/{editingRobot.id}</span>{t('adminRobots.transmisionDescripcion2')}
-                                            </span>
-                                        </span>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '16px' }}>
-                                    <button type="button" className="logout-btn" onClick={() => setEditingRobot(null)} style={{ padding: '16px', height: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('adminRobots.cancelar')}</button>
-                                    <button type="submit" style={{ width: 'auto' }}>{editingRobot.isNew ? t('adminRobots.registrar') : t('adminRobots.guardarCambios')}</button>
+
+                                <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", padding: "16px 28px", borderTop: "1px solid var(--border)", background: "var(--background)", flexShrink: 0 }}>
+                                    <button type="button" className="logout-btn" onClick={() => setEditingRobot(null)} style={{ padding: "10px 20px", height: "auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                        {t("adminRobots.cancelar")}
+                                    </button>
+                                    <button type="submit" style={{ width: "auto", padding: "10px 24px", background: "var(--accent)", color: "#000", fontWeight: "bold" }}>
+                                        {editingRobot.isNew ? t("adminRobots.registrar") : t("adminRobots.guardarCambios")}
+                                    </button>
                                 </div>
                             </form>
-                        </div>
+                        </motion.div>
                     </div>
                 )}
 

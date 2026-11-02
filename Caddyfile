@@ -13,7 +13,7 @@ rur.unipolidgo.edu.mx {
 
 	@identity path /api/login /api/logout /api/me /api/users* /api/profile* /api/miembros* /api/personas /api/roles* /api/medallas*
 	@content path /api/posts* /api/upload /api/uploads/* /api/contact
-	@robots path /api/robots* /api/livekit* /api/crowdsec/* /api/logs
+	@robots path /api/robots* /api/livekit* /api/crowdsec/* /api/logs /api/control-center/*
 
 	# Los assets de Vite llevan un hash del contenido en el nombre
 	# (index-Ch5YNdbK.js), así que son inmutables por construcción: si cambia

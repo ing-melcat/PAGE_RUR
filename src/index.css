@@ -33,6 +33,12 @@
      nada y no se parece en nada a un editor. Para código va esta. */
   --font-codigo: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 
+  /* Espaciado técnico aeroespacial y robótica institucional */
+  --tracking-normal: 0.05em;
+  --tracking-tech: 0.18em;
+  --tracking-wide: 0.25em;
+  --tracking-ultra: 0.38em;
+
   /* PALETA OFICIAL RUR */
   --background: #020713; /* Fondo principal (más oscuro que la base para contraste) */
   --surface: #051025; /* Azul oscuro institucional (Base) */
@@ -236,19 +242,20 @@ body {
 }
 
 /* Typography Scale */
-h1, h2, h3, h4 {
+h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-titulo), sans-serif;
   /* Bebas Neue existe en un solo peso. Sin esto el navegador finge el
      500/600/700 que piden las reglas heredadas engordando los trazos, y
      el titular sale sucio y desalineado. */
   font-weight: 400;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.08em;
   line-height: 1.05;
+  text-transform: uppercase;
 }
 
 .mono, .panel-label, .topbar-title {
   font-family: var(--font-etiqueta), sans-serif;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 /* Roboto no es de paso fijo: un contador que cambia de 1 a 8 movía todo
@@ -261,27 +268,29 @@ h1, h2, h3, h4 {
 h1 {
   font-size: var(--t-xl);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   margin: 0;
   color: var(--text);
 }
 
 .eyebrow {
-  font-family: var(--font-ibm-mono), monospace;
+  font-family: var(--font-etiqueta), sans-serif;
   font-size: var(--t-xs);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-wide);
+  text-indent: calc(var(--tracking-wide) * 0.5);
   color: var(--muted);
   margin-bottom: 4px;
 }
 
 /* Variante grande en ámbar para los eyebrows de sección de la landing
-   pública. Antes cada uso pisaba .eyebrow a mano con un style inline
-   idéntico repetido tres veces; ahora es una clase explícita. */
+   pública. */
 .eyebrow--hero {
   color: var(--accent);
   font-size: var(--t-base);
-  letter-spacing: 0.2em;
+  letter-spacing: var(--tracking-ultra);
+  text-indent: calc(var(--tracking-ultra) * 0.5);
 }
 
 /* ==================================================================
@@ -1251,10 +1260,14 @@ h1 {
 }
 
 .topbar-title {
+  font-family: var(--font-etiqueta), sans-serif;
   font-size: var(--t-sm);
   font-weight: 700;
-  letter-spacing: 0.4em;
+  letter-spacing: var(--tracking-ultra);
+  text-indent: calc(var(--tracking-ultra) * 0.5);
+  text-transform: uppercase;
   color: var(--text);
+  white-space: nowrap;
 }
 
 .container {
@@ -1266,17 +1279,18 @@ h1 {
 
 /* Interactive Elements */
 .logout-btn-small {
-  padding: 6px 16px;
+  padding: 8px 18px;
   border: 1px solid var(--border);
   background: transparent;
   color: var(--muted);
-  font-family: var(--font-ibm-mono), monospace;
+  font-family: var(--font-etiqueta), sans-serif;
   font-size: var(--t-xs);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-tech);
+  text-indent: calc(var(--tracking-tech) * 0.5);
   cursor: pointer;
   border-radius: 2px;
-  transition: color var(--mov-rapido) ease, background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 @media (any-hover: hover) {
@@ -1345,10 +1359,13 @@ h1 {
 
 .panel-label {
   display: block;
+  font-family: var(--font-etiqueta), sans-serif;
   font-size: var(--t-xs);
+  font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-wide);
+  text-indent: calc(var(--tracking-wide) * 0.5);
   margin-bottom: 8px;
 }
 
@@ -1360,12 +1377,14 @@ h1 {
 
 .input-group label {
   display: block;
-  font-family: var(--font-ibm-mono), monospace;
+  font-family: var(--font-etiqueta), sans-serif;
   font-size: var(--t-xs);
+  font-weight: 700;
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 8px;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-tech);
+  text-indent: calc(var(--tracking-tech) * 0.5);
 }
 
 input, select, textarea {
@@ -1401,11 +1420,12 @@ button[type="submit"], .action-card {
   border: 1px solid var(--accent);
   background: var(--accent-muted);
   color: var(--accent);
-  font-family: var(--font-ibm-mono), monospace;
+  font-family: var(--font-etiqueta), sans-serif;
   font-size: var(--t-sm);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-weight: 600;
+  letter-spacing: var(--tracking-tech);
+  text-indent: calc(var(--tracking-tech) * 0.5);
+  font-weight: 700;
   cursor: pointer;
   border-radius: 2px;
   display: inline-flex;
@@ -1748,13 +1768,16 @@ button[type="submit"]:disabled {
 
 .nav-link {
   text-decoration: none;
-  color: var(--text); /* Typography is now completely solid and normal */
-  font-family: var(--font-ibm-sans);
-  font-weight: 600;
-  font-size: var(--t-base);
-  letter-spacing: 0.1em;
+  color: var(--text);
+  font-family: var(--font-etiqueta), sans-serif;
+  font-weight: 700;
+  font-size: var(--t-sm);
+  letter-spacing: var(--tracking-wide);
+  text-indent: calc(var(--tracking-wide) * 0.5);
+  text-transform: uppercase;
   position: relative;
   padding-bottom: 4px;
+  transition: color 0.16s ease;
 }
 
 .nav-link::before {
@@ -1808,49 +1831,102 @@ button[type="submit"]:disabled {
   transform-origin: left;
 }
 
-/* Animaciones y Botones Mejorados */
-button, .action-card, .logout-btn-small {
-  transition: color var(--mov-medio) cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), border-color 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+/* ==================================================================
+   Sistema de Botones e Interacciones Táctiles de Alta Precisión
+   ------------------------------------------------------------------
+   Inspirado en instrumentación aeroespacial y robótica institucional:
+   - Tipografía en caja alta con tracking abierto (--tracking-tech),
+     peso marcado (700) y familia institucional (--font-etiqueta).
+   - Micro-interacción nítida: sin rebote de plantilla ni círculos de
+     agua ('ripple') genéricos. Un haz de luz láser oblicuo barre
+     el botón en hover con halo perimetral ambarino.
+   - Accionamiento mecánico real en active: desplazamiento limpio de
+     1px hacia abajo con resplandor interno táctil, sin encogimiento
+     elástico que deforme el botón.
+   ================================================================== */
+button, .action-card, .logout-btn-small, .paginador-btn {
+  font-family: var(--font-etiqueta), sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-tech);
+  text-indent: calc(var(--tracking-tech) * 0.5);
   position: relative;
   overflow: hidden;
+  border-radius: 3px;
   transform: translateZ(0);
+  transition: 
+    color 0.16s ease,
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.12s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.16s ease;
+}
+
+/* Haz de luz de barrido tecnológico en hover (en vez de ripple circular) */
+button::before, .action-card::before, .logout-btn-small::before, .paginador-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -140%;
+  width: 90%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(251, 202, 1, 0.22) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 1;
 }
 
 @media (any-hover: hover) {
-  button:hover, .action-card:hover, .logout-btn-small:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 5px 20px rgba(251, 202, 1, 0.3);
-    background: var(--accent);
-    color: var(--background) !important;
+  button:hover:not(:disabled)::before,
+  .action-card:hover:not(:disabled)::before,
+  .logout-btn-small:hover:not(:disabled)::before,
+  .paginador-btn:hover:not(:disabled)::before {
+    transform: skewX(-20deg) translateX(340%);
+  }
+
+  button:hover:not(:disabled),
+  .action-card:hover:not(:disabled),
+  .logout-btn-small:hover:not(:disabled),
+  .paginador-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: var(--accent);
+    box-shadow: 
+      0 0 14px rgba(251, 202, 1, 0.24),
+      inset 0 0 10px rgba(251, 202, 1, 0.05);
+  }
+
+  /* Botones primarios (fondo amarillo): iluminar con resplandor dorado */
+  button[type="submit"]:hover:not(:disabled),
+  button.btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+    box-shadow: 0 0 18px rgba(251, 202, 1, 0.45);
+  }
+
+  /* Botones outline / transparentes: matiz tenue sin alterar legibilidad */
+  .logout-btn-small:hover:not(:disabled),
+  .paginador-btn:hover:not(:disabled) {
+    background-color: rgba(251, 202, 1, 0.08);
+    color: var(--accent);
   }
 }
 
-button:active, .action-card:active, .logout-btn-small:active {
-  transform: translateY(1px) scale(0.95);
-  box-shadow: 0 0 15px var(--accent);
-}
-
-button::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 10px;
-  height: 10px;
-  background: rgba(255, 255, 255, 0.5);
-  opacity: 0;
-  border-radius: 100%;
-  transform: scale(1, 1) translate(-50%, -50%);
-  transform-origin: 50% 50%;
-}
-
-button:active::after {
-  animation: ripple 0.6s ease-out;
-}
-
-@keyframes ripple {
-  0% { transform: translate(-50%, -50%) scale(0); opacity: 0.8; }
-  100% { transform: translate(-50%, -50%) scale(20); opacity: 0; }
+/* Pulsación mecánica: clic físico instantáneo */
+button:active:not(:disabled),
+.action-card:active:not(:disabled),
+.logout-btn-small:active:not(:disabled),
+.paginador-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 
+    0 0 20px rgba(251, 202, 1, 0.5),
+    inset 0 0 10px rgba(251, 202, 1, 0.25);
+  transition-duration: 0.05s;
 }
 
 /* Efecto hover suave en tarjetas */
@@ -2849,7 +2925,9 @@ textarea:focus-visible {
 }
 
 .editor-toolbar-superior button::after,
-.editor-callout-menu button::after {
+.editor-toolbar-superior button::before,
+.editor-callout-menu button::after,
+.editor-callout-menu button::before {
   display: none !important;
 }
 

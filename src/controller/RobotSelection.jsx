@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Robot3DPreview } from './components/Robot3DPreview';
-import { Gamepad2, X } from 'lucide-react';
+import { Gamepad2, Keyboard, X } from 'lucide-react';
 import { useLanguage } from '../lib/i18n';
 
 // Índice de botón (API estándar de Gamepad, W3C) -> etiqueta que ya usa
@@ -47,11 +47,11 @@ const TECLAS_RAPIDAS = [
 
 // Shared style tokens
 const S = {
-  label: { fontFamily: 'var(--font-ibm-mono)', fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  label: { fontFamily: 'var(--font-etiqueta), sans-serif', fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-tech)', fontWeight: 700 },
   input: { padding: '10px 14px', fontSize: '0.88rem', background: 'var(--background)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', outline: 'none', fontFamily: 'var(--font-ibm-mono)', width: '100%', transition: 'all 0.2s ease', boxSizing: 'border-box' },
-  sectionTitle: { margin: 0, color: 'var(--text)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, paddingBottom: '8px', borderBottom: '1px solid var(--border)' },
+  sectionTitle: { margin: 0, color: 'var(--text)', fontFamily: 'var(--font-etiqueta), sans-serif', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: 'var(--tracking-tech)', textIndent: 'calc(var(--tracking-tech) * 0.5)', fontWeight: 700, paddingBottom: '8px', borderBottom: '1px solid var(--border)' },
   panel: { background: 'var(--surface)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' },
-  btn: { background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s ease' },
+  btn: { background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-etiqueta), sans-serif', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: 'var(--tracking-tech)', textIndent: 'calc(var(--tracking-tech) * 0.5)', fontWeight: 700, transition: 'all 0.2s ease' },
 };
 
 function formatearTecla(codigo) {
@@ -517,8 +517,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                     type="button"
                                     onClick={() => setActiveTab('keyboard')}
                                     style={{
-                                        ...S.btn,
-                                        padding: '6px 14px',
+                                        ...S.btn, display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
                                         fontSize: '0.8rem',
                                         fontWeight: 600,
                                         color: activeTab === 'keyboard' ? 'var(--accent)' : 'var(--muted)',
@@ -526,14 +525,13 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                         background: activeTab === 'keyboard' ? 'var(--background)' : 'transparent',
                                     }}
                                 >
-                                    ⌨️ {t('operador.seleccion.teclado')}
+                                    <Keyboard size={16} /> {t('operador.seleccion.teclado')}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab('gamepad')}
                                     style={{
-                                        ...S.btn,
-                                        padding: '6px 14px',
+                                        ...S.btn, display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
                                         fontSize: '0.8rem',
                                         fontWeight: 600,
                                         color: activeTab === 'gamepad' ? 'var(--accent)' : 'var(--muted)',
@@ -541,7 +539,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                                         background: activeTab === 'gamepad' ? 'var(--background)' : 'transparent',
                                     }}
                                 >
-                                    🎮 {t('operador.seleccion.mando')}
+                                    <Gamepad2 size={16} /> {t('operador.seleccion.mando')}
                                 </button>
                             </div>
 

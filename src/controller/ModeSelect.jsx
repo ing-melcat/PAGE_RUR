@@ -6,8 +6,8 @@ import { useLanguage } from '../lib/i18n';
 // Mismos tokens de estilo que RobotSelection.jsx, para que ambas pantallas
 // del flujo del operador se vean como una sola pieza.
 const S = {
-  label: { fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  sectionTitle: { margin: 0, color: 'var(--text)', fontFamily: 'var(--font-ibm-mono)', fontSize: '0.95rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500, paddingBottom: '12px', borderBottom: '1px solid var(--border)' },
+  label: { fontFamily: 'var(--font-etiqueta), sans-serif', fontSize: '0.8rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-tech)', fontWeight: 700 },
+  sectionTitle: { margin: 0, color: 'var(--text)', fontFamily: 'var(--font-etiqueta), sans-serif', fontSize: '0.95rem', textTransform: 'uppercase', letterSpacing: 'var(--tracking-tech)', textIndent: 'calc(var(--tracking-tech) * 0.5)', fontWeight: 700, paddingBottom: '12px', borderBottom: '1px solid var(--border)' },
   panel: { background: 'var(--surface)', padding: '32px', borderRadius: '8px', border: '1px solid var(--border)' },
 };
 

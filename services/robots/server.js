@@ -8,6 +8,7 @@ import { verifyToken, noStore, IS_PRODUCTION, requirePermiso, permisosDe } from 
 import { csrfProtection } from '../shared/csrf.js';
 import { encryptSecret, decryptSecret, maskSecret } from '../shared/crypto.js';
 import { saveLog } from '../shared/logs.js';
+import { crearRutasCentroControl } from './controlCenter.js';
 
 const app = express();
 app.set('trust proxy', 1); // Caddy es el único proxy delante
@@ -113,6 +114,10 @@ function decryptSecretSafe(encrypted) {
 }
 
 app.get('/api/hello', (req, res) => res.json({ message: 'svc-robots ok' }));
+
+// Centro de Control de escritorio: lista de robots y tokens `robot-<id>`
+// autenticados con llave de dispositivo (ver controlCenter.js).
+app.use(crearRutasCentroControl(pool));
 
 // Transmisiones públicas en curso. SIN sesión: es lo que permite anunciar en
 // la web pública que hay algo que ver, sin obligar a tener cuenta.

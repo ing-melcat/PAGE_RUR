@@ -181,12 +181,12 @@ export const Landing = ({ category = 'landing', limit }: { category?: string, li
                   ) : null
                 )}
                 {isSpecial ? (
-                  <div style={{ position: 'absolute', top: 14, left: 14, background: specialColor, padding: '5px 11px', borderRadius: '2px', color: isAviso ? 'white' : 'black', fontSize: '0.68rem', letterSpacing: '0.1em', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', zIndex: 10 }}>
+                  <div style={{ position: 'absolute', top: 14, left: 14, background: specialColor, padding: '5px 11px', borderRadius: '2px', color: isAviso ? 'white' : 'black', fontSize: '0.68rem', letterSpacing: 'var(--tracking-tech)', textIndent: 'calc(var(--tracking-tech) * 0.5)', fontFamily: 'var(--font-etiqueta), sans-serif', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px', zIndex: 10 }}>
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: isAviso ? 'white' : 'black', animation: 'pulse 1.5s infinite' }}></div>
                     {badgeText}
                   </div>
                 ) : (
-                  <div style={{ position: 'absolute', top: 0, left: 0, background: 'var(--accent)', padding: '6px 16px', color: 'black', fontSize: '0.75rem', letterSpacing: '0.15em', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', textTransform: 'uppercase', zIndex: 10 }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, background: 'var(--accent)', padding: '6px 16px', color: 'black', fontSize: '0.75rem', letterSpacing: 'var(--tracking-tech)', textIndent: 'calc(var(--tracking-tech) * 0.5)', fontFamily: 'var(--font-etiqueta), sans-serif', fontWeight: 700, textTransform: 'uppercase', zIndex: 10 }}>
                     {badgeText}
                   </div>
                 )}
@@ -208,7 +208,7 @@ export const Landing = ({ category = 'landing', limit }: { category?: string, li
                 
                 <p style={{ color: 'var(--muted)', fontSize: '1rem', lineHeight: '1.6', marginTop: '16px' }}>{previewText}</p>
 
-                <div style={{ alignSelf: 'flex-start', color: specialColor, fontFamily: 'var(--font-ibm-mono)', fontSize: '0.9rem', borderBottom: `1px solid ${specialColor}`, paddingBottom: '2px', marginTop: '24px' }}>
+                <div style={{ alignSelf: 'flex-start', color: specialColor, fontFamily: 'var(--font-etiqueta), sans-serif', fontWeight: 700, fontSize: '0.85rem', letterSpacing: 'var(--tracking-tech)', textIndent: 'calc(var(--tracking-tech) * 0.5)', textTransform: 'uppercase', borderBottom: `2px solid ${specialColor}`, paddingBottom: '3px', marginTop: '24px' }}>
                   {t('landing.leerAhora')}
                 </div>
               </div>
@@ -775,11 +775,11 @@ export const ArchiveDashboard = () => {
                       />
                     )}
                     {isSpecial ? (
-                      <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: '4px', background: specialColor, padding: '4px 10px', borderRadius: '2px', border: 'none', color: isAviso ? 'white' : 'black', fontSize: '0.7rem', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                      <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: '4px', background: specialColor, padding: '4px 10px', borderRadius: '2px', border: 'none', color: isAviso ? 'white' : 'black', fontSize: '0.7rem', fontFamily: 'var(--font-etiqueta), sans-serif', fontWeight: 700, letterSpacing: 'var(--tracking-tech)', textTransform: 'uppercase' }}>
                         {BadgeIcon && <BadgeIcon size={12} />} {badgeText}
                       </div>
                     ) : (
-                      <div style={{ position: 'absolute', top: 0, left: 0, background: 'var(--accent)', padding: '6px 14px', color: 'black', fontSize: '0.75rem', letterSpacing: '0.15em', fontFamily: 'var(--font-ibm-mono)', fontWeight: 'bold', textTransform: 'uppercase', zIndex: 10 }}>
+                      <div style={{ position: 'absolute', top: 0, left: 0, background: 'var(--accent)', padding: '6px 14px', color: 'black', fontSize: '0.75rem', letterSpacing: 'var(--tracking-tech)', textIndent: 'calc(var(--tracking-tech) * 0.5)', fontFamily: 'var(--font-etiqueta), sans-serif', fontWeight: 700, textTransform: 'uppercase', zIndex: 10 }}>
                         {badgeText}
                       </div>
                     )}

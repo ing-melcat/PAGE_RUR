@@ -110,9 +110,11 @@
   border: 1px solid var(--border);
   border-radius: 2px;
   color: var(--text);
-  font-family: var(--font-ibm-mono);
+  font-family: var(--font-etiqueta), sans-serif;
+  font-weight: 700;
   font-size: var(--t-xs);
-  letter-spacing: .08em;
+  letter-spacing: var(--tracking-tech);
+  text-indent: calc(var(--tracking-tech) * 0.5);
   text-transform: uppercase;
   cursor: pointer;
   transition: border-color var(--mov-rapido) ease, color var(--mov-rapido) ease;
@@ -166,9 +168,11 @@
 
 .filtros__titulo {
   margin: 0 0 10px;
-  font-family: var(--font-ibm-mono);
+  font-family: var(--font-etiqueta), sans-serif;
+  font-weight: 700;
   font-size: var(--t-xs);
-  letter-spacing: .1em;
+  letter-spacing: var(--tracking-tech);
+  text-indent: calc(var(--tracking-tech) * 0.5);
   text-transform: uppercase;
   color: var(--accent);
 }
@@ -207,9 +211,11 @@
   border: 1px solid var(--border);
   border-radius: 2px;
   color: var(--muted);
-  font-family: var(--font-ibm-mono);
+  font-family: var(--font-etiqueta), sans-serif;
+  font-weight: 700;
   font-size: var(--t-xs);
-  letter-spacing: .08em;
+  letter-spacing: var(--tracking-tech);
+  text-indent: calc(var(--tracking-tech) * 0.5);
   text-transform: uppercase;
   padding: 7px 12px;
   cursor: pointer;
@@ -534,8 +540,10 @@
 .perfil__volver {
   display: inline-block;
   font-family: var(--font-etiqueta), sans-serif;
+  font-weight: 700;
   font-size: var(--t-xs);
-  letter-spacing: .14em;
+  letter-spacing: var(--tracking-tech);
+  text-indent: calc(var(--tracking-tech) * 0.5);
   text-transform: uppercase;
   text-decoration: none;
   color: var(--muted);

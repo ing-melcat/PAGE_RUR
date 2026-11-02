@@ -172,7 +172,7 @@ function Home() {
           <h2 style={{ fontFamily: 'var(--font-titulo)', fontSize: '1.9rem', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
             <span style={{ color: 'var(--accent)' }}>/</span> {t('home.seccionTitulo')}
           </h2>
-          <Link to="/archivo" style={{ color: 'var(--accent)', fontFamily: 'var(--font-ibm-mono)', textDecoration: 'none', letterSpacing: '0.1em' }}>{t('home.verTodo')}</Link>
+          <Link to="/archivo" style={{ color: 'var(--accent)', fontFamily: 'var(--font-etiqueta), sans-serif', fontWeight: 700, textDecoration: 'none', letterSpacing: 'var(--tracking-tech)', textIndent: 'calc(var(--tracking-tech) * 0.5)', textTransform: 'uppercase' }}>{t('home.verTodo')}</Link>
         </div>
 
         <Landing category="all" limit={6} />
@@ -269,7 +269,7 @@ const Footer = () => {
   }}>
     <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '40px', marginBottom: '40px' }}>
       <div>
-        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-titulo)', marginBottom: '20px', letterSpacing: '0.1em' }}>{t('footer.contacto')}</h4>
+        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-etiqueta), sans-serif', fontWeight: 700, marginBottom: '20px', letterSpacing: 'var(--tracking-tech)', textIndent: 'calc(var(--tracking-tech) * 0.5)', textTransform: 'uppercase' }}>{t('footer.contacto')}</h4>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0' }}>
           <MapPin size={18} style={{ flexShrink: 0 }} /> <span style={{ fontSize: '0.9rem', lineHeight: '1.4' }}>México 45, Los Encinos, 34307 Dgo., México</span>
         </div>
@@ -282,13 +282,13 @@ const Footer = () => {
         </div>
       </div>
       <div>
-        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-titulo)', marginBottom: '20px', letterSpacing: '0.1em' }}>{t('footer.legal')}</h4>
+        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-etiqueta), sans-serif', fontWeight: 700, marginBottom: '20px', letterSpacing: 'var(--tracking-tech)', textIndent: 'calc(var(--tracking-tech) * 0.5)', textTransform: 'uppercase' }}>{t('footer.legal')}</h4>
         <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>{t('footer.avisoPrivacidad')}</Link></p>
         <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>{t('footer.terminos')}</Link></p>
         <p style={{ margin: '12px 0' }}><Link to="/coming-soon" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: '0.9rem' }}>{t('footer.cookies')}</Link></p>
       </div>
       <div>
-        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-titulo)', marginBottom: '20px', letterSpacing: '0.1em' }}>{t('footer.social')}</h4>
+        <h4 style={{ color: 'var(--accent)', fontFamily: 'var(--font-etiqueta), sans-serif', fontWeight: 700, marginBottom: '20px', letterSpacing: 'var(--tracking-tech)', textIndent: 'calc(var(--tracking-tech) * 0.5)', textTransform: 'uppercase' }}>{t('footer.social')}</h4>
         <div style={{ display: 'flex', gap: '20px' }}>
           <Link to="/coming-soon" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '1.2rem', fontWeight: 'bold' }}>𝕏</Link>
           <Link to="/coming-soon" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '1.2rem', fontWeight: 'bold' }}>in</Link>
@@ -493,8 +493,11 @@ const ComingSoon = () => {
           color: '#000',
           border: 'none',
           padding: '12px 32px',
-          fontFamily: 'var(--font-ibm-mono)',
-          fontWeight: 'bold',
+          fontFamily: 'var(--font-etiqueta), sans-serif',
+          fontWeight: 700,
+          letterSpacing: 'var(--tracking-tech)',
+          textIndent: 'calc(var(--tracking-tech) * 0.5)',
+          textTransform: 'uppercase',
           cursor: 'pointer',
           borderRadius: '4px',
           transition: 'all 0.3s ease'
