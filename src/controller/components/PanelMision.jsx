@@ -86,21 +86,22 @@ export function PanelMision({ robotId, mission, onMissionUpdate, isPublicEvent, 
   const txtAbrirGrabador = getTxt('mision.abrirGrabador', 'Abrir Grabador');
 
   return (
-    <div style={{
-      pointerEvents: 'auto',
-      minWidth: '300px',
-      background: 'var(--surface)',
-      border: '1px solid var(--border)',
-      borderRadius: '6px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-      padding: '16px',
-      display: 'flex', flexDirection: 'column', gap: '12px',
-      zIndex: 1000
-    }}>
-      <h3 style={{ margin: 0, fontSize: '0.78rem', textTransform: 'uppercase', color: 'var(--accent)', letterSpacing: '0.08em', fontFamily: 'var(--font-ibm-mono), monospace', fontWeight: 600 }}>
-        <Flag size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-        {txtTitulo}
-      </h3>
+    <div 
+      className="cabezal-terminal-window"
+      style={{
+        pointerEvents: 'auto',
+        minWidth: '320px',
+        padding: '16px',
+        display: 'flex', flexDirection: 'column', gap: '12px',
+        zIndex: 1000
+      }}
+    >
+      <div className="cabezal-terminal-window-header">
+        <span className="cabezal-terminal-window-title">
+          <Flag size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+          [ // {txtTitulo} ]
+        </span>
+      </div>
       
       <div style={{ display: 'flex', gap: '8px' }}>
         <input 
@@ -110,30 +111,30 @@ export function PanelMision({ robotId, mission, onMissionUpdate, isPublicEvent, 
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
           placeholder={txtNuevoObj}
           style={{
-            flex: 1, background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border)',
-            color: 'var(--bone)', padding: '6px 10px', borderRadius: '4px',
-            fontFamily: 'var(--font-ibm-mono), monospace', fontSize: '0.78rem',
+            flex: 1, background: 'rgba(2, 7, 19, 0.7)', border: '1px solid rgba(251, 202, 1, 0.35)',
+            color: 'var(--bone)', padding: '6px 10px', borderRadius: '2px',
+            fontFamily: 'var(--font-codigo), monospace', fontSize: '0.78rem',
             outline: 'none'
           }}
           onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
-          onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+          onBlur={(e) => e.target.style.borderColor = 'rgba(251, 202, 1, 0.35)'}
         />
         <button 
           onClick={handleAdd}
-          className="telemetria-btn"
+          className="cabezal-terminal-btn"
           style={{ padding: '0 10px' }}
         >
-          +
+          <span className="cabezal-terminal-btn-bracket">[</span>+<span className="cabezal-terminal-btn-bracket">]</span>
         </button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
         {objectives.map(obj => (
-          <div key={obj.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px', border: '1px solid transparent' }}>
+          <div key={obj.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px', background: 'rgba(251, 202, 1, 0.03)', borderRadius: '2px', border: '1px solid rgba(251, 202, 1, 0.15)' }}>
             <button 
               onClick={() => handleToggle(obj.id)}
               style={{
-                width: '18px', height: '18px', borderRadius: '3px',
+                width: '18px', height: '18px', borderRadius: '2px',
                 border: `1px solid ${obj.completed_at ? 'var(--accent)' : 'var(--muted)'}`,
                 background: obj.completed_at ? 'var(--accent)' : 'transparent',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -147,7 +148,7 @@ export function PanelMision({ robotId, mission, onMissionUpdate, isPublicEvent, 
               color: obj.completed_at ? 'var(--muted)' : 'var(--bone)', 
               textDecoration: obj.completed_at ? 'line-through' : 'none', 
               fontSize: '0.78rem',
-              fontFamily: 'var(--font-ibm-mono), monospace'
+              fontFamily: 'var(--font-codigo), monospace'
             }}>
               {obj.text}
             </span>
@@ -161,48 +162,54 @@ export function PanelMision({ robotId, mission, onMissionUpdate, isPublicEvent, 
         ))}
       </div>
 
-      <div style={{ marginTop: '8px', paddingTop: '12px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ marginTop: '8px', paddingTop: '12px', borderTop: '1px solid rgba(251, 202, 1, 0.25)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <button
           onClick={() => saveMission(objectives, mission?.started_at ? null : Date.now())}
           disabled={loading}
-          className="telemetria-btn"
+          className={`cabezal-terminal-btn ${mission?.started_at ? 'cabezal-terminal-btn--active' : ''}`}
           style={{
-            borderColor: mission?.started_at ? 'var(--error)' : 'var(--accent)',
+            borderColor: mission?.started_at ? 'var(--error)' : 'rgba(251, 202, 1, 0.45)',
             color: mission?.started_at ? 'var(--error)' : 'var(--accent)',
             justifyContent: 'center', width: '100%',
             opacity: loading ? 0.5 : 1
           }}
         >
-          {mission?.started_at ? txtDetener : txtIniciar}
+          <span className="cabezal-terminal-btn-bracket">[</span>
+          <span className="cabezal-terminal-btn-label">{mission?.started_at ? txtDetener : txtIniciar}</span>
+          <span className="cabezal-terminal-btn-bracket">]</span>
         </button>
 
         <button
           onClick={toggleTransmission}
           disabled={loading}
-          className="telemetria-btn"
+          className={`cabezal-terminal-btn ${isPublicEvent ? 'cabezal-terminal-btn--active' : ''}`}
           style={{
-            borderColor: isPublicEvent ? 'var(--error)' : 'var(--border)',
+            borderColor: isPublicEvent ? 'var(--error)' : 'rgba(251, 202, 1, 0.45)',
             color: isPublicEvent ? 'var(--error)' : 'var(--bone)',
             justifyContent: 'center', width: '100%',
             opacity: loading ? 0.5 : 1
           }}
         >
+          <span className="cabezal-terminal-btn-bracket">[</span>
           <Radio size={14} />
-          {isPublicEvent ? txtCerrarTx : txtAbrirTx}
+          <span className="cabezal-terminal-btn-label">{isPublicEvent ? txtCerrarTx : txtAbrirTx}</span>
+          <span className="cabezal-terminal-btn-bracket">]</span>
         </button>
 
         <a
           href={`/recorder/${robotId}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="telemetria-btn"
+          className="cabezal-terminal-btn"
           style={{
             justifyContent: 'center', width: '100%',
             textDecoration: 'none'
           }}
         >
+          <span className="cabezal-terminal-btn-bracket">[</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
-          {txtAbrirGrabador}
+          <span className="cabezal-terminal-btn-label">{txtAbrirGrabador}</span>
+          <span className="cabezal-terminal-btn-bracket">]</span>
         </a>
       </div>
     </div>

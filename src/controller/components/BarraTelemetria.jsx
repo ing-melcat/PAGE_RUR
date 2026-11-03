@@ -542,34 +542,42 @@ export function BarraTelemetria({
 
   const panelMenu = menuAbierto ? (
         <div
-          className={`telemetria__panel-animado${arriba ? '' : ' telemetria__panel-animado--abajo'}`}
+          className={`telemetria__panel-animado cabezal-terminal-window ${arriba ? '' : ' telemetria__panel-animado--abajo'}`}
           style={{
             pointerEvents: 'auto',
-            position: 'absolute', right: esencial ? 0 : (compacta ? '20px' : '40px'), minWidth: '230px',
+            position: 'absolute', right: esencial ? 0 : (compacta ? '20px' : '40px'), minWidth: '260px',
             ...(arriba
               ? { top: '100%', marginTop: '10px' }
               : { bottom: '100%', marginBottom: '10px' }),
-            ...TARJETA, padding: '14px 16px',
+            padding: '14px 16px',
             display: 'flex', flexDirection: 'column', gap: '10px',
             zIndex: 1000,
           }}
         >
-          <p className="telemetria__titulo">{t('telemetria.elegirQueVer')}</p>
+          <div className="cabezal-terminal-window-header">
+            <span className="cabezal-terminal-window-title">
+              [ // TELEMETRÍA ]
+            </span>
+            <button
+              type="button"
+              className="cabezal-terminal-btn"
+              onClick={() => setMenuAbierto(false)}
+              style={{ padding: '2px 8px', fontSize: '0.75rem' }}
+              title="Cerrar"
+            >
+              <span className="cabezal-terminal-btn-bracket">[</span>✕<span className="cabezal-terminal-btn-bracket">]</span>
+            </button>
+          </div>
 
           {WIDGETS.map(({ id, fuente }) => {
             const encendido = activos.includes(id);
-            // Un widget cuyos datos aún no llegan se puede encender igual, pero
-            // se avisa para que nadie crea que está roto.
-            // 'robot' se marca siempre: mientras nadie publique el topic
-            // `telemetria_robot` (ver docs/TELEMETRIA_ROBOT.md) esos widgets no
-            // pueden tener datos, y encenderlos sin avisar parecería una avería.
             const sinDatos = fuente === 'robot'
               || (fuente === 'enlace' && necesitaEnlace && !enlace);
             return (
               <label
                 key={id}
                 className={`telemetria__opcion${encendido ? ' telemetria__opcion--activa' : ''}`}
-                style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontFamily: 'var(--font-codigo)' }}
               >
                 <input
                   type="checkbox"
@@ -577,17 +585,15 @@ export function BarraTelemetria({
                   onChange={() => alternar(id)}
                   style={{ width: 'auto', accentColor: 'var(--accent)', cursor: 'pointer' }}
                 />
-                <span style={{ flex: 1 }}>{t(`telemetria.widgetLabel.${id}`)}</span>
-                {sinDatos && <span className="telemetria__nota">{t('telemetria.sinDatos')}</span>}
+                <span style={{ flex: 1, fontSize: '0.8rem', color: encendido ? 'var(--bone)' : 'var(--muted)' }}>
+                  {t(`telemetria.widgetLabel.${id}`)}
+                </span>
+                {sinDatos && <span className="telemetria__nota" style={{ fontSize: '0.65rem' }}>{t('telemetria.sinDatos')}</span>}
               </label>
             );
           })}
 
-          <span className="telemetria__nota">
-            {t('telemetria.seleccionGuardada')}
-          </span>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '10px', borderTop: '1px solid rgba(251, 202, 1, 0.25)' }}>
             <button
               onClick={() => {
                 setActivos(widgetsIniciales);
@@ -595,23 +601,12 @@ export function BarraTelemetria({
                   localStorage.setItem(STORAGE_KEY, JSON.stringify(widgetsIniciales));
                 } catch {}
               }}
-              style={{
-                cursor: 'pointer', textAlign: 'left', background: 'transparent', whiteSpace: 'nowrap',
-                border: '1px solid var(--border)', borderRadius: '2px', padding: '6px 10px',
-              }}
-              className="telemetria__accion"
+              className="cabezal-terminal-btn"
+              style={{ justifyContent: 'center', width: '100%', fontSize: '0.75rem', padding: '6px 10px' }}
             >
-              {t('telemetria.restaurar', 'Restaurar por defecto')}
-            </button>
-            <button
-              onClick={() => setMenuAbierto(false)}
-              style={{
-                cursor: 'pointer', textAlign: 'left', background: 'transparent', whiteSpace: 'nowrap',
-                border: '1px solid var(--border)', borderRadius: '2px', padding: '6px 10px',
-              }}
-              className="telemetria__accion"
-            >
-              {t('telemetria.cerrarMenu', 'Cerrar menú')}
+              <span className="cabezal-terminal-btn-bracket">[</span>
+              <span className="cabezal-terminal-btn-label">RESTAURAR POR DEFECTO</span>
+              <span className="cabezal-terminal-btn-bracket">]</span>
             </button>
           </div>
         </div>
@@ -828,18 +823,47 @@ export function BarraTelemetria({
             </div>
 
             <div className="hud__controls-pill">
-              {entrada && <ChipEntrada entrada={entrada} transicion={transicion} />}
+              {entrada && (
+                <button
+                  type="button"
+                  onClick={typeof entrada.onAlternar === 'function' ? entrada.onAlternar : undefined}
+                  disabled={typeof entrada.onAlternar !== 'function'}
+                  className="cabezal-terminal-btn"
+                  title={typeof entrada.onAlternar === 'function' ? t('telemetria.cambiarEntrada') : undefined}
+                >
+                  <span className="cabezal-terminal-btn-bracket">[</span>
+                  {entrada.tipo === 'tactil' ? (
+                    <Pointer size={14} color="var(--accent)" strokeWidth={2.2} />
+                  ) : entrada.tipo === 'teclado' ? (
+                    <Keyboard size={14} color="var(--accent)" strokeWidth={2.2} />
+                  ) : (
+                    <Gamepad2 size={14} color="var(--accent)" strokeWidth={2.2} />
+                  )}
+                  <span className="cabezal-terminal-btn-label">
+                    {entrada.tipo === 'tactil' ? 'TÁCTIL' : entrada.tipo === 'teclado' ? 'TECLADO' : 'MANDO'}
+                  </span>
+                  <span className="cabezal-terminal-btn-bracket">]</span>
+                </button>
+              )}
               <button
-                className={`telemetria-btn ${misionAbierta ? 'telemetria-btn--abierto' : ''}`}
+                type="button"
+                className={`cabezal-terminal-btn ${misionAbierta ? 'cabezal-terminal-btn--active' : ''}`}
                 onClick={() => { setMisionAbierta((v) => !v); setMenuAbierto(false); }}
               >
-                <Flag size={13} /> Misión
+                <span className="cabezal-terminal-btn-bracket">[</span>
+                <Flag size={14} strokeWidth={2.2} />
+                <span className="cabezal-terminal-btn-label">MISIÓN</span>
+                <span className="cabezal-terminal-btn-bracket">]</span>
               </button>
               <button
-                className={`telemetria-btn ${menuAbierto ? 'telemetria-btn--abierto' : ''}`}
+                type="button"
+                className={`cabezal-terminal-btn ${menuAbierto ? 'cabezal-terminal-btn--active' : ''}`}
                 onClick={() => { setMenuAbierto((v) => !v); setMisionAbierta(false); }}
               >
-                <LayoutGrid size={13} /> {t('telemetria.widgets')}
+                <span className="cabezal-terminal-btn-bracket">[</span>
+                <LayoutGrid size={14} strokeWidth={2.2} />
+                <span className="cabezal-terminal-btn-label">WIDGETS</span>
+                <span className="cabezal-terminal-btn-bracket">]</span>
               </button>
             </div>
           </div>
@@ -851,148 +875,135 @@ export function BarraTelemetria({
     );
   }
 
-  // MODO ESENCIAL (Táctil, Top-Corners HUD con zona de seguridad de 72px)
+  // MODO ESENCIAL (Táctil, Top-Corners HUD con zona de seguridad de 60px)
   return (
     <div
       style={{
-        position: 'absolute', top: 72, left: 24, right: 24,
-        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+        position: 'absolute', top: 60, left: 20, right: 20,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         pointerEvents: 'none', zIndex: 1000,
       }}
     >
-      {/* Grupo Izquierdo completo */}
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', maxWidth: '45vw' }}>
+      {/* Grupo Izquierdo: Conexión y Telemetría Primaria */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', maxWidth: '48vw', pointerEvents: 'auto' }}>
         {/* Bloque Izquierdo: Conexión y Audiencia */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '16px',
-          background: 'rgba(2, 7, 19, 0.8)', border: '1px solid rgba(251, 202, 1, 0.35)', borderRadius: '2px',
-          padding: '8px 14px',
-          pointerEvents: 'auto',
-          opacity: enVivo ? 1 : 0.45,
-          transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
-          boxShadow: '0 4px 14px rgba(0, 0, 0, 0.7)',
-        }}>
+        <div className="cabezal-terminal-btn" style={{ cursor: 'default', pointerEvents: 'auto', padding: '5px 10px' }}>
+          <span className="cabezal-terminal-btn-bracket">[</span>
           <CalidadEnlace conectado={isRobotConnected} enlace={enlace} t={t} />
           {activos.includes('audiencia') && (
             <>
-              <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', margin: '0 4px', color: 'var(--accent)' }}>·</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} title={t('telemetria.espectadores')}>
-                <Users size={18} color="var(--bone)" strokeWidth={2.5} />
-                <span style={{ fontSize: '1rem', color: 'var(--bone)', fontWeight: 'bold' }}>
-                  {audiencia ?? enlace?.espectadores ?? '—'}
+              <span style={{ color: 'var(--accent)', opacity: 0.6, margin: '0 2px' }}>·</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title={t('telemetria.espectadores')}>
+                <Users size={14} color="var(--bone)" strokeWidth={2.2} />
+                <span style={{ fontSize: '0.8rem', color: 'var(--bone)', fontWeight: 'bold' }}>
+                  {audiencia ?? enlace?.espectadores ?? '0'}
                 </span>
               </div>
             </>
           )}
+          <span className="cabezal-terminal-btn-bracket">]</span>
         </div>
 
         {/* Píldora de Widgets Izquierda */}
         {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(0, Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).length > 0 && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap',
-            background: 'rgba(2, 7, 19, 0.8)', border: '1px solid rgba(251, 202, 1, 0.35)', borderRadius: '2px',
-            padding: '8px 16px',
-            opacity: enVivo ? 1 : 0.45,
-            transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
-            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.7)',
-          }}>
+          <div className="cabezal-terminal-btn" style={{ cursor: 'default', pointerEvents: 'auto', padding: '5px 10px' }}>
+            <span className="cabezal-terminal-btn-bracket">[</span>
             {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(0, Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).map(({ id }, i) => {
               const lectura = lecturaCompacta(id);
               if (!lectura) return null;
               return (
                 <Fragment key={id}>
-                  {i > 0 && <span className="telemetria__osd-sep" style={{ fontSize: '1rem', color: 'rgba(251, 202, 1, 0.4)', margin: '0 6px' }}>|</span>}
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
-                    <span style={{ fontSize: '0.95rem', color: 'var(--bone)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
-                      {lectura.contenido || lectura.valor}
-                      {lectura.unidad && <span style={{ fontSize: '0.75rem', marginLeft: '3px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
-                    </span>
-                  </div>
+                  {i > 0 && <span style={{ color: 'rgba(251, 202, 1, 0.4)', margin: '0 5px' }}>│</span>}
+                  <span style={{ fontSize: '0.8rem', color: 'var(--bone)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
+                    {lectura.contenido || lectura.valor}
+                    {lectura.unidad && <span style={{ fontSize: '0.7rem', marginLeft: '2px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
+                  </span>
                 </Fragment>
               );
             })}
+            <span className="cabezal-terminal-btn-bracket">]</span>
           </div>
         )}
       </div>
-      {/* Bloque Derecho: Widgets y Menú */}
+
+      {/* Bloque Derecho: Widgets Secundarios y Botones de Control Terminal */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end',
-        maxWidth: '45vw', pointerEvents: 'auto',
+        display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end',
+        maxWidth: '50vw', pointerEvents: 'auto',
       }}>
          {/* Píldora de Widgets Derecha */}
          {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).length > 0 && (
-           <div style={{
-             display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap',
-             background: 'rgba(2, 7, 19, 0.8)', border: '1px solid rgba(251, 202, 1, 0.35)', borderRadius: '2px',
-             padding: '8px 16px',
-             opacity: enVivo ? 1 : 0.45,
-             transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
-             boxShadow: '0 4px 14px rgba(0, 0, 0, 0.7)',
-           }}>
+           <div className="cabezal-terminal-btn" style={{ cursor: 'default', pointerEvents: 'auto', padding: '5px 10px' }}>
+             <span className="cabezal-terminal-btn-bracket">[</span>
              {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).map(({ id }, i) => {
                const lectura = lecturaCompacta(id);
                if (!lectura) return null;
                return (
                  <Fragment key={id}>
-                   {i > 0 && <span className="telemetria__osd-sep" style={{ fontSize: '1rem', color: 'rgba(251, 202, 1, 0.4)', margin: '0 6px' }}>|</span>}
-                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
-                     <span style={{ fontSize: '0.95rem', color: 'var(--bone)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
-                       {lectura.contenido || lectura.valor}
-                       {lectura.unidad && <span style={{ fontSize: '0.75rem', marginLeft: '3px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
-                     </span>
-                   </div>
+                   {i > 0 && <span style={{ color: 'rgba(251, 202, 1, 0.4)', margin: '0 5px' }}>│</span>}
+                   <span style={{ fontSize: '0.8rem', color: 'var(--bone)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
+                     {lectura.contenido || lectura.valor}
+                     {lectura.unidad && <span style={{ fontSize: '0.7rem', marginLeft: '2px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
+                   </span>
                  </Fragment>
                );
              })}
+             <span className="cabezal-terminal-btn-bracket">]</span>
            </div>
          )}
-         {/* Píldora de Control: Entrada y Menú */}
-         <div style={{
-           display: 'flex', alignItems: 'center', gap: '10px',
-           background: 'rgba(2, 7, 19, 0.8)', border: '1px solid rgba(251, 202, 1, 0.35)', borderRadius: '2px',
-           padding: '6px 12px',
-           boxShadow: '0 4px 14px rgba(0, 0, 0, 0.7)',
-         }}>
-           {entrada && (
-              <button
-                onClick={typeof entrada.onAlternar === 'function' ? entrada.onAlternar : undefined}
-                disabled={typeof entrada.onAlternar !== 'function'}
-                title={typeof entrada.onAlternar === 'function' ? t('telemetria.cambiarEntrada') : undefined}
-                style={{
-                  background: 'transparent', border: 'none',
-                  pointerEvents: typeof entrada.onAlternar === 'function' ? 'auto' : 'none',
-                  cursor: typeof entrada.onAlternar === 'function' ? 'pointer' : 'default',
-                  display: 'flex', alignItems: 'baseline', gap: '8px',
-                  padding: '4px 8px'
-                }}
-              >
-                {entrada.tipo === 'tactil' ? (
-                  <Pointer size={22} color="var(--muted)" />
-                ) : entrada.tipo === 'teclado' ? (
-                  <Keyboard size={22} color="var(--accent, #38bdf8)" />
-                ) : (
-                  <Gamepad2 size={22} color="var(--accent, #38bdf8)" />
-                )}
-              </button>
-           )}
-           {entrada && <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', margin: '0 4px' }}>·</span>}
+
+         {/* Botones de Control Terminal Individuales */}
+         {entrada && (
            <button
-              onClick={() => { setMisionAbierta((v) => !v); setMenuAbierto(false); }}
-              title={t('mision.panelTitulo', 'Misión')}
-              aria-label={t('mision.panelTitulo', 'Misión')}
-              className={`telemetria__osd-boton${misionAbierta ? ' telemetria__osd-boton--abierto' : ''}`}
-            >
-              <Flag size={22} strokeWidth={2} />
-            </button>
-           <button
-              onClick={() => { setMenuAbierto((v) => !v); setMisionAbierta(false); }}
-              title={t('telemetria.widgets')}
-              aria-label={t('telemetria.widgets')}
-              className={`telemetria__osd-boton${menuAbierto ? ' telemetria__osd-boton--abierto' : ''}`}
-            >
-              <LayoutGrid size={22} strokeWidth={2} />
-            </button>
-         </div>
+             type="button"
+             onClick={typeof entrada.onAlternar === 'function' ? entrada.onAlternar : undefined}
+             disabled={typeof entrada.onAlternar !== 'function'}
+             title={typeof entrada.onAlternar === 'function' ? t('telemetria.cambiarEntrada') : undefined}
+             className="cabezal-terminal-btn"
+             style={{ padding: '5px 10px' }}
+           >
+             <span className="cabezal-terminal-btn-bracket">[</span>
+             {entrada.tipo === 'tactil' ? (
+               <Pointer size={14} color="var(--accent)" strokeWidth={2.2} />
+             ) : entrada.tipo === 'teclado' ? (
+               <Keyboard size={14} color="var(--accent)" strokeWidth={2.2} />
+             ) : (
+               <Gamepad2 size={14} color="var(--accent)" strokeWidth={2.2} />
+             )}
+             <span className="cabezal-terminal-btn-label">
+               {entrada.tipo === 'tactil' ? 'TÁCTIL' : entrada.tipo === 'teclado' ? 'TECLADO' : 'MANDO'}
+             </span>
+             <span className="cabezal-terminal-btn-bracket">]</span>
+           </button>
+         )}
+
+         <button
+           type="button"
+           onClick={() => { setMisionAbierta((v) => !v); setMenuAbierto(false); }}
+           title={t('mision.panelTitulo', 'Misión')}
+           aria-label={t('mision.panelTitulo', 'Misión')}
+           className={`cabezal-terminal-btn ${misionAbierta ? 'cabezal-terminal-btn--active' : ''}`}
+           style={{ padding: '5px 10px' }}
+         >
+           <span className="cabezal-terminal-btn-bracket">[</span>
+           <Flag size={14} strokeWidth={2.2} />
+           <span className="cabezal-terminal-btn-label">MISIÓN</span>
+           <span className="cabezal-terminal-btn-bracket">]</span>
+         </button>
+
+         <button
+           type="button"
+           onClick={() => { setMenuAbierto((v) => !v); setMisionAbierta(false); }}
+           title={t('telemetria.widgets')}
+           aria-label={t('telemetria.widgets')}
+           className={`cabezal-terminal-btn ${menuAbierto ? 'cabezal-terminal-btn--active' : ''}`}
+           style={{ padding: '5px 10px' }}
+         >
+           <span className="cabezal-terminal-btn-bracket">[</span>
+           <LayoutGrid size={14} strokeWidth={2.2} />
+           <span className="cabezal-terminal-btn-label">WIDGETS</span>
+           <span className="cabezal-terminal-btn-bracket">]</span>
+         </button>
       </div>
 
       {/* El panel de menú flota de forma independiente */}

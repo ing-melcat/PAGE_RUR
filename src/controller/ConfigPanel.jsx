@@ -272,15 +272,16 @@ export function ConfigPanel({ onApply, controlMappings, onUpdateMappings }) {
         <div className={`config-overlay ${isOpen ? 'open' : ''}`} onClick={handleCancel}>
           <div className="config-modal" onClick={(e) => e.stopPropagation()}>
             <div className="config-header">
-              <h3>{t('operador.configPanel.ajustes')}</h3>
+              <h3>[ // {t('operador.configPanel.ajustes')} ]</h3>
               <button
                 type="button"
-                className="config-close-icon"
+                className="cabezal-terminal-btn"
                 onClick={handleCancel}
+                style={{ padding: '2px 8px', fontSize: '0.8rem' }}
                 title={t('operador.seleccion.cancelar')}
                 aria-label={t('operador.seleccion.cancelar')}
               >
-                <X size={20} />
+                <span className="cabezal-terminal-btn-bracket">[</span>✕<span className="cabezal-terminal-btn-bracket">]</span>
               </button>
             </div>
 
@@ -288,24 +289,30 @@ export function ConfigPanel({ onApply, controlMappings, onUpdateMappings }) {
             <div className="config-tabs">
               <button
                 type="button"
-                className={`config-tab-btn ${tab === 'ajustes' ? 'active' : ''}`}
+                className={`cabezal-terminal-btn ${tab === 'ajustes' ? 'cabezal-terminal-btn--active' : ''}`}
                 onClick={() => setTab('ajustes')}
               >
-                {t('operador.configPanel.pestanaAjustes')}
+                <span className="cabezal-terminal-btn-bracket">[</span>
+                <span className="cabezal-terminal-btn-label">{t('operador.configPanel.pestanaAjustes')}</span>
+                <span className="cabezal-terminal-btn-bracket">]</span>
               </button>
               <button
                 type="button"
-                className={`config-tab-btn ${tab === 'teclado' ? 'active' : ''}`}
+                className={`cabezal-terminal-btn ${tab === 'teclado' ? 'cabezal-terminal-btn--active' : ''}`}
                 onClick={() => setTab('teclado')}
               >
-                {t('operador.configPanel.pestanaTeclado')}
+                <span className="cabezal-terminal-btn-bracket">[</span>
+                <span className="cabezal-terminal-btn-label">{t('operador.configPanel.pestanaTeclado')}</span>
+                <span className="cabezal-terminal-btn-bracket">]</span>
               </button>
               <button
                 type="button"
-                className={`config-tab-btn ${tab === 'mando' ? 'active' : ''}`}
+                className={`cabezal-terminal-btn ${tab === 'mando' ? 'cabezal-terminal-btn--active' : ''}`}
                 onClick={() => setTab('mando')}
               >
-                {t('operador.configPanel.pestanaMando')}
+                <span className="cabezal-terminal-btn-bracket">[</span>
+                <span className="cabezal-terminal-btn-label">{t('operador.configPanel.pestanaMando')}</span>
+                <span className="cabezal-terminal-btn-bracket">]</span>
               </button>
             </div>
 
@@ -563,11 +570,15 @@ export function ConfigPanel({ onApply, controlMappings, onUpdateMappings }) {
             </div>
 
             <div className="config-footer">
-              <button type="button" className="config-btn-secondary" onClick={handleCancel}>
-                {t('operador.seleccion.cancelar')}
+              <button type="button" className="cabezal-terminal-btn" onClick={handleCancel}>
+                <span className="cabezal-terminal-btn-bracket">[</span>
+                <span className="cabezal-terminal-btn-label">{t('operador.seleccion.cancelar')}</span>
+                <span className="cabezal-terminal-btn-bracket">]</span>
               </button>
-              <button type="button" className="config-close" onClick={handleSave}>
-                {t('operador.configPanel.guardarCerrar')}
+              <button type="button" className="cabezal-terminal-btn cabezal-terminal-btn--active" onClick={handleSave}>
+                <span className="cabezal-terminal-btn-bracket">[</span>
+                <span className="cabezal-terminal-btn-label">{t('operador.configPanel.guardarCerrar')}</span>
+                <span className="cabezal-terminal-btn-bracket">]</span>
               </button>
             </div>
           </div>
