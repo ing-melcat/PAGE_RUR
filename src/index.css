@@ -2984,19 +2984,32 @@ textarea:focus-visible {
   border-radius: 2px;
 }
 
-/* Blindaje contra la regla global button:hover { color: var(--background) !important; } */
+/* Blindaje de botones del editor contra reglas globales de animaciones y pseudo-elementos */
 .editor-toolbar-superior button,
 .editor-toolbar-superior label.editor-btn-herramienta,
-.editor-callout-menu button {
+.editor-callout-menu button,
+.w-md-editor-toolbar button,
+.w-md-editor-toolbar li > button,
+.w-md-editor button {
   transform: none !important;
   box-shadow: none !important;
+  letter-spacing: normal !important;
+  text-indent: 0 !important;
+  overflow: visible !important;
 }
 
 .editor-toolbar-superior button::after,
 .editor-toolbar-superior button::before,
 .editor-callout-menu button::after,
-.editor-callout-menu button::before {
+.editor-callout-menu button::before,
+.w-md-editor-toolbar button::after,
+.w-md-editor-toolbar button::before,
+.w-md-editor-toolbar li > button::after,
+.w-md-editor-toolbar li > button::before,
+.w-md-editor button::after,
+.w-md-editor button::before {
   display: none !important;
+  content: none !important;
 }
 
 .editor-toolbar-grupo {
@@ -3195,5 +3208,94 @@ textarea:focus-visible {
 .w-md-editor-toolbar li[aria-label="live"],
 .w-md-editor-toolbar button[data-name="live"] {
   display: none !important;
+}
+
+/* En modo vista previa (VISOR FINAL), la barra de formato Markdown no debe mostrarse */
+.w-md-editor.w-md-editor-show-preview .w-md-editor-toolbar,
+.w-md-editor[data-preview="preview"] .w-md-editor-toolbar {
+  display: none !important;
+}
+
+/* Estilo técnico limpio y blindado para la barra interna de herramientas de MDEditor */
+.w-md-editor-toolbar {
+  background-color: var(--surface) !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 4px 8px !important;
+  min-height: 36px !important;
+  box-sizing: border-box !important;
+}
+
+.w-md-editor-toolbar ul {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 2px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.w-md-editor-toolbar li {
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.w-md-editor-toolbar button,
+.w-md-editor-toolbar li > button {
+  font-family: inherit !important;
+  font-weight: normal !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  text-indent: 0 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  border-radius: 2px !important;
+  color: var(--muted) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  padding: 4px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  position: relative !important;
+  overflow: visible !important;
+  transition: color var(--mov-rapido) ease, background var(--mov-rapido) ease, border-color var(--mov-rapido) ease !important;
+}
+
+.w-md-editor-toolbar button:hover,
+.w-md-editor-toolbar li > button:hover {
+  background: var(--surface-strong) !important;
+  border-color: var(--border) !important;
+  color: var(--accent) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.w-md-editor-toolbar button:active,
+.w-md-editor-toolbar li > button:active {
+  background: rgba(251, 202, 1, 0.1) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.w-md-editor-toolbar button svg,
+.w-md-editor-toolbar li > button svg {
+  width: 14px !important;
+  height: 14px !important;
+  display: block !important;
+  fill: currentColor !important;
+}
+
+.w-md-editor-toolbar-divider {
+  background-color: var(--border) !important;
+  height: 18px !important;
+  margin: 0 4px !important;
 }
 

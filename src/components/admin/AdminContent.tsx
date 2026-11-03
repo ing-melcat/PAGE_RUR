@@ -1425,86 +1425,90 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                     </button>
                   </div>
 
-                  <div className="editor-separador" />
+                  {modoEditor !== 'preview' && (
+                    <>
+                      <div className="editor-separador" />
 
-                  {/* Atajos de documentación técnica */}
-                  {/* Desplegable de Callouts / Protocolos */}
-                  <div style={{ position: 'relative' }} ref={dropdownCalloutsRef}>
-                    <button
-                      type="button"
-                      className={`editor-btn-herramienta ${menuCalloutsAbierto ? 'activo' : ''}`}
-                      onClick={() => setMenuCalloutsAbierto(!menuCalloutsAbierto)}
-                      title="Insertar bloques de protocolo, advertencia o calibración técnica"
-                      aria-expanded={menuCalloutsAbierto}
-                    >
-                      <IconoProtocoloCallout size={13} style={{ color: 'var(--accent)' }} />
-                      <span>PROTOCOLOS</span>
-                      <ChevronDown
-                        size={11}
-                        style={{
-                          transform: menuCalloutsAbierto ? 'rotate(180deg)' : 'none',
-                          transition: 'transform var(--mov-rapido) ease',
-                        }}
-                      />
-                    </button>
-
-                    {menuCalloutsAbierto && (
-                      <div className="editor-callout-menu">
-                        {CALLOUTS.map((c) => (
-                          <button
-                            key={c.tipo}
-                            type="button"
-                            className="editor-callout-item"
-                            onClick={() => {
-                              insertarEnCursor(c.snippet);
-                              setMenuCalloutsAbierto(false);
+                      {/* Atajos de documentación técnica */}
+                      {/* Desplegable de Callouts / Protocolos */}
+                      <div style={{ position: 'relative' }} ref={dropdownCalloutsRef}>
+                        <button
+                          type="button"
+                          className={`editor-btn-herramienta ${menuCalloutsAbierto ? 'activo' : ''}`}
+                          onClick={() => setMenuCalloutsAbierto(!menuCalloutsAbierto)}
+                          title="Insertar bloques de protocolo, advertencia o calibración técnica"
+                          aria-expanded={menuCalloutsAbierto}
+                        >
+                          <IconoProtocoloCallout size={13} style={{ color: 'var(--accent)' }} />
+                          <span>PROTOCOLOS</span>
+                          <ChevronDown
+                            size={11}
+                            style={{
+                              transform: menuCalloutsAbierto ? 'rotate(180deg)' : 'none',
+                              transition: 'transform var(--mov-rapido) ease',
                             }}
-                          >
-                            <span
-                              style={{
-                                display: 'inline-block',
-                                width: '7px',
-                                height: '7px',
-                                borderRadius: '1px',
-                                background: c.color,
-                                flexShrink: 0,
-                              }}
-                            />
-                            <strong style={{ color: c.color, letterSpacing: '0.04em' }}>[!{c.tipo}]</strong>
-                            <span style={{ color: 'var(--muted)', fontSize: '0.7rem', marginLeft: 'auto', letterSpacing: '0.04em' }}>
-                              {c.label}
-                            </span>
-                          </button>
-                        ))}
+                          />
+                        </button>
+
+                        {menuCalloutsAbierto && (
+                          <div className="editor-callout-menu">
+                            {CALLOUTS.map((c) => (
+                              <button
+                                key={c.tipo}
+                                type="button"
+                                className="editor-callout-item"
+                                onClick={() => {
+                                  insertarEnCursor(c.snippet);
+                                  setMenuCalloutsAbierto(false);
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    width: '7px',
+                                    height: '7px',
+                                    borderRadius: '1px',
+                                    background: c.color,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <strong style={{ color: c.color, letterSpacing: '0.04em' }}>[!{c.tipo}]</strong>
+                                <span style={{ color: 'var(--muted)', fontSize: '0.7rem', marginLeft: 'auto', letterSpacing: '0.04em' }}>
+                                  {c.label}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Botón Código / Script */}
-                  <button
-                    type="button"
-                    className="editor-btn-herramienta"
-                    onClick={() => insertarEnCursor('```typescript\n// Script o instrucción técnica\n```')}
-                    title="Insertar bloque de código resaltado"
-                  >
-                    <IconoCodigoTecnico size={13} />
-                    <span>SCRIPT</span>
-                  </button>
+                      {/* Botón Código / Script */}
+                      <button
+                        type="button"
+                        className="editor-btn-herramienta"
+                        onClick={() => insertarEnCursor('```typescript\n// Script o instrucción técnica\n```')}
+                        title="Insertar bloque de código resaltado"
+                      >
+                        <IconoCodigoTecnico size={13} />
+                        <span>SCRIPT</span>
+                      </button>
 
-                  {/* Botón Tabla / Matriz */}
-                  <button
-                    type="button"
-                    className="editor-btn-herramienta"
-                    onClick={() =>
-                      insertarEnCursor(
-                        '| Módulo | Protocolo | Frecuencia | Estado |\n| :--- | :--- | :---: | :--- |\n| TELEM-01 | CAN Bus | 20 Hz | ACTIVO |\n| SENSOR-V2 | WebRTC | 60 fps | CALIBRADO |'
-                      )
-                    }
-                    title="Insertar matriz de telemetría / tabla Markdown"
-                  >
-                    <IconoMatrizTabla size={13} />
-                    <span>MATRIZ</span>
-                  </button>
+                      {/* Botón Tabla / Matriz */}
+                      <button
+                        type="button"
+                        className="editor-btn-herramienta"
+                        onClick={() =>
+                          insertarEnCursor(
+                            '| Módulo | Protocolo | Frecuencia | Estado |\n| :--- | :--- | :---: | :--- |\n| TELEM-01 | CAN Bus | 20 Hz | ACTIVO |\n| SENSOR-V2 | WebRTC | 60 fps | CALIBRADO |'
+                          )
+                        }
+                        title="Insertar matriz de telemetría / tabla Markdown"
+                      >
+                        <IconoMatrizTabla size={13} />
+                        <span>MATRIZ</span>
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 {/* Grupo Derecho: Subir Imagen, Modo Zen y Badge Zen */}
@@ -1515,24 +1519,26 @@ export const AdminContent = ({ onBack, user }: { onBack: () => void, user: any }
                     </span>
                   )}
 
-                  <label
-                    className="editor-btn-herramienta"
-                    style={{ cursor: 'pointer' }}
-                    title="Subir archivo de telemetría o imagen técnica (también puedes arrastrarla o pegarla con Ctrl+V)."
-                  >
-                    <IconoSubirTelemetria size={13} />
-                    <span>{t('adminPublicaciones.insertarImagen') || 'SUBIR IMAGEN'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                      onChange={(e) =>
-                        handleImageUpload(e, (url) =>
-                          insertarEnCursor(`![imagen](${url})`)
-                        )
-                      }
-                    />
-                  </label>
+                  {modoEditor !== 'preview' && (
+                    <label
+                      className="editor-btn-herramienta"
+                      style={{ cursor: 'pointer' }}
+                      title="Subir archivo de telemetría o imagen técnica (también puedes arrastrarla o pegarla con Ctrl+V)."
+                    >
+                      <IconoSubirTelemetria size={13} />
+                      <span>{t('adminPublicaciones.insertarImagen') || 'SUBIR IMAGEN'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={(e) =>
+                          handleImageUpload(e, (url) =>
+                            insertarEnCursor(`![imagen](${url})`)
+                          )
+                        }
+                      />
+                    </label>
+                  )}
 
                   {/* Botón Modo Enfoque / Pantalla Zen */}
                   <button
