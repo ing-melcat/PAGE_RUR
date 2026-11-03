@@ -294,12 +294,7 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
 
             {/* HEADER */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '36px', borderBottom: '1px solid var(--border)', paddingBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--accent)', letterSpacing: 'var(--tracking-tech)', background: 'var(--accent-muted)', padding: '3px 8px', border: '1px solid rgba(251, 202, 1, 0.3)' }}>
-                            GCS // TELEMETRÍA Y ENLACE
-                        </span>
-                    </div>
+                <div style={{ flex: 1, minWidth: '280px' }}>
                     <h2 style={{ margin: 0, fontSize: '2rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: '1.1', fontWeight: 400 }}>
                         {t('operador.seleccion.titulo')}
                     </h2>
