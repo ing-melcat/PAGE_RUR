@@ -36,25 +36,25 @@ export function Cabezal({ onCambio, onConfigApply, onBack, titulo, controlMappin
                     </button>
                 </div>
 
-                {/* Identificador de unidad estilo terminal de robótica */}
+                {/* Nombre del robot como NOTCH Biselado de cabina GCS */}
                 <div style={{ 
                     position: 'absolute', 
-                    top: 10, 
+                    top: 0, 
                     left: '50%', 
                     transform: 'translateX(-50%)', 
                     zIndex: 110,
                     pointerEvents: 'auto'
                 }}>
                     <div
-                        className="cabezal-terminal-badge"
+                        className="cabezal-notch-robot"
                         title={titulo || 'RASSOR-UI'}
                     >
-                        <span className="cabezal-badge-bracket">[</span>
-                        <span className="cabezal-badge-prefix">UNIDAD:</span>
-                        <span className="cabezal-badge-name">{titulo || 'RASSOR-01'}</span>
-                        <span className="cabezal-badge-sep">//</span>
-                        <span className="cabezal-badge-role">ROVER TELEOP</span>
-                        <span className="cabezal-badge-bracket">]</span>
+                        <span className="cabezal-notch-sub">
+                            SYS // ACTIVE UNIT
+                        </span>
+                        <span className="cabezal-notch-title">
+                            {titulo || 'RASSOR-01'}
+                        </span>
                     </div>
                 </div>
                 
