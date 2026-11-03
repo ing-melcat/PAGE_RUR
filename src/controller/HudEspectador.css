@@ -83,11 +83,12 @@
   user-select: none;
 }
 
-/* 2. Cinta Vertical de Velocidad Dinámica (m/s) a la Izquierda */
+/* 2. Cinta Vertical de Velocidad Dinámica (m/s) a la Izquierda (Abajo a la izquierda, sin estorbar el lineado amarillo de cámara) */
 .hud__tape-velocidad {
   position: absolute;
-  left: 20px;
-  top: 35px;
+  left: 42px;
+  bottom: 48px;
+  top: auto;
   width: 170px;
   pointer-events: none;
   z-index: 10;

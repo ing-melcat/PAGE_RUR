@@ -10,60 +10,68 @@
     background: linear-gradient(180deg, rgba(2, 7, 19, 0.75) 0%, rgba(2, 7, 19, 0) 100%);
 }
 
-/* Botón de volver terminal [ < SALIR ] y botones terminal genéricos */
+/* Botón de volver terminal [ < SALIR ] y botones terminal genéricos (Estilo Terminal Lab De Pruebas) */
 .cabezal-terminal-btn {
-    background: rgba(2, 7, 19, 0.85);
-    border: 1px solid rgba(251, 202, 1, 0.4);
+    background: rgba(4, 10, 20, 0.95);
+    border: 1px solid var(--accent);
     border-radius: 2px;
-    color: var(--bone);
+    color: var(--accent);
     font-family: var(--font-codigo), monospace;
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
     cursor: pointer;
-    padding: 6px 12px;
+    padding: 6px 14px;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     transition: all 0.15s ease;
     user-select: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0 10px rgba(251, 202, 1, 0.25);
 }
 
 .cabezal-terminal-btn:hover {
+    background: var(--accent);
     border-color: var(--accent);
-    color: var(--accent);
-    box-shadow: 0 0 12px rgba(251, 202, 1, 0.35);
+    color: #020713;
+    box-shadow: 0 0 18px rgba(251, 202, 1, 0.55);
+}
+
+.cabezal-terminal-btn:hover * {
+    color: #020713 !important;
 }
 
 .cabezal-terminal-btn--active {
-    background: rgba(251, 202, 1, 0.12);
+    background: rgba(251, 202, 1, 0.22);
     border-color: var(--accent);
     color: var(--accent);
-    box-shadow: 0 0 12px rgba(251, 202, 1, 0.35);
+    box-shadow: 0 0 14px rgba(251, 202, 1, 0.4);
 }
 
 .cabezal-terminal-btn-bracket {
-    color: var(--accent);
-    opacity: 0.8;
-    font-weight: bold;
+    color: inherit;
+    font-weight: 800;
 }
 
 .cabezal-terminal-btn-arrow {
-    color: var(--accent);
-    font-weight: bold;
+    color: inherit;
+    font-weight: 800;
 }
 
 .cabezal-terminal-btn-label {
     color: inherit;
+    font-weight: 700;
 }
 
-/* Ventanas emergentes de botones terminal (Widgets, Misión, CFG) */
+/* Ventanas emergentes de botones terminal (Widgets, Misión, CFG) - Translúcidas con marco terminal */
 .cabezal-terminal-window {
-    background: rgba(2, 7, 19, 0.96) !important;
+    background: rgba(4, 10, 22, 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
     border: 1px solid var(--accent) !important;
     border-radius: 2px !important;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9), inset 0 0 1px rgba(251, 202, 1, 0.3) !important;
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9), 0 0 18px rgba(251, 202, 1, 0.2) !important;
     font-family: var(--font-codigo), monospace !important;
     color: var(--bone) !important;
 }
@@ -72,7 +80,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(251, 202, 1, 0.3);
+    border-bottom: 1px solid rgba(251, 202, 1, 0.35);
     padding-bottom: 8px;
     margin-bottom: 10px;
 }
@@ -82,7 +90,7 @@
     font-family: var(--font-codigo), monospace;
     font-weight: 700;
     font-size: 0.85rem;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
 }
 

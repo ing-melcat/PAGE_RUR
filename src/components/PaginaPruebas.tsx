@@ -376,7 +376,7 @@ export default function PaginaPruebas() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
               <div>
                 <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', color: 'var(--accent)', letterSpacing: 'var(--tracking-tech)' }}>
-                  CONSOLAS DE VUELO GCS Y TELEPRESENCIA
+                  CONSOLAS DE TELEOPERACIÓN ROBÓTICA Y TELEPRESENCIA
                 </span>
                 <h2 style={{ margin: '4px 0 0', fontFamily: 'var(--font-titulo)', fontSize: '2rem', color: 'var(--text)', letterSpacing: '0.04em' }}>
                   SELECTOR DE PROTOCOLO DE ENLACE
@@ -541,23 +541,23 @@ export default function PaginaPruebas() {
                   SISTEMA DE VISUALIZACIÓN HEADS-UP // PROTOCOLO HUD 01
                 </span>
                 <h2 style={{ margin: '4px 0 0', fontFamily: 'var(--font-titulo)', fontSize: '2rem', color: 'var(--text)', letterSpacing: '0.04em' }}>
-                  INTEGRACIÓN DE COCKPIT HUD & BANCO DE VUELO GCS
+                  INTEGRACIÓN DE TERMINAL HUD & BANCO DE TELEOPERACIÓN GCS
                 </h2>
                 <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: '0.85rem' }}>
-                  Instrumentación táctica distribuida sobre la cámara (sin glassmorphism / sin blur opaco). Retícula óptica central, alas periféricas translúcidas y radar cenital 3D.
+                  Instrumentación táctica de robótica distribuida sobre la cámara (sin glassmorphism / sin blur opaco). Retícula óptica central, alas periféricas translúcidas y radar cenital 3D.
                 </p>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--surface)', border: '1px solid var(--border)', padding: '8px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(4, 10, 20, 0.95)', border: '1px solid var(--accent)', borderRadius: '2px', padding: '8px 14px', boxShadow: '0 0 10px rgba(251, 202, 1, 0.2)' }}>
                 <Keyboard size={16} color="var(--accent)" />
-                <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--text)' }}>
+                <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.1em' }}>
                   MANDOS W/A/S/D + FLECHAS ACTIVOS
                 </span>
               </div>
             </div>
 
             <div className="hud-simulation-panel">
-              {/* VIEWPORT DE VUELO COCKPIT HUD SIMULADO */}
+              {/* VIEWPORT DE TELEOPERACIÓN Y NAVEGACIÓN HUD SIMULADO */}
               <div className="cockpit-hud-viewport">
                 {/* FONDO DE CÁMARA CON GUÍAS DE TERRENO Y SCANLINES */}
                 <div className="cockpit-camera-feed">
@@ -594,7 +594,7 @@ export default function PaginaPruebas() {
                     <span>P2P DATACHANNEL // 60 HZ ┐</span>
                   </div>
                   <div className="hud__esquina hud__esquina--bl">
-                    <span>└ FLIGHT SYS // ARMED & READY</span>
+                    <span>└ SYS // ROVER TELEOP [ARMED & READY]</span>
                   </div>
                   <div className="hud__esquina hud__esquina--br">
                     <span>RUR-GCS // v2.4 ┘</span>
@@ -602,7 +602,7 @@ export default function PaginaPruebas() {
                 </div>
 
                 {/* ========================================================================= */}
-                {/* HUD DE VUELO TÁCTICO INTEGRADO (PLANTILLA 1: FLIGHT TAPES & BORESIGHT)   */}
+                {/* TERMINAL HUD DE TELEOPERACIÓN INTEGRADA (PLANTILLA 1: ROVER TAPES & OSD) */}
                 {/* Sin títulos, sin explicaciones, magnitudes físicas reales (m/s, rad/s, °) */}
                 {/* ========================================================================= */}
                 <div className="hud-safe-zone">
@@ -994,7 +994,7 @@ export default function PaginaPruebas() {
                 {/* Actuadores y Sensores de Enlace */}
                 <div className="tactical-frame" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   <div style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', color: 'var(--accent)' }}>
-                    ACTUADORES Y ENLACE DE VUELO
+                    ACTUADORES Y ENLACE DE TELEOPERACIÓN
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
@@ -1051,7 +1051,7 @@ export default function PaginaPruebas() {
                 ANÁLISIS TÉCNICO DE IDENTIDAD VISUAL
               </span>
               <h2 style={{ margin: '4px 0 0', fontFamily: 'var(--font-titulo)', fontSize: '2rem', color: 'var(--text)', letterSpacing: '0.04em' }}>
-                COMPARATIVA DIRECTA: ANTES (PLANTILLA IA) VS DESPUÉS (GCS AEROESPACIAL)
+                COMPARATIVA DIRECTA: ANTES (PLANTILLA IA) VS DESPUÉS (GCS ROBÓTICA RUR)
               </h2>
             </div>
 
@@ -1108,7 +1108,7 @@ export default function PaginaPruebas() {
               {/* COLUMNA DESPUÉS */}
               <div className="comparativa-col">
                 <div className="comparativa-col__header comparativa-col__header--new">
-                  <span>[ DESPUÉS ] GCS AEROESPACIAL RUR</span>
+                  <span>[ DESPUÉS ] GCS ROBÓTICA RUR</span>
                   <span>SOLUCIÓN</span>
                 </div>
 
@@ -1159,13 +1159,13 @@ export default function PaginaPruebas() {
                   </div>
 
                   <button className="tactical-btn" style={{ width: '100%', marginTop: '8px' }}>
-                    ACTIVAR PROTOCOLO DE VUELO →
+                    ACTIVAR PROTOCOLO DE TELEOPERACIÓN →
                   </button>
                 </div>
 
                 {/* Virtudes del nuevo diseño */}
                 <div style={{ background: 'rgba(251, 202, 1, 0.05)', border: '1px solid rgba(251, 202, 1, 0.2)', padding: '16px', fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', color: 'var(--accent)', lineHeight: 1.6 }}>
-                  ✓ <strong>Marcos angulares tácticos <code>┌ ┐ └ ┘</code>:</strong> Se siente como instrumentación aeroespacial real de la NASA.<br />
+                  ✓ <strong>Marcos angulares tácticos <code>┌ ┐ └ ┘</code>:</strong> Se siente como instrumentación de teleoperación robótica de campo.<br />
                   ✓ <strong>Feedback lumínico sin flotar:</strong> Respuesta táctil mecánica e instantánea.<br />
                   ✓ <strong>Telemetría granular:</strong> Latencia, tasa de muestreo y estado del protocolo a la vista.<br />
                   ✓ <strong>Tipografía institucional:</strong> Bebas Neue para títulos + JetBrains Mono para telemetría.

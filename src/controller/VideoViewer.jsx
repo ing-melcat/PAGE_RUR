@@ -127,33 +127,37 @@ export function VideoViewer({ room, isConnected, hlsUrl, onPlayingDateChange }) 
             <div style={{ position: 'absolute', bottom: -1, right: -1, width: 12, height: 12, borderBottom: '2px solid rgba(251, 202, 1, 0.35)', borderRight: '2px solid rgba(251, 202, 1, 0.35)' }} />
           </div>
 
-          {/* Estado de conexión de vídeo - Terminal puro, sin cajas opacas ni blur */}
+          {/* Estado de conexión de vídeo - Terminal puro estilo GCS */}
           <div
             style={{
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '10px',
-              padding: '16px 24px',
-              background: 'transparent',
+              gap: '8px',
+              padding: '12px 24px',
+              background: 'rgba(4, 10, 22, 0.75)',
+              border: '1px solid var(--accent)',
+              borderRadius: '2px',
+              boxShadow: '0 0 16px rgba(251, 202, 1, 0.18)',
               fontFamily: 'var(--font-codigo)',
               textAlign: 'center',
               userSelect: 'none',
+              maxWidth: '90vw',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--accent)', boxShadow: '0 0 10px var(--accent)' }} />
-              <span style={{ fontSize: '0.75rem', color: 'var(--accent)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-                [ FEED DE VÍDEO // STANDBY ]
+              <span style={{ fontSize: '0.72rem', color: 'var(--accent)', letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 700 }}>
+                FEED DE VÍDEO // STANDBY
               </span>
             </div>
 
-            <span style={{ fontSize: '1.4rem', color: 'var(--bone)', letterSpacing: '0.12em', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.2 }}>
+            <span style={{ fontSize: '1.25rem', color: 'var(--bone)', letterSpacing: '0.14em', fontWeight: 700, textTransform: 'uppercase', lineHeight: 1.2 }}>
               SIN CONEXIÓN DE VÍDEO
             </span>
 
-            <span style={{ fontSize: '0.72rem', color: 'var(--muted)', letterSpacing: '0.15em' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--muted)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
               ESPERANDO SEÑAL WEBRTC · CANAL P2P ACTIVO
             </span>
           </div>
