@@ -1117,7 +1117,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
         <div id="left-panel">
           <div className='arms' style={{ opacity: visible ? '1' : '0' }}>
             <Segment id="arms">
-              <h3>{t('operador.controller.brazos')}</h3>
+              <h3>{`[ // ${t('operador.controller.brazos')} ]`}</h3>
               <div className="arm-controls">
                 <ControlGroup
                   title={t('operador.controller.frente')}
@@ -1134,7 +1134,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
           </div>
 
           <Segment id="joystick" style={{ display: visible1 ? 'flex' : 'none', height: Math.max(230, joystickSize + 80) }}>
-            <h3>{isTankMode ? t('operador.controller.controlTanque') : t('operador.controller.controlJoystick')}</h3>
+            <h3>{`[ // ${isTankMode ? t('operador.controller.controlTanque') : t('operador.controller.controlJoystick')} ]`}</h3>
             <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile && mode === 'manual' ? 16 : 0, width: '100%' }}>
               {isTankMode ? (
                 <TankPad
@@ -1172,7 +1172,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
         <div id="right-panel">
           <div className='drums' style={{ opacity: visible ? '1' : '0' }}>
             <Segment id="drums">
-              <h3>{t('operador.controller.tambores')}</h3>
+              <h3>{`[ // ${t('operador.controller.tambores')} ]`}</h3>
               <div className="drum-controls">
                 <ControlGroup
                   title={t('operador.controller.frente')}
@@ -1207,7 +1207,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
               había que robarle alto a algo. */}
           {!isMobile && mode === 'manual' && (
             <Segment id="camera-joystick" style={{ display: visible1 ? 'flex' : 'none', height: Math.max(230, joystickSize + 80) }}>
-              <h3>{t('operador.controller.controlCamara')}</h3>
+              <h3>{`[ // ${t('operador.controller.controlCamara')} ]`}</h3>
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Joystck
                   onMove={handleCameraMove}
