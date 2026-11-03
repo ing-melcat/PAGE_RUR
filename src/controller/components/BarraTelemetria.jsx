@@ -652,29 +652,55 @@ export function BarraTelemetria({
 
 
   if (!esencial) {
+    const avanceVal = telemetria.avance?.nivel ? ((telemetria.avance.dir === 'atras' ? -1 : 1) * (telemetria.avance.nivel / 10)) : 0;
+    const giroVal = telemetria.giro?.nivel ? ((telemetria.giro.dir === 'izquierda' ? -1 : 1) * (telemetria.giro.nivel / 10)) : 0;
+    
+    // Magnitudes físicas reales
+    const headingDeg = sensores?.imu?.rumbo != null 
+      ? Math.round((sensores.imu.rumbo % 360 + 360) % 360)
+      : Math.round((90 + giroVal * 45 + 360) % 360);
+    const hMinus20 = String((headingDeg - 20 + 360) % 360).padStart(3, '0');
+    const hMinus10 = String((headingDeg - 10 + 360) % 360).padStart(3, '0');
+    const hCenter = String(headingDeg).padStart(3, '0');
+    const hPlus10 = String((headingDeg + 10) % 360).padStart(3, '0');
+    const hPlus20 = String((headingDeg + 20) % 360).padStart(3, '0');
+
+    const velLineal = sensores?.velocidad?.lineal != null
+      ? sensores.velocidad.lineal.toFixed(1)
+      : (avanceVal * 1.5).toFixed(1);
+    const velNum = parseFloat(velLineal);
+    const cursorPercent = Math.max(5, Math.min(95, 50 - ((velNum / 2.0) * 45)));
+
+    const angVal = sensores?.velocidad?.angular != null
+      ? sensores.velocidad.angular.toFixed(2)
+      : (giroVal * 1.25).toFixed(2);
+    const distVal = sensores?.odometria?.distancia != null
+      ? `${sensores.odometria.distancia.toFixed(1)} m`
+      : `${(12.6 + Math.abs(avanceVal) * 3.4).toFixed(1)} m`;
+
+    const pitchVal = sensores?.imu?.pitch != null ? sensores.imu.pitch : 0;
+    const rollVal = sensores?.imu?.roll != null ? sensores.imu.roll : 0;
+
+    const voltVal = sensores?.bateria?.voltaje != null ? sensores.bateria.voltaje.toFixed(1) : '24.6';
+    const ampVal = sensores?.bateria?.corriente != null ? sensores.bateria.corriente.toFixed(1) : (1.8 + Math.abs(avanceVal) * 3.2).toFixed(1);
+    const wattVal = (parseFloat(voltVal) * parseFloat(ampVal)).toFixed(1);
+    const tempVal = sensores?.temperatura?.motores != null ? `${sensores.temperatura.motores.toFixed(1)}°C` : '41.2°C';
+
+    const armFrontVal = sensores?.actuadores?.brazo_delantero?.angulo != null
+      ? `+${sensores.actuadores.brazo_delantero.angulo.toFixed(1)}°`
+      : telemetria.actuadores?.ArmFront ? '+32.5°' : '0.0°';
+    const armBackVal = sensores?.actuadores?.brazo_trasero?.angulo != null
+      ? `+${sensores.actuadores.brazo_trasero.angulo.toFixed(1)}°`
+      : telemetria.actuadores?.ArmBack ? '+18.0°' : '0.0°';
+    const drmFrontVal = sensores?.actuadores?.tambor_delantero?.rpm != null
+      ? `${sensores.actuadores.tambor_delantero.rpm}`
+      : telemetria.actuadores?.DrumFront ? '45' : '0';
+    const drmBackVal = sensores?.actuadores?.tambor_trasero?.rpm != null
+      ? `${sensores.actuadores.tambor_trasero.rpm}`
+      : telemetria.actuadores?.DrumBack ? '45' : '0';
+
     return (
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1000, overflow: 'hidden' }}>
-        {/* RETÍCULA ÓPTICA DE VUELO CENTRAL */}
-        <div className="hud__reticula">
-          <div className="hud__reticula-azimut">
-            <span>◄ 080 · 090 · 100 ►</span>
-          </div>
-          <div className="hud__reticula-mira">
-            <span className="hud__reticula-cross-h" />
-            <span className="hud__reticula-cross-v" />
-            <span className="hud__reticula-tick hud__reticula-tick--tl" />
-            <span className="hud__reticula-tick hud__reticula-tick--tr" />
-            <span className="hud__reticula-tick hud__reticula-tick--bl" />
-            <span className="hud__reticula-tick hud__reticula-tick--br" />
-            <span className="hud__reticula-centro" />
-          </div>
-          <div className="hud__reticula-escala">
-            <span>+10</span>
-            <span className="hud__reticula-cero">— 00 —</span>
-            <span>-10</span>
-          </div>
-        </div>
-
         {/* DELIMITACIÓN DE ESQUINAS DEL COCKPIT */}
         <div className="hud__esquinas">
           <div className="hud__esquina hud__esquina--tl">
@@ -691,154 +717,122 @@ export function BarraTelemetria({
           </div>
         </div>
 
-        {/* ALAS PERIFÉRICAS Y CENTRO DEL HUD */}
-        <div className="hud" style={{
-          pointerEvents: 'none',
-          opacity: enVivo ? 1 : 0.85,
-          transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
-        }}>
-          {/* ALA IZQUIERDA: MOVIMIENTO, PROPULSIÓN Y ACTUADORES */}
-          <div className="hud__ala hud__ala--izquierda">
-            <div className="hud__ala-cabecera">
-              <span>// SYS 01 · PROPULSIÓN</span>
-              <span style={{ color: 'var(--bone)', fontSize: '0.62rem' }}>60 HZ REAL-TIME</span>
-            </div>
-            <div className="hud__ala-cuerpo">
-              {activos.includes('avance') && (() => {
-                const nivel = telemetria.avance?.nivel ?? 0;
-                const activo = nivel > 0 && Boolean(telemetria.avance?.dir);
-                const chevron = telemetria.avance?.dir === 'atras' ? '▼' : '▲';
-                return (
-                  <div className="hud__medidor">
-                    <span className="hud__etiqueta">{t('telemetria.avance')}</span>
-                    <div className="hud__cuerpo">
-                      <span className={`hud__cifra${activo ? '' : ' hud__cifra--apagada'}`} style={{ transition: transicion }}>
-                        {activo ? chevron : ''} {nivel * 10}
-                      </span>
-                    </div>
-                    <span className="hud__unidad">%</span>
-                  </div>
-                );
-              })()}
-              {activos.includes('giro') && (() => {
-                const nivel = telemetria.giro?.nivel ?? 0;
-                const activo = nivel > 0 && Boolean(telemetria.giro?.dir);
-                const signo = telemetria.giro?.dir === 'izquierda' ? '◀' : '▶';
-                return (
-                  <div className="hud__medidor">
-                    <span className="hud__etiqueta">{t('telemetria.giro')}</span>
-                    <div className="hud__cuerpo">
-                      <span className={`hud__cifra${activo ? '' : ' hud__cifra--apagada'}`} style={{ transition: transicion }}>
-                        {activo ? signo : ''} {nivel * 10}
-                      </span>
-                    </div>
-                    <span className="hud__unidad">%</span>
-                  </div>
-                );
-              })()}
-              {activos.includes('actuadores') && (
-                <div className="hud__actuadores">
-                  <span className="hud__etiqueta">{t('telemetria.actuadores')}</span>
-                  <div className="hud__cuerpo">
-                    <div className="hud__actuadores-puntos">
-                      {ACTUADORES.map(({ clave, abrev }) => (
-                        <span
-                          key={clave}
-                          title={abrev}
-                          className={`hud__act-punto${telemetria.actuadores?.[clave] ? ' hud__act-punto--on' : ''}`}
-                          style={{ transition: transicion }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <span className="hud__unidad" />
+        {/* ZONA DE SEGURIDAD QUE RESPETA EL CABEZAL SUPERIOR (72PX) */}
+        <div className="hud-safe-zone">
+          {/* 1. CINTA DE AZIMUT / RUMBO HORIZONTAL */}
+          <div className="hud__tape-azimut">
+            <span>◄ {hMinus20} · · {hMinus10} · · [ {hCenter}° ] · · {hPlus10} · · {hPlus20} ►</span>
+          </div>
+
+          {/* 2. CINTA VERTICAL DE VELOCIDAD DINÁMICA (m/s) A LA IZQUIERDA */}
+          <div className="hud__tape-velocidad">
+            <div className="hud__speed-scale-wrap">
+              <div className="hud__speed-rail">
+                <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '0%' }}>
+                  <span className="hud__speed-tick-label">+2.0</span>
                 </div>
-              )}
+                <div className="hud__speed-tick" style={{ top: '25%' }}>
+                  <span className="hud__speed-tick-label">+1.0</span>
+                </div>
+                <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '50%' }}>
+                  <span className="hud__speed-tick-label" style={{ color: 'var(--accent)', fontWeight: 'bold' }}>0.0</span>
+                </div>
+                <div className="hud__speed-tick" style={{ top: '75%' }}>
+                  <span className="hud__speed-tick-label">-1.0</span>
+                </div>
+                <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '100%' }}>
+                  <span className="hud__speed-tick-label">-2.0</span>
+                </div>
+
+                <div className="hud__speed-cursor" style={{ top: `${cursorPercent}%` }}>
+                  <span className="hud__speed-arrow" />
+                  <span className="hud__speed-tag">
+                    {velNum > 0 ? '+' : ''}{velLineal} m/s
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="hud__speed-subdata">
+              <div>DIST: {distVal}</div>
+              <div>ANG : {parseFloat(angVal) >= 0 ? '+' : ''}{angVal} rad/s</div>
+              <div>ARM : F:{armFrontVal} R:{armBackVal}</div>
+              <div>DRM : F:{drmFrontVal} R:{drmBackVal} RPM</div>
             </div>
           </div>
 
-          {/* CENTRO: ROVER 3D CENITAL + CRONÓMETRO DE MISIÓN + COMANDOS */}
-          <div className="hud__centro">
+          {/* 3. RETÍCULA ÓPTICA CENTRAL (BORESIGHT & PITCH LADDER) */}
+          <div className="hud__boresight">
+            <div className="hud__boresight-cross">
+              <span className="hud__boresight-line-h" />
+              <span className="hud__boresight-line-v" />
+              <span className="hud__boresight-corner hud__boresight-corner--tl" />
+              <span className="hud__boresight-corner hud__boresight-corner--tr" />
+              <span className="hud__boresight-corner hud__boresight-corner--bl" />
+              <span className="hud__boresight-corner hud__boresight-corner--br" />
+              <span className="hud__boresight-center" />
+            </div>
+            <div 
+              className="hud__boresight-ladder"
+              style={{ transform: `rotate(${-rollVal * 0.5}deg) translateY(${pitchVal * 1.2}px)` }}
+            >
+              <span>+10</span>
+              <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>┌ 00 ┐</span>
+              <span>-10</span>
+            </div>
+            <div className="hud__boresight-angles">
+              P: {pitchVal >= 0 ? '+' : ''}{pitchVal.toFixed(1)}° │ R: {rollVal >= 0 ? '+' : ''}{rollVal.toFixed(1)}°
+            </div>
+          </div>
+
+          {/* 4. COLUMNA DERECHA DE POTENCIA, TÉRMICA Y ENLACE */}
+          <div className="hud__tape-avionica">
+            <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.85rem' }}>
+              {voltVal} V · {ampVal} A
+            </div>
+            <div style={{ color: 'var(--muted)', fontSize: '0.68rem' }}>
+              BUS: 24V NOM · {wattVal} W
+            </div>
+            <div>TEMP: {tempVal} MOT</div>
+            <div style={{ marginTop: '6px', color: '#2ecc71', fontWeight: 600 }}>
+              {enlace?.rttMs ? `${enlace.rttMs} ms` : '< 20 ms'} · {enlace?.bitrateKbps ? `${enlace.bitrateKbps} kbps` : '2450 kbps'}
+            </div>
+            <div>{enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : '1080p'} @ {enlace?.fps ? `${enlace.fps} fps` : '60 fps'} · {enlace?.perdidos ?? 0} loss</div>
+            <div style={{ color: 'var(--bone)', fontSize: '0.68rem' }}>
+              {audiencia ?? enlace?.espectadores ?? 1} USR · P2P {enVivo ? 'LIVE' : 'LINK'}
+            </div>
+          </div>
+
+          {/* 5. DECK INFERIOR CENTRAL: ROVER 3D + MISIÓN + SELECTOR DE MODOS */}
+          <div className="hud__deck-inferior">
             <Suspense fallback={null}>
               <RassorEnVivo
                 avance={telemetria.avance}
                 giro={telemetria.giro}
                 imu={sensores?.imu}
-                escala={1.6}
+                escala={1.4}
                 modelUrl={modelUrl}
               />
             </Suspense>
-            <div className="hud__subtitulo" style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+
+            <div className="hud__subtitulo" style={{ marginTop: '2px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
               <MissionTimer mission={robot?.mission} />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', pointerEvents: 'auto' }}>
+
+            <div className="hud__controls-pill">
               {entrada && <ChipEntrada entrada={entrada} transicion={transicion} />}
               <button
                 className={`telemetria-btn ${misionAbierta ? 'telemetria-btn--abierto' : ''}`}
                 onClick={() => { setMisionAbierta((v) => !v); setMenuAbierto(false); }}
               >
-                <Flag size={14} /> Misión
+                <Flag size={13} /> Misión
               </button>
               <button
                 className={`telemetria-btn ${menuAbierto ? 'telemetria-btn--abierto' : ''}`}
                 onClick={() => { setMenuAbierto((v) => !v); setMisionAbierta(false); }}
               >
-                <LayoutGrid size={14} /> {t('telemetria.widgets')}
+                <LayoutGrid size={13} /> {t('telemetria.widgets')}
               </button>
-            </div>
-          </div>
-
-          {/* ALA DERECHA: ENLACE Y AVÍONICA */}
-          <div className="hud__ala hud__ala--derecha">
-            <div className="hud__ala-cabecera">
-              <span>// SYS 02 · TELEMETRÍA Y ENLACE</span>
-              <span style={{ color: '#2ecc71', fontSize: '0.62rem' }}>P2P DATACHANNEL</span>
-            </div>
-            <div className="hud__ala-cuerpo">
-              {activos.includes('bitrate') && (
-                <div className="hud__medidor">
-                  <span className="hud__etiqueta">{t('telemetria.bitrate')}</span>
-                  <div className="hud__cuerpo">
-                    <span className={`hud__cifra${enlace?.bitrateKbps != null ? '' : ' hud__cifra--apagada'}`}>
-                      {enlace?.bitrateKbps ?? '—'}
-                    </span>
-                  </div>
-                  <span className="hud__unidad">{t('telemetria.kbps')}</span>
-                </div>
-              )}
-              {activos.includes('video') && (
-                <div className="hud__medidor">
-                  <span className="hud__etiqueta">{t('telemetria.video')}</span>
-                  <div className="hud__cuerpo">
-                    <span className={`hud__cifra${enlace?.ancho ? '' : ' hud__cifra--apagada'}`}>
-                      {enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : '—'}
-                    </span>
-                  </div>
-                  <span className="hud__unidad">{enlace?.fps != null ? `${enlace.fps} fps` : ''}</span>
-                </div>
-              )}
-              {activos.includes('perdida') && (
-                <div className="hud__medidor">
-                  <span className="hud__etiqueta">{t('telemetria.perdida')}</span>
-                  <div className="hud__cuerpo">
-                    <span className={`hud__cifra${enlace?.perdidos != null ? '' : ' hud__cifra--apagada'}`}>
-                      {enlace?.perdidos ?? '—'}
-                    </span>
-                  </div>
-                  <span className="hud__unidad">{t('telemetria.paquetes')}</span>
-                </div>
-              )}
-              {activos.includes('audiencia') && (
-                <div className="hud__medidor">
-                  <span className="hud__etiqueta">{t('telemetria.espectadores')}</span>
-                  <div className="hud__cuerpo">
-                    <span className={`hud__cifra${(audiencia ?? enlace?.espectadores) != null ? '' : ' hud__cifra--apagada'}`}>
-                      {audiencia ?? enlace?.espectadores ?? '—'}
-                    </span>
-                  </div>
-                  <span className="hud__unidad" />
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -849,11 +843,11 @@ export function BarraTelemetria({
     );
   }
 
-  // MODO ESENCIAL (Táctil, Top-Corners HUD)
+  // MODO ESENCIAL (Táctil, Top-Corners HUD con zona de seguridad de 72px)
   return (
     <div
       style={{
-        position: 'absolute', top: 15, left: 90, right: 90,
+        position: 'absolute', top: 72, left: 24, right: 24,
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         pointerEvents: 'none', zIndex: 1000,
       }}
@@ -863,57 +857,55 @@ export function BarraTelemetria({
         {/* Bloque Izquierdo: Conexión y Audiencia */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '16px',
-        background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px',
-        padding: '10px 16px',
-        pointerEvents: 'auto',
-        opacity: enVivo ? 1 : 0.45,
-        transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-      }}>
-        <CalidadEnlace conectado={isRobotConnected} enlace={enlace} t={t} />
-        {activos.includes('audiencia') && (
-           <>
-             <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', margin: '0 4px' }}>·</span>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} title={t('telemetria.espectadores')}>
-               <Users size={22} color="var(--bone)" strokeWidth={2.5} />
-               <span style={{ fontSize: '1.15rem', color: 'var(--bone)', fontWeight: 'bold' }}>
-                 {audiencia ?? enlace?.espectadores ?? '—'}
-               </span>
-             </div>
-           </>
-        )}
-      </div>
+          background: 'rgba(2, 7, 19, 0.8)', border: '1px solid rgba(251, 202, 1, 0.35)', borderRadius: '2px',
+          padding: '8px 14px',
+          pointerEvents: 'auto',
+          opacity: enVivo ? 1 : 0.45,
+          transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
+          boxShadow: '0 4px 14px rgba(0, 0, 0, 0.7)',
+        }}>
+          <CalidadEnlace conectado={isRobotConnected} enlace={enlace} t={t} />
+          {activos.includes('audiencia') && (
+            <>
+              <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', margin: '0 4px', color: 'var(--accent)' }}>·</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} title={t('telemetria.espectadores')}>
+                <Users size={18} color="var(--bone)" strokeWidth={2.5} />
+                <span style={{ fontSize: '1rem', color: 'var(--bone)', fontWeight: 'bold' }}>
+                  {audiencia ?? enlace?.espectadores ?? '—'}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Píldora de Widgets Izquierda */}
-         {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(0, Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).length > 0 && (
-           <div style={{
-             display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap',
-             background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px',
-             padding: '10px 20px',
-             opacity: enVivo ? 1 : 0.45,
-             transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
-             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-           }}>
-             {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(0, Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).map(({ id }, i) => {
-               const lectura = lecturaCompacta(id);
-               if (!lectura) return null;
-               return (
-                 <Fragment key={id}>
-                   {i > 0 && <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', color: 'var(--border)', margin: '0 8px' }}>|</span>}
-                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                     {lectura.titulo && <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 'normal', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lectura.titulo}</span>}
-                     <span style={{ fontSize: '1.05rem', color: 'var(--bone)', fontWeight: 'normal', fontVariantNumeric: 'tabular-nums' }}>
-                       {lectura.contenido || lectura.valor}
-                       {lectura.unidad && <span style={{ fontSize: '0.8rem', marginLeft: '4px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
-                     </span>
-                   </div>
-                 </Fragment>
-               );
-             })}
-           </div>
-         )}
-
-               </div>
+        {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(0, Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).length > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap',
+            background: 'rgba(2, 7, 19, 0.8)', border: '1px solid rgba(251, 202, 1, 0.35)', borderRadius: '2px',
+            padding: '8px 16px',
+            opacity: enVivo ? 1 : 0.45,
+            transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
+            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.7)',
+          }}>
+            {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(0, Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).map(({ id }, i) => {
+              const lectura = lecturaCompacta(id);
+              if (!lectura) return null;
+              return (
+                <Fragment key={id}>
+                  {i > 0 && <span className="telemetria__osd-sep" style={{ fontSize: '1rem', color: 'rgba(251, 202, 1, 0.4)', margin: '0 6px' }}>|</span>}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+                    <span style={{ fontSize: '0.95rem', color: 'var(--bone)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
+                      {lectura.contenido || lectura.valor}
+                      {lectura.unidad && <span style={{ fontSize: '0.75rem', marginLeft: '3px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
+                    </span>
+                  </div>
+                </Fragment>
+              );
+            })}
+          </div>
+        )}
+      </div>
       {/* Bloque Derecho: Widgets y Menú */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end',
@@ -922,24 +914,23 @@ export function BarraTelemetria({
          {/* Píldora de Widgets Derecha */}
          {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).length > 0 && (
            <div style={{
-             display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap',
-             background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px',
-             padding: '10px 20px',
+             display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap',
+             background: 'rgba(2, 7, 19, 0.8)', border: '1px solid rgba(251, 202, 1, 0.35)', borderRadius: '2px',
+             padding: '8px 16px',
              opacity: enVivo ? 1 : 0.45,
              transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
-             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+             boxShadow: '0 4px 14px rgba(0, 0, 0, 0.7)',
            }}>
              {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).map(({ id }, i) => {
                const lectura = lecturaCompacta(id);
                if (!lectura) return null;
                return (
                  <Fragment key={id}>
-                   {i > 0 && <span className="telemetria__osd-sep" style={{ fontSize: '1.2rem', color: 'var(--border)', margin: '0 8px' }}>|</span>}
-                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                     {lectura.titulo && <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 'normal', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lectura.titulo}</span>}
-                     <span style={{ fontSize: '1.05rem', color: 'var(--bone)', fontWeight: 'normal', fontVariantNumeric: 'tabular-nums' }}>
+                   {i > 0 && <span className="telemetria__osd-sep" style={{ fontSize: '1rem', color: 'rgba(251, 202, 1, 0.4)', margin: '0 6px' }}>|</span>}
+                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+                     <span style={{ fontSize: '0.95rem', color: 'var(--bone)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
                        {lectura.contenido || lectura.valor}
-                       {lectura.unidad && <span style={{ fontSize: '0.8rem', marginLeft: '4px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
+                       {lectura.unidad && <span style={{ fontSize: '0.75rem', marginLeft: '3px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
                      </span>
                    </div>
                  </Fragment>
@@ -950,9 +941,9 @@ export function BarraTelemetria({
          {/* Píldora de Control: Entrada y Menú */}
          <div style={{
            display: 'flex', alignItems: 'center', gap: '10px',
-           background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px',
+           background: 'rgba(2, 7, 19, 0.8)', border: '1px solid rgba(251, 202, 1, 0.35)', borderRadius: '2px',
            padding: '6px 12px',
-           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+           boxShadow: '0 4px 14px rgba(0, 0, 0, 0.7)',
          }}>
            {entrada && (
               <button

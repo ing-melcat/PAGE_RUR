@@ -75,6 +75,54 @@ export default function PaginaPruebas() {
     DrumBack: false,
   });
 
+  // Modos de operación del operador: Teclado QWERTY, Mando de Consola o Panel Táctil
+  const [modoOperador, setModoOperador] = useState<'teclado' | 'mando' | 'tactil'>('teclado');
+  const [teclasActivas, setTeclasActivas] = useState<{ [k: string]: boolean }>({});
+
+  // Manejador del joystick táctil virtual en pantalla
+  const joystickRef = React.useRef<HTMLDivElement>(null);
+  const [joystickDragging, setJoystickDragging] = useState<boolean>(false);
+  const [joystickPos, setJoystickPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const updateJoystick = (e: React.PointerEvent) => {
+    if (!joystickRef.current) return;
+    const rect = joystickRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const rawDx = e.clientX - centerX;
+    const rawDy = e.clientY - centerY;
+    const maxR = 48;
+    const dist = Math.hypot(rawDx, rawDy);
+    const clampedDist = Math.min(dist, maxR);
+    const angle = Math.atan2(rawDy, rawDx);
+    const x = Math.cos(angle) * clampedDist;
+    const y = Math.sin(angle) * clampedDist;
+    setJoystickPos({ x, y });
+
+    const normGiro = parseFloat((x / maxR).toFixed(2));
+    const normAvance = parseFloat((-y / maxR).toFixed(2));
+    setHudGiro(normGiro);
+    setHudAvance(normAvance);
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setJoystickDragging(true);
+    updateJoystick(e);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!joystickDragging) return;
+    updateJoystick(e);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setJoystickDragging(false);
+    setJoystickPos({ x: 0, y: 0 });
+    setHudAvance(0);
+    setHudGiro(0);
+  };
+
   // Manejo de teclado interactivo para pilotar el HUD en tiempo real
   useEffect(() => {
     if (tabActiva !== 'cockpit') return;
@@ -84,6 +132,8 @@ export default function PaginaPruebas() {
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
 
       const key = e.key.toLowerCase();
+      setTeclasActivas((prev) => ({ ...prev, [key]: true }));
+
       if (key === 'w' || key === 'arrowup') {
         e.preventDefault();
         setHudAvance((prev) => Math.min(1, parseFloat((prev + 0.2).toFixed(2))));
@@ -100,11 +150,32 @@ export default function PaginaPruebas() {
         e.preventDefault();
         setHudAvance(0);
         setHudGiro(0);
+      } else if (key === '1') {
+        setActuadoresSimulados((prev) => ({ ...prev, ArmFront: !prev.ArmFront }));
+      } else if (key === '2') {
+        setActuadoresSimulados((prev) => ({ ...prev, ArmBack: !prev.ArmBack }));
+      } else if (key === '3') {
+        setActuadoresSimulados((prev) => ({ ...prev, DrumFront: !prev.DrumFront }));
+      } else if (key === '4') {
+        setActuadoresSimulados((prev) => ({ ...prev, DrumBack: !prev.DrumBack }));
       }
     };
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      setTeclasActivas((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
   }, [tabActiva]);
 
   // Opciones de título en blanco para el modo manual (solicitud del operador)
@@ -530,254 +601,288 @@ export default function PaginaPruebas() {
                   </div>
                 </div>
 
-                {/* RETÍCULA ÓPTICA CENTRAL DE VUELO */}
-                <div className="hud__reticula">
-                  <div 
-                    className="hud__reticula-azimut"
-                    style={{
-                      transform: `translateX(${-hudGiro * 20}px)`,
-                      transition: 'transform 0.1s linear'
-                    }}
-                  >
-                    <span>◄ 070 · 080 · 090 · 100 · 110 ►</span>
-                  </div>
-                  <div className="hud__reticula-mira">
-                    <span className="hud__reticula-cross-h" />
-                    <span className="hud__reticula-cross-v" />
-                    <span className="hud__reticula-tick hud__reticula-tick--tl" />
-                    <span className="hud__reticula-tick hud__reticula-tick--tr" />
-                    <span className="hud__reticula-tick hud__reticula-tick--bl" />
-                    <span className="hud__reticula-tick hud__reticula-tick--br" />
-                    <span className="hud__reticula-centro" />
-                  </div>
-                  <div 
-                    className="hud__reticula-escala"
-                    style={{
-                      transform: `rotate(${-hudRoll * 0.5}deg) translateY(${hudPitch * 1.2}px)`,
-                      transition: 'transform 0.1s linear'
-                    }}
-                  >
-                    <span>+10</span>
-                    <span className="hud__reticula-cero">— 00 —</span>
-                    <span>-10</span>
-                  </div>
-                </div>
-
-                {/* OVERLAY DEL COCKPIT HUD COMPLETO (ALAS Y CENTRO) */}
-                <div className="hud">
-                  {/* ALA IZQUIERDA: MOVIMIENTO, PROPULSIÓN Y ACTUADORES */}
-                  <div className="hud__ala hud__ala--izquierda">
-                    <div className="hud__ala-cabecera">
-                      <span>// SYS 01 · PROPULSIÓN & ACTUADORES</span>
-                      <span style={{ color: 'var(--bone)', fontSize: '0.62rem' }}>60 HZ REAL-TIME</span>
-                    </div>
-                    <div className="hud__ala-cuerpo">
-                      {/* MEDIDOR AVANCE */}
-                      <div className="hud__medidor">
-                        <span className="hud__etiqueta">AVANCE</span>
-                        <div className="hud__cuerpo">
-                          <span className={`hud__cifra ${Math.abs(hudAvance) > 0.05 ? '' : 'hud__cifra--apagada'}`}>
-                            {hudAvance >= 0.05 ? '▲' : hudAvance <= -0.05 ? '▼' : '·'} {Math.round(Math.abs(hudAvance) * 100)}
-                          </span>
-                        </div>
-                        <span className="hud__unidad">
-                          {hudAvance >= 0.05 ? 'ADELANTE' : hudAvance <= -0.05 ? 'REVERSA' : 'DETENIDO'}
-                        </span>
+                {/* ========================================================================= */}
+                {/* HUD DE VUELO TÁCTICO INTEGRADO (PLANTILLA 1: FLIGHT TAPES & BORESIGHT)   */}
+                {/* Sin títulos, sin explicaciones, magnitudes físicas reales (m/s, rad/s, °) */}
+                {/* ========================================================================= */}
+                <div className="hud-safe-zone">
+                  {/* 1. CINTA DE AZIMUT / RUMBO HORIZONTAL AL CENTRO SUPERIOR */}
+                  {(() => {
+                    const headingDeg = Math.round((90 + hudGiro * 45 + 360) % 360);
+                    const hMinus20 = String((headingDeg - 20 + 360) % 360).padStart(3, '0');
+                    const hMinus10 = String((headingDeg - 10 + 360) % 360).padStart(3, '0');
+                    const hCenter = String(headingDeg).padStart(3, '0');
+                    const hPlus10 = String((headingDeg + 10) % 360).padStart(3, '0');
+                    const hPlus20 = String((headingDeg + 20) % 360).padStart(3, '0');
+                    return (
+                      <div className="hud__tape-azimut">
+                        <span>◄ {hMinus20} · · {hMinus10} · · [ {hCenter}° ] · · {hPlus10} · · {hPlus20} ►</span>
                       </div>
+                    );
+                  })()}
 
-                      {/* MEDIDOR GIRO */}
-                      <div className="hud__medidor">
-                        <span className="hud__etiqueta">GIRO</span>
-                        <div className="hud__cuerpo">
-                          <span className={`hud__cifra ${Math.abs(hudGiro) > 0.05 ? '' : 'hud__cifra--apagada'}`}>
-                            {hudGiro <= -0.05 ? '◀' : hudGiro >= 0.05 ? '▶' : '·'} {Math.round(Math.abs(hudGiro) * 100)}
-                          </span>
-                        </div>
-                        <span className="hud__unidad">
-                          {hudGiro <= -0.05 ? 'IZQUIERDA' : hudGiro >= 0.05 ? 'DERECHA' : 'CENTRO'}
-                        </span>
-                      </div>
+                  {/* 2. CINTA VERTICAL DE VELOCIDAD DINÁMICA (m/s) A LA IZQUIERDA */}
+                  {(() => {
+                    const velLineal = (hudAvance * 1.5).toFixed(1);
+                    // Escala de 160px: top 5% es +2.0, 50% es 0.0, 95% es -2.0
+                    const cursorPercent = Math.max(5, Math.min(95, 50 - (hudAvance * 40)));
+                    return (
+                      <div className="hud__tape-velocidad">
+                        <div className="hud__speed-scale-wrap">
+                          <div className="hud__speed-rail">
+                            {/* Graduación de la escala en m/s */}
+                            <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '0%' }}>
+                              <span className="hud__speed-tick-label">+2.0</span>
+                            </div>
+                            <div className="hud__speed-tick" style={{ top: '25%' }}>
+                              <span className="hud__speed-tick-label">+1.0</span>
+                            </div>
+                            <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '50%' }}>
+                              <span className="hud__speed-tick-label" style={{ color: 'var(--accent)', fontWeight: 'bold' }}>0.0</span>
+                            </div>
+                            <div className="hud__speed-tick" style={{ top: '75%' }}>
+                              <span className="hud__speed-tick-label">-1.0</span>
+                            </div>
+                            <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '100%' }}>
+                              <span className="hud__speed-tick-label">-2.0</span>
+                            </div>
 
-                      {/* MEDIDOR ACTUADORES */}
-                      <div className="hud__actuadores">
-                        <span className="hud__etiqueta">ACTUADORES</span>
-                        <div className="hud__cuerpo">
-                          <div className="hud__actuadores-puntos">
-                            {[
-                              { id: 'ArmFront', abrev: 'BF' },
-                              { id: 'ArmBack', abrev: 'BT' },
-                              { id: 'DrumFront', abrev: 'TF' },
-                              { id: 'DrumBack', abrev: 'TT' },
-                            ].map(({ id, abrev }) => {
-                              const activo = actuadoresSimulados[id as keyof typeof actuadoresSimulados];
-                              return (
-                                <span
-                                  key={id}
-                                  title={abrev}
-                                  className={`hud__act-punto ${activo ? 'hud__act-punto--on' : ''}`}
-                                />
-                              );
-                            })}
+                            {/* Cursor móvil dinámico con etiqueta m/s */}
+                            <div className="hud__speed-cursor" style={{ top: `${cursorPercent}%` }}>
+                              <span className="hud__speed-arrow" />
+                              <span className="hud__speed-tag">
+                                {hudAvance > 0 ? '+' : ''}{velLineal} m/s
+                              </span>
+                            </div>
                           </div>
                         </div>
-                        <span className="hud__unidad">
-                          {Object.values(actuadoresSimulados).some(Boolean) ? 'ACTIVO' : 'IDLE'}
-                        </span>
-                      </div>
 
-                      {/* HORIZONTE ARTIFICIAL IMU */}
-                      <div className="hud__medidor hud__medidor--horizonte">
-                        <span className="hud__etiqueta">INCLINACIÓN</span>
-                        <div className="hud__cuerpo">
-                          <svg width="84" height="34" viewBox="0 0 84 34">
-                            <g transform={`rotate(${-hudRoll} 42 17)`} style={{ transition: 'all 0.1s linear' }}>
-                              <line
-                                x1="4" y1={17 + Math.max(-14, Math.min(14, hudPitch * 0.42))}
-                                x2="80" y2={17 + Math.max(-14, Math.min(14, hudPitch * 0.42))}
-                                stroke={Math.abs(hudRoll) > 12 || Math.abs(hudPitch) > 12 ? 'var(--warning)' : 'var(--bone)'}
-                                strokeWidth="2" strokeLinecap="round"
-                              />
-                            </g>
-                            <line x1="27" y1="17" x2="36" y2="17" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" />
-                            <line x1="48" y1="17" x2="57" y2="17" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" />
-                            <circle cx="42" cy="17" r="1.6" fill="var(--accent)" />
-                          </svg>
+                        {/* Subdatos en magnitudes físicas reales medibles */}
+                        <div className="hud__speed-subdata">
+                          <div>DIST: {(12.6 + Math.abs(hudAvance) * 3.4).toFixed(1)} m</div>
+                          <div>ANG : {hudGiro >= 0 ? '+' : ''}{(hudGiro * 1.25).toFixed(2)} rad/s</div>
+                          <div>ARM : F:{actuadoresSimulados.ArmFront ? '+32.5°' : '0.0°'} R:{actuadoresSimulados.ArmBack ? '+18.0°' : '0.0°'}</div>
+                          <div>DRM : F:{actuadoresSimulados.DrumFront ? '45' : '0'} R:{actuadoresSimulados.DrumBack ? '45' : '0'} RPM</div>
                         </div>
-                        <span className="hud__pie-instrumento">
-                          {Math.round(hudPitch)}° · {Math.round(hudRoll)}°
-                        </span>
                       </div>
+                    );
+                  })()}
+
+                  {/* 3. RETÍCULA ÓPTICA CENTRAL (BORESIGHT & PITCH LADDER) */}
+                  <div className="hud__boresight">
+                    <div className="hud__boresight-cross">
+                      <span className="hud__boresight-line-h" />
+                      <span className="hud__boresight-line-v" />
+                      <span className="hud__boresight-corner hud__boresight-corner--tl" />
+                      <span className="hud__boresight-corner hud__boresight-corner--tr" />
+                      <span className="hud__boresight-corner hud__boresight-corner--bl" />
+                      <span className="hud__boresight-corner hud__boresight-corner--br" />
+                      <span className="hud__boresight-center" />
+                    </div>
+                    <div 
+                      className="hud__boresight-ladder"
+                      style={{ transform: `rotate(${-hudRoll * 0.5}deg) translateY(${hudPitch * 1.2}px)` }}
+                    >
+                      <span>+10</span>
+                      <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>┌ 00 ┐</span>
+                      <span>-10</span>
+                    </div>
+                    <div className="hud__boresight-angles">
+                      P: {hudPitch >= 0 ? '+' : ''}{hudPitch.toFixed(1)}° │ R: {hudRoll >= 0 ? '+' : ''}{hudRoll.toFixed(1)}°
                     </div>
                   </div>
 
-                  {/* CENTRO: ROVER 3D CENITAL + CRONÓMETRO DE MISIÓN + ACCIONES */}
-                  <div className="hud__centro">
-                    <ErrorBoundary fallback={
-                      <div style={{ color: 'var(--muted)', fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', padding: '12px' }}>
-                        TELEMETRÍA 3D EN CARGA...
+                  {/* 4. COLUMNA DERECHA DE POTENCIA, TÉRMICA Y ENLACE */}
+                  {(() => {
+                    const volt = (24.0 + (bateriaSimulada / 100) * 4.6).toFixed(1);
+                    const amp = (1.8 + Math.abs(hudAvance) * 3.2).toFixed(1);
+                    const watts = (parseFloat(volt) * parseFloat(amp)).toFixed(1);
+                    return (
+                      <div className="hud__tape-avionica">
+                        <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.85rem' }}>
+                          {volt} V · {amp} A
+                        </div>
+                        <div style={{ color: 'var(--muted)', fontSize: '0.68rem' }}>
+                          BUS: 24V NOM · {watts} W
+                        </div>
+                        <div>TEMP: 41.2°C MOT · 38.0°C CTL</div>
+                        <div style={{ marginTop: '6px', color: '#2ecc71', fontWeight: 600 }}>
+                          18 ms · {bitrateSimulado} kbps
+                        </div>
+                        <div>1080p @ 60 fps · 0 loss</div>
+                        <div style={{ color: 'var(--bone)', fontSize: '0.68rem' }}>
+                          12 USR · P2P ENLACE OK
+                        </div>
                       </div>
-                    }>
+                    );
+                  })()}
+
+                  {/* 5. DECK INFERIOR CENTRAL: ROVER 3D + MISIÓN + SELECTOR DE MODO */}
+                  <div className="hud__deck-inferior">
+                    <ErrorBoundary fallback={<div style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>3D EN CARGA...</div>}>
                       <RassorEnVivo
                         avance={{ nivel: Math.abs(hudAvance) * 10, dir: hudAvance >= 0 ? 'adelante' : 'atras' }}
                         giro={{ nivel: Math.abs(hudGiro) * 10, dir: hudGiro >= 0 ? 'derecha' : 'izquierda' }}
                         imu={{ pitch: hudPitch, roll: hudRoll }}
-                        escala={1.5}
+                        escala={1.3}
                         modelUrl="/api/uploads/1792432091929-344939674-rassorbody_full.glb"
                       />
                     </ErrorBoundary>
 
-                    <div className="hud__subtitulo" style={{ marginTop: '2px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                      <span style={{ fontSize: '0.95rem', color: 'var(--accent)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
-                        T+ 00:14:22
-                      </span>
-                      <span style={{ fontSize: '0.68rem', color: 'var(--bone)', letterSpacing: '0.08em' }}>
-                        MISIÓN: EXTRACCIÓN DE REGOLITO
-                      </span>
-                    </div>
+                    <span className="hud__mission-clock">T+ 00:14:22</span>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', pointerEvents: 'auto' }}>
-                      <div style={{
-                        background: 'rgba(2, 7, 19, 0.85)',
-                        border: '1px solid rgba(251, 202, 1, 0.4)',
-                        padding: '4px 10px',
-                        display: 'flex', alignItems: 'center', gap: '6px',
-                        fontFamily: 'var(--font-codigo)', fontSize: '0.68rem',
-                        color: 'var(--accent)'
-                      }}>
-                        <Keyboard size={13} color="var(--accent)" />
-                        <span>ENTRADA: TECLADO (W,A,S,D)</span>
-                      </div>
-
-                      <button className="telemetria-btn">
-                        <Flag size={13} /> Misión
+                    <div className="hud__controls-pill">
+                      <button
+                        className={`hud__mode-btn ${modoOperador === 'teclado' ? 'hud__mode-btn--active' : ''}`}
+                        onClick={() => setModoOperador('teclado')}
+                        title="Modo Teclado QWERTY (W/A/S/D / Flechas)"
+                      >
+                        <Keyboard size={13} /> TECLADO
                       </button>
-
-                      <button className="telemetria-btn">
-                        <LayoutGrid size={13} /> Widgets
+                      <button
+                        className={`hud__mode-btn ${modoOperador === 'mando' ? 'hud__mode-btn--active' : ''}`}
+                        onClick={() => setModoOperador('mando')}
+                        title="Modo Mando / Gamepad de Consola"
+                      >
+                        <Gamepad2 size={13} /> MANDO
+                      </button>
+                      <button
+                        className={`hud__mode-btn ${modoOperador === 'tactil' ? 'hud__mode-btn--active' : ''}`}
+                        onClick={() => setModoOperador('tactil')}
+                        title="Modo Panel Táctil en Pantalla"
+                      >
+                        <Activity size={13} /> TÁCTIL
                       </button>
                     </div>
                   </div>
+                </div>
 
-                  {/* ALA DERECHA: TELEMETRÍA Y ENLACE */}
-                  <div className="hud__ala hud__ala--derecha">
-                    <div className="hud__ala-cabecera">
-                      <span>// SYS 02 · TELEMETRÍA Y ENLACE</span>
-                      <span style={{ color: '#2ecc71', fontSize: '0.62rem' }}>P2P DATACHANNEL</span>
+                {/* ========================================================================= */}
+                {/* 6. MÓDULOS DE CONTROL SEGÚN MODO OPERADOR SELECCIONADO                    */}
+                {/* ========================================================================= */}
+                {modoOperador === 'tactil' && (
+                  <div className="hud__touch-overlay">
+                    {/* Joystick virtual a la izquierda */}
+                    <div 
+                      ref={joystickRef}
+                      className="hud__virtual-joystick"
+                      onPointerDown={handlePointerDown}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      onPointerCancel={handlePointerUp}
+                      title="Arrastra para pilotar avance y giro"
+                    >
+                      <span className="hud__joystick-crosshair-h" />
+                      <span className="hud__joystick-crosshair-v" />
+                      <div 
+                        className="hud__joystick-thumb"
+                        style={{
+                          transform: `translate(${joystickPos.x}px, ${joystickPos.y}px)`
+                        }}
+                      />
                     </div>
-                    <div className="hud__ala-cuerpo">
-                      {/* ENLACE WEBRTC */}
-                      <div className="hud__medidor">
-                        <span className="hud__etiqueta">ENLACE</span>
-                        <div className="hud__cuerpo" style={{ gap: '6px' }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '18px' }}>
-                            {[8, 12, 16, 20].map((h, i) => (
-                              <div
-                                key={i}
-                                style={{
-                                  width: '4px', height: `${h}px`,
-                                  background: '#2ecc71', borderRadius: '1px',
-                                  boxShadow: '0 0 4px #2ecc71'
-                                }}
-                              />
-                            ))}
-                          </div>
-                          <span className="hud__cifra" style={{ fontSize: '1rem', color: '#2ecc71' }}>P2P</span>
-                        </div>
-                        <span className="hud__unidad">&lt; 22 MS</span>
-                      </div>
 
-                      {/* BITRATE */}
-                      <div className="hud__medidor">
-                        <span className="hud__etiqueta">BITRATE</span>
-                        <div className="hud__cuerpo">
-                          <span className="hud__cifra">{bitrateSimulado}</span>
-                        </div>
-                        <span className="hud__unidad">KBPS</span>
+                    {/* Botonera táctil de actuadores a la derecha */}
+                    <div className="hud__touch-actuators">
+                      <div className="hud__touch-actuator-row">
+                        <button 
+                          className={`hud__touch-act-btn ${actuadoresSimulados.ArmFront ? 'hud__touch-act-btn--on' : ''}`}
+                          onClick={() => setActuadoresSimulados(p => ({ ...p, ArmFront: !p.ArmFront }))}
+                        >
+                          BF {actuadoresSimulados.ArmFront ? '▲ ON' : 'IDLE'}
+                        </button>
+                        <button 
+                          className={`hud__touch-act-btn ${actuadoresSimulados.ArmBack ? 'hud__touch-act-btn--on' : ''}`}
+                          onClick={() => setActuadoresSimulados(p => ({ ...p, ArmBack: !p.ArmBack }))}
+                        >
+                          BT {actuadoresSimulados.ArmBack ? '▲ ON' : 'IDLE'}
+                        </button>
                       </div>
-
-                      {/* VIDEO */}
-                      <div className="hud__medidor">
-                        <span className="hud__etiqueta">VÍDEO</span>
-                        <div className="hud__cuerpo">
-                          <span className="hud__cifra" style={{ fontSize: '1rem' }}>1080P</span>
-                        </div>
-                        <span className="hud__unidad">60 FPS</span>
-                      </div>
-
-                      {/* BATERÍA */}
-                      <div className="hud__medidor hud__medidor--bateria">
-                        <span className="hud__etiqueta">BATERÍA</span>
-                        <div className="hud__cuerpo" style={{ gap: '6px' }}>
-                          <svg width="42" height="20" viewBox="0 0 64 30">
-                            <rect x="1" y="6" width="52" height="18" rx="2" fill="none" stroke="var(--border)" strokeWidth="1.5" />
-                            <rect x="54" y="12" width="4" height="6" rx="1" fill="var(--border)" />
-                            <rect
-                              x="4" y="9" height="12" rx="1"
-                              width={Math.max(0, (bateriaSimulada / 100) * 46)}
-                              fill={bateriaSimulada <= 15 ? 'var(--error)' : bateriaSimulada <= 30 ? 'var(--warning)' : '#2ecc71'}
-                            />
-                          </svg>
-                          <span className="hud__cifra" style={{
-                            fontSize: '1rem',
-                            color: bateriaSimulada <= 15 ? 'var(--error)' : bateriaSimulada <= 30 ? 'var(--warning)' : 'var(--bone)'
-                          }}>
-                            {bateriaSimulada}%
-                          </span>
-                        </div>
-                        <span className="hud__unidad">28.4 V</span>
-                      </div>
-
-                      {/* AUDIENCIA */}
-                      <div className="hud__medidor">
-                        <span className="hud__etiqueta">AUDIENCIA</span>
-                        <div className="hud__cuerpo" style={{ gap: '6px' }}>
-                          <Users size={16} color="var(--bone)" />
-                          <span className="hud__cifra">12</span>
-                        </div>
-                        <span className="hud__unidad">OPERADORES</span>
+                      <div className="hud__touch-actuator-row">
+                        <button 
+                          className={`hud__touch-act-btn ${actuadoresSimulados.DrumFront ? 'hud__touch-act-btn--on' : ''}`}
+                          onClick={() => setActuadoresSimulados(p => ({ ...p, DrumFront: !p.DrumFront }))}
+                        >
+                          TF {actuadoresSimulados.DrumFront ? '↺ 45' : '0 RPM'}
+                        </button>
+                        <button 
+                          className={`hud__touch-act-btn ${actuadoresSimulados.DrumBack ? 'hud__touch-act-btn--on' : ''}`}
+                          onClick={() => setActuadoresSimulados(p => ({ ...p, DrumBack: !p.DrumBack }))}
+                        >
+                          TT {actuadoresSimulados.DrumBack ? '↺ 45' : '0 RPM'}
+                        </button>
                       </div>
                     </div>
                   </div>
+                )}
+
+                {modoOperador === 'mando' && (
+                  <div style={{
+                    position: 'absolute', bottom: '16px', left: '20px',
+                    pointerEvents: 'none', zIndex: 25,
+                    display: 'flex', alignItems: 'center', gap: '8px'
+                  }}>
+                    <div className="hud__gamepad-banner">
+                      <Gamepad2 size={15} color="var(--accent)" />
+                      <span>CONSOLA GCS // STICK IZQ: TRACCIÓN · STICK DER: MIRA · RT/LT: TAMBORES · D-PAD: BRAZOS</span>
+                    </div>
+                  </div>
+                )}
+
+                {modoOperador === 'teclado' && (
+                  <div style={{
+                    position: 'absolute', bottom: '16px', left: '20px',
+                    pointerEvents: 'none', zIndex: 25,
+                    display: 'flex', alignItems: 'center', gap: '8px'
+                  }}>
+                    <div className="hud__gamepad-banner">
+                      <Keyboard size={15} color="var(--accent)" />
+                      <div className="hud__keyboard-keys">
+                        <span className={`hud__key-pill ${teclasActivas['w'] || teclasActivas['arrowup'] ? 'hud__key-pill--active' : ''}`}>W</span>
+                        <span className={`hud__key-pill ${teclasActivas['a'] || teclasActivas['arrowleft'] ? 'hud__key-pill--active' : ''}`}>A</span>
+                        <span className={`hud__key-pill ${teclasActivas['s'] || teclasActivas['arrowdown'] ? 'hud__key-pill--active' : ''}`}>S</span>
+                        <span className={`hud__key-pill ${teclasActivas['d'] || teclasActivas['arrowright'] ? 'hud__key-pill--active' : ''}`}>D</span>
+                        <span className={`hud__key-pill ${teclasActivas[' '] || teclasActivas['x'] ? 'hud__key-pill--active' : ''}`} style={{ minWidth: '40px' }}>ESP</span>
+                      </div>
+                      <span style={{ color: 'var(--muted)', fontSize: '0.65rem' }}>1/2/3/4: ACTUADORES</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SELECTOR RÁPIDO DE MODOS DE ENTRADA Y BANCO DE CONTROL */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: '12px 16px', background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', color: 'var(--accent)', fontWeight: 'bold' }}>
+                    MODO DE CONTROL ACTIVO:
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--bone)' }}>
+                    {modoOperador === 'teclado' ? 'TECLADO QWERTY (W/A/S/D · 1/2/3/4)' : modoOperador === 'mando' ? 'MANDO / GAMEPAD DE CONSOLA' : 'PANEL TÁCTIL (JOYSTICK Y BOTONERA EN PANTALLA)'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    className={`tactical-btn ${modoOperador === 'teclado' ? '' : 'tactical-btn--secondary'}`}
+                    style={{ padding: '6px 12px', fontSize: '0.72rem' }}
+                    onClick={() => setModoOperador('teclado')}
+                  >
+                    <Keyboard size={13} /> [ TECLADO ]
+                  </button>
+                  <button
+                    className={`tactical-btn ${modoOperador === 'mando' ? '' : 'tactical-btn--secondary'}`}
+                    style={{ padding: '6px 12px', fontSize: '0.72rem' }}
+                    onClick={() => setModoOperador('mando')}
+                  >
+                    <Gamepad2 size={13} /> [ MANDO ]
+                  </button>
+                  <button
+                    className={`tactical-btn ${modoOperador === 'tactil' ? '' : 'tactical-btn--secondary'}`}
+                    style={{ padding: '6px 12px', fontSize: '0.72rem' }}
+                    onClick={() => setModoOperador('tactil')}
+                  >
+                    <Activity size={13} /> [ TÁCTIL ]
+                  </button>
                 </div>
               </div>
 
@@ -796,8 +901,8 @@ export default function PaginaPruebas() {
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', marginBottom: '4px' }}>
-                      <span>AVANCE (ACELERADOR):</span>
-                      <span style={{ color: 'var(--accent)' }}>{Math.round(hudAvance * 100)}%</span>
+                      <span>VELOCIDAD LINEAL:</span>
+                      <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>{(hudAvance * 1.5).toFixed(1)} m/s ({Math.round(hudAvance * 100)}%)</span>
                     </div>
                     <input 
                       type="range" min="-1" max="1" step="0.05"
@@ -809,8 +914,8 @@ export default function PaginaPruebas() {
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', marginBottom: '4px' }}>
-                      <span>GIRO (DIRECCIÓN):</span>
-                      <span style={{ color: 'var(--accent)' }}>{Math.round(hudGiro * 100)}%</span>
+                      <span>VELOCIDAD ANGULAR:</span>
+                      <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>{(hudGiro * 1.25).toFixed(2)} rad/s ({Math.round(hudGiro * 100)}%)</span>
                     </div>
                     <input 
                       type="range" min="-1" max="1" step="0.05"
