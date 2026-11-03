@@ -86,10 +86,10 @@
 /* 2. Cinta Vertical de Velocidad Dinámica (m/s) a la Izquierda (Abajo a la izquierda, sin estorbar el lineado amarillo de cámara) */
 .hud__tape-velocidad {
   position: absolute;
-  left: 42px;
-  bottom: 48px;
+  left: 38px;
+  bottom: 44px;
   top: auto;
-  width: 170px;
+  width: 215px;
   pointer-events: none;
   z-index: 10;
 }
@@ -97,7 +97,7 @@
 .hud__speed-scale-wrap {
   display: flex;
   align-items: center;
-  height: 160px;
+  height: 145px;
   position: relative;
   margin-left: 10px;
 }
@@ -180,16 +180,16 @@
 .hud__telemetry-col,
 .hud__tape-avionica {
   position: absolute;
-  right: 20px;
-  top: 35px;
-  width: 240px;
+  right: 28px;
+  top: 32px;
+  width: 260px;
   pointer-events: none;
   z-index: 10;
   text-align: right;
   font-family: var(--font-codigo), monospace;
   font-size: 0.74rem;
   color: var(--bone);
-  line-height: 1.6;
+  line-height: 1.55;
   letter-spacing: 0.05em;
   background: transparent;
   border-right: 2px solid var(--accent);
@@ -208,14 +208,14 @@
 /* 5. Deck Inferior Central (Rover 3D, Clinómetro, Misión, Selector de Modo) */
 .hud__deck-inferior {
   position: absolute;
-  bottom: 12px;
+  bottom: 22px;
   left: 50%;
   transform: translateX(-50%);
   pointer-events: none;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   z-index: 10;
 }
 
@@ -278,10 +278,10 @@
   box-shadow: 0 0 10px rgba(251, 202, 1, 0.4);
 }
 
-/* Esquinas de delimitación de cabina // Rover GCS */
+/* Esquinas de delimitación de cabina // Rover GCS (Dentro del marco amarillo de vídeo, sin colisionar con Cabezal) */
 .hud__esquinas {
   position: absolute;
-  inset: 14px 20px;
+  inset: 66px 26px 24px 26px;
   pointer-events: none;
   z-index: 1;
 }

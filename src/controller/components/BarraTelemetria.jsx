@@ -3,6 +3,7 @@ import { LayoutGrid, Users, WifiOff, Gamepad2, Keyboard, Pointer, MoveUp, MoveLe
 import { ACTUADORES, NIVEL_MAX } from '../telemetria';
 import { useTelemetria, useSinMovimiento } from '../useTelemetria';
 import { useTelemetriaRobot } from '../useTelemetriaRobot';
+import { useCinematicaViva } from '../useCinematicaViva';
 import { WIDGETS, WIDGETS_POR_DEFECTO } from '../widgets';
 import { useEstadisticasEnlace } from '../useEstadisticasEnlace';
 import { useLanguage } from '../../lib/i18n';
@@ -405,12 +406,9 @@ export function BarraTelemetria({
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [misionAbierta, setMisionAbierta] = useState(false);
 
-  // Las estadísticas del enlace solo se piden si hay algún widget que las use:
-  // sin esto se estaría sondeando la conexión cada segundo para nada.
-  const necesitaEnlace = activos.some(
-    (id) => WIDGETS.find((w) => w.id === id)?.fuente === 'enlace'
-  );
-  const enlace = useEstadisticasEnlace(room, necesitaEnlace);
+  // Sondeo continuo del enlace WebRTC para latencia RTT, bitrate, vídeo y pérdida real
+  const enlace = useEstadisticasEnlace(room, true);
+  const cinematica = useCinematicaViva(telemetria, sensores, isRobotConnected);
 
   const alternar = (id) => {
     setActivos((previos) => {
@@ -571,8 +569,7 @@ export function BarraTelemetria({
 
           {WIDGETS.map(({ id, fuente }) => {
             const encendido = activos.includes(id);
-            const sinDatos = fuente === 'robot'
-              || (fuente === 'enlace' && necesitaEnlace && !enlace);
+            const sinDatos = fuente === 'enlace' && !enlace?.bitrateKbps && !enlace?.ancho;
             return (
               <label
                 key={id}
@@ -648,73 +645,76 @@ export function BarraTelemetria({
 
 
   if (!esencial) {
-    const avanceVal = telemetria.avance?.nivel ? ((telemetria.avance.dir === 'atras' ? -1 : 1) * (telemetria.avance.nivel / 10)) : 0;
-    const giroVal = telemetria.giro?.nivel ? ((telemetria.giro.dir === 'izquierda' ? -1 : 1) * (telemetria.giro.nivel / 10)) : 0;
-    
-    // Magnitudes físicas reales
-    const headingDeg = sensores?.imu?.rumbo != null 
-      ? Math.round((sensores.imu.rumbo % 360 + 360) % 360)
-      : Math.round((90 + giroVal * 45 + 360) % 360);
+    const {
+      avancePct,
+      avanceDir,
+      giroPct,
+      giroDir,
+      headingDeg,
+      velNum,
+      velLineal,
+      angVal,
+      distVal,
+      pitchVal,
+      rollVal,
+      imuEfectivo,
+      armFrontVal,
+      armBackVal,
+      drmFrontVal,
+      drmBackVal,
+      voltVal,
+      ampVal,
+      wattVal,
+      tempVal,
+      enReposoSinRobot,
+    } = cinematica;
+
     const hMinus20 = String((headingDeg - 20 + 360) % 360).padStart(3, '0');
     const hMinus10 = String((headingDeg - 10 + 360) % 360).padStart(3, '0');
     const hCenter = String(headingDeg).padStart(3, '0');
     const hPlus10 = String((headingDeg + 10) % 360).padStart(3, '0');
     const hPlus20 = String((headingDeg + 20) % 360).padStart(3, '0');
 
-    const velLineal = sensores?.velocidad?.lineal != null
-      ? sensores.velocidad.lineal.toFixed(1)
-      : (avanceVal * 1.5).toFixed(1);
-    const velNum = parseFloat(velLineal);
     const cursorPercent = Math.max(5, Math.min(95, 50 - ((velNum / 2.0) * 45)));
 
-    const angVal = sensores?.velocidad?.angular != null
-      ? sensores.velocidad.angular.toFixed(2)
-      : (giroVal * 1.25).toFixed(2);
-    const distVal = sensores?.odometria?.distancia != null
-      ? `${sensores.odometria.distancia.toFixed(1)} m`
-      : (isRobotConnected ? `${(Math.abs(avanceVal) * 3.4).toFixed(1)} m` : '0.0 m');
-
-    const pitchVal = sensores?.imu?.pitch != null ? sensores.imu.pitch : 0;
-    const rollVal = sensores?.imu?.roll != null ? sensores.imu.roll : 0;
-
-    const voltVal = sensores?.bateria?.voltaje != null ? sensores.bateria.voltaje.toFixed(1) : (isRobotConnected ? '24.2' : '—');
-    const ampVal = sensores?.bateria?.corriente != null ? sensores.bateria.corriente.toFixed(1) : (isRobotConnected ? (1.5 + Math.abs(avanceVal) * 2.0).toFixed(1) : '—');
-    const wattVal = (voltVal !== '—' && ampVal !== '—') ? (parseFloat(voltVal) * parseFloat(ampVal)).toFixed(1) : '—';
-    const tempVal = sensores?.temperatura?.motores != null ? `${sensores.temperatura.motores.toFixed(1)}°C` : (isRobotConnected ? '36.5°C' : '—');
-
-    const armFrontVal = sensores?.actuadores?.brazo_delantero?.angulo != null
-      ? `+${sensores.actuadores.brazo_delantero.angulo.toFixed(1)}°`
-      : telemetria.actuadores?.ArmFront ? '+32.5°' : '0.0°';
-    const armBackVal = sensores?.actuadores?.brazo_trasero?.angulo != null
-      ? `+${sensores.actuadores.brazo_trasero.angulo.toFixed(1)}°`
-      : telemetria.actuadores?.ArmBack ? '+18.0°' : '0.0°';
-    const drmFrontVal = sensores?.actuadores?.tambor_delantero?.rpm != null
-      ? `${sensores.actuadores.tambor_delantero.rpm}`
-      : telemetria.actuadores?.DrumFront ? '45' : '0';
-    const drmBackVal = sensores?.actuadores?.tambor_trasero?.rpm != null
-      ? `${sensores.actuadores.tambor_trasero.rpm}`
-      : telemetria.actuadores?.DrumBack ? '45' : '0';
-
-    const verMovimiento = activos.includes('avance') || activos.includes('giro');
+    const verAvance = activos.includes('avance');
+    const verGiro = activos.includes('giro');
     const verActuadores = activos.includes('actuadores');
-    const verConexion = activos.includes('bitrate') || activos.includes('video') || activos.includes('perdida');
+    const verMovimiento = verAvance || verGiro || verActuadores;
+    const verBitrate = activos.includes('bitrate');
+    const verVideo = activos.includes('video');
+    const verPerdida = activos.includes('perdida');
+    const verConexion = verBitrate || verVideo || verPerdida;
     const verAudiencia = activos.includes('audiencia');
+
+    const actuadoresActivos = ACTUADORES.filter(({ clave }) => telemetria.actuadores?.[clave]);
+    const rttTexto = enlace?.rttMs != null
+      ? `${enlace.rttMs} ms`
+      : (isRobotConnected || room?.state === 'connected') ? '< 20 ms' : 'STBY';
+    const bitrateTexto = enlace?.bitrateKbps != null
+      ? `${enlace.bitrateKbps} kbps`
+      : '0 kbps';
+    const videoTexto = enlace?.ancho
+      ? `${enlace.ancho}×${enlace.alto} @ ${enlace.fps ?? 0} fps`
+      : 'FEED: STANDBY';
+    const perdidaTexto = `${enlace?.perdidos ?? 0} loss${enlace?.perdidaPct ? ` (${enlace.perdidaPct}%)` : ''}`;
+    const misionActiva = robot?.settings?.mission || robot?.mission;
 
     return (
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1000, overflow: 'hidden' }}>
         {/* DELIMITACIÓN DE ESQUINAS TERMINAL // ROVER GCS */}
         <div className="hud__esquinas">
           <div className="hud__esquina hud__esquina--tl">
-            <span>┌ CAM 01 // TELEOP NAV [1080P]</span>
+            <span>┌ CAM 01 // TELEOP NAV {enlace?.ancho ? `[${enlace.ancho}×${enlace.alto}]` : '[STANDBY]'}</span>
           </div>
           <div className="hud__esquina hud__esquina--tr">
-            <span>CANAL P2P // 60 HZ ┐</span>
+            <span>CANAL P2P // {isRobotConnected || enVivo ? '60 HZ LIVE' : 'STANDBY'} ┐</span>
           </div>
           <div className="hud__esquina hud__esquina--bl">
             <span>└ SYS // ROVER TELEOP [RASSOR-GCS]</span>
           </div>
           <div className="hud__esquina hud__esquina--br">
-            <span>ODO // TELEMETRÍA ┘</span>
+            <span>ODO // {distVal} ┘</span>
           </div>
         </div>
 
@@ -728,41 +728,97 @@ export function BarraTelemetria({
           {/* 2. CINTA VERTICAL DE VELOCIDAD DINÁMICA (m/s) A LA IZQUIERDA */}
           {verMovimiento && (
             <div className="hud__tape-velocidad">
-              <div className="hud__speed-scale-wrap">
-                <div className="hud__speed-rail">
-                  <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '0%' }}>
-                    <span className="hud__speed-tick-label">+2.0</span>
-                  </div>
-                  <div className="hud__speed-tick" style={{ top: '25%' }}>
-                    <span className="hud__speed-tick-label">+1.0</span>
-                  </div>
-                  <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '50%' }}>
-                    <span className="hud__speed-tick-label" style={{ color: 'var(--accent)', fontWeight: 'bold' }}>0.0</span>
-                  </div>
-                  <div className="hud__speed-tick" style={{ top: '75%' }}>
-                    <span className="hud__speed-tick-label">-1.0</span>
-                  </div>
-                  <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '100%' }}>
-                    <span className="hud__speed-tick-label">-2.0</span>
-                  </div>
+              {verAvance && (
+                <div className="hud__speed-scale-wrap">
+                  <div className="hud__speed-rail">
+                    <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '0%' }}>
+                      <span className="hud__speed-tick-label">+2.0</span>
+                    </div>
+                    <div className="hud__speed-tick" style={{ top: '25%' }}>
+                      <span className="hud__speed-tick-label">+1.0</span>
+                    </div>
+                    <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '50%' }}>
+                      <span className="hud__speed-tick-label" style={{ color: 'var(--accent)', fontWeight: 'bold' }}>0.0</span>
+                    </div>
+                    <div className="hud__speed-tick" style={{ top: '75%' }}>
+                      <span className="hud__speed-tick-label">-1.0</span>
+                    </div>
+                    <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '100%' }}>
+                      <span className="hud__speed-tick-label">-2.0</span>
+                    </div>
 
-                  <div className="hud__speed-cursor" style={{ top: `${cursorPercent}%` }}>
-                    <span className="hud__speed-arrow" />
-                    <span className="hud__speed-tag">
-                      {velNum > 0 ? '+' : ''}{velLineal} m/s
-                    </span>
+                    <div className="hud__speed-cursor" style={{ top: `${cursorPercent}%` }}>
+                      <span className="hud__speed-arrow" />
+                      <span className="hud__speed-tag">
+                        {velNum > 0 ? '+' : ''}{velLineal} m/s
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="hud__speed-subdata">
-                <div>VEL : {velNum > 0 ? '+' : ''}{velLineal} m/s</div>
-                <div>ANG : {parseFloat(angVal) >= 0 ? '+' : ''}{angVal} rad/s</div>
+                {verAvance && (
+                  <>
+                    <div>
+                      AVAN: <span style={{ color: avancePct > 0 ? 'var(--accent)' : 'var(--bone)' }}>{avancePct}%</span>{' '}
+                      <span style={{ color: 'var(--muted)', fontSize: '0.66rem' }}>
+                        {avancePct > 0 ? (avanceDir === 'atras' ? '▼REV' : '▲FWD') : 'STOP'}
+                      </span>
+                    </div>
+                    <div>VEL : {velNum > 0 ? '+' : ''}{velLineal} m/s</div>
+                  </>
+                )}
+                {verGiro && (
+                  <>
+                    <div>
+                      GIRO: <span style={{ color: giroPct > 0 ? 'var(--accent)' : 'var(--bone)' }}>{giroPct}%</span>{' '}
+                      <span style={{ color: 'var(--muted)', fontSize: '0.66rem' }}>
+                        {giroPct > 0 ? (giroDir === 'izquierda' ? '◄IZQ' : '►DER') : 'CTR'}
+                      </span>
+                    </div>
+                    <div>ANG : {parseFloat(angVal) >= 0 ? '+' : ''}{angVal} rad/s</div>
+                  </>
+                )}
                 <div>ODO : {distVal}</div>
                 {verActuadores && (
                   <>
                     <div>BRAZ: F:{armFrontVal} R:{armBackVal}</div>
                     <div>TAMB: F:{drmFrontVal} R:{drmBackVal} RPM</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
+                      {ACTUADORES.map(({ clave, abrev }) => {
+                        const encendido = Boolean(telemetria.actuadores?.[clave]);
+                        return (
+                          <span
+                            key={clave}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              fontSize: '0.64rem',
+                              color: encendido ? 'var(--accent)' : 'var(--muted)',
+                              fontWeight: encendido ? 700 : 400,
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: '6px',
+                                height: '6px',
+                                borderRadius: '1px',
+                                background: encendido ? 'var(--accent)' : 'rgba(245, 243, 233, 0.2)',
+                                boxShadow: encendido ? '0 0 6px var(--accent)' : 'none',
+                              }}
+                            />
+                            {abrev}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    {actuadoresActivos.length > 0 && (
+                      <div style={{ color: 'var(--accent)', fontSize: '0.65rem' }}>
+                        ACT : {actuadoresActivos.map(({ clave }) => t(`telemetria.etiquetasAccion.${telemetria.actuadores[clave]}`)).join(' · ')}
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -772,29 +828,31 @@ export function BarraTelemetria({
           {/* 4. COLUMNA DERECHA DE TELEMETRÍA // POTENCIA, TÉRMICA Y ENLACE */}
           <div className="hud__telemetry-col">
             <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.85rem' }}>
-              {voltVal !== '—' ? `${voltVal} V · ${ampVal} A` : 'POTENCIA: —'}
+              POTENCIA: {voltVal} V · {ampVal} A
             </div>
             <div style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>
-              {wattVal !== '—' ? `CONSUMO: ${wattVal} W` : 'BUS: 24V NOM'}
+              BUS: 24V NOM · CONSUMO: {wattVal} W
             </div>
             <div style={{ color: 'var(--bone)', fontSize: '0.72rem' }}>
-              MOTORES: {tempVal}
+              MOTORES: {tempVal} {enReposoSinRobot ? '(SIM/STBY)' : '(NOM)'}
             </div>
 
             {verConexion && (
-              <div style={{ marginTop: '8px', borderTop: '1px solid rgba(245, 243, 233, 0.1)', paddingTop: '6px' }}>
+              <div style={{ marginTop: '8px', borderTop: '1px solid rgba(251, 202, 1, 0.22)', paddingTop: '6px' }}>
                 <div style={{ color: 'var(--bone)', fontWeight: 600 }}>
-                  RTT: {enlace?.rttMs ? `${enlace.rttMs} ms` : '< 20 ms'} · {enlace?.bitrateKbps ? `${enlace.bitrateKbps} kbps` : '2450 kbps'}
+                  RTT: {rttTexto}{verBitrate ? ` · ${bitrateTexto}` : ''}
                 </div>
-                <div style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>
-                  {enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : '1080p'} @ {enlace?.fps ? `${enlace.fps} fps` : '60 fps'} · {enlace?.perdidos ?? 0} loss
-                </div>
+                {(verVideo || verPerdida) && (
+                  <div style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>
+                    {verVideo ? videoTexto : ''}{verVideo && verPerdida ? ' · ' : ''}{verPerdida ? perdidaTexto : ''}
+                  </div>
+                )}
               </div>
             )}
 
             {verAudiencia && (
               <div style={{ color: 'var(--accent)', fontSize: '0.7rem', marginTop: '4px' }}>
-                {audiencia ?? enlace?.espectadores ?? 1} USR · P2P {enVivo ? 'LIVE' : 'ACTIVO'}
+                {audiencia ?? enlace?.espectadores ?? 0} USR · P2P {isRobotConnected || enVivo ? 'LIVE' : 'STANDBY'}
               </div>
             )}
           </div>
@@ -805,8 +863,8 @@ export function BarraTelemetria({
               <RassorEnVivo
                 avance={telemetria.avance}
                 giro={telemetria.giro}
-                imu={sensores?.imu}
-                escala={1.4}
+                imu={imuEfectivo}
+                escala={1.15}
                 modelUrl={modelUrl}
               />
             </Suspense>
@@ -818,8 +876,8 @@ export function BarraTelemetria({
               <span>ROLL: {rollVal >= 0 ? '+' : ''}{rollVal.toFixed(1)}°</span>
             </div>
 
-            <div className="hud__subtitulo" style={{ marginTop: '2px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-              <MissionTimer mission={robot?.mission} />
+            <div className="hud__subtitulo" style={{ marginTop: '1px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+              <MissionTimer mission={misionActiva} />
             </div>
 
             <div className="hud__controls-pill">

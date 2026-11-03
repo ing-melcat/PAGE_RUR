@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState } from 'react';
 import { ACTUADORES } from '../telemetria';
 import { useTelemetria, useSinMovimiento, useMision } from '../useTelemetria';
 import { useTelemetriaRobot } from '../useTelemetriaRobot';
+import { useCinematicaViva } from '../useCinematicaViva';
 import { Horizonte, Bateria, VelocidadReal } from './Instrumentos';
 
 // three.js y el modelo suman varios megas: van en su propio chunk y solo se
@@ -113,65 +114,53 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
   const sensores = useTelemetriaRobot(room, simular);
   const sinMovimiento = useSinMovimiento();
   const enlace = useEstadisticasEnlace(room, true);
+  const cinematica = useCinematicaViva(telemetria, sensores, enVivo);
 
   const transicion = sinMovimiento ? 'none' : 'all 0.1s linear';
 
   // Determine active objective
   const activeObj = missionHls?.objectives?.find(o => !o.completed_at) || mision?.objetivo;
 
-  const avanceVal = telemetria.avance?.nivel ? ((telemetria.avance.dir === 'atras' ? -1 : 1) * (telemetria.avance.nivel / 10)) : 0;
-  const giroVal = telemetria.giro?.nivel ? ((telemetria.giro.dir === 'izquierda' ? -1 : 1) * (telemetria.giro.nivel / 10)) : 0;
-  
-  // Magnitudes físicas reales
-  const headingDeg = sensores?.imu?.rumbo != null 
-    ? Math.round((sensores.imu.rumbo % 360 + 360) % 360)
-    : Math.round((90 + giroVal * 45 + 360) % 360);
+  const {
+    avancePct,
+    avanceDir,
+    giroPct,
+    giroDir,
+    headingDeg,
+    velNum,
+    velLineal,
+    angVal,
+    distVal,
+    pitchVal,
+    rollVal,
+    imuEfectivo,
+    armFrontVal,
+    armBackVal,
+    drmFrontVal,
+    drmBackVal,
+    voltVal,
+    ampVal,
+    wattVal,
+    tempVal,
+  } = cinematica;
+
   const hMinus20 = String((headingDeg - 20 + 360) % 360).padStart(3, '0');
   const hMinus10 = String((headingDeg - 10 + 360) % 360).padStart(3, '0');
   const hCenter = String(headingDeg).padStart(3, '0');
   const hPlus10 = String((headingDeg + 10) % 360).padStart(3, '0');
   const hPlus20 = String((headingDeg + 20) % 360).padStart(3, '0');
 
-  const velLineal = sensores?.velocidad?.lineal != null
-    ? sensores.velocidad.lineal.toFixed(1)
-    : (avanceVal * 1.5).toFixed(1);
-  const velNum = parseFloat(velLineal);
   const cursorPercent = Math.max(5, Math.min(95, 50 - ((velNum / 2.0) * 45)));
-
-  const angVal = sensores?.velocidad?.angular != null
-    ? sensores.velocidad.angular.toFixed(2)
-    : (giroVal * 1.25).toFixed(2);
-  const distVal = sensores?.odometria?.distancia != null
-    ? `${sensores.odometria.distancia.toFixed(1)} m`
-    : `${(12.6 + Math.abs(avanceVal) * 3.4).toFixed(1)} m`;
-
-  const pitchVal = sensores?.imu?.pitch != null ? sensores.imu.pitch : 0;
-  const rollVal = sensores?.imu?.roll != null ? sensores.imu.roll : 0;
-
-  const voltVal = sensores?.bateria?.voltaje != null ? sensores.bateria.voltaje.toFixed(1) : '24.6';
-  const ampVal = sensores?.bateria?.corriente != null ? sensores.bateria.corriente.toFixed(1) : (1.8 + Math.abs(avanceVal) * 3.2).toFixed(1);
-  const wattVal = (parseFloat(voltVal) * parseFloat(ampVal)).toFixed(1);
-  const tempVal = sensores?.temperatura?.motores != null ? `${sensores.temperatura.motores.toFixed(1)}°C` : '41.2°C';
-
-  const armFrontVal = sensores?.actuadores?.brazo_delantero?.angulo != null
-    ? `+${sensores.actuadores.brazo_delantero.angulo.toFixed(1)}°`
-    : telemetria.actuadores?.ArmFront ? '+32.5°' : '0.0°';
-  const armBackVal = sensores?.actuadores?.brazo_trasero?.angulo != null
-    ? `+${sensores.actuadores.brazo_trasero.angulo.toFixed(1)}°`
-    : telemetria.actuadores?.ArmBack ? '+18.0°' : '0.0°';
-  const drmFrontVal = sensores?.actuadores?.tambor_delantero?.rpm != null
-    ? `${sensores.actuadores.tambor_delantero.rpm}`
-    : telemetria.actuadores?.DrumFront ? '45' : '0';
-  const drmBackVal = sensores?.actuadores?.tambor_trasero?.rpm != null
-    ? `${sensores.actuadores.tambor_trasero.rpm}`
-    : telemetria.actuadores?.DrumBack ? '45' : '0';
+  const rttTexto = enlace?.rttMs != null ? `${enlace.rttMs} ms` : (enVivo || room?.state === 'connected') ? '< 20 ms' : 'STBY';
+  const bitrateTexto = enlace?.bitrateKbps != null ? `${enlace.bitrateKbps} kbps` : '0 kbps';
+  const videoTexto = enlace?.ancho ? `${enlace.ancho}×${enlace.alto} @ ${enlace.fps ?? 0} fps` : 'FEED: STANDBY';
 
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10, overflow: 'hidden' }}>
       {/* Delimitación de esquinas del cockpit // Rover GCS */}
       <div className="hud__esquinas">
         <div className="hud__esquina hud__esquina--tl">
-          <span>┌ CAM 01 // TELEOP NAV [1080P]</span>
+          <span>┌ CAM 01 // TELEOP NAV {enlace?.ancho ? `[${enlace.ancho}×${enlace.alto}]` : '[STANDBY]'}</span>
         </div>
         <div className="hud__esquina hud__esquina--tr">
           <span>{titulo || 'RUR // ROVER-GCS'} ┐</span>
@@ -180,7 +169,7 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
           <span>└ SYS // ROVER TELEOP [RASSOR-GCS]</span>
         </div>
         <div className="hud__esquina hud__esquina--br">
-          <span>ODO // TELEMETRÍA ┘</span>
+          <span>ODO // {distVal} ┘</span>
         </div>
       </div>
 
@@ -221,10 +210,23 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
             </div>
 
             <div className="hud__speed-subdata">
-              <div>DIST: {distVal}</div>
+              <div>
+                AVAN: <span style={{ color: avancePct > 0 ? 'var(--accent)' : 'var(--bone)' }}>{avancePct}%</span>{' '}
+                <span style={{ color: 'var(--muted)', fontSize: '0.66rem' }}>
+                  {avancePct > 0 ? (avanceDir === 'atras' ? '▼REV' : '▲FWD') : 'STOP'}
+                </span>
+              </div>
+              <div>VEL : {velNum > 0 ? '+' : ''}{velLineal} m/s</div>
+              <div>
+                GIRO: <span style={{ color: giroPct > 0 ? 'var(--accent)' : 'var(--bone)' }}>{giroPct}%</span>{' '}
+                <span style={{ color: 'var(--muted)', fontSize: '0.66rem' }}>
+                  {giroPct > 0 ? (giroDir === 'izquierda' ? '◄IZQ' : '►DER') : 'CTR'}
+                </span>
+              </div>
               <div>ANG : {parseFloat(angVal) >= 0 ? '+' : ''}{angVal} rad/s</div>
-              <div>ARM : F:{armFrontVal} R:{armBackVal}</div>
-              <div>DRM : F:{drmFrontVal} R:{drmBackVal} RPM</div>
+              <div>ODO : {distVal}</div>
+              <div>BRAZ: F:{armFrontVal} R:{armBackVal}</div>
+              <div>TAMB: F:{drmFrontVal} R:{drmBackVal} RPM</div>
             </div>
           </div>
         )}
@@ -232,18 +234,18 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
         {/* 4. Columna Derecha de Potencia y Enlace */}
         <div className="hud__telemetry-col">
           <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.85rem' }}>
-            {voltVal} V · {ampVal} A
+            POTENCIA: {voltVal} V · {ampVal} A
           </div>
           <div style={{ color: 'var(--muted)', fontSize: '0.68rem' }}>
-            BUS: 24V NOM · {wattVal} W
+            BUS: 24V NOM · CONSUMO: {wattVal} W
           </div>
-          <div>TEMP: {tempVal} MOT</div>
+          <div>MOTORES: {tempVal}</div>
           <div style={{ marginTop: '6px', color: 'var(--bone)', fontWeight: 600 }}>
-            {enlace?.rttMs ? `${enlace.rttMs} ms` : '< 20 ms'} · {enlace?.bitrateKbps ? `${enlace.bitrateKbps} kbps` : '2450 kbps'}
+            RTT: {rttTexto} · {bitrateTexto}
           </div>
-          <div>{enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : '1080p'} @ {enlace?.fps ? `${enlace.fps} fps` : '60 fps'} · {enlace?.perdidos ?? 0} loss</div>
+          <div>{videoTexto} · {enlace?.perdidos ?? 0} loss</div>
           <div style={{ color: 'var(--accent)', fontSize: '0.68rem' }}>
-            {enlace?.espectadores ?? 1} USR · P2P {enVivo ? 'LIVE' : 'LINK'}
+            {enlace?.espectadores ?? 0} USR · P2P {enVivo ? 'LIVE' : 'STANDBY'}
           </div>
         </div>
 
@@ -251,7 +253,7 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
         <div className="hud__deck-inferior">
           {visible('robot3d') && (
             <Suspense fallback={null}>
-              <RassorEnVivo avance={telemetria.avance} giro={telemetria.giro} imu={sensores?.imu} modelUrl={modelUrl} />
+              <RassorEnVivo avance={telemetria.avance} giro={telemetria.giro} imu={imuEfectivo} modelUrl={modelUrl} />
             </Suspense>
           )}
 

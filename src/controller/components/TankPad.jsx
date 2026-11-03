@@ -166,7 +166,12 @@ export function TankPad({
     if (!keyboardEnabled) return;
     // Pila de direcciones presionadas: la última tecla presionada gana (100% axial, cero diagonales)
     const dirStack = [];
-    const maps = keyboardMappings || { Forward: 'KeyW', Backward: 'KeyS', Left: 'KeyA', Right: 'KeyD' };
+    const maps = {
+      Forward: keyboardMappings?.Forward || 'KeyW',
+      Backward: keyboardMappings?.Backward || 'KeyS',
+      Left: keyboardMappings?.Left || 'KeyA',
+      Right: keyboardMappings?.Right || 'KeyD',
+    };
 
     const normalizarCodigo = (e) => {
       if (e.code && e.code !== 'Unidentified') return e.code;
@@ -212,10 +217,10 @@ export function TankPad({
       }
 
       let match = null;
-      if (code === maps.Forward) match = 'Forward';
-      else if (code === maps.Backward) match = 'Backward';
-      else if (code === maps.Left) match = 'Left';
-      else if (code === maps.Right) match = 'Right';
+      if (code === maps.Forward || code === 'ArrowUp') match = 'Forward';
+      else if (code === maps.Backward || code === 'ArrowDown') match = 'Backward';
+      else if (code === maps.Left || code === 'ArrowLeft') match = 'Left';
+      else if (code === maps.Right || code === 'ArrowRight') match = 'Right';
 
       if (match) {
         const existingIdx = dirStack.indexOf(match);
@@ -228,10 +233,10 @@ export function TankPad({
     const handleKeyUp = (e) => {
       const code = normalizarCodigo(e);
       let match = null;
-      if (code === maps.Forward) match = 'Forward';
-      else if (code === maps.Backward) match = 'Backward';
-      else if (code === maps.Left) match = 'Left';
-      else if (code === maps.Right) match = 'Right';
+      if (code === maps.Forward || code === 'ArrowUp') match = 'Forward';
+      else if (code === maps.Backward || code === 'ArrowDown') match = 'Backward';
+      else if (code === maps.Left || code === 'ArrowLeft') match = 'Left';
+      else if (code === maps.Right || code === 'ArrowRight') match = 'Right';
 
       if (match) {
         const idx = dirStack.indexOf(match);

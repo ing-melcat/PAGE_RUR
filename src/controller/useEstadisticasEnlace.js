@@ -45,9 +45,11 @@ export function useEstadisticasEnlace(room, activo) {
     let cancelado = false;
 
     const medir = async () => {
+      const rttRaw = room.engine?.client?.rtt;
+      const rttMs = typeof rttRaw === 'number' && rttRaw > 0 ? Math.round(rttRaw) : null;
       const encontrada = pistaDeVideo(room);
       if (!encontrada) {
-        // Sin video no hay estadísticas de recepción, pero la audiencia y la
+        // Sin video no hay estadísticas de recepción, pero la audiencia, el RTT y la
         // calidad del enlace sí se pueden reportar igual.
         previaRef.current = null;
         if (!cancelado) {
@@ -55,6 +57,12 @@ export function useEstadisticasEnlace(room, activo) {
             hayVideo: false,
             espectadores: room.remoteParticipants.size,
             calidad: ETIQUETA_CALIDAD[room.localParticipant?.connectionQuality] ?? '—',
+            rttMs,
+            bitrateKbps: null,
+            fps: null,
+            ancho: null,
+            alto: null,
+            perdidos: null,
           });
         }
         return;
@@ -82,17 +90,20 @@ export function useEstadisticasEnlace(room, activo) {
       }
       previaRef.current = s;
 
+      const jitterMs = s.jitter != null ? Math.round(s.jitter * 1000) : null;
+
       setDatos({
         hayVideo: true,
         espectadores: room.remoteParticipants.size,
         calidad: ETIQUETA_CALIDAD[participante.connectionQuality] ?? '—',
+        rttMs: rttMs ?? jitterMs,
         bitrateKbps,
         fps,
         ancho: s.frameWidth ?? null,
         alto: s.frameHeight ?? null,
         perdidos: s.packetsLost ?? 0,
         recibidos: s.packetsReceived ?? 0,
-        jitterMs: s.jitter != null ? Math.round(s.jitter * 1000) : null,
+        jitterMs,
         bufferMs: s.jitterBufferDelay != null ? Math.round(s.jitterBufferDelay * 1000) : null,
         framesCaidos: s.framesDropped ?? 0,
       });

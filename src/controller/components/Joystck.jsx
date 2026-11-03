@@ -42,7 +42,12 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
         let active = false;
         let rapido = false;
 
-        const maps = keyboardMappings || { Forward: 'KeyW', Backward: 'KeyS', Left: 'KeyA', Right: 'KeyD' };
+        const maps = {
+            Forward: keyboardMappings?.Forward || 'KeyW',
+            Backward: keyboardMappings?.Backward || 'KeyS',
+            Left: keyboardMappings?.Left || 'KeyA',
+            Right: keyboardMappings?.Right || 'KeyD',
+        };
 
         const updateJoystickFromKeys = () => {
             const tope = rapido ? 1 : VELOCIDAD_TECLADO;
@@ -115,10 +120,10 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
             }
             const code = normalizarCodigo(e);
             let match = null;
-            if (code === maps.Forward) match = 'Forward';
-            else if (code === maps.Backward) match = 'Backward';
-            else if (code === maps.Left) match = 'Left';
-            else if (code === maps.Right) match = 'Right';
+            if (code === maps.Forward || code === 'ArrowUp') match = 'Forward';
+            else if (code === maps.Backward || code === 'ArrowDown') match = 'Backward';
+            else if (code === maps.Left || code === 'ArrowLeft') match = 'Left';
+            else if (code === maps.Right || code === 'ArrowRight') match = 'Right';
             
             if (match) {
                 rapido = e.shiftKey;
@@ -135,10 +140,10 @@ export function Joystck({ onMove, onStop, setBinPack, size, dispatchGlobalEvent 
             }
             const code = normalizarCodigo(e);
             let match = null;
-            if (code === maps.Forward) match = 'Forward';
-            else if (code === maps.Backward) match = 'Backward';
-            else if (code === maps.Left) match = 'Left';
-            else if (code === maps.Right) match = 'Right';
+            if (code === maps.Forward || code === 'ArrowUp') match = 'Forward';
+            else if (code === maps.Backward || code === 'ArrowDown') match = 'Backward';
+            else if (code === maps.Left || code === 'ArrowLeft') match = 'Left';
+            else if (code === maps.Right || code === 'ArrowRight') match = 'Right';
 
             if (match) {
                 keys[match] = false;
