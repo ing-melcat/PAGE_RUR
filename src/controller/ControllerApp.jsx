@@ -258,6 +258,9 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   // Refs para el envío continuo del joystick (dead-man's switch)
   const joystickPosRef = useRef({ x: 0, y: 0 });
   const continuousSendActiveRef = useRef(false);
+  const stopBurstTimersRef = useRef([]);
+  const sendGenerationRef = useRef(0);
+  const lastTimestampRef = useRef(0);
 
   const [joystickSize, setJystickSize] = useState(136)
   const [sensitivity, setSensitivity] = useState(1.0)
@@ -432,22 +435,31 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     return porCodigo;
   }, [controlMappingsState]);
 
-  // Construye un paquete binario con la posición actual
+  // Construye un paquete binario con la posición actual garantizando timestamps estrictamente crecientes
   const buildPacket = useCallback((deadX, deadY) => {
-    const packet = new ArrayBuffer(12)
-    const view = new DataView(packet)
-    const timestamp = Math.floor(performance.now())
-    view.setUint32(0, timestamp, true)
-    view.setFloat32(4, deadX, true)
+    const packet = new ArrayBuffer(12);
+    const view = new DataView(packet);
+    const now = Math.floor(performance.now());
+    const timestamp = Math.max(lastTimestampRef.current + 1, now);
+    lastTimestampRef.current = timestamp;
+    view.setUint32(0, timestamp, true);
+    view.setFloat32(4, deadX, true);
     // Eje de giro invertido para coincidir con la convención del chasis (derecha/izquierda)
-    view.setFloat32(8, -deadY, true)
-    return new Uint8Array(packet)
-  }, [])
+    view.setFloat32(8, -deadY, true);
+    return new Uint8Array(packet);
+  }, []);
 
   // Envía un paquete binario de 12 bytes (RoverCommand) directamente por LiveKit
   const sendPacketNow = useCallback(async (pkt, force = false) => {
     if (roomRef.current && isConnectedRef.current && pkt) {
       const payloadBytes = pkt instanceof Uint8Array ? pkt : new Uint8Array(pkt);
+      const isStopPacket = force;
+
+      // Si no es un paquete forzado (de parada) y ya no hay movimiento activo, descartar
+      // de inmediato para no colar comandos de movimiento rezagados.
+      if (!isStopPacket && !continuousSendActiveRef.current) {
+        return;
+      }
 
       // 1. El DataTrack 'control' espera estrictamente sizeof(RoverCommand) == 12 bytes.
       // Se empuja primero sin bloquearse detrás de publishData.
@@ -460,14 +472,16 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
         } catch (_) {}
       }
 
-      // 2. Last-write-wins para publishData, salvo que sea paquete de frenado forzado (force = true).
-      if (isSendingJoystickRef.current && !force) return;
+      // 2. Control de concurrencia para publishData: si ya hay un envío en curso y no es parada forzada, descartar (last-write-wins).
+      if (isSendingJoystickRef.current && !isStopPacket) return;
       isSendingJoystickRef.current = true;
       try {
         const destinos = identidadesDeRobots(roomRef.current);
         if (destinos.length > 0) {
+          // Los paquetes de paro (force=true) van en modo RELIABLE para garantizar
+          // entrega ordenada y sin pérdidas. El movimiento continuo va en LOSSY para mínima latencia.
           await roomRef.current.localParticipant.publishData(payloadBytes, {
-            reliable: false,
+            reliable: isStopPacket,
             topic: TOPIC,
             destinationIdentities: destinos,
           });
@@ -482,15 +496,44 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
 
   // Inicia el envío continuo del joystick (dead-man's switch): activa el flag para el tick maestro
   const startContinuousSend = useCallback(() => {
+    // Si había una ráfaga de frenado pendiente, cancelarla de inmediato
+    stopBurstTimersRef.current.forEach(clearTimeout);
+    stopBurstTimersRef.current = [];
     continuousSendActiveRef.current = true;
+    sendGenerationRef.current++;
   }, []);
 
-  // Detiene el envío continuo y manda un último paquete de frenado (0,0) de
-  // inmediato con force=true para que nunca se descarte si había un envío en vuelo.
+  // Detiene el envío continuo y manda una ráfaga de frenado limpia (0,0) con reliable:true
+  // para purgar la cola del robot y asegurar que no queden "pataditas" finales.
   const stopContinuousSend = useCallback(() => {
     continuousSendActiveRef.current = false;
-    const stopPkt = buildPacket(0, 0);
-    sendPacketNow(stopPkt, true);
+    joystickPosRef.current = { x: 0, y: 0 };
+    ejesTelemetriaRef.current = { avance: 0, giro: 0 };
+
+    // Incrementar generación para invalidar cualquier paquete de movimiento previo en vuelo
+    sendGenerationRef.current++;
+    const stopGen = sendGenerationRef.current;
+
+    // Cancelar temporizadores de ráfagas previas
+    stopBurstTimersRef.current.forEach(clearTimeout);
+    stopBurstTimersRef.current = [];
+
+    const despacharFreno = () => {
+      // Si el operador volvió a iniciar movimiento, abortar los frenos restantes
+      if (sendGenerationRef.current !== stopGen || continuousSendActiveRef.current) return;
+      const stopPkt = buildPacket(0, 0);
+      sendPacketNow(stopPkt, true);
+    };
+
+    // 1. Envío de paro inmediato
+    despacharFreno();
+
+    // 2. Ráfaga de seguridad trailing a 35ms, 75ms y 130ms para purgar la cola
+    // del dispatcher del robot y fijar velocidad 0 absoluto.
+    const t1 = setTimeout(despacharFreno, 35);
+    const t2 = setTimeout(despacharFreno, 75);
+    const t3 = setTimeout(despacharFreno, 130);
+    stopBurstTimersRef.current = [t1, t2, t3];
   }, [buildPacket, sendPacketNow]);
 
   // ---------------------------------------------------------------------------
@@ -584,7 +627,9 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
       // 3. Reenvío continuo del joystick (dead-man's switch).
       if (continuousSendActiveRef.current) {
         const { x, y } = joystickPosRef.current;
-        sendPacketNow(buildPacket(x, y));
+        if (Math.abs(x) > 0 || Math.abs(y) > 0) {
+          sendPacketNow(buildPacket(x, y));
+        }
       }
 
       // 4. Reenvío continuo del joystick de cámara (mismo dead-man's switch).
@@ -628,6 +673,7 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
 
     return () => {
       clearInterval(tickMaestro);
+      stopBurstTimersRef.current.forEach(clearTimeout);
       document.removeEventListener('visibilitychange', detenerBotones);
     };
   }, [buildPacket, sendPacketNow, sendCameraPacketNow]);
@@ -1052,6 +1098,8 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
 
   const disconnect = useCallback(async () => {
     if (room) {
+      stopBurstTimersRef.current.forEach(clearTimeout);
+      stopBurstTimersRef.current = [];
       stopContinuousSend();
       stopCameraContinuousSend();
       if (dataTrackRef.current) {
