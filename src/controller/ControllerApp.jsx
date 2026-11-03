@@ -50,20 +50,24 @@ const livekitClientPromise = import('livekit-client');
 // no recibe nada (falla cerrado). Con lista negra sí los recibiría.
 // ---------------------------------------------------------------------------
 const PREFIJO_ROBOT = 'robot-';
-const PREFIJOS_ESPECTADOR = ['viewer-', 'public-viewer-'];
+const PREFIJOS_ESPECTADOR = ['viewer-', 'public-viewer-', 'overlay-'];
 
 function identidadesDeRobots(room) {
   if (!room) return [];
   return Array.from(room.remoteParticipants.values())
     .map((p) => p.identity)
-    .filter((identity) => identity?.startsWith(PREFIJO_ROBOT));
+    .filter((identity) => identity?.startsWith(PREFIJO_ROBOT) && !identity.endsWith('-cam'));
+}
+
+function identidadesDeEspectadores(room) {
+  if (!room) return [];
+  return Array.from(room.remoteParticipants.values())
+    .map((p) => p.identity)
+    .filter((identity) => PREFIJOS_ESPECTADOR.some((prefijo) => identity?.startsWith(prefijo)));
 }
 
 function contarEspectadores(room) {
-  if (!room) return 0;
-  return Array.from(room.remoteParticipants.values())
-    .filter((p) => PREFIJOS_ESPECTADOR.some((prefijo) => p.identity?.startsWith(prefijo)))
-    .length;
+  return identidadesDeEspectadores(room).length;
 }
 
 // ---------------------------------------------------------------------------
@@ -356,14 +360,12 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
       if (!roomRef.current || !isConnectedRef.current) return;
       try {
         const destinos = identidadesDeRobots(roomRef.current);
+        if (destinos.length === 0) return;
         await roomRef.current.localParticipant.publishData(data, {
           reliable: true,
           topic: TOPIC,
-          destinationIdentities: destinos.length > 0 ? destinos : undefined,
+          destinationIdentities: destinos,
         });
-        if (dataTrackRef.current) {
-          dataTrackRef.current.tryPush({ payload: data }).catch(() => {});
-        }
       } catch (err) {
         console.error('Error sending command:', err);
       }
@@ -409,10 +411,23 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
 
   const mapaTecladoPorCodigo = useMemo(() => {
     const mapeo = { ...MAPEO_TECLADO_DEFECTO, ...(controlMappingsState?.keyboard || {}) };
+    const mov = controlMappingsState?.keyboardMovement || {};
+    const teclasMovimiento = new Set([
+      mov.Forward || 'KeyW',
+      mov.Backward || 'KeyS',
+      mov.Left || 'KeyA',
+      mov.Right || 'KeyD',
+      'ArrowUp',
+      'ArrowDown',
+      'ArrowLeft',
+      'ArrowRight',
+    ]);
     const porCodigo = {};
     for (const { clave, component, action } of MAPEO_ACCIONES) {
       const codigo = mapeo[clave];
-      if (codigo) porCodigo[codigo] = { component, action };
+      if (codigo && !teclasMovimiento.has(codigo)) {
+        porCodigo[codigo] = { component, action };
+      }
     }
     return porCodigo;
   }, [controlMappingsState]);
@@ -429,23 +444,33 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     return new Uint8Array(packet)
   }, [])
 
-  // Envía un paquete directamente por LiveKit
-  const sendPacketNow = useCallback(async (pkt) => {
+  // Envía un paquete binario de 12 bytes (RoverCommand) directamente por LiveKit
+  const sendPacketNow = useCallback(async (pkt, force = false) => {
     if (roomRef.current && isConnectedRef.current && pkt) {
-      // Last-write-wins: si ya hay un envío del joystick en vuelo, se descarta
-      // este paquete — el siguiente tick traerá el valor más reciente.
-      if (isSendingJoystickRef.current) return;
+      const payloadBytes = pkt instanceof Uint8Array ? pkt : new Uint8Array(pkt);
+
+      // 1. El DataTrack 'control' espera estrictamente sizeof(RoverCommand) == 12 bytes.
+      // Se empuja primero sin bloquearse detrás de publishData.
+      if (dataTrackRef.current && payloadBytes.byteLength === 12) {
+        try {
+          const pushRes = dataTrackRef.current.tryPush({ payload: payloadBytes });
+          if (pushRes && typeof pushRes.catch === 'function') {
+            pushRes.catch(() => {});
+          }
+        } catch (_) {}
+      }
+
+      // 2. Last-write-wins para publishData, salvo que sea paquete de frenado forzado (force = true).
+      if (isSendingJoystickRef.current && !force) return;
       isSendingJoystickRef.current = true;
       try {
-        const payloadBytes = pkt instanceof Uint8Array ? pkt : new Uint8Array(pkt);
         const destinos = identidadesDeRobots(roomRef.current);
-        await roomRef.current.localParticipant.publishData(payloadBytes, {
-          reliable: false,
-          topic: TOPIC,
-          destinationIdentities: destinos.length > 0 ? destinos : undefined,
-        });
-        if (dataTrackRef.current) {
-          dataTrackRef.current.tryPush({ payload: payloadBytes }).catch(() => {});
+        if (destinos.length > 0) {
+          await roomRef.current.localParticipant.publishData(payloadBytes, {
+            reliable: false,
+            topic: TOPIC,
+            destinationIdentities: destinos,
+          });
         }
       } catch (err) {
         console.error('Error sending joystick data:', err);
@@ -461,11 +486,11 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   }, []);
 
   // Detiene el envío continuo y manda un último paquete de frenado (0,0) de
-  // inmediato, sin esperar al próximo tick.
+  // inmediato con force=true para que nunca se descarte si había un envío en vuelo.
   const stopContinuousSend = useCallback(() => {
     continuousSendActiveRef.current = false;
     const stopPkt = buildPacket(0, 0);
-    sendPacketNow(stopPkt);
+    sendPacketNow(stopPkt, true);
   }, [buildPacket, sendPacketNow]);
 
   // ---------------------------------------------------------------------------
@@ -485,16 +510,14 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
   const sendCameraPacketNow = useCallback(async (pan, tilt) => {
     if (!roomRef.current || !isConnectedRef.current) return;
     try {
-      const data = new TextEncoder().encode(JSON.stringify({ component: 'Camera', pan, tilt }));
       const destinos = identidadesDeRobots(roomRef.current);
+      if (destinos.length === 0) return;
+      const data = new TextEncoder().encode(JSON.stringify({ component: 'Camera', pan, tilt }));
       await roomRef.current.localParticipant.publishData(data, {
         reliable: false,
         topic: TOPIC,
-        destinationIdentities: destinos.length > 0 ? destinos : undefined,
+        destinationIdentities: destinos,
       });
-      if (dataTrackRef.current) {
-        dataTrackRef.current.tryPush({ payload: data }).catch(() => {});
-      }
     } catch (err) {
       console.error('Error sending camera data:', err);
     }
@@ -536,24 +559,26 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
         enviar();
       }
 
-      // 2. Telemetría pública para los espectadores: se DIFUNDE (sin
-      // destinationIdentities) porque va dirigida a ellos, y va en Lossy
-      // porque cada paquete lleva el estado completo y una pérdida se
-      // corrige sola 100ms después. Retransmitir es justo lo que metería
-      // retraso.
+      // 2. Telemetría pública para los espectadores: se envía EXCLUSIVAMENTE
+      // a las identidades de espectadores (nunca al robot) para no inundar el
+      // receptor del robot con paquetes de 111 bytes cada 100ms.
       if (roomRef.current && isConnectedRef.current) {
-        const resumen = construirTelemetria(
-          ejesTelemetriaRef.current,
-          estadoActuadoresRef.current,
-          identidadesDeRobots(roomRef.current).length > 0
-        );
-        roomRef.current.localParticipant.publishData(
-          new TextEncoder().encode(JSON.stringify(resumen)),
-          { topic: TOPIC_TELEMETRIA, reliable: false }
-        ).catch(() => {
-          // Silenciado: el transporte de datos puede no estar listo aún.
-          // El siguiente tick (100ms) reintentará automáticamente.
-        });
+        const espectadores = identidadesDeEspectadores(roomRef.current);
+        if (espectadores.length > 0) {
+          const resumen = construirTelemetria(
+            ejesTelemetriaRef.current,
+            estadoActuadoresRef.current,
+            identidadesDeRobots(roomRef.current).length > 0
+          );
+          roomRef.current.localParticipant.publishData(
+            new TextEncoder().encode(JSON.stringify(resumen)),
+            {
+              topic: TOPIC_TELEMETRIA,
+              reliable: false,
+              destinationIdentities: espectadores,
+            }
+          ).catch(() => {});
+        }
       }
 
       // 3. Reenvío continuo del joystick (dead-man's switch).
@@ -584,11 +609,11 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
             const stopObj = { component, action, state: false };
             const data = new TextEncoder().encode(JSON.stringify(stopObj));
             const destinos = identidadesDeRobots(roomRef.current);
-            if (roomRef.current && isConnectedRef.current) {
+            if (roomRef.current && isConnectedRef.current && destinos.length > 0) {
               roomRef.current.localParticipant.publishData(data, {
                 reliable: true,
                 topic: TOPIC,
-                destinationIdentities: destinos.length > 0 ? destinos : undefined,
+                destinationIdentities: destinos,
               }).catch(() => {});
             }
           }
@@ -627,15 +652,16 @@ export default function ControllerApp({ onBack, robot, controlMappings, mode = '
     window.dispatchEvent(new CustomEvent('joystickMove', { detail: { x: rawX, y: rawY } }));
 
     // Si hay movimiento, iniciar envío continuo y despachar de inmediato; si es (0,0), frenar
+    const pkt = buildPacket(rawX, rawY);
     if (Math.abs(rawX) > 0 || Math.abs(rawY) > 0) {
       startContinuousSend();
-      sendPacketNow(buildPacket(rawX, rawY));
+      sendPacketNow(pkt);
     } else {
       stopContinuousSend();
     }
 
     // También devolver el paquete para el setBinPack del Joystick component
-    return buildPacket(rawX, rawY);
+    return pkt;
   }, [buildPacket, sendPacketNow, startContinuousSend, stopContinuousSend]);
 
   useEffect(() => {

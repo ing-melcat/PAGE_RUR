@@ -56,6 +56,8 @@ def decode_command(payload):
         text = raw_bytes.decode('utf-8')
         cmd = json.loads(text)
         
+        if not isinstance(cmd, dict) or "component" not in cmd:
+            return None
         component = cmd.get("component", "?")
 
         # Cámara: paquete continuo de pan/tilt (-1..1), sin action/state de
@@ -144,8 +146,13 @@ async def main():
 
     @room.on("data_received")
     def on_data_received(data_packet: rtc.DataPacket):
+        topic = getattr(data_packet, "topic", None)
+        if topic and topic != "control":
+            return
         payload = data_packet.data
         decoded = process_data(payload)
+        if not decoded:
+            return
         sender = data_packet.participant.identity if data_packet.participant else "unknown"
         print(f"[{sender}] >> {decoded}")
 
