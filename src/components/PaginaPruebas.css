@@ -302,7 +302,7 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), inset 0 0 80px rgba(0, 0, 0, 0.6);
 }
 
-/* Simulación de Cámara de Vuelo con retícula y perspectiva de terreno */
+/* Simulación de Cámara de Vuelo con perspectiva de terreno */
 .cockpit-camera-feed {
   position: absolute;
   inset: 0;
@@ -310,7 +310,7 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  background: radial-gradient(circle at center, rgba(5, 16, 37, 0.4) 0%, rgba(1, 4, 13, 0.95) 100%);
+  background: radial-gradient(circle at center, rgba(5, 16, 37, 0.45) 0%, rgba(1, 4, 13, 0.95) 100%);
   overflow: hidden;
 }
 
@@ -318,11 +318,11 @@
   position: absolute;
   inset: 0;
   background-image: 
-    linear-gradient(rgba(251, 202, 1, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(251, 202, 1, 0.05) 1px, transparent 1px);
+    linear-gradient(rgba(251, 202, 1, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(251, 202, 1, 0.06) 1px, transparent 1px);
   background-size: 40px 40px;
   background-position: center center;
-  opacity: 0.6;
+  opacity: 0.7;
 }
 
 .cockpit-camera-horizon {
@@ -330,19 +330,354 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent 5%, rgba(251, 202, 1, 0.25) 30%, rgba(251, 202, 1, 0.25) 70%, transparent 95%);
+  background: linear-gradient(90deg, transparent 5%, rgba(251, 202, 1, 0.35) 30%, rgba(251, 202, 1, 0.35) 70%, transparent 95%);
   pointer-events: none;
 }
 
-.cockpit-hud-overlay {
+/* ==================================================================
+   Retícula Óptica de Vuelo Central
+   ================================================================== */
+.hud__reticula {
   position: absolute;
-  inset: 0;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  z-index: 5;
+  opacity: 0.9;
+}
+
+.hud__reticula-azimut {
+  font-family: var(--font-codigo), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  color: rgba(251, 202, 1, 0.8);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hud__reticula-mira {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hud__reticula-tick {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: rgba(251, 202, 1, 0.8);
+}
+
+.hud__reticula-tick--tl {
+  top: 0;
+  left: 0;
+  border-top: 2px solid rgba(251, 202, 1, 0.8);
+  border-left: 2px solid rgba(251, 202, 1, 0.8);
+}
+
+.hud__reticula-tick--tr {
+  top: 0;
+  right: 0;
+  border-top: 2px solid rgba(251, 202, 1, 0.8);
+  border-right: 2px solid rgba(251, 202, 1, 0.8);
+}
+
+.hud__reticula-tick--bl {
+  bottom: 0;
+  left: 0;
+  border-bottom: 2px solid rgba(251, 202, 1, 0.8);
+  border-left: 2px solid rgba(251, 202, 1, 0.8);
+}
+
+.hud__reticula-tick--br {
+  bottom: 0;
+  right: 0;
+  border-bottom: 2px solid rgba(251, 202, 1, 0.8);
+  border-right: 2px solid rgba(251, 202, 1, 0.8);
+}
+
+.hud__reticula-centro {
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(251, 202, 1, 0.9);
+}
+
+.hud__reticula-cross-h {
+  position: absolute;
+  width: 130px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(251, 202, 1, 0.45) 20%, rgba(251, 202, 1, 0.45) 80%, transparent);
+}
+
+.hud__reticula-cross-v {
+  position: absolute;
+  height: 130px;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(251, 202, 1, 0.45) 20%, rgba(251, 202, 1, 0.45) 80%, transparent);
+}
+
+.hud__reticula-escala {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-family: var(--font-codigo), monospace;
+  font-size: 0.62rem;
+  color: rgba(235, 240, 246, 0.55);
+  letter-spacing: 0.15em;
+  white-space: nowrap;
+}
+
+.hud__reticula-cero {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+/* Esquinas de delimitación del cockpit */
+.hud__esquinas {
+  position: absolute;
+  inset: 16px 20px;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.hud__esquina {
+  position: absolute;
+  font-family: var(--font-codigo), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  color: rgba(251, 202, 1, 0.7);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hud__esquina--tl { top: 0; left: 0; }
+.hud__esquina--tr { top: 0; right: 0; text-align: right; }
+.hud__esquina--bl { bottom: 0; left: 0; }
+.hud__esquina--br { bottom: 0; right: 0; text-align: right; }
+
+/* ==================================================================
+   Alas y Contenedor HUD (Transparente, sin blur, estilo terminal)
+   ================================================================== */
+.hud {
+  font-variant-numeric: tabular-nums;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px 14px;
+  background: transparent;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+}
+
+.hud__ala {
+  position: relative;
+  background: rgba(2, 7, 19, 0.75);
+  border: 1px solid rgba(251, 202, 1, 0.35);
+  border-radius: 2px;
+  padding: 10px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+  pointer-events: auto;
+  max-width: 440px;
+}
+
+.hud__ala::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  pointer-events: none;
+}
+
+.hud__ala::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  border-bottom: 2px solid var(--accent);
+  border-right: 2px solid var(--accent);
+  pointer-events: none;
+}
+
+.hud__ala-cabecera {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-codigo), monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(251, 202, 1, 0.25);
+  padding-bottom: 5px;
+}
+
+.hud__ala-cuerpo {
+  display: flex;
   align-items: flex-end;
-  padding: 24px 28px 18px;
-  pointer-events: none;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hud__medidor,
+.hud__actuadores {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 72px;
+  background: rgba(5, 16, 37, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  padding: 6px 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  position: relative;
+  transition: border-color 0.15s ease;
+}
+
+.hud__medidor:hover {
+  border-color: rgba(251, 202, 1, 0.4);
+}
+
+.hud__cuerpo {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hud__etiqueta {
+  font-family: var(--font-codigo), monospace;
+  font-size: 0.62rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.hud__cifra,
+.hud__cifra-instrumento {
+  font-family: var(--font-codigo), monospace;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--bone);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hud__cifra--apagada {
+  color: var(--muted);
+}
+
+.hud__unidad,
+.hud__pie-instrumento {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 12px;
+  font-family: var(--font-codigo), monospace;
+  font-size: 0.6rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.hud__actuadores-puntos {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hud__act-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: rgba(245, 243, 233, .16);
+  transition: all 0.15s ease;
+}
+
+.hud__act-punto--on {
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(251, 202, 1, 0.85);
+}
+
+.hud__centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding-bottom: 2px;
   z-index: 10;
+}
+
+.hud__subtitulo {
+  font-family: var(--font-codigo), monospace;
+  font-size: 0.65rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.telemetria-btn {
+  cursor: pointer;
+  background: rgba(2, 7, 19, 0.85);
+  border: 1px solid rgba(251, 202, 1, 0.35);
+  color: var(--bone);
+  border-radius: 2px;
+  padding: 4px 10px;
+  text-transform: uppercase;
+  font-family: var(--font-codigo), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.telemetria-btn:hover {
+  background: var(--accent);
+  color: #020713;
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(251, 202, 1, 0.35);
 }
 
 /* Botones de toggles interactivos para actuadores */

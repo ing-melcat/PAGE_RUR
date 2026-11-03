@@ -653,11 +653,7 @@ export function BarraTelemetria({
 
   if (!esencial) {
     return (
-      <div className="hud" style={{
-        pointerEvents: 'none',
-        opacity: enVivo ? 1 : 0.85,
-        transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
-      }}>
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1000, overflow: 'hidden' }}>
         {/* RETÍCULA ÓPTICA DE VUELO CENTRAL */}
         <div className="hud__reticula">
           <div className="hud__reticula-azimut">
@@ -687,155 +683,168 @@ export function BarraTelemetria({
           <div className="hud__esquina hud__esquina--tr">
             <span>P2P DATACHANNEL // 60 HZ ┐</span>
           </div>
+          <div className="hud__esquina hud__esquina--bl">
+            <span>└ FLIGHT SYS // ARMED & READY</span>
+          </div>
+          <div className="hud__esquina hud__esquina--br">
+            <span>RUR-GCS // v2.4 ┘</span>
+          </div>
         </div>
 
-        {/* ALA IZQUIERDA: MOVIMIENTO, PROPULSIÓN Y ACTUADORES */}
-        <div className="hud__ala hud__ala--izquierda">
-          <div className="hud__ala-cabecera">
-            <span>// SYS 01 · PROPULSIÓN</span>
-            <span style={{ color: 'var(--bone)', fontSize: '0.62rem' }}>60 HZ REAL-TIME</span>
-          </div>
-          <div className="hud__ala-cuerpo">
-            {activos.includes('avance') && (() => {
-              const nivel = telemetria.avance?.nivel ?? 0;
-              const activo = nivel > 0 && Boolean(telemetria.avance?.dir);
-              const chevron = telemetria.avance?.dir === 'atras' ? '▼' : '▲';
-              return (
-                <div className="hud__medidor">
-                  <span className="hud__etiqueta">{t('telemetria.avance')}</span>
+        {/* ALAS PERIFÉRICAS Y CENTRO DEL HUD */}
+        <div className="hud" style={{
+          pointerEvents: 'none',
+          opacity: enVivo ? 1 : 0.85,
+          transition: sinMovimiento ? 'none' : 'opacity 0.3s ease',
+        }}>
+          {/* ALA IZQUIERDA: MOVIMIENTO, PROPULSIÓN Y ACTUADORES */}
+          <div className="hud__ala hud__ala--izquierda">
+            <div className="hud__ala-cabecera">
+              <span>// SYS 01 · PROPULSIÓN</span>
+              <span style={{ color: 'var(--bone)', fontSize: '0.62rem' }}>60 HZ REAL-TIME</span>
+            </div>
+            <div className="hud__ala-cuerpo">
+              {activos.includes('avance') && (() => {
+                const nivel = telemetria.avance?.nivel ?? 0;
+                const activo = nivel > 0 && Boolean(telemetria.avance?.dir);
+                const chevron = telemetria.avance?.dir === 'atras' ? '▼' : '▲';
+                return (
+                  <div className="hud__medidor">
+                    <span className="hud__etiqueta">{t('telemetria.avance')}</span>
+                    <div className="hud__cuerpo">
+                      <span className={`hud__cifra${activo ? '' : ' hud__cifra--apagada'}`} style={{ transition: transicion }}>
+                        {activo ? chevron : ''} {nivel * 10}
+                      </span>
+                    </div>
+                    <span className="hud__unidad">%</span>
+                  </div>
+                );
+              })()}
+              {activos.includes('giro') && (() => {
+                const nivel = telemetria.giro?.nivel ?? 0;
+                const activo = nivel > 0 && Boolean(telemetria.giro?.dir);
+                const signo = telemetria.giro?.dir === 'izquierda' ? '◀' : '▶';
+                return (
+                  <div className="hud__medidor">
+                    <span className="hud__etiqueta">{t('telemetria.giro')}</span>
+                    <div className="hud__cuerpo">
+                      <span className={`hud__cifra${activo ? '' : ' hud__cifra--apagada'}`} style={{ transition: transicion }}>
+                        {activo ? signo : ''} {nivel * 10}
+                      </span>
+                    </div>
+                    <span className="hud__unidad">%</span>
+                  </div>
+                );
+              })()}
+              {activos.includes('actuadores') && (
+                <div className="hud__actuadores">
+                  <span className="hud__etiqueta">{t('telemetria.actuadores')}</span>
                   <div className="hud__cuerpo">
-                    <span className={`hud__cifra${activo ? '' : ' hud__cifra--apagada'}`} style={{ transition: transicion }}>
-                      {activo ? chevron : ''} {nivel * 10}
+                    <div className="hud__actuadores-puntos">
+                      {ACTUADORES.map(({ clave, abrev }) => (
+                        <span
+                          key={clave}
+                          title={abrev}
+                          className={`hud__act-punto${telemetria.actuadores?.[clave] ? ' hud__act-punto--on' : ''}`}
+                          style={{ transition: transicion }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <span className="hud__unidad" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* CENTRO: ROVER 3D CENITAL + CRONÓMETRO DE MISIÓN + COMANDOS */}
+          <div className="hud__centro">
+            <Suspense fallback={null}>
+              <RassorEnVivo
+                avance={telemetria.avance}
+                giro={telemetria.giro}
+                imu={sensores?.imu}
+                escala={1.6}
+                modelUrl={modelUrl}
+              />
+            </Suspense>
+            <div className="hud__subtitulo" style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+              <MissionTimer mission={robot?.mission} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', pointerEvents: 'auto' }}>
+              {entrada && <ChipEntrada entrada={entrada} transicion={transicion} />}
+              <button
+                className={`telemetria-btn ${misionAbierta ? 'telemetria-btn--abierto' : ''}`}
+                onClick={() => { setMisionAbierta((v) => !v); setMenuAbierto(false); }}
+              >
+                <Flag size={14} /> Misión
+              </button>
+              <button
+                className={`telemetria-btn ${menuAbierto ? 'telemetria-btn--abierto' : ''}`}
+                onClick={() => { setMenuAbierto((v) => !v); setMisionAbierta(false); }}
+              >
+                <LayoutGrid size={14} /> {t('telemetria.widgets')}
+              </button>
+            </div>
+          </div>
+
+          {/* ALA DERECHA: ENLACE Y AVÍONICA */}
+          <div className="hud__ala hud__ala--derecha">
+            <div className="hud__ala-cabecera">
+              <span>// SYS 02 · TELEMETRÍA Y ENLACE</span>
+              <span style={{ color: '#2ecc71', fontSize: '0.62rem' }}>P2P DATACHANNEL</span>
+            </div>
+            <div className="hud__ala-cuerpo">
+              {activos.includes('bitrate') && (
+                <div className="hud__medidor">
+                  <span className="hud__etiqueta">{t('telemetria.bitrate')}</span>
+                  <div className="hud__cuerpo">
+                    <span className={`hud__cifra${enlace?.bitrateKbps != null ? '' : ' hud__cifra--apagada'}`}>
+                      {enlace?.bitrateKbps ?? '—'}
                     </span>
                   </div>
-                  <span className="hud__unidad">%</span>
+                  <span className="hud__unidad">{t('telemetria.kbps')}</span>
                 </div>
-              );
-            })()}
-            {activos.includes('giro') && (() => {
-              const nivel = telemetria.giro?.nivel ?? 0;
-              const activo = nivel > 0 && Boolean(telemetria.giro?.dir);
-              const signo = telemetria.giro?.dir === 'izquierda' ? '◀' : '▶';
-              return (
+              )}
+              {activos.includes('video') && (
                 <div className="hud__medidor">
-                  <span className="hud__etiqueta">{t('telemetria.giro')}</span>
+                  <span className="hud__etiqueta">{t('telemetria.video')}</span>
                   <div className="hud__cuerpo">
-                    <span className={`hud__cifra${activo ? '' : ' hud__cifra--apagada'}`} style={{ transition: transicion }}>
-                      {activo ? signo : ''} {nivel * 10}
+                    <span className={`hud__cifra${enlace?.ancho ? '' : ' hud__cifra--apagada'}`}>
+                      {enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : '—'}
                     </span>
                   </div>
-                  <span className="hud__unidad">%</span>
+                  <span className="hud__unidad">{enlace?.fps != null ? `${enlace.fps} fps` : ''}</span>
                 </div>
-              );
-            })()}
-            {activos.includes('actuadores') && (
-              <div className="hud__actuadores">
-                <span className="hud__etiqueta">{t('telemetria.actuadores')}</span>
-                <div className="hud__cuerpo">
-                  <div className="hud__actuadores-puntos">
-                    {ACTUADORES.map(({ clave, abrev }) => (
-                      <span
-                        key={clave}
-                        title={abrev}
-                        className={`hud__act-punto${telemetria.actuadores?.[clave] ? ' hud__act-punto--on' : ''}`}
-                        style={{ transition: transicion }}
-                      />
-                    ))}
+              )}
+              {activos.includes('perdida') && (
+                <div className="hud__medidor">
+                  <span className="hud__etiqueta">{t('telemetria.perdida')}</span>
+                  <div className="hud__cuerpo">
+                    <span className={`hud__cifra${enlace?.perdidos != null ? '' : ' hud__cifra--apagada'}`}>
+                      {enlace?.perdidos ?? '—'}
+                    </span>
                   </div>
+                  <span className="hud__unidad">{t('telemetria.paquetes')}</span>
                 </div>
-                <span className="hud__unidad" />
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* CENTRO: ROVER 3D CENITAL + CRONÓMETRO DE MISIÓN + COMANDOS */}
-        <div className="hud__centro">
-          <Suspense fallback={null}>
-            <RassorEnVivo
-              avance={telemetria.avance}
-              giro={telemetria.giro}
-              imu={sensores?.imu}
-              escala={1.6}
-              modelUrl={modelUrl}
-            />
-          </Suspense>
-          <div className="hud__subtitulo" style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-            <MissionTimer mission={robot?.mission} />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', pointerEvents: 'auto' }}>
-            {entrada && <ChipEntrada entrada={entrada} transicion={transicion} />}
-            <button
-              className={`telemetria-btn ${misionAbierta ? 'telemetria-btn--abierto' : ''}`}
-              onClick={() => { setMisionAbierta((v) => !v); setMenuAbierto(false); }}
-            >
-              <Flag size={14} /> Misión
-            </button>
-            <button
-              className={`telemetria-btn ${menuAbierto ? 'telemetria-btn--abierto' : ''}`}
-              onClick={() => { setMenuAbierto((v) => !v); setMisionAbierta(false); }}
-            >
-              <LayoutGrid size={14} /> {t('telemetria.widgets')}
-            </button>
-          </div>
-        </div>
-
-        {/* ALA DERECHA: ENLACE Y AVÍONICA */}
-        <div className="hud__ala hud__ala--derecha">
-          <div className="hud__ala-cabecera">
-            <span>// SYS 02 · TELEMETRÍA Y ENLACE</span>
-            <span style={{ color: '#2ecc71', fontSize: '0.62rem' }}>P2P DATACHANNEL</span>
-          </div>
-          <div className="hud__ala-cuerpo">
-            {activos.includes('bitrate') && (
-              <div className="hud__medidor">
-                <span className="hud__etiqueta">{t('telemetria.bitrate')}</span>
-                <div className="hud__cuerpo">
-                  <span className={`hud__cifra${enlace?.bitrateKbps != null ? '' : ' hud__cifra--apagada'}`}>
-                    {enlace?.bitrateKbps ?? '—'}
-                  </span>
+              )}
+              {activos.includes('audiencia') && (
+                <div className="hud__medidor">
+                  <span className="hud__etiqueta">{t('telemetria.espectadores')}</span>
+                  <div className="hud__cuerpo">
+                    <span className={`hud__cifra${(audiencia ?? enlace?.espectadores) != null ? '' : ' hud__cifra--apagada'}`}>
+                      {audiencia ?? enlace?.espectadores ?? '—'}
+                    </span>
+                  </div>
+                  <span className="hud__unidad" />
                 </div>
-                <span className="hud__unidad">{t('telemetria.kbps')}</span>
-              </div>
-            )}
-            {activos.includes('video') && (
-              <div className="hud__medidor">
-                <span className="hud__etiqueta">{t('telemetria.video')}</span>
-                <div className="hud__cuerpo">
-                  <span className={`hud__cifra${enlace?.ancho ? '' : ' hud__cifra--apagada'}`}>
-                    {enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : '—'}
-                  </span>
-                </div>
-                <span className="hud__unidad">{enlace?.fps != null ? `${enlace.fps} fps` : ''}</span>
-              </div>
-            )}
-            {activos.includes('perdida') && (
-              <div className="hud__medidor">
-                <span className="hud__etiqueta">{t('telemetria.perdida')}</span>
-                <div className="hud__cuerpo">
-                  <span className={`hud__cifra${enlace?.perdidos != null ? '' : ' hud__cifra--apagada'}`}>
-                    {enlace?.perdidos ?? '—'}
-                  </span>
-                </div>
-                <span className="hud__unidad">{t('telemetria.paquetes')}</span>
-              </div>
-            )}
-            {activos.includes('audiencia') && (
-              <div className="hud__medidor">
-                <span className="hud__etiqueta">{t('telemetria.espectadores')}</span>
-                <div className="hud__cuerpo">
-                  <span className={`hud__cifra${(audiencia ?? enlace?.espectadores) != null ? '' : ' hud__cifra--apagada'}`}>
-                    {audiencia ?? enlace?.espectadores ?? '—'}
-                  </span>
-                </div>
-                <span className="hud__unidad" />
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
         
         {panelMisionContainer}
-      {panelMenu}
+        {panelMenu}
       </div>
     );
   }

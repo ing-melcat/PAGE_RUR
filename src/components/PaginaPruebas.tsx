@@ -9,6 +9,8 @@ import {
 import { Robot3DPreview } from '../controller/components/Robot3DPreview';
 import { RassorEnVivo } from '../controller/components/RassorEnVivo';
 import { ErrorBoundary } from './ErrorBoundary';
+import '../controller/HudEspectador.css';
+import '../controller/BarraTelemetria.css';
 import './PaginaPruebas.css';
 
 // Lista de robots de prueba para la simulación
@@ -512,57 +514,57 @@ export default function PaginaPruebas() {
                   </div>
                 </div>
 
-                {/* OVERLAY DEL COCKPIT HUD COMPLETO */}
+                {/* DELIMITACIÓN DE ESQUINAS DEL COCKPIT */}
+                <div className="hud__esquinas">
+                  <div className="hud__esquina hud__esquina--tl">
+                    <span>┌ CAM 01 // FRONT HD · BORESIGHT</span>
+                  </div>
+                  <div className="hud__esquina hud__esquina--tr">
+                    <span>P2P DATACHANNEL // 60 HZ ┐</span>
+                  </div>
+                  <div className="hud__esquina hud__esquina--bl">
+                    <span>└ FLIGHT SYS // ARMED & READY</span>
+                  </div>
+                  <div className="hud__esquina hud__esquina--br">
+                    <span>RUR-GCS // v2.4 ┘</span>
+                  </div>
+                </div>
+
+                {/* RETÍCULA ÓPTICA CENTRAL DE VUELO */}
+                <div className="hud__reticula">
+                  <div 
+                    className="hud__reticula-azimut"
+                    style={{
+                      transform: `translateX(${-hudGiro * 20}px)`,
+                      transition: 'transform 0.1s linear'
+                    }}
+                  >
+                    <span>◄ 070 · 080 · 090 · 100 · 110 ►</span>
+                  </div>
+                  <div className="hud__reticula-mira">
+                    <span className="hud__reticula-cross-h" />
+                    <span className="hud__reticula-cross-v" />
+                    <span className="hud__reticula-tick hud__reticula-tick--tl" />
+                    <span className="hud__reticula-tick hud__reticula-tick--tr" />
+                    <span className="hud__reticula-tick hud__reticula-tick--bl" />
+                    <span className="hud__reticula-tick hud__reticula-tick--br" />
+                    <span className="hud__reticula-centro" />
+                  </div>
+                  <div 
+                    className="hud__reticula-escala"
+                    style={{
+                      transform: `rotate(${-hudRoll * 0.5}deg) translateY(${hudPitch * 1.2}px)`,
+                      transition: 'transform 0.1s linear'
+                    }}
+                  >
+                    <span>+10</span>
+                    <span className="hud__reticula-cero">— 00 —</span>
+                    <span>-10</span>
+                  </div>
+                </div>
+
+                {/* OVERLAY DEL COCKPIT HUD COMPLETO (ALAS Y CENTRO) */}
                 <div className="hud">
-                  {/* RETÍCULA ÓPTICA CENTRAL DE VUELO */}
-                  <div className="hud__reticula">
-                    <div 
-                      className="hud__reticula-azimut"
-                      style={{
-                        transform: `translateX(${-hudGiro * 20}px)`,
-                        transition: 'transform 0.1s linear'
-                      }}
-                    >
-                      <span>◄ 070 · 080 · 090 · 100 · 110 ►</span>
-                    </div>
-                    <div className="hud__reticula-mira">
-                      <span className="hud__reticula-cross-h" />
-                      <span className="hud__reticula-cross-v" />
-                      <span className="hud__reticula-tick hud__reticula-tick--tl" />
-                      <span className="hud__reticula-tick hud__reticula-tick--tr" />
-                      <span className="hud__reticula-tick hud__reticula-tick--bl" />
-                      <span className="hud__reticula-tick hud__reticula-tick--br" />
-                      <span className="hud__reticula-centro" />
-                    </div>
-                    <div 
-                      className="hud__reticula-escala"
-                      style={{
-                        transform: `rotate(${-hudRoll * 0.5}deg) translateY(${hudPitch * 1.2}px)`,
-                        transition: 'transform 0.1s linear'
-                      }}
-                    >
-                      <span>+10</span>
-                      <span className="hud__reticula-cero">— 00 —</span>
-                      <span>-10</span>
-                    </div>
-                  </div>
-
-                  {/* DELIMITACIÓN DE ESQUINAS DEL COCKPIT */}
-                  <div className="hud__esquinas">
-                    <div className="hud__esquina hud__esquina--tl">
-                      <span>┌ CAM 01 // FRONT HD · BORESIGHT</span>
-                    </div>
-                    <div className="hud__esquina hud__esquina--tr">
-                      <span>P2P DATACHANNEL // 60 HZ ┐</span>
-                    </div>
-                    <div className="hud__esquina hud__esquina--bl">
-                      <span>└ FLIGHT SYS // ARMED & READY</span>
-                    </div>
-                    <div className="hud__esquina hud__esquina--br">
-                      <span>RUR-GCS // v2.4 ┘</span>
-                    </div>
-                  </div>
-
                   {/* ALA IZQUIERDA: MOVIMIENTO, PROPULSIÓN Y ACTUADORES */}
                   <div className="hud__ala hud__ala--izquierda">
                     <div className="hud__ala-cabecera">
