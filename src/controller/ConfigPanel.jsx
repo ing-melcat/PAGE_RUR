@@ -242,12 +242,15 @@ export function ConfigPanel({ onApply, controlMappings, onUpdateMappings }) {
     <>
       <button
         type="button"
-        className={`config-toggle telemetria__osd-boton ${isOpen ? 'open telemetria__osd-boton--abierto' : ''}`}
+        className={`cabezal-terminal-btn ${isOpen ? 'cabezal-terminal-btn--active' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
         aria-label={t('operador.configPanel.toggleAriaLabel')}
-        style={{ margin: 0, padding: '6px 10px', color: isOpen ? 'var(--accent)' : 'inherit' }}
+        title="Configuración de controles"
       >
-        <Settings size={22} className="hud-icon" strokeWidth={2} />
+        <span className="cabezal-terminal-btn-bracket">[</span>
+        <Settings size={14} className="hud-icon" strokeWidth={2.2} />
+        <span className="cabezal-terminal-btn-label">CFG</span>
+        <span className="cabezal-terminal-btn-bracket">]</span>
       </button>
 
       {/* Hidden input for mobile keyboard input */}

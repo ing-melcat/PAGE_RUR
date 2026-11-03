@@ -17,92 +17,49 @@ export function Cabezal({ onCambio, onConfigApply, onBack, titulo, controlMappin
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'space-between', 
-                padding: '0 20px',
+                padding: '10px 20px',
                 width: '100%',
                 boxSizing: 'border-box'
             }}>
-                {/* Zona izquierda: botón de volver */}
+                {/* Zona izquierda: botón de volver estilo terminal */}
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                     <button 
                         onClick={onBack}
-                        style={{ 
-                            background: 'var(--surface)', 
-                            border: '1px solid var(--border)', 
-                            borderRadius: '2px',
-                            color: 'var(--bone)', 
-                            cursor: 'pointer', 
-                            padding: '8px 12px',
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            transition: 'all 0.15s ease',
-                        }}
-                        onMouseEnter={e => {
-                            e.currentTarget.style.borderColor = 'var(--bone)';
-                            e.currentTarget.style.boxShadow = '0 0 12px rgba(245, 243, 233, 0.2)';
-                        }}
-                        onMouseLeave={e => {
-                            e.currentTarget.style.borderColor = 'var(--border)';
-                            e.currentTarget.style.boxShadow = 'none';
-                        }}
+                        className="cabezal-terminal-btn"
                         aria-label={t('operador.controller.volverMenuAria')}
                         title="Volver al menú de selección"
                     >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="19" y1="12" x2="5" y2="12"></line>
-                            <polyline points="12 19 5 12 12 5"></polyline>
-                        </svg>
+                        <span className="cabezal-terminal-btn-bracket">[</span>
+                        <span className="cabezal-terminal-btn-arrow">&lt;</span>
+                        <span className="cabezal-terminal-btn-label">SALIR</span>
+                        <span className="cabezal-terminal-btn-bracket">]</span>
                     </button>
                 </div>
 
-                {/* Nombre del robot como NOTCH Biselado de cabina GCS */}
+                {/* Identificador de unidad estilo terminal de robótica */}
                 <div style={{ 
                     position: 'absolute', 
-                    top: 0, 
+                    top: 10, 
                     left: '50%', 
                     transform: 'translateX(-50%)', 
                     zIndex: 110,
                     pointerEvents: 'auto'
                 }}>
                     <div
-                        className="cabezal-notch-robot"
+                        className="cabezal-terminal-badge"
                         title={titulo || 'RASSOR-UI'}
-                        style={{
-                            background: 'var(--accent)', 
-                            color: '#020713',
-                            clipPath: 'polygon(0 0, 100% 0, 88% 100%, 12% 100%)',
-                            padding: '6px 36px 8px',
-                            fontWeight: 700,
-                            fontFamily: 'var(--font-codigo)',
-                            fontSize: '0.85rem',
-                            letterSpacing: '0.22em',
-                            textIndent: '0.11em',
-                            textTransform: 'uppercase',
-                            margin: 0, 
-                            maxWidth: '60vw', 
-                            overflow: 'hidden', 
-                            textOverflow: 'ellipsis', 
-                            whiteSpace: 'nowrap',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            userSelect: 'none',
-                            cursor: 'default',
-                            boxShadow: '0 4px 16px rgba(251, 202, 1, 0.3)',
-                        }}
                     >
-                        <span style={{ fontSize: '0.55rem', opacity: 0.85, letterSpacing: '0.25em', lineHeight: 1 }}>
-                            SYS // ACTIVE UNIT
-                        </span>
-                        <span style={{ fontWeight: 800, fontSize: '0.92rem', lineHeight: 1.1 }}>
-                            {titulo || 'RASSOR-01'}
-                        </span>
+                        <span className="cabezal-badge-bracket">[</span>
+                        <span className="cabezal-badge-prefix">UNIDAD:</span>
+                        <span className="cabezal-badge-name">{titulo || 'RASSOR-01'}</span>
+                        <span className="cabezal-badge-sep">//</span>
+                        <span className="cabezal-badge-role">ROVER TELEOP</span>
+                        <span className="cabezal-badge-bracket">]</span>
                     </div>
                 </div>
                 
-                {/* ConfigPanel placed inside the header on the right */}
-                <div style={{ width: '60px', display: 'flex', justifyContent: 'flex-end' }}>
+                {/* ConfigPanel en el extremo derecho */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
                     <ConfigPanel onApply={onConfigApply} controlMappings={controlMappings} onUpdateMappings={onUpdateMappings} />
                 </div>
 

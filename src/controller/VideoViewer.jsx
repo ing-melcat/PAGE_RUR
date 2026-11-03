@@ -113,65 +113,48 @@ export function VideoViewer({ room, isConnected, hlsUrl, onPlayingDateChange }) 
             overflow: 'hidden',
           }}
         >
-          {/* Retícula óptica y marcas de cuadrícula de aviónica */}
+          {/* Retícula óptica sutil */}
           <div style={{
             position: 'absolute',
-            inset: '40px',
-            border: '1px solid rgba(245, 243, 233, 0.05)',
+            inset: '64px 20px 20px 20px',
+            border: '1px solid rgba(245, 243, 233, 0.04)',
             pointerEvents: 'none',
           }}>
             {/* Esquinas tácticas del visor */}
-            <div style={{ position: 'absolute', top: -1, left: -1, width: 12, height: 12, borderTop: '2px solid rgba(251, 202, 1, 0.4)', borderLeft: '2px solid rgba(251, 202, 1, 0.4)' }} />
-            <div style={{ position: 'absolute', top: -1, right: -1, width: 12, height: 12, borderTop: '2px solid rgba(251, 202, 1, 0.4)', borderRight: '2px solid rgba(251, 202, 1, 0.4)' }} />
-            <div style={{ position: 'absolute', bottom: -1, left: -1, width: 12, height: 12, borderBottom: '2px solid rgba(251, 202, 1, 0.4)', borderLeft: '2px solid rgba(251, 202, 1, 0.4)' }} />
-            <div style={{ position: 'absolute', bottom: -1, right: -1, width: 12, height: 12, borderBottom: '2px solid rgba(251, 202, 1, 0.4)', borderRight: '2px solid rgba(251, 202, 1, 0.4)' }} />
-
-            {/* Marcadores de calibración en los bordes */}
-            <div style={{ position: 'absolute', top: 8, left: 12, fontFamily: 'var(--font-codigo)', fontSize: '0.65rem', color: 'rgba(251, 202, 1, 0.45)', letterSpacing: '0.15em' }}>
-              CAM // PRIMARY PAYLOAD SENSOR [OPTICAL 1080P]
-            </div>
-            <div style={{ position: 'absolute', top: 8, right: 12, fontFamily: 'var(--font-codigo)', fontSize: '0.65rem', color: 'rgba(245, 243, 233, 0.25)', letterSpacing: '0.15em' }}>
-              FOV: 90° · AZ: 000.0° · EL: +00.0°
-            </div>
-            <div style={{ position: 'absolute', bottom: 8, left: 12, fontFamily: 'var(--font-codigo)', fontSize: '0.65rem', color: 'rgba(245, 243, 233, 0.25)', letterSpacing: '0.15em' }}>
-              RES: 1920×1080 @ 60FPS · CODEC: H.264
-            </div>
+            <div style={{ position: 'absolute', top: -1, left: -1, width: 12, height: 12, borderTop: '2px solid rgba(251, 202, 1, 0.35)', borderLeft: '2px solid rgba(251, 202, 1, 0.35)' }} />
+            <div style={{ position: 'absolute', top: -1, right: -1, width: 12, height: 12, borderTop: '2px solid rgba(251, 202, 1, 0.35)', borderRight: '2px solid rgba(251, 202, 1, 0.35)' }} />
+            <div style={{ position: 'absolute', bottom: -1, left: -1, width: 12, height: 12, borderBottom: '2px solid rgba(251, 202, 1, 0.35)', borderLeft: '2px solid rgba(251, 202, 1, 0.35)' }} />
+            <div style={{ position: 'absolute', bottom: -1, right: -1, width: 12, height: 12, borderBottom: '2px solid rgba(251, 202, 1, 0.35)', borderRight: '2px solid rgba(251, 202, 1, 0.35)' }} />
           </div>
 
-          {/* Mira central de orientación con telemetría */}
+          {/* Estado de conexión de vídeo - Terminal puro, sin cajas opacas ni blur */}
           <div
             style={{
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '14px',
-              padding: '20px 32px',
-              background: 'rgba(5, 16, 37, 0.65)',
-              border: '1px solid rgba(245, 243, 233, 0.12)',
-              borderRadius: '2px',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
+              gap: '10px',
+              padding: '16px 24px',
+              background: 'transparent',
+              fontFamily: 'var(--font-codigo)',
+              textAlign: 'center',
+              userSelect: 'none',
             }}
           >
-            <div style={{ position: 'absolute', top: -1, left: -1, width: 6, height: 6, borderTop: '2px solid var(--accent)', borderLeft: '2px solid var(--accent)' }} />
-            <div style={{ position: 'absolute', top: -1, right: -1, width: 6, height: 6, borderTop: '2px solid var(--accent)', borderRight: '2px solid var(--accent)' }} />
-            <div style={{ position: 'absolute', bottom: -1, left: -1, width: 6, height: 6, borderBottom: '2px solid var(--accent)', borderLeft: '2px solid var(--accent)' }} />
-            <div style={{ position: 'absolute', bottom: -1, right: -1, width: 6, height: 6, borderBottom: '2px solid var(--accent)', borderRight: '2px solid var(--accent)' }} />
-
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--warning)', boxShadow: '0 0 10px var(--warning)' }} />
-              <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--warning)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-                STANDBY DE SEÑAL
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--accent)', boxShadow: '0 0 10px var(--accent)' }} />
+              <span style={{ fontSize: '0.75rem', color: 'var(--accent)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                [ FEED DE VÍDEO // STANDBY ]
               </span>
             </div>
 
-            <span style={{ fontFamily: 'var(--font-titulo)', fontSize: '1.6rem', color: 'var(--text)', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 1 }}>
+            <span style={{ fontSize: '1.4rem', color: 'var(--bone)', letterSpacing: '0.12em', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.2 }}>
               SIN CONEXIÓN DE VÍDEO
             </span>
 
-            <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--muted)', letterSpacing: '0.12em' }}>
-              ESPERANDO FEED LIVEKIT WEBRTC // CANAL ABIERTO
+            <span style={{ fontSize: '0.72rem', color: 'var(--muted)', letterSpacing: '0.15em' }}>
+              ESPERANDO SEÑAL WEBRTC · CANAL P2P ACTIVO
             </span>
           </div>
         </div>

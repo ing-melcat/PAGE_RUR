@@ -81,10 +81,11 @@ function CalidadEnlace({ conectado, enlace, t }) {
 const STORAGE_KEY = 'rur_telemetria_widgets_v1';
 
 const TARJETA = {
-  background: 'var(--surface)',
-  border: '1px solid var(--border)',
-  borderRadius: '6px',
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+  background: 'rgba(2, 7, 19, 0.96)',
+  border: '1px solid var(--accent)',
+  borderRadius: '2px',
+  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.85), inset 0 0 1px rgba(251, 202, 1, 0.3)',
+  fontFamily: 'var(--font-codigo), monospace',
 };
 
 // A qué BLOQUE visual pertenece cada widget del catálogo. Es un agrupamiento
@@ -676,15 +677,15 @@ export function BarraTelemetria({
       : (giroVal * 1.25).toFixed(2);
     const distVal = sensores?.odometria?.distancia != null
       ? `${sensores.odometria.distancia.toFixed(1)} m`
-      : `${(12.6 + Math.abs(avanceVal) * 3.4).toFixed(1)} m`;
+      : (isRobotConnected ? `${(Math.abs(avanceVal) * 3.4).toFixed(1)} m` : '0.0 m');
 
     const pitchVal = sensores?.imu?.pitch != null ? sensores.imu.pitch : 0;
     const rollVal = sensores?.imu?.roll != null ? sensores.imu.roll : 0;
 
-    const voltVal = sensores?.bateria?.voltaje != null ? sensores.bateria.voltaje.toFixed(1) : '24.6';
-    const ampVal = sensores?.bateria?.corriente != null ? sensores.bateria.corriente.toFixed(1) : (1.8 + Math.abs(avanceVal) * 3.2).toFixed(1);
-    const wattVal = (parseFloat(voltVal) * parseFloat(ampVal)).toFixed(1);
-    const tempVal = sensores?.temperatura?.motores != null ? `${sensores.temperatura.motores.toFixed(1)}°C` : '41.2°C';
+    const voltVal = sensores?.bateria?.voltaje != null ? sensores.bateria.voltaje.toFixed(1) : (isRobotConnected ? '24.2' : '—');
+    const ampVal = sensores?.bateria?.corriente != null ? sensores.bateria.corriente.toFixed(1) : (isRobotConnected ? (1.5 + Math.abs(avanceVal) * 2.0).toFixed(1) : '—');
+    const wattVal = (voltVal !== '—' && ampVal !== '—') ? (parseFloat(voltVal) * parseFloat(ampVal)).toFixed(1) : '—';
+    const tempVal = sensores?.temperatura?.motores != null ? `${sensores.temperatura.motores.toFixed(1)}°C` : (isRobotConnected ? '36.5°C' : '—');
 
     const armFrontVal = sensores?.actuadores?.brazo_delantero?.angulo != null
       ? `+${sensores.actuadores.brazo_delantero.angulo.toFixed(1)}°`
@@ -699,111 +700,111 @@ export function BarraTelemetria({
       ? `${sensores.actuadores.tambor_trasero.rpm}`
       : telemetria.actuadores?.DrumBack ? '45' : '0';
 
+    const verMovimiento = activos.includes('avance') || activos.includes('giro');
+    const verActuadores = activos.includes('actuadores');
+    const verConexion = activos.includes('bitrate') || activos.includes('video') || activos.includes('perdida');
+    const verAudiencia = activos.includes('audiencia');
+
     return (
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1000, overflow: 'hidden' }}>
-        {/* DELIMITACIÓN DE ESQUINAS DEL COCKPIT */}
+        {/* DELIMITACIÓN DE ESQUINAS TERMINAL // ROVER GCS */}
         <div className="hud__esquinas">
           <div className="hud__esquina hud__esquina--tl">
-            <span>┌ CAM 01 // FRONT HD · BORESIGHT</span>
+            <span>┌ CAM 01 // TELEOP NAV [1080P]</span>
           </div>
           <div className="hud__esquina hud__esquina--tr">
-            <span>P2P DATACHANNEL // 60 HZ ┐</span>
+            <span>CANAL P2P // 60 HZ ┐</span>
           </div>
           <div className="hud__esquina hud__esquina--bl">
-            <span>└ FLIGHT SYS // ARMED & READY</span>
+            <span>└ SYS // ROVER TELEOP [RASSOR-GCS]</span>
           </div>
           <div className="hud__esquina hud__esquina--br">
-            <span>RUR-GCS // v2.4 ┘</span>
+            <span>ODO // TELEMETRÍA ┘</span>
           </div>
         </div>
 
         {/* ZONA DE SEGURIDAD QUE RESPETA EL CABEZAL SUPERIOR (72PX) */}
         <div className="hud-safe-zone">
-          {/* 1. CINTA DE AZIMUT / RUMBO HORIZONTAL */}
+          {/* 1. CINTA DE RUMBO / AZIMUT DEL CHASIS */}
           <div className="hud__tape-azimut">
             <span>◄ {hMinus20} · · {hMinus10} · · [ {hCenter}° ] · · {hPlus10} · · {hPlus20} ►</span>
           </div>
 
           {/* 2. CINTA VERTICAL DE VELOCIDAD DINÁMICA (m/s) A LA IZQUIERDA */}
-          <div className="hud__tape-velocidad">
-            <div className="hud__speed-scale-wrap">
-              <div className="hud__speed-rail">
-                <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '0%' }}>
-                  <span className="hud__speed-tick-label">+2.0</span>
-                </div>
-                <div className="hud__speed-tick" style={{ top: '25%' }}>
-                  <span className="hud__speed-tick-label">+1.0</span>
-                </div>
-                <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '50%' }}>
-                  <span className="hud__speed-tick-label" style={{ color: 'var(--accent)', fontWeight: 'bold' }}>0.0</span>
-                </div>
-                <div className="hud__speed-tick" style={{ top: '75%' }}>
-                  <span className="hud__speed-tick-label">-1.0</span>
-                </div>
-                <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '100%' }}>
-                  <span className="hud__speed-tick-label">-2.0</span>
-                </div>
+          {verMovimiento && (
+            <div className="hud__tape-velocidad">
+              <div className="hud__speed-scale-wrap">
+                <div className="hud__speed-rail">
+                  <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '0%' }}>
+                    <span className="hud__speed-tick-label">+2.0</span>
+                  </div>
+                  <div className="hud__speed-tick" style={{ top: '25%' }}>
+                    <span className="hud__speed-tick-label">+1.0</span>
+                  </div>
+                  <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '50%' }}>
+                    <span className="hud__speed-tick-label" style={{ color: 'var(--accent)', fontWeight: 'bold' }}>0.0</span>
+                  </div>
+                  <div className="hud__speed-tick" style={{ top: '75%' }}>
+                    <span className="hud__speed-tick-label">-1.0</span>
+                  </div>
+                  <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '100%' }}>
+                    <span className="hud__speed-tick-label">-2.0</span>
+                  </div>
 
-                <div className="hud__speed-cursor" style={{ top: `${cursorPercent}%` }}>
-                  <span className="hud__speed-arrow" />
-                  <span className="hud__speed-tag">
-                    {velNum > 0 ? '+' : ''}{velLineal} m/s
-                  </span>
+                  <div className="hud__speed-cursor" style={{ top: `${cursorPercent}%` }}>
+                    <span className="hud__speed-arrow" />
+                    <span className="hud__speed-tag">
+                      {velNum > 0 ? '+' : ''}{velLineal} m/s
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="hud__speed-subdata">
-              <div>DIST: {distVal}</div>
-              <div>ANG : {parseFloat(angVal) >= 0 ? '+' : ''}{angVal} rad/s</div>
-              <div>ARM : F:{armFrontVal} R:{armBackVal}</div>
-              <div>DRM : F:{drmFrontVal} R:{drmBackVal} RPM</div>
+              <div className="hud__speed-subdata">
+                <div>VEL : {velNum > 0 ? '+' : ''}{velLineal} m/s</div>
+                <div>ANG : {parseFloat(angVal) >= 0 ? '+' : ''}{angVal} rad/s</div>
+                <div>ODO : {distVal}</div>
+                {verActuadores && (
+                  <>
+                    <div>BRAZ: F:{armFrontVal} R:{armBackVal}</div>
+                    <div>TAMB: F:{drmFrontVal} R:{drmBackVal} RPM</div>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* 3. RETÍCULA ÓPTICA CENTRAL (BORESIGHT & PITCH LADDER) */}
-          <div className="hud__boresight">
-            <div className="hud__boresight-cross">
-              <span className="hud__boresight-line-h" />
-              <span className="hud__boresight-line-v" />
-              <span className="hud__boresight-corner hud__boresight-corner--tl" />
-              <span className="hud__boresight-corner hud__boresight-corner--tr" />
-              <span className="hud__boresight-corner hud__boresight-corner--bl" />
-              <span className="hud__boresight-corner hud__boresight-corner--br" />
-              <span className="hud__boresight-center" />
-            </div>
-            <div 
-              className="hud__boresight-ladder"
-              style={{ transform: `rotate(${-rollVal * 0.5}deg) translateY(${pitchVal * 1.2}px)` }}
-            >
-              <span>+10</span>
-              <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>┌ 00 ┐</span>
-              <span>-10</span>
-            </div>
-            <div className="hud__boresight-angles">
-              P: {pitchVal >= 0 ? '+' : ''}{pitchVal.toFixed(1)}° │ R: {rollVal >= 0 ? '+' : ''}{rollVal.toFixed(1)}°
-            </div>
-          </div>
-
-          {/* 4. COLUMNA DERECHA DE POTENCIA, TÉRMICA Y ENLACE */}
-          <div className="hud__tape-avionica">
+          {/* 4. COLUMNA DERECHA DE TELEMETRÍA // POTENCIA, TÉRMICA Y ENLACE */}
+          <div className="hud__telemetry-col">
             <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.85rem' }}>
-              {voltVal} V · {ampVal} A
+              {voltVal !== '—' ? `${voltVal} V · ${ampVal} A` : 'POTENCIA: —'}
             </div>
-            <div style={{ color: 'var(--muted)', fontSize: '0.68rem' }}>
-              BUS: 24V NOM · {wattVal} W
+            <div style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>
+              {wattVal !== '—' ? `CONSUMO: ${wattVal} W` : 'BUS: 24V NOM'}
             </div>
-            <div>TEMP: {tempVal} MOT</div>
-            <div style={{ marginTop: '6px', color: '#2ecc71', fontWeight: 600 }}>
-              {enlace?.rttMs ? `${enlace.rttMs} ms` : '< 20 ms'} · {enlace?.bitrateKbps ? `${enlace.bitrateKbps} kbps` : '2450 kbps'}
+            <div style={{ color: 'var(--bone)', fontSize: '0.72rem' }}>
+              MOTORES: {tempVal}
             </div>
-            <div>{enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : '1080p'} @ {enlace?.fps ? `${enlace.fps} fps` : '60 fps'} · {enlace?.perdidos ?? 0} loss</div>
-            <div style={{ color: 'var(--bone)', fontSize: '0.68rem' }}>
-              {audiencia ?? enlace?.espectadores ?? 1} USR · P2P {enVivo ? 'LIVE' : 'LINK'}
-            </div>
+
+            {verConexion && (
+              <div style={{ marginTop: '8px', borderTop: '1px solid rgba(245, 243, 233, 0.1)', paddingTop: '6px' }}>
+                <div style={{ color: 'var(--bone)', fontWeight: 600 }}>
+                  RTT: {enlace?.rttMs ? `${enlace.rttMs} ms` : '< 20 ms'} · {enlace?.bitrateKbps ? `${enlace.bitrateKbps} kbps` : '2450 kbps'}
+                </div>
+                <div style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>
+                  {enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : '1080p'} @ {enlace?.fps ? `${enlace.fps} fps` : '60 fps'} · {enlace?.perdidos ?? 0} loss
+                </div>
+              </div>
+            )}
+
+            {verAudiencia && (
+              <div style={{ color: 'var(--accent)', fontSize: '0.7rem', marginTop: '4px' }}>
+                {audiencia ?? enlace?.espectadores ?? 1} USR · P2P {enVivo ? 'LIVE' : 'ACTIVO'}
+              </div>
+            )}
           </div>
 
-          {/* 5. DECK INFERIOR CENTRAL: ROVER 3D + MISIÓN + SELECTOR DE MODOS */}
+          {/* 5. DECK INFERIOR CENTRAL: ROVER 3D + CLINÓMETRO + MISIÓN + SELECTOR DE MODOS */}
           <div className="hud__deck-inferior">
             <Suspense fallback={null}>
               <RassorEnVivo
@@ -814,6 +815,13 @@ export function BarraTelemetria({
                 modelUrl={modelUrl}
               />
             </Suspense>
+
+            {/* Clinómetro de chasis (Pitch y Roll en grados medibles) */}
+            <div className="hud__clinometer-badge">
+              <span>PITCH: {pitchVal >= 0 ? '+' : ''}{pitchVal.toFixed(1)}°</span>
+              <span style={{ color: 'var(--accent)', opacity: 0.6 }}>│</span>
+              <span>ROLL: {rollVal >= 0 ? '+' : ''}{rollVal.toFixed(1)}°</span>
+            </div>
 
             <div className="hud__subtitulo" style={{ marginTop: '2px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
               <MissionTimer mission={robot?.mission} />

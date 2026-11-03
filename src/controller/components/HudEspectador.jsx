@@ -86,7 +86,7 @@ function RelojMision({ desde, missionHls, playingDate }) {
   if (!startedAt) {
     if (missionHls && !missionHls.started_at) {
       // Countdown or not started yet
-      return <span className="hud__reloj-cifra">PRE-FLIGHT</span>;
+      return <span className="hud__reloj-cifra">PRE-MISIÓN</span>;
     }
     return <span className="hud__reloj-cifra">--:--:--</span>;
   }
@@ -168,13 +168,19 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
 
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10, overflow: 'hidden' }}>
-      {/* Delimitación de esquinas del cockpit */}
+      {/* Delimitación de esquinas del cockpit // Rover GCS */}
       <div className="hud__esquinas">
         <div className="hud__esquina hud__esquina--tl">
-          <span>┌ CAM 01 // FRONT HD · LIVE</span>
+          <span>┌ CAM 01 // TELEOP NAV [1080P]</span>
         </div>
         <div className="hud__esquina hud__esquina--tr">
-          <span>{titulo || 'RUR // COCKPIT'} ┐</span>
+          <span>{titulo || 'RUR // ROVER-GCS'} ┐</span>
+        </div>
+        <div className="hud__esquina hud__esquina--bl">
+          <span>└ SYS // ROVER TELEOP [RASSOR-GCS]</span>
+        </div>
+        <div className="hud__esquina hud__esquina--br">
+          <span>ODO // TELEMETRÍA ┘</span>
         </div>
       </div>
 
@@ -223,32 +229,8 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
           </div>
         )}
 
-        {/* 3. Retícula Óptica Central (Boresight & Pitch Ladder) */}
-        <div className="hud__boresight">
-          <div className="hud__boresight-cross">
-            <span className="hud__boresight-line-h" />
-            <span className="hud__boresight-line-v" />
-            <span className="hud__boresight-corner hud__boresight-corner--tl" />
-            <span className="hud__boresight-corner hud__boresight-corner--tr" />
-            <span className="hud__boresight-corner hud__boresight-corner--bl" />
-            <span className="hud__boresight-corner hud__boresight-corner--br" />
-            <span className="hud__boresight-center" />
-          </div>
-          <div 
-            className="hud__boresight-ladder"
-            style={{ transform: `rotate(${-rollVal * 0.5}deg) translateY(${pitchVal * 1.2}px)` }}
-          >
-            <span>+10</span>
-            <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>┌ 00 ┐</span>
-            <span>-10</span>
-          </div>
-          <div className="hud__boresight-angles">
-            P: {pitchVal >= 0 ? '+' : ''}{pitchVal.toFixed(1)}° │ R: {rollVal >= 0 ? '+' : ''}{rollVal.toFixed(1)}°
-          </div>
-        </div>
-
         {/* 4. Columna Derecha de Potencia y Enlace */}
-        <div className="hud__tape-avionica">
+        <div className="hud__telemetry-col">
           <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.85rem' }}>
             {voltVal} V · {ampVal} A
           </div>
@@ -256,22 +238,29 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
             BUS: 24V NOM · {wattVal} W
           </div>
           <div>TEMP: {tempVal} MOT</div>
-          <div style={{ marginTop: '6px', color: '#2ecc71', fontWeight: 600 }}>
+          <div style={{ marginTop: '6px', color: 'var(--bone)', fontWeight: 600 }}>
             {enlace?.rttMs ? `${enlace.rttMs} ms` : '< 20 ms'} · {enlace?.bitrateKbps ? `${enlace.bitrateKbps} kbps` : '2450 kbps'}
           </div>
           <div>{enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : '1080p'} @ {enlace?.fps ? `${enlace.fps} fps` : '60 fps'} · {enlace?.perdidos ?? 0} loss</div>
-          <div style={{ color: 'var(--bone)', fontSize: '0.68rem' }}>
+          <div style={{ color: 'var(--accent)', fontSize: '0.68rem' }}>
             {enlace?.espectadores ?? 1} USR · P2P {enVivo ? 'LIVE' : 'LINK'}
           </div>
         </div>
 
-        {/* 5. Deck Inferior Central: Rover 3D + Misión */}
+        {/* 5. Deck Inferior Central: Rover 3D + Clinómetro + Misión */}
         <div className="hud__deck-inferior">
           {visible('robot3d') && (
             <Suspense fallback={null}>
               <RassorEnVivo avance={telemetria.avance} giro={telemetria.giro} imu={sensores?.imu} modelUrl={modelUrl} />
             </Suspense>
           )}
+
+          {/* Clinómetro digital de chasis */}
+          <div className="hud__clinometer-badge">
+            <span>PITCH: {pitchVal >= 0 ? '+' : ''}{pitchVal.toFixed(1)}°</span>
+            <span style={{ color: 'var(--accent)', opacity: 0.6 }}>│</span>
+            <span>ROLL: {rollVal >= 0 ? '+' : ''}{rollVal.toFixed(1)}°</span>
+          </div>
 
           <div className="hud__subtitulo" style={{ marginTop: '2px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
             <span className="hud__mission-clock">
