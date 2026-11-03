@@ -121,12 +121,51 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
 
   return (
     <div className="hud">
-      <div className="hud__grupo" style={{ flex: 1, justifyContent: 'flex-start' }}>
-        {visible('velocidad') && <VelocidadReal velocidad={sensores?.velocidad} transicion={transicion} />}
-        {visible('inclinacion') && <Horizonte imu={sensores?.imu} transicion={transicion} />}
-        {visible('actuadores') && <Actuadores actuadores={telemetria.actuadores} transicion={transicion} />}
+      {/* Retícula óptica central de vuelo */}
+      <div className="hud__reticula">
+        <div className="hud__reticula-azimut">
+          <span>◄ 080 · 090 · 100 ►</span>
+        </div>
+        <div className="hud__reticula-mira">
+          <span className="hud__reticula-cross-h" />
+          <span className="hud__reticula-cross-v" />
+          <span className="hud__reticula-tick hud__reticula-tick--tl" />
+          <span className="hud__reticula-tick hud__reticula-tick--tr" />
+          <span className="hud__reticula-tick hud__reticula-tick--bl" />
+          <span className="hud__reticula-tick hud__reticula-tick--br" />
+          <span className="hud__reticula-centro" />
+        </div>
+        <div className="hud__reticula-escala">
+          <span>+10</span>
+          <span className="hud__reticula-cero">— 00 —</span>
+          <span>-10</span>
+        </div>
       </div>
 
+      {/* Delimitación de esquinas del cockpit */}
+      <div className="hud__esquinas">
+        <div className="hud__esquina hud__esquina--tl">
+          <span>┌ CAM 01 // FRONT HD · LIVE</span>
+        </div>
+        <div className="hud__esquina hud__esquina--tr">
+          <span>{titulo || 'RUR // COCKPIT'} ┐</span>
+        </div>
+      </div>
+
+      {/* Ala izquierda de telemetría */}
+      <div className="hud__ala hud__ala--izquierda">
+        <div className="hud__ala-cabecera">
+          <span>// SYS 01 · DINÁMICA & ACTUADORES</span>
+          <span style={{ color: 'var(--bone)', fontSize: '0.62rem' }}>60 HZ</span>
+        </div>
+        <div className="hud__ala-cuerpo">
+          {visible('velocidad') && <VelocidadReal velocidad={sensores?.velocidad} transicion={transicion} />}
+          {visible('inclinacion') && <Horizonte imu={sensores?.imu} transicion={transicion} />}
+          {visible('actuadores') && <Actuadores actuadores={telemetria.actuadores} transicion={transicion} />}
+        </div>
+      </div>
+
+      {/* Centro: Rover 3D cenital y misión */}
       <div className="hud__centro">
         {visible('robot3d') && (
           <Suspense fallback={null}>
@@ -143,38 +182,37 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
             OBJETIVO: {activeObj.text || activeObj}
           </div>
         )}
-        {/* Aquí es donde iría la línea de fases de la misión. Está fuera a
-            propósito: las fases (excavación, descarga...) no se pueden deducir
-            de la telemetría, hay que definirlas por evento. Pendiente de esa
-            decisión de producto. */}
       </div>
 
-      <div className="hud__grupo" style={{ flex: 1, justifyContent: 'flex-end' }}>
-        {visible('bateria') && <Bateria bateria={sensores?.bateria} transicion={transicion} />}
-        {visible('enlace') && (
-        <div className="hud__medidor hud__medidor--enlace">
-          <span className="hud__etiqueta">{t('telemetria.enlace')}</span>
-          <div className="hud__cuerpo">
-            <span className={`hud__cifra${enlace?.calidad != null ? '' : ' hud__cifra--apagada'}`}>
-              {enlace?.calidad ?? '—'}
-            </span>
-          </div>
-          <span className="hud__senal">
-            {/* Relleno cuando hay señal, anillo hueco cuando no: el verde y el
-                rojo del sitio se separan ΔE 2.2 bajo deuteranopía, así que el
-                color no puede ser el único portador del estado. Aquí además va
-                acompañado de su etiqueta. */}
-            <span
-              className={`hud__punto hud__punto--${enVivo ? 'vivo' : 'caido'}`}
-              style={{
-                color: enVivo ? 'var(--success)' : 'var(--error)',
-                boxShadow: enVivo ? '0 0 8px var(--success)' : 'none',
-              }}
-            />
-            {enVivo ? t('telemetria.enVivo') : t('telemetria.sinSenal')}
-          </span>
+      {/* Ala derecha de aviónica y enlace */}
+      <div className="hud__ala hud__ala--derecha">
+        <div className="hud__ala-cabecera">
+          <span>// SYS 02 · AVÍONICA & ENLACE</span>
+          <span style={{ color: '#2ecc71', fontSize: '0.62rem' }}>LIVE TRANSMISSION</span>
         </div>
-        )}
+        <div className="hud__ala-cuerpo">
+          {visible('bateria') && <Bateria bateria={sensores?.bateria} transicion={transicion} />}
+          {visible('enlace') && (
+            <div className="hud__medidor hud__medidor--enlace">
+              <span className="hud__etiqueta">{t('telemetria.enlace')}</span>
+              <div className="hud__cuerpo">
+                <span className={`hud__cifra${enlace?.calidad != null ? '' : ' hud__cifra--apagada'}`}>
+                  {enlace?.calidad ?? '—'}
+                </span>
+              </div>
+              <span className="hud__senal">
+                <span
+                  className={`hud__punto hud__punto--${enVivo ? 'vivo' : 'caido'}`}
+                  style={{
+                    color: enVivo ? 'var(--success)' : 'var(--error)',
+                    boxShadow: enVivo ? '0 0 8px var(--success)' : 'none',
+                  }}
+                />
+                {enVivo ? t('telemetria.enVivo') : t('telemetria.sinSenal')}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

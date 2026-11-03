@@ -1,9 +1,10 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Gamepad2, Glasses, Cpu, Activity, Terminal, ArrowRight, 
   Wifi, Battery, Sliders, Gauge, Compass, ShieldCheck, 
-  AlertTriangle, CheckCircle2, ChevronRight, Play, RotateCcw
+  AlertTriangle, CheckCircle2, ChevronRight, Play, RotateCcw,
+  Users, Radio, Flag, LayoutGrid, Keyboard
 } from 'lucide-react';
 import { Robot3DPreview } from '../controller/components/Robot3DPreview';
 import { RassorEnVivo } from '../controller/components/RassorEnVivo';
@@ -58,6 +59,51 @@ export default function PaginaPruebas() {
   const [hudPitch, setHudPitch] = useState<number>(0);
   const [hudRoll, setHudRoll] = useState<number>(0);
   const [potenciaActuadores, setPotenciaActuadores] = useState<number>(100);
+  const [bateriaSimulada, setBateriaSimulada] = useState<number>(94);
+  const [bitrateSimulado, setBitrateSimulado] = useState<number>(2450);
+  const [actuadoresSimulados, setActuadoresSimulados] = useState<{
+    ArmFront: boolean;
+    ArmBack: boolean;
+    DrumFront: boolean;
+    DrumBack: boolean;
+  }>({
+    ArmFront: false,
+    ArmBack: false,
+    DrumFront: false,
+    DrumBack: false,
+  });
+
+  // Manejo de teclado interactivo para pilotar el HUD en tiempo real
+  useEffect(() => {
+    if (tabActiva !== 'cockpit') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignorar si el usuario está escribiendo en un input
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+
+      const key = e.key.toLowerCase();
+      if (key === 'w' || key === 'arrowup') {
+        e.preventDefault();
+        setHudAvance((prev) => Math.min(1, parseFloat((prev + 0.2).toFixed(2))));
+      } else if (key === 's' || key === 'arrowdown') {
+        e.preventDefault();
+        setHudAvance((prev) => Math.max(-1, parseFloat((prev - 0.2).toFixed(2))));
+      } else if (key === 'a' || key === 'arrowleft') {
+        e.preventDefault();
+        setHudGiro((prev) => Math.max(-1, parseFloat((prev - 0.2).toFixed(2))));
+      } else if (key === 'd' || key === 'arrowright') {
+        e.preventDefault();
+        setHudGiro((prev) => Math.min(1, parseFloat((prev + 0.2).toFixed(2))));
+      } else if (key === ' ' || key === 'x') {
+        e.preventDefault();
+        setHudAvance(0);
+        setHudGiro(0);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [tabActiva]);
 
   // Opciones de título en blanco para el modo manual (solicitud del operador)
   const [opcionTituloManual, setOpcionTituloManual] = useState<'mando' | 'cabina' | 'teleoperacion' | 'terrestre'>('mando');
@@ -416,62 +462,334 @@ export default function PaginaPruebas() {
         {/* ========================================================================= */}
         {tabActiva === 'cockpit' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div>
-              <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', color: 'var(--accent)', letterSpacing: 'var(--tracking-tech)' }}>
-                BISELES DE INSTRUMENTACIÓN AEROESPACIAL Y TELEMETRÍA CENITAL
-              </span>
-              <h2 style={{ margin: '4px 0 0', fontFamily: 'var(--font-titulo)', fontSize: '2rem', color: 'var(--text)', letterSpacing: '0.04em' }}>
-                COCKPIT HUD Y BANCO DE CONTROL TÁCTICO
-              </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+              <div>
+                <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', color: 'var(--accent)', letterSpacing: 'var(--tracking-tech)' }}>
+                  SISTEMA DE VISUALIZACIÓN HEADS-UP // PROTOCOLO HUD 01
+                </span>
+                <h2 style={{ margin: '4px 0 0', fontFamily: 'var(--font-titulo)', fontSize: '2rem', color: 'var(--text)', letterSpacing: '0.04em' }}>
+                  INTEGRACIÓN DE COCKPIT HUD & BANCO DE VUELO GCS
+                </h2>
+                <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: '0.85rem' }}>
+                  Instrumentación táctica distribuida sobre la cámara (sin glassmorphism / sin blur opaco). Retícula óptica central, alas periféricas translúcidas y radar cenital 3D.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--surface)', border: '1px solid var(--border)', padding: '8px 14px' }}>
+                <Keyboard size={16} color="var(--accent)" />
+                <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--text)' }}>
+                  MANDOS W/A/S/D + FLECHAS ACTIVOS
+                </span>
+              </div>
             </div>
 
             <div className="hud-simulation-panel">
-              {/* VISTA DEL ROVER Y GUÍAS DE TRAYECTORIA CORREGIDAS */}
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                background: '#01050e', 
-                border: '1px solid var(--border)',
-                padding: '24px 16px',
-                position: 'relative'
-              }}>
-                <div style={{ position: 'absolute', top: '12px', left: '16px', fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--accent)' }}>
-                  RADAR CENITAL // ROVER RASSOR-01 [VISTA SUPERIOR CORREGIDA]
-                </div>
-                
-                <div style={{ position: 'absolute', top: '12px', right: '16px', fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--muted)' }}>
-                  PITCH: {hudPitch}° · ROLL: {hudRoll}°
+              {/* VIEWPORT DE VUELO COCKPIT HUD SIMULADO */}
+              <div className="cockpit-hud-viewport">
+                {/* FONDO DE CÁMARA CON GUÍAS DE TERRENO Y SCANLINES */}
+                <div className="cockpit-camera-feed">
+                  <div className="cockpit-camera-grid" />
+                  
+                  {/* Línea de horizonte de cámara que responde a pitch y roll */}
+                  <div 
+                    className="cockpit-camera-horizon"
+                    style={{
+                      top: `calc(50% + ${hudPitch * 4}px)`,
+                      transform: `rotate(${-hudRoll}deg)`,
+                      transition: 'all 0.1s linear'
+                    }}
+                  />
+
+                  {/* Etiqueta OSD de cámara cruda */}
+                  <div style={{
+                    position: 'absolute', top: '16px', left: '20px',
+                    fontFamily: 'var(--font-codigo)', fontSize: '0.68rem',
+                    color: 'rgba(235, 240, 246, 0.6)', letterSpacing: '0.12em',
+                    display: 'flex', alignItems: 'center', gap: '8px'
+                  }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ff4d4d', boxShadow: '0 0 8px #ff4d4d' }} />
+                    <span>REC ● RAW WEBRTC P2P · CAM 01 [FRONT HD]</span>
+                  </div>
                 </div>
 
-                {/* Lienzo 3D con RassorEnVivo */}
-                <div style={{ margin: '20px 0' }}>
-                  <ErrorBoundary fallback={
-                    <div style={{ color: 'var(--muted)', fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', padding: '24px' }}>
-                      TELEMETRÍA 3D EN CARGA...
+                {/* OVERLAY DEL COCKPIT HUD COMPLETO */}
+                <div className="hud">
+                  {/* RETÍCULA ÓPTICA CENTRAL DE VUELO */}
+                  <div className="hud__reticula">
+                    <div 
+                      className="hud__reticula-azimut"
+                      style={{
+                        transform: `translateX(${-hudGiro * 20}px)`,
+                        transition: 'transform 0.1s linear'
+                      }}
+                    >
+                      <span>◄ 070 · 080 · 090 · 100 · 110 ►</span>
                     </div>
-                  }>
-                    <RassorEnVivo
-                      avance={{ nivel: Math.abs(hudAvance) * 10, dir: hudAvance >= 0 ? 'adelante' : 'atras' }}
-                      giro={{ nivel: Math.abs(hudGiro) * 10, dir: hudGiro >= 0 ? 'derecha' : 'izquierda' }}
-                      imu={{ pitch: hudPitch, roll: hudRoll }}
-                      escala={1.6}
-                      modelUrl="/api/uploads/1792432091929-344939674-rassorbody_full.glb"
-                    />
-                  </ErrorBoundary>
-                </div>
+                    <div className="hud__reticula-mira">
+                      <span className="hud__reticula-cross-h" />
+                      <span className="hud__reticula-cross-v" />
+                      <span className="hud__reticula-tick hud__reticula-tick--tl" />
+                      <span className="hud__reticula-tick hud__reticula-tick--tr" />
+                      <span className="hud__reticula-tick hud__reticula-tick--bl" />
+                      <span className="hud__reticula-tick hud__reticula-tick--br" />
+                      <span className="hud__reticula-centro" />
+                    </div>
+                    <div 
+                      className="hud__reticula-escala"
+                      style={{
+                        transform: `rotate(${-hudRoll * 0.5}deg) translateY(${hudPitch * 1.2}px)`,
+                        transition: 'transform 0.1s linear'
+                      }}
+                    >
+                      <span>+10</span>
+                      <span className="hud__reticula-cero">— 00 —</span>
+                      <span>-10</span>
+                    </div>
+                  </div>
 
-                <div style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--muted)', textAlign: 'center' }}>
-                  Las líneas amarillas se curvan con el giro y avanzan con la velocidad. El modelo reposa plano sobre sus ruedas.
+                  {/* DELIMITACIÓN DE ESQUINAS DEL COCKPIT */}
+                  <div className="hud__esquinas">
+                    <div className="hud__esquina hud__esquina--tl">
+                      <span>┌ CAM 01 // FRONT HD · BORESIGHT</span>
+                    </div>
+                    <div className="hud__esquina hud__esquina--tr">
+                      <span>P2P DATACHANNEL // 60 HZ ┐</span>
+                    </div>
+                    <div className="hud__esquina hud__esquina--bl">
+                      <span>└ FLIGHT SYS // ARMED & READY</span>
+                    </div>
+                    <div className="hud__esquina hud__esquina--br">
+                      <span>RUR-GCS // v2.4 ┘</span>
+                    </div>
+                  </div>
+
+                  {/* ALA IZQUIERDA: MOVIMIENTO, PROPULSIÓN Y ACTUADORES */}
+                  <div className="hud__ala hud__ala--izquierda">
+                    <div className="hud__ala-cabecera">
+                      <span>// SYS 01 · PROPULSIÓN & ACTUADORES</span>
+                      <span style={{ color: 'var(--bone)', fontSize: '0.62rem' }}>60 HZ REAL-TIME</span>
+                    </div>
+                    <div className="hud__ala-cuerpo">
+                      {/* MEDIDOR AVANCE */}
+                      <div className="hud__medidor">
+                        <span className="hud__etiqueta">AVANCE</span>
+                        <div className="hud__cuerpo">
+                          <span className={`hud__cifra ${Math.abs(hudAvance) > 0.05 ? '' : 'hud__cifra--apagada'}`}>
+                            {hudAvance >= 0.05 ? '▲' : hudAvance <= -0.05 ? '▼' : '·'} {Math.round(Math.abs(hudAvance) * 100)}
+                          </span>
+                        </div>
+                        <span className="hud__unidad">
+                          {hudAvance >= 0.05 ? 'ADELANTE' : hudAvance <= -0.05 ? 'REVERSA' : 'DETENIDO'}
+                        </span>
+                      </div>
+
+                      {/* MEDIDOR GIRO */}
+                      <div className="hud__medidor">
+                        <span className="hud__etiqueta">GIRO</span>
+                        <div className="hud__cuerpo">
+                          <span className={`hud__cifra ${Math.abs(hudGiro) > 0.05 ? '' : 'hud__cifra--apagada'}`}>
+                            {hudGiro <= -0.05 ? '◀' : hudGiro >= 0.05 ? '▶' : '·'} {Math.round(Math.abs(hudGiro) * 100)}
+                          </span>
+                        </div>
+                        <span className="hud__unidad">
+                          {hudGiro <= -0.05 ? 'IZQUIERDA' : hudGiro >= 0.05 ? 'DERECHA' : 'CENTRO'}
+                        </span>
+                      </div>
+
+                      {/* MEDIDOR ACTUADORES */}
+                      <div className="hud__actuadores">
+                        <span className="hud__etiqueta">ACTUADORES</span>
+                        <div className="hud__cuerpo">
+                          <div className="hud__actuadores-puntos">
+                            {[
+                              { id: 'ArmFront', abrev: 'BF' },
+                              { id: 'ArmBack', abrev: 'BT' },
+                              { id: 'DrumFront', abrev: 'TF' },
+                              { id: 'DrumBack', abrev: 'TT' },
+                            ].map(({ id, abrev }) => {
+                              const activo = actuadoresSimulados[id as keyof typeof actuadoresSimulados];
+                              return (
+                                <span
+                                  key={id}
+                                  title={abrev}
+                                  className={`hud__act-punto ${activo ? 'hud__act-punto--on' : ''}`}
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <span className="hud__unidad">
+                          {Object.values(actuadoresSimulados).some(Boolean) ? 'ACTIVO' : 'IDLE'}
+                        </span>
+                      </div>
+
+                      {/* HORIZONTE ARTIFICIAL IMU */}
+                      <div className="hud__medidor hud__medidor--horizonte">
+                        <span className="hud__etiqueta">INCLINACIÓN</span>
+                        <div className="hud__cuerpo">
+                          <svg width="84" height="34" viewBox="0 0 84 34">
+                            <g transform={`rotate(${-hudRoll} 42 17)`} style={{ transition: 'all 0.1s linear' }}>
+                              <line
+                                x1="4" y1={17 + Math.max(-14, Math.min(14, hudPitch * 0.42))}
+                                x2="80" y2={17 + Math.max(-14, Math.min(14, hudPitch * 0.42))}
+                                stroke={Math.abs(hudRoll) > 12 || Math.abs(hudPitch) > 12 ? 'var(--warning)' : 'var(--bone)'}
+                                strokeWidth="2" strokeLinecap="round"
+                              />
+                            </g>
+                            <line x1="27" y1="17" x2="36" y2="17" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" />
+                            <line x1="48" y1="17" x2="57" y2="17" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" />
+                            <circle cx="42" cy="17" r="1.6" fill="var(--accent)" />
+                          </svg>
+                        </div>
+                        <span className="hud__pie-instrumento">
+                          {Math.round(hudPitch)}° · {Math.round(hudRoll)}°
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CENTRO: ROVER 3D CENITAL + CRONÓMETRO DE MISIÓN + ACCIONES */}
+                  <div className="hud__centro">
+                    <ErrorBoundary fallback={
+                      <div style={{ color: 'var(--muted)', fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', padding: '12px' }}>
+                        TELEMETRÍA 3D EN CARGA...
+                      </div>
+                    }>
+                      <RassorEnVivo
+                        avance={{ nivel: Math.abs(hudAvance) * 10, dir: hudAvance >= 0 ? 'adelante' : 'atras' }}
+                        giro={{ nivel: Math.abs(hudGiro) * 10, dir: hudGiro >= 0 ? 'derecha' : 'izquierda' }}
+                        imu={{ pitch: hudPitch, roll: hudRoll }}
+                        escala={1.5}
+                        modelUrl="/api/uploads/1792432091929-344939674-rassorbody_full.glb"
+                      />
+                    </ErrorBoundary>
+
+                    <div className="hud__subtitulo" style={{ marginTop: '2px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                      <span style={{ fontSize: '0.95rem', color: 'var(--accent)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
+                        T+ 00:14:22
+                      </span>
+                      <span style={{ fontSize: '0.68rem', color: 'var(--bone)', letterSpacing: '0.08em' }}>
+                        MISIÓN: EXTRACCIÓN DE REGOLITO
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', pointerEvents: 'auto' }}>
+                      <div style={{
+                        background: 'rgba(2, 7, 19, 0.85)',
+                        border: '1px solid rgba(251, 202, 1, 0.4)',
+                        padding: '4px 10px',
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        fontFamily: 'var(--font-codigo)', fontSize: '0.68rem',
+                        color: 'var(--accent)'
+                      }}>
+                        <Keyboard size={13} color="var(--accent)" />
+                        <span>ENTRADA: TECLADO (W,A,S,D)</span>
+                      </div>
+
+                      <button className="telemetria-btn">
+                        <Flag size={13} /> Misión
+                      </button>
+
+                      <button className="telemetria-btn">
+                        <LayoutGrid size={13} /> Widgets
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ALA DERECHA: TELEMETRÍA Y ENLACE */}
+                  <div className="hud__ala hud__ala--derecha">
+                    <div className="hud__ala-cabecera">
+                      <span>// SYS 02 · TELEMETRÍA Y ENLACE</span>
+                      <span style={{ color: '#2ecc71', fontSize: '0.62rem' }}>P2P DATACHANNEL</span>
+                    </div>
+                    <div className="hud__ala-cuerpo">
+                      {/* ENLACE WEBRTC */}
+                      <div className="hud__medidor">
+                        <span className="hud__etiqueta">ENLACE</span>
+                        <div className="hud__cuerpo" style={{ gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '18px' }}>
+                            {[8, 12, 16, 20].map((h, i) => (
+                              <div
+                                key={i}
+                                style={{
+                                  width: '4px', height: `${h}px`,
+                                  background: '#2ecc71', borderRadius: '1px',
+                                  boxShadow: '0 0 4px #2ecc71'
+                                }}
+                              />
+                            ))}
+                          </div>
+                          <span className="hud__cifra" style={{ fontSize: '1rem', color: '#2ecc71' }}>P2P</span>
+                        </div>
+                        <span className="hud__unidad">&lt; 22 MS</span>
+                      </div>
+
+                      {/* BITRATE */}
+                      <div className="hud__medidor">
+                        <span className="hud__etiqueta">BITRATE</span>
+                        <div className="hud__cuerpo">
+                          <span className="hud__cifra">{bitrateSimulado}</span>
+                        </div>
+                        <span className="hud__unidad">KBPS</span>
+                      </div>
+
+                      {/* VIDEO */}
+                      <div className="hud__medidor">
+                        <span className="hud__etiqueta">VÍDEO</span>
+                        <div className="hud__cuerpo">
+                          <span className="hud__cifra" style={{ fontSize: '1rem' }}>1080P</span>
+                        </div>
+                        <span className="hud__unidad">60 FPS</span>
+                      </div>
+
+                      {/* BATERÍA */}
+                      <div className="hud__medidor hud__medidor--bateria">
+                        <span className="hud__etiqueta">BATERÍA</span>
+                        <div className="hud__cuerpo" style={{ gap: '6px' }}>
+                          <svg width="42" height="20" viewBox="0 0 64 30">
+                            <rect x="1" y="6" width="52" height="18" rx="2" fill="none" stroke="var(--border)" strokeWidth="1.5" />
+                            <rect x="54" y="12" width="4" height="6" rx="1" fill="var(--border)" />
+                            <rect
+                              x="4" y="9" height="12" rx="1"
+                              width={Math.max(0, (bateriaSimulada / 100) * 46)}
+                              fill={bateriaSimulada <= 15 ? 'var(--error)' : bateriaSimulada <= 30 ? 'var(--warning)' : '#2ecc71'}
+                            />
+                          </svg>
+                          <span className="hud__cifra" style={{
+                            fontSize: '1rem',
+                            color: bateriaSimulada <= 15 ? 'var(--error)' : bateriaSimulada <= 30 ? 'var(--warning)' : 'var(--bone)'
+                          }}>
+                            {bateriaSimulada}%
+                          </span>
+                        </div>
+                        <span className="hud__unidad">28.4 V</span>
+                      </div>
+
+                      {/* AUDIENCIA */}
+                      <div className="hud__medidor">
+                        <span className="hud__etiqueta">AUDIENCIA</span>
+                        <div className="hud__cuerpo" style={{ gap: '6px' }}>
+                          <Users size={16} color="var(--bone)" />
+                          <span className="hud__cifra">12</span>
+                        </div>
+                        <span className="hud__unidad">OPERADORES</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* PANEL DE CONTROL INTERACTIVO */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-                {/* Control de Movimiento */}
+              {/* BANCO DE CONTROL INTERACTIVO PARA EVALUAR RESPUESTA DEL HUD */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                {/* Control de Propulsión y Dirección */}
                 <div className="tactical-frame" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', color: 'var(--accent)' }}>
-                    PROPULSIÓN Y DIRECCIÓN
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', color: 'var(--accent)' }}>
+                      PROPULSIÓN Y DIRECCIÓN
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.68rem', color: 'var(--muted)' }}>
+                      W/S · A/D
+                    </span>
                   </div>
 
                   <div>
@@ -500,24 +818,40 @@ export default function PaginaPruebas() {
                     />
                   </div>
 
-                  <button 
-                    className="tactical-btn tactical-btn--secondary" 
-                    style={{ padding: '8px 16px', fontSize: '0.75rem' }}
-                    onClick={() => { setHudAvance(0); setHudGiro(0); }}
-                  >
-                    <RotateCcw size={14} /> CENTRAR MANDOS
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button 
+                      className="tactical-btn tactical-btn--secondary" 
+                      style={{ padding: '6px 12px', fontSize: '0.72rem', flex: 1 }}
+                      onClick={() => setHudAvance(1)}
+                    >
+                      ▲ 100% ACEL
+                    </button>
+                    <button 
+                      className="tactical-btn" 
+                      style={{ padding: '6px 12px', fontSize: '0.72rem', flex: 1 }}
+                      onClick={() => { setHudAvance(0); setHudGiro(0); }}
+                    >
+                      ■ ALTO (ESPACIO)
+                    </button>
+                    <button 
+                      className="tactical-btn tactical-btn--secondary" 
+                      style={{ padding: '6px 12px', fontSize: '0.72rem', flex: 1 }}
+                      onClick={() => setHudAvance(-1)}
+                    >
+                      ▼ 100% REV
+                    </button>
+                  </div>
                 </div>
 
                 {/* Control de Inclinación IMU */}
                 <div className="tactical-frame" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   <div style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', color: 'var(--accent)' }}>
-                    SIMULACIÓN DE TERRENO (IMU)
+                    SIMULACIÓN DE TERRENO (IMU HORIZON)
                   </div>
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', marginBottom: '4px' }}>
-                      <span>INCLINACIÓN PITCH (CABECEO):</span>
+                      <span>CABECEO PITCH (INCLINACIÓN VERTICAL):</span>
                       <span style={{ color: 'var(--accent)' }}>{hudPitch}°</span>
                     </div>
                     <input 
@@ -530,7 +864,7 @@ export default function PaginaPruebas() {
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', marginBottom: '4px' }}>
-                      <span>INCLINACIÓN ROLL (ALABEO):</span>
+                      <span>ALABEO ROLL (INCLINACIÓN LATERAL):</span>
                       <span style={{ color: 'var(--accent)' }}>{hudRoll}°</span>
                     </div>
                     <input 
@@ -546,60 +880,53 @@ export default function PaginaPruebas() {
                     style={{ padding: '8px 16px', fontSize: '0.75rem' }}
                     onClick={() => { setHudPitch(0); setHudRoll(0); }}
                   >
-                    <RotateCcw size={14} /> NIVELAR HORIZONTE
+                    <RotateCcw size={14} /> NIVELAR HORIZONTE (0°, 0°)
                   </button>
                 </div>
 
-                {/* Graduación de Potencia de Actuadores */}
+                {/* Actuadores y Sensores de Enlace */}
                 <div className="tactical-frame" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   <div style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', color: 'var(--accent)' }}>
-                    POTENCIA DE ACTUADORES
+                    ACTUADORES Y ENLACE DE VUELO
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-                    {[25, 50, 75, 100].map((nivel) => (
-                      <button
-                        key={nivel}
-                        className={`tactical-btn ${potenciaActuadores === nivel ? '' : 'tactical-btn--secondary'}`}
-                        style={{ padding: '8px 4px', fontSize: '0.75rem' }}
-                        onClick={() => setPotenciaActuadores(nivel)}
-                      >
-                        {nivel}%
-                      </button>
-                    ))}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                    {[
+                      { id: 'ArmFront', label: 'BRAZO FRONT (BF)' },
+                      { id: 'ArmBack', label: 'BRAZO TRAS (BT)' },
+                      { id: 'DrumFront', label: 'TAMBOR FRONT (TF)' },
+                      { id: 'DrumBack', label: 'TAMBOR TRAS (TT)' },
+                    ].map(({ id, label }) => {
+                      const activo = actuadoresSimulados[id as keyof typeof actuadoresSimulados];
+                      return (
+                        <button
+                          key={id}
+                          className={`actuator-toggle-btn ${activo ? 'actuator-toggle-btn--active' : ''}`}
+                          onClick={() => setActuadoresSimulados(prev => ({ ...prev, [id]: !prev[id as keyof typeof prev] }))}
+                        >
+                          <span>{label}</span>
+                          <span>{activo ? 'ON' : 'OFF'}</span>
+                        </button>
+                      );
+                    })}
                   </div>
 
-                  {/* Interruptores de instrumentación con LEDs */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
-                    <div 
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                      onClick={() => setSwitchLuces(!switchLuces)}
-                    >
-                      <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem' }}>FAROS AUXILIARES:</span>
-                      <span className={`tactical-badge ${switchLuces ? 'tactical-badge--online' : 'tactical-badge--offline'}`}>
-                        {switchLuces ? 'ENCENDIDO' : 'APAGADO'}
+                  {/* Nivel de Batería */}
+                  <div style={{ marginTop: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', marginBottom: '4px' }}>
+                      <span>NIVEL DE BATERÍA:</span>
+                      <span style={{
+                        color: bateriaSimulada <= 15 ? 'var(--error)' : bateriaSimulada <= 30 ? 'var(--warning)' : '#2ecc71'
+                      }}>
+                        {bateriaSimulada}% {bateriaSimulada <= 15 ? '(!CRÍTICA)' : ''}
                       </span>
                     </div>
-
-                    <div 
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                      onClick={() => setSwitchTelemetria(!switchTelemetria)}
-                    >
-                      <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem' }}>OVERLAY TELEMETRÍA:</span>
-                      <span className={`tactical-badge ${switchTelemetria ? 'tactical-badge--online' : 'tactical-badge--offline'}`}>
-                        {switchTelemetria ? 'ACTIVO' : 'OCULTO'}
-                      </span>
-                    </div>
-
-                    <div 
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                      onClick={() => setSwitchAlarma(!switchAlarma)}
-                    >
-                      <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem' }}>ALARMA DE VUELCO:</span>
-                      <span className={`tactical-badge ${switchAlarma ? 'tactical-badge--accent' : 'tactical-badge--online'}`}>
-                        {switchAlarma ? 'ALERTA' : 'NORMAL'}
-                      </span>
-                    </div>
+                    <input 
+                      type="range" min="5" max="100" step="1"
+                      value={bateriaSimulada}
+                      onChange={(e) => setBateriaSimulada(parseInt(e.target.value, 10))}
+                      style={{ width: '100%', accentColor: bateriaSimulada <= 15 ? 'var(--error)' : 'var(--accent)' }}
+                    />
                   </div>
                 </div>
               </div>

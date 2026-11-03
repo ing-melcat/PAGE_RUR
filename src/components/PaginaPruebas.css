@@ -289,3 +289,82 @@
   flex-direction: column;
   gap: 20px;
 }
+
+/* Viewport de Vuelo HUD Cockpit */
+.cockpit-hud-viewport {
+  position: relative;
+  width: 100%;
+  height: 560px;
+  background: #01040d;
+  border: 1px solid rgba(251, 202, 1, 0.35);
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), inset 0 0 80px rgba(0, 0, 0, 0.6);
+}
+
+/* Simulación de Cámara de Vuelo con retícula y perspectiva de terreno */
+.cockpit-camera-feed {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: radial-gradient(circle at center, rgba(5, 16, 37, 0.4) 0%, rgba(1, 4, 13, 0.95) 100%);
+  overflow: hidden;
+}
+
+.cockpit-camera-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(251, 202, 1, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(251, 202, 1, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center center;
+  opacity: 0.6;
+}
+
+.cockpit-camera-horizon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 5%, rgba(251, 202, 1, 0.25) 30%, rgba(251, 202, 1, 0.25) 70%, transparent 95%);
+  pointer-events: none;
+}
+
+.cockpit-hud-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 24px 28px 18px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Botones de toggles interactivos para actuadores */
+.actuator-toggle-btn {
+  background: rgba(5, 16, 37, 0.7);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font-codigo);
+  font-size: 0.75rem;
+  padding: 8px 12px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.actuator-toggle-btn--active {
+  background: rgba(251, 202, 1, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 10px rgba(251, 202, 1, 0.3);
+}
