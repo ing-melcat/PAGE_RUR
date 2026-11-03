@@ -21,6 +21,7 @@ const VisorModelo3D = lazyConRecarga(() => import('./VisorModelo3D'));
 // Igual con el panel: arrastra el visor 3D de la selección de unidad, y con él
 // three.js entero. Quien solo visita la web pública no tiene por qué cargarlo.
 const LoginApp = lazyConRecarga(() => import('./LoginApp'));
+const PaginaPruebas = lazyConRecarga(() => import('./components/PaginaPruebas'));
 import './App.css';
 import { Landing, PublicationPage, ArchiveDashboard } from './Landing';
 import { Miembros } from './Miembros';
@@ -607,6 +608,14 @@ function App() {
           element={
             <Suspense fallback={null}>
               <NotificacionesProvider><PageTransition><LoginApp /></PageTransition></NotificacionesProvider>
+            </Suspense>
+          }
+        />
+        <Route
+          path="/pruebas"
+          element={
+            <Suspense fallback={null}>
+              <PageTransition><PaginaPruebas /></PageTransition>
             </Suspense>
           }
         />

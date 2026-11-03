@@ -349,39 +349,80 @@ export function RobotSelection({ robots, errorRobots, onReintentar, onSelectRobo
                     <motion.div
                         key={robot.id}
                         variants={{
-                            hidden: { opacity: 0, y: 16 },
-                            show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] } }
+                            hidden: { opacity: 0, y: 12 },
+                            show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } }
                         }}
-                        whileHover={{ y: -4 }}
-                        whileTap={{ scale: 0.98 }}
+                        whileTap={{ scale: 0.99 }}
                         onClick={() => handleSelect(robot)}
                         style={{
-                            display: 'flex', flexDirection: 'column', gap: '12px',
+                            display: 'flex', flexDirection: 'column', gap: '14px',
                             pointerEvents: loading ? 'none' : 'auto', position: 'relative',
-                            ...S.panel, cursor: 'pointer', transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                            ...S.panel, borderRadius: '2px', cursor: 'pointer', transition: 'border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(251, 202, 1, 0.12)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}
+                        onMouseEnter={e => { 
+                            e.currentTarget.style.borderColor = 'var(--accent)'; 
+                            e.currentTarget.style.background = 'var(--surface-strong)';
+                            e.currentTarget.style.boxShadow = '0 0 24px rgba(251, 202, 1, 0.12)'; 
+                        }}
+                        onMouseLeave={e => { 
+                            e.currentTarget.style.borderColor = 'var(--border)'; 
+                            e.currentTarget.style.background = 'var(--surface)';
+                            e.currentTarget.style.boxShadow = 'none'; 
+                        }}
                     >
-                        <Robot3DPreview status={robot.status} modelUrl={robot.modelUrl} />
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
-                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 400 }}>{robot.name}</h3>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: enLinea ? 'var(--success)' : 'var(--error)' }} />
-                                <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', letterSpacing: '0.05em', color: enLinea ? 'var(--success)' : 'var(--error)' }}>
-                                    {enLinea ? t('operador.seleccion.enLinea') : t('operador.seleccion.apagado')}
-                                </span>
-                            </div>
-                        </div>
-                        <div style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.8rem', color: 'var(--muted)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span>{robot.id.toUpperCase()}</span>
-                            <span style={{ color: 'var(--accent)' }}>{robot.room || `room-${robot.id.toLowerCase()}`}</span>
-                        </div>
-                        {!enLinea && (
-                            <span style={{ fontFamily: 'var(--font-ibm-mono)', fontSize: '0.7rem', color: 'var(--muted)' }}>
-                                {t('operador.seleccion.abrirConsola')}
+                        {/* Marcas angulares tácticas en esquinas */}
+                        <div style={{ position: 'absolute', top: -1, left: -1, width: 6, height: 6, borderTop: '2px solid var(--accent)', borderLeft: '2px solid var(--accent)' }} />
+                        <div style={{ position: 'absolute', top: -1, right: -1, width: 6, height: 6, borderTop: '2px solid var(--accent)', borderRight: '2px solid var(--accent)' }} />
+                        <div style={{ position: 'absolute', bottom: -1, left: -1, width: 6, height: 6, borderBottom: '2px solid var(--accent)', borderLeft: '2px solid var(--accent)' }} />
+                        <div style={{ position: 'absolute', bottom: -1, right: -1, width: 6, height: 6, borderBottom: '2px solid var(--accent)', borderRight: '2px solid var(--accent)' }} />
+
+                        {/* Cabecera técnica de la unidad */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
+                            <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.68rem', color: 'var(--muted)', letterSpacing: 'var(--tracking-tech)' }}>
+                                UNIT // {robot.id.toUpperCase()}
                             </span>
-                        )}
+                            <span style={{
+                                fontFamily: 'var(--font-codigo)',
+                                fontSize: '0.65rem',
+                                letterSpacing: '0.1em',
+                                padding: '2px 8px',
+                                textTransform: 'uppercase',
+                                background: enLinea ? 'rgba(46, 204, 113, 0.12)' : 'rgba(255, 0, 0, 0.12)',
+                                color: enLinea ? 'var(--success)' : 'var(--error)',
+                                border: `1px solid ${enLinea ? 'rgba(46, 204, 113, 0.35)' : 'rgba(255, 0, 0, 0.35)'}`,
+                            }}>
+                                {enLinea ? t('operador.seleccion.enLinea') : t('operador.seleccion.apagado')}
+                            </span>
+                        </div>
+
+                        {/* Ventana de Sensor 3D */}
+                        <div style={{ position: 'relative', overflow: 'hidden', background: '#01050e', border: '1px solid rgba(245, 243, 233, 0.08)' }}>
+                            <Robot3DPreview status={robot.status} modelUrl={robot.modelUrl} />
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 400 }}>
+                                {robot.name}
+                            </h3>
+                            <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', color: 'var(--accent)' }}>
+                                {robot.room || `room-${robot.id.toLowerCase()}`}
+                            </span>
+                        </div>
+
+                        <div style={{ 
+                            fontFamily: 'var(--font-codigo)', 
+                            fontSize: '0.72rem', 
+                            color: 'var(--accent)', 
+                            letterSpacing: 'var(--tracking-tech)', 
+                            textTransform: 'uppercase',
+                            border: '1px solid var(--border)',
+                            padding: '8px 12px',
+                            textAlign: 'center',
+                            background: 'rgba(245, 243, 233, 0.03)',
+                            marginTop: 'auto'
+                        }}>
+                            {enLinea ? 'ACOPLAR UNIDAD →' : t('operador.seleccion.abrirConsola')}
+                        </div>
                     </motion.div>
                     );
                 })}

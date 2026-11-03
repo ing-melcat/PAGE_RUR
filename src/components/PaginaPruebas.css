@@ -1,0 +1,291 @@
+/* ==========================================================================
+   LABORATORIO DE PRUEBAS // SISTEMA GCS AEROESPACIAL RUR
+   Estilos técnicos para la evaluación de rediseño de interfaz de operador
+   ========================================================================== */
+
+.pruebas-container {
+  min-height: 100vh;
+  background-color: var(--background);
+  color: var(--text);
+  font-family: var(--font-etiqueta), sans-serif;
+  padding: 32px 24px 64px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Grilla técnica de fondo estilo estación de telemetría */
+.pruebas-grid-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  background-image: 
+    linear-gradient(to right, rgba(245, 243, 233, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(245, 243, 233, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  z-index: 0;
+}
+
+.pruebas-content {
+  position: relative;
+  z-index: 1;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Cabecera Técnica Superior */
+.pruebas-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
+  margin-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pruebas-header__topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pruebas-header__tag {
+  font-family: var(--font-codigo);
+  font-size: 0.75rem;
+  letter-spacing: var(--tracking-tech);
+  color: var(--accent);
+  background: var(--accent-muted);
+  border: 1px solid rgba(251, 202, 1, 0.3);
+  padding: 4px 10px;
+  text-transform: uppercase;
+}
+
+.pruebas-header__server {
+  font-family: var(--font-codigo);
+  font-size: 0.75rem;
+  letter-spacing: var(--tracking-tech);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pruebas-header__server-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--success);
+  box-shadow: 0 0 8px var(--success);
+  display: inline-block;
+}
+
+.pruebas-header__title {
+  margin: 0;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  font-family: var(--font-titulo);
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.pruebas-header__desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 900px;
+}
+
+/* Pestañas de Selección de Prueba */
+.pruebas-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
+}
+
+.pruebas-tab {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 10px 18px;
+  font-family: var(--font-codigo);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-tech);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.pruebas-tab:hover {
+  color: var(--text);
+  border-color: rgba(245, 243, 233, 0.35);
+  background: var(--surface-strong);
+}
+
+.pruebas-tab--active {
+  background: var(--accent-muted);
+  color: var(--accent);
+  border-color: var(--accent);
+  font-weight: 700;
+  box-shadow: 0 0 16px rgba(251, 202, 1, 0.1);
+}
+
+.pruebas-tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: -17px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--accent);
+}
+
+/* Cajas y Marcos Tácticos */
+.tactical-frame {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+.tactical-frame--interactive {
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.tactical-frame--interactive:hover {
+  border-color: rgba(251, 202, 1, 0.6);
+  background: var(--surface-strong);
+}
+
+.tactical-corner {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  pointer-events: none;
+}
+.tactical-corner--tl { top: -1px; left: -1px; border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+.tactical-corner--tr { top: -1px; right: -1px; border-top: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+.tactical-corner--bl { bottom: -1px; left: -1px; border-bottom: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+.tactical-corner--br { bottom: -1px; right: -1px; border-bottom: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+
+/* Badges Técnicos */
+.tactical-badge {
+  font-family: var(--font-codigo);
+  font-size: 0.68rem;
+  letter-spacing: var(--tracking-tech);
+  padding: 3px 8px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tactical-badge--online {
+  background: rgba(46, 204, 113, 0.12);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.35);
+}
+.tactical-badge--offline {
+  background: rgba(255, 0, 0, 0.12);
+  color: #ff4d4d;
+  border: 1px solid rgba(255, 0, 0, 0.35);
+}
+.tactical-badge--accent {
+  background: rgba(251, 202, 1, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(251, 202, 1, 0.35);
+}
+
+/* Botones Actuadores Aeroespaciales */
+.tactical-btn {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 12px 24px;
+  font-family: var(--font-codigo);
+  font-size: 0.85rem;
+  letter-spacing: var(--tracking-tech);
+  text-transform: uppercase;
+  font-weight: 700;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.15s ease;
+}
+
+.tactical-btn:hover {
+  background: var(--accent);
+  color: #020713;
+  box-shadow: 0 0 20px rgba(251, 202, 1, 0.4);
+}
+
+.tactical-btn--secondary {
+  border-color: var(--border);
+  color: var(--muted);
+}
+.tactical-btn--secondary:hover {
+  background: rgba(245, 243, 233, 0.1);
+  color: var(--text);
+  border-color: var(--text);
+  box-shadow: none;
+}
+
+/* Comparativa grid */
+.comparativa-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 32px;
+}
+
+.comparativa-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.comparativa-col__header {
+  font-family: var(--font-codigo);
+  font-size: 0.85rem;
+  letter-spacing: var(--tracking-tech);
+  padding: 8px 14px;
+  border-bottom: 2px solid transparent;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.comparativa-col__header--old {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.08);
+}
+.comparativa-col__header--new {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(251, 202, 1, 0.08);
+}
+
+/* Simulador de Mando y HUD */
+.hud-simulation-panel {
+  background: #020612;
+  border: 1px solid var(--border);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
