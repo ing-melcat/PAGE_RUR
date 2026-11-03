@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Robot3DPreview } from '../controller/components/Robot3DPreview';
 import { RassorEnVivo } from '../controller/components/RassorEnVivo';
+import { ErrorBoundary } from './ErrorBoundary';
 import './PaginaPruebas.css';
 
 // Lista de robots de prueba para la simulación
@@ -411,13 +412,19 @@ export default function PaginaPruebas() {
 
                 {/* Lienzo 3D con RassorEnVivo */}
                 <div style={{ margin: '20px 0' }}>
-                  <RassorEnVivo
-                    avance={{ nivel: Math.abs(hudAvance) * 100, dir: hudAvance >= 0 ? 'adelante' : 'atras' }}
-                    giro={{ nivel: Math.abs(hudGiro) * 100, dir: hudGiro >= 0 ? 'derecha' : 'izquierda' }}
-                    imu={{ pitch: hudPitch, roll: hudRoll }}
-                    escala={1.6}
-                    modelUrl="/api/uploads/1792432091929-344939674-rassorbody_full.glb"
-                  />
+                  <ErrorBoundary fallback={
+                    <div style={{ color: 'var(--muted)', fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', padding: '24px' }}>
+                      TELEMETRÍA 3D EN CARGA...
+                    </div>
+                  }>
+                    <RassorEnVivo
+                      avance={{ nivel: Math.abs(hudAvance) * 10, dir: hudAvance >= 0 ? 'adelante' : 'atras' }}
+                      giro={{ nivel: Math.abs(hudGiro) * 10, dir: hudGiro >= 0 ? 'derecha' : 'izquierda' }}
+                      imu={{ pitch: hudPitch, roll: hudRoll }}
+                      escala={1.6}
+                      modelUrl="/api/uploads/1792432091929-344939674-rassorbody_full.glb"
+                    />
+                  </ErrorBoundary>
                 </div>
 
                 <div style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--muted)', textAlign: 'center' }}>

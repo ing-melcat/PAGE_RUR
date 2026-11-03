@@ -4,6 +4,7 @@ import { ContactShadows, useGLTF } from '@react-three/drei';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import * as THREE from 'three';
 import { NIVEL_MAX } from '../telemetria';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 /**
  * El RASSOR reaccionando a los mandos del operador, sin escenario.
@@ -381,9 +382,11 @@ export function RassorEnVivo({ avance, giro, imu, escala = 1, modelUrl }) {
 
         <SombraApoyo />
         <Guias avance={avance} giro={giro} />
-        <Suspense fallback={null}>
-          <SelectorModelo modelUrl={modelUrl} imu={imu} />
-        </Suspense>
+        <ErrorBoundary fallback={<ModeloSTL url={MODELO_STL_FALLBACK} imu={imu} />}>
+          <Suspense fallback={null}>
+            <SelectorModelo modelUrl={modelUrl} imu={imu} />
+          </Suspense>
+        </ErrorBoundary>
       </Canvas>
     </div>
   );
