@@ -104,23 +104,76 @@ export function VideoViewer({ room, isConnected, hlsUrl, onPlayingDateChange }) 
         <div
           style={{
             position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            color: 'rgba(255, 255, 255, 0.4)',
-            fontFamily: 'var(--font-etiqueta), sans-serif',
-            fontSize: '1.2rem',
-            letterSpacing: '0.05em',
-            textAlign: 'center',
+            inset: 0,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '12px',
-            pointerEvents: 'none'
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            overflow: 'hidden',
           }}
         >
-          <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'rgba(255, 255, 255, 0.4)' }}></div>
-          <span>SIN CONEXIÓN DE VIDEO</span>
+          {/* Retícula óptica y marcas de cuadrícula de aviónica */}
+          <div style={{
+            position: 'absolute',
+            inset: '40px',
+            border: '1px solid rgba(245, 243, 233, 0.05)',
+            pointerEvents: 'none',
+          }}>
+            {/* Esquinas tácticas del visor */}
+            <div style={{ position: 'absolute', top: -1, left: -1, width: 12, height: 12, borderTop: '2px solid rgba(251, 202, 1, 0.4)', borderLeft: '2px solid rgba(251, 202, 1, 0.4)' }} />
+            <div style={{ position: 'absolute', top: -1, right: -1, width: 12, height: 12, borderTop: '2px solid rgba(251, 202, 1, 0.4)', borderRight: '2px solid rgba(251, 202, 1, 0.4)' }} />
+            <div style={{ position: 'absolute', bottom: -1, left: -1, width: 12, height: 12, borderBottom: '2px solid rgba(251, 202, 1, 0.4)', borderLeft: '2px solid rgba(251, 202, 1, 0.4)' }} />
+            <div style={{ position: 'absolute', bottom: -1, right: -1, width: 12, height: 12, borderBottom: '2px solid rgba(251, 202, 1, 0.4)', borderRight: '2px solid rgba(251, 202, 1, 0.4)' }} />
+
+            {/* Marcadores de calibración en los bordes */}
+            <div style={{ position: 'absolute', top: 8, left: 12, fontFamily: 'var(--font-codigo)', fontSize: '0.65rem', color: 'rgba(251, 202, 1, 0.45)', letterSpacing: '0.15em' }}>
+              CAM // PRIMARY PAYLOAD SENSOR [OPTICAL 1080P]
+            </div>
+            <div style={{ position: 'absolute', top: 8, right: 12, fontFamily: 'var(--font-codigo)', fontSize: '0.65rem', color: 'rgba(245, 243, 233, 0.25)', letterSpacing: '0.15em' }}>
+              FOV: 90° · AZ: 000.0° · EL: +00.0°
+            </div>
+            <div style={{ position: 'absolute', bottom: 8, left: 12, fontFamily: 'var(--font-codigo)', fontSize: '0.65rem', color: 'rgba(245, 243, 233, 0.25)', letterSpacing: '0.15em' }}>
+              RES: 1920×1080 @ 60FPS · CODEC: H.264
+            </div>
+          </div>
+
+          {/* Mira central de orientación con telemetría */}
+          <div
+            style={{
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '14px',
+              padding: '20px 32px',
+              background: 'rgba(5, 16, 37, 0.65)',
+              border: '1px solid rgba(245, 243, 233, 0.12)',
+              borderRadius: '2px',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            }}
+          >
+            <div style={{ position: 'absolute', top: -1, left: -1, width: 6, height: 6, borderTop: '2px solid var(--accent)', borderLeft: '2px solid var(--accent)' }} />
+            <div style={{ position: 'absolute', top: -1, right: -1, width: 6, height: 6, borderTop: '2px solid var(--accent)', borderRight: '2px solid var(--accent)' }} />
+            <div style={{ position: 'absolute', bottom: -1, left: -1, width: 6, height: 6, borderBottom: '2px solid var(--accent)', borderLeft: '2px solid var(--accent)' }} />
+            <div style={{ position: 'absolute', bottom: -1, right: -1, width: 6, height: 6, borderBottom: '2px solid var(--accent)', borderRight: '2px solid var(--accent)' }} />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--warning)', boxShadow: '0 0 10px var(--warning)' }} />
+              <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--warning)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+                STANDBY DE SEÑAL
+              </span>
+            </div>
+
+            <span style={{ fontFamily: 'var(--font-titulo)', fontSize: '1.6rem', color: 'var(--text)', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 1 }}>
+              SIN CONEXIÓN DE VÍDEO
+            </span>
+
+            <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--muted)', letterSpacing: '0.12em' }}>
+              ESPERANDO FEED LIVEKIT WEBRTC // CANAL ABIERTO
+            </span>
+          </div>
         </div>
       )}
     </div>

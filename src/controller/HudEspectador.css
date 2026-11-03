@@ -31,10 +31,10 @@
      instrumento que se refresca varias veces por segundo eso se ve como
      un temblor constante. */
   font-variant-numeric: tabular-nums;
-  --hud-etiqueta: 0.58rem;   /* nombres, unidades y pies */
-  --hud-valor: 1.2rem;       /* todas las cifras */
+  --hud-etiqueta: 0.62rem;   /* nombres, unidades y pies */
+  --hud-valor: 1.25rem;      /* todas las cifras */
   --hud-hero: 2rem;          /* solo el reloj de misión */
-  --hud-cuerpo: 40px;        /* alto del cuerpo de cada instrumento */
+  --hud-cuerpo: 36px;        /* alto del cuerpo de cada instrumento */
 
   position: absolute;
   left: 0;
@@ -45,18 +45,19 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
-  padding: 16px 24px 14px;
-  background: linear-gradient(to top, rgba(2, 7, 19, .92) 45%, rgba(2, 7, 19, 0));
+  padding: 16px 28px 14px;
+  background: linear-gradient(to top, rgba(2, 7, 19, 0.96) 55%, rgba(2, 7, 19, 0.4) 90%, transparent);
+  border-top: 1px solid rgba(245, 243, 233, 0.12);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   pointer-events: none;
-  /* Una sola vez, para todo: sobre vídeo claro ninguna pieza se pierde y
-     ninguna lleva un halo distinto del de su vecina. */
   text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
 }
 
 .hud__grupo {
   display: flex;
   align-items: flex-end;
-  gap: 20px;
+  gap: 16px;
 }
 
 /* ------------------------------------------------------------------
@@ -73,7 +74,13 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  min-width: 74px;
+  min-width: 82px;
+  background: rgba(5, 16, 37, 0.65);
+  border: 1px solid rgba(245, 243, 233, 0.1);
+  border-radius: 2px;
+  padding: 6px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  position: relative;
 }
 
 .hud__cuerpo {
