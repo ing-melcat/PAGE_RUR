@@ -86,8 +86,16 @@ export function ModeSelect({ onSelectMode, onBack }) {
           <div style={{ position: 'absolute', bottom: -1, right: -1, width: 6, height: 6, borderBottom: '2px solid var(--accent)', borderRight: '2px solid var(--accent)' }} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.7rem', color: 'var(--accent)', letterSpacing: 'var(--tracking-tech)' }}>
-              PROTOCOLO 01 // DIRECT LINK
+            <span style={{ 
+              fontFamily: 'var(--font-codigo)', 
+              fontSize: '0.7rem', 
+              color: 'var(--accent)', 
+              letterSpacing: 'var(--tracking-tech)',
+              background: 'rgba(251, 202, 1, 0.12)',
+              border: '1px solid rgba(251, 202, 1, 0.35)',
+              padding: '3px 8px'
+            }}>
+              MANUAL
             </span>
             <Gamepad2 size={26} color="var(--accent)" />
           </div>
@@ -158,8 +166,16 @@ export function ModeSelect({ onSelectMode, onBack }) {
           <div style={{ position: 'absolute', bottom: -1, right: -1, width: 6, height: 6, borderBottom: '2px solid var(--accent)', borderRight: '2px solid var(--accent)' }} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.7rem', color: 'var(--accent)', letterSpacing: 'var(--tracking-tech)' }}>
-              PROTOCOLO 02 // WEBXR 6DOF
+            <span style={{ 
+              fontFamily: 'var(--font-codigo)', 
+              fontSize: '0.7rem', 
+              color: 'var(--accent)', 
+              letterSpacing: 'var(--tracking-tech)',
+              background: 'rgba(251, 202, 1, 0.12)',
+              border: '1px solid rgba(251, 202, 1, 0.35)',
+              padding: '3px 8px'
+            }}>
+              VR
             </span>
             <Glasses size={26} color="var(--accent)" />
           </div>

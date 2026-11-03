@@ -155,10 +155,10 @@ export const es = {
     modo: {
       titulo: 'Modo de Control',
       subtitulo: 'Elige cómo vas a operar antes de entrar a la consola.',
-      vrTitulo: 'Modo VR',
+      vrTitulo: 'Enlace Háptico Espacial (VR)',
       vrDescripcion: 'Control con los mandos del visor y apuntado de cámara por movimiento de cabeza.',
       vrTooltip: 'Disponible cuando se pruebe con las gafas en la universidad.',
-      manualTitulo: 'Modo Manual',
+      manualTitulo: 'Cabina de Control GCS',
       manualDescripcion: 'Mando, teclado o pantalla táctil, con joystick en pantalla para apuntar la cámara.',
       vrAvisoBeta: 'Beta: escrito con el visor en mente, aún sin probar en el Vive físico.',
       volver: '← Volver',

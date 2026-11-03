@@ -58,6 +58,16 @@ export default function PaginaPruebas() {
   const [hudPitch, setHudPitch] = useState<number>(0);
   const [hudRoll, setHudRoll] = useState<number>(0);
   const [potenciaActuadores, setPotenciaActuadores] = useState<number>(100);
+
+  // Opciones de título en blanco para el modo manual (solicitud del operador)
+  const [opcionTituloManual, setOpcionTituloManual] = useState<'cabina' | 'teleoperacion' | 'mando' | 'terrestre'>('cabina');
+
+  const titulosManual: Record<'cabina' | 'teleoperacion' | 'mando' | 'terrestre', string> = {
+    cabina: 'CABINA DE CONTROL GCS',
+    teleoperacion: 'ESTACIÓN DE TELEOPERACIÓN TERRESTRE',
+    mando: 'SISTEMA DE MANDO DIRECTO GCS',
+    terrestre: 'TELEOPERACIÓN TERRESTRE GCS',
+  };
   const [switchLuces, setSwitchLuces] = useState<boolean>(true);
   const [switchTelemetria, setSwitchTelemetria] = useState<boolean>(true);
   const [switchAlarma, setSwitchAlarma] = useState<boolean>(false);
@@ -244,13 +254,37 @@ export default function PaginaPruebas() {
         {/* ========================================================================= */}
         {tabActiva === 'modo' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div>
-              <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', color: 'var(--accent)', letterSpacing: 'var(--tracking-tech)' }}>
-                CONSOLAS DE VUELO GCS Y TELEPRESENCIA
-              </span>
-              <h2 style={{ margin: '4px 0 0', fontFamily: 'var(--font-titulo)', fontSize: '2rem', color: 'var(--text)', letterSpacing: '0.04em' }}>
-                SELECTOR DE PROTOCOLO DE ENLACE
-              </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+              <div>
+                <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.75rem', color: 'var(--accent)', letterSpacing: 'var(--tracking-tech)' }}>
+                  CONSOLAS DE VUELO GCS Y TELEPRESENCIA
+                </span>
+                <h2 style={{ margin: '4px 0 0', fontFamily: 'var(--font-titulo)', fontSize: '2rem', color: 'var(--text)', letterSpacing: '0.04em' }}>
+                  SELECTOR DE PROTOCOLO DE ENLACE
+                </h2>
+              </div>
+
+              {/* Selector interactivo de títulos en blanco para Modo Manual */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '8px 12px', background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.68rem', color: 'var(--muted)', letterSpacing: 'var(--tracking-tech)' }}>
+                  TÍTULO:
+                </span>
+                {(Object.keys(titulosManual) as Array<keyof typeof titulosManual>).map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => setOpcionTituloManual(key)}
+                    className="tactical-btn"
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '0.68rem',
+                      background: opcionTituloManual === key ? 'var(--accent)' : 'transparent',
+                      color: opcionTituloManual === key ? '#000' : 'var(--accent)',
+                    }}
+                  >
+                    {titulosManual[key]} {opcionTituloManual === key ? '✓' : ''}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '28px' }}>
@@ -273,13 +307,13 @@ export default function PaginaPruebas() {
                 <div className="tactical-corner tactical-corner--br" />
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="tactical-badge tactical-badge--accent">PROTOCOLO 01 // DIRECT LINK</span>
+                  <span className="tactical-badge tactical-badge--accent">MANUAL</span>
                   <Gamepad2 size={28} color="var(--accent)" />
                 </div>
 
                 <div>
                   <h3 style={{ margin: '0 0 6px', fontFamily: 'var(--font-titulo)', fontSize: '1.8rem', color: 'var(--text)', letterSpacing: '0.04em' }}>
-                    MODO CABINA GCS (CONTROL MANUAL)
+                    {titulosManual[opcionTituloManual]}
                   </h3>
                   <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.85rem', lineHeight: 1.6 }}>
                     Enlace de vuelo primario por estación de control en tierra. Control directo
@@ -333,13 +367,13 @@ export default function PaginaPruebas() {
                 <div className="tactical-corner tactical-corner--br" />
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="tactical-badge tactical-badge--accent">PROTOCOLO 02 // WEBXR 6DOF</span>
+                  <span className="tactical-badge tactical-badge--accent">VR</span>
                   <Glasses size={28} color="var(--accent)" />
                 </div>
 
                 <div>
                   <h3 style={{ margin: '0 0 6px', fontFamily: 'var(--font-titulo)', fontSize: '1.8rem', color: 'var(--text)', letterSpacing: '0.04em' }}>
-                    ENLACE HÁPTICO ESPACIAL (VR)
+                    ENLACE HÁPTICO ESPACIAL (6DOF)
                   </h3>
                   <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.85rem', lineHeight: 1.6 }}>
                     Telepresencia inmersiva en tiempo real con visor WebXR. Mapeo tridimensional
@@ -644,6 +678,30 @@ export default function PaginaPruebas() {
                   <span>SOLUCIÓN</span>
                 </div>
 
+                {/* Alternativas de Título en Blanco */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', background: 'var(--surface)', padding: '10px', border: '1px solid var(--border)' }}>
+                  <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.68rem', color: 'var(--accent)', letterSpacing: 'var(--tracking-tech)' }}>
+                    ALTERNAR TÍTULO EN BLANCO:
+                  </span>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {(Object.keys(titulosManual) as Array<keyof typeof titulosManual>).map((key) => (
+                      <button
+                        key={key}
+                        onClick={() => setOpcionTituloManual(key)}
+                        className="tactical-btn"
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '0.66rem',
+                          background: opcionTituloManual === key ? 'var(--accent)' : 'transparent',
+                          color: opcionTituloManual === key ? '#000' : 'var(--accent)',
+                        }}
+                      >
+                        {titulosManual[key]} {opcionTituloManual === key ? '✓' : ''}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="tactical-frame" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   <div className="tactical-corner tactical-corner--tl" />
                   <div className="tactical-corner tactical-corner--tr" />
@@ -651,12 +709,12 @@ export default function PaginaPruebas() {
                   <div className="tactical-corner tactical-corner--br" />
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span className="tactical-badge tactical-badge--accent">PROTOCOLO 01 // GCS CABIN</span>
+                    <span className="tactical-badge tactical-badge--accent">MANUAL</span>
                     <span className="tactical-badge tactical-badge--online">60 HZ P2P</span>
                   </div>
 
                   <h4 style={{ margin: 0, fontFamily: 'var(--font-titulo)', fontSize: '1.4rem', color: 'var(--text)', letterSpacing: '0.04em' }}>
-                    CABINA GCS // MODO MANUAL
+                    {titulosManual[opcionTituloManual]}
                   </h4>
                   
                   <div style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--muted)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>

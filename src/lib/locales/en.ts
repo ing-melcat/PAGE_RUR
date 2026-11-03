@@ -151,10 +151,10 @@ export const en: Dictionary = {
     modo: {
       titulo: 'Control Mode',
       subtitulo: 'Choose how you\'ll operate before entering the console.',
-      vrTitulo: 'VR Mode',
+      vrTitulo: 'Spatial Haptic Link (VR)',
       vrDescripcion: 'Control with the headset controllers and camera aim by head movement.',
       vrTooltip: 'Available once tested with the headset on campus.',
-      manualTitulo: 'Manual Mode',
+      manualTitulo: 'GCS Control Cabin',
       manualDescripcion: 'Gamepad, keyboard or touchscreen, with an on-screen joystick to aim the camera.',
       vrAvisoBeta: 'Beta: written with the headset in mind, not yet tested on the physical Vive.',
       volver: '← Back',
