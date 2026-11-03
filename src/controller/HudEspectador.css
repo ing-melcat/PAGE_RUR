@@ -219,6 +219,18 @@
   box-shadow: 0 0 8px var(--accent);
 }
 
+.hud__boresight-corner {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: rgba(251, 202, 1, 0.8);
+}
+
+.hud__boresight-corner--tl { top: 0; left: 0; border-top: 2px solid; border-left: 2px solid; }
+.hud__boresight-corner--tr { top: 0; right: 0; border-top: 2px solid; border-right: 2px solid; }
+.hud__boresight-corner--bl { bottom: 0; left: 0; border-bottom: 2px solid; border-left: 2px solid; }
+.hud__boresight-corner--br { bottom: 0; right: 0; border-bottom: 2px solid; border-right: 2px solid; }
+
 .hud__boresight-ladder {
   display: flex;
   flex-direction: column;

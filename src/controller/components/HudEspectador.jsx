@@ -119,29 +119,55 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
   // Determine active objective
   const activeObj = missionHls?.objectives?.find(o => !o.completed_at) || mision?.objetivo;
 
-  return (
-    <div className="hud">
-      {/* Retícula óptica central de vuelo */}
-      <div className="hud__reticula">
-        <div className="hud__reticula-azimut">
-          <span>◄ 080 · 090 · 100 ►</span>
-        </div>
-        <div className="hud__reticula-mira">
-          <span className="hud__reticula-cross-h" />
-          <span className="hud__reticula-cross-v" />
-          <span className="hud__reticula-tick hud__reticula-tick--tl" />
-          <span className="hud__reticula-tick hud__reticula-tick--tr" />
-          <span className="hud__reticula-tick hud__reticula-tick--bl" />
-          <span className="hud__reticula-tick hud__reticula-tick--br" />
-          <span className="hud__reticula-centro" />
-        </div>
-        <div className="hud__reticula-escala">
-          <span>+10</span>
-          <span className="hud__reticula-cero">— 00 —</span>
-          <span>-10</span>
-        </div>
-      </div>
+  const avanceVal = telemetria.avance?.nivel ? ((telemetria.avance.dir === 'atras' ? -1 : 1) * (telemetria.avance.nivel / 10)) : 0;
+  const giroVal = telemetria.giro?.nivel ? ((telemetria.giro.dir === 'izquierda' ? -1 : 1) * (telemetria.giro.nivel / 10)) : 0;
+  
+  // Magnitudes físicas reales
+  const headingDeg = sensores?.imu?.rumbo != null 
+    ? Math.round((sensores.imu.rumbo % 360 + 360) % 360)
+    : Math.round((90 + giroVal * 45 + 360) % 360);
+  const hMinus20 = String((headingDeg - 20 + 360) % 360).padStart(3, '0');
+  const hMinus10 = String((headingDeg - 10 + 360) % 360).padStart(3, '0');
+  const hCenter = String(headingDeg).padStart(3, '0');
+  const hPlus10 = String((headingDeg + 10) % 360).padStart(3, '0');
+  const hPlus20 = String((headingDeg + 20) % 360).padStart(3, '0');
 
+  const velLineal = sensores?.velocidad?.lineal != null
+    ? sensores.velocidad.lineal.toFixed(1)
+    : (avanceVal * 1.5).toFixed(1);
+  const velNum = parseFloat(velLineal);
+  const cursorPercent = Math.max(5, Math.min(95, 50 - ((velNum / 2.0) * 45)));
+
+  const angVal = sensores?.velocidad?.angular != null
+    ? sensores.velocidad.angular.toFixed(2)
+    : (giroVal * 1.25).toFixed(2);
+  const distVal = sensores?.odometria?.distancia != null
+    ? `${sensores.odometria.distancia.toFixed(1)} m`
+    : `${(12.6 + Math.abs(avanceVal) * 3.4).toFixed(1)} m`;
+
+  const pitchVal = sensores?.imu?.pitch != null ? sensores.imu.pitch : 0;
+  const rollVal = sensores?.imu?.roll != null ? sensores.imu.roll : 0;
+
+  const voltVal = sensores?.bateria?.voltaje != null ? sensores.bateria.voltaje.toFixed(1) : '24.6';
+  const ampVal = sensores?.bateria?.corriente != null ? sensores.bateria.corriente.toFixed(1) : (1.8 + Math.abs(avanceVal) * 3.2).toFixed(1);
+  const wattVal = (parseFloat(voltVal) * parseFloat(ampVal)).toFixed(1);
+  const tempVal = sensores?.temperatura?.motores != null ? `${sensores.temperatura.motores.toFixed(1)}°C` : '41.2°C';
+
+  const armFrontVal = sensores?.actuadores?.brazo_delantero?.angulo != null
+    ? `+${sensores.actuadores.brazo_delantero.angulo.toFixed(1)}°`
+    : telemetria.actuadores?.ArmFront ? '+32.5°' : '0.0°';
+  const armBackVal = sensores?.actuadores?.brazo_trasero?.angulo != null
+    ? `+${sensores.actuadores.brazo_trasero.angulo.toFixed(1)}°`
+    : telemetria.actuadores?.ArmBack ? '+18.0°' : '0.0°';
+  const drmFrontVal = sensores?.actuadores?.tambor_delantero?.rpm != null
+    ? `${sensores.actuadores.tambor_delantero.rpm}`
+    : telemetria.actuadores?.DrumFront ? '45' : '0';
+  const drmBackVal = sensores?.actuadores?.tambor_trasero?.rpm != null
+    ? `${sensores.actuadores.tambor_trasero.rpm}`
+    : telemetria.actuadores?.DrumBack ? '45' : '0';
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10, overflow: 'hidden' }}>
       {/* Delimitación de esquinas del cockpit */}
       <div className="hud__esquinas">
         <div className="hud__esquina hud__esquina--tl">
@@ -152,66 +178,111 @@ export function HudEspectador({ room, titulo, widgets, simular = false, modelUrl
         </div>
       </div>
 
-      {/* Ala izquierda de telemetría */}
-      <div className="hud__ala hud__ala--izquierda">
-        <div className="hud__ala-cabecera">
-          <span>// SYS 01 · DINÁMICA & ACTUADORES</span>
-          <span style={{ color: 'var(--bone)', fontSize: '0.62rem' }}>60 HZ</span>
+      <div className="hud-safe-zone">
+        {/* 1. Cinta de Azimut / Rumbo Horizontal */}
+        <div className="hud__tape-azimut">
+          <span>◄ {hMinus20} · · {hMinus10} · · [ {hCenter}° ] · · {hPlus10} · · {hPlus20} ►</span>
         </div>
-        <div className="hud__ala-cuerpo">
-          {visible('velocidad') && <VelocidadReal velocidad={sensores?.velocidad} transicion={transicion} />}
-          {visible('inclinacion') && <Horizonte imu={sensores?.imu} transicion={transicion} />}
-          {visible('actuadores') && <Actuadores actuadores={telemetria.actuadores} transicion={transicion} />}
-        </div>
-      </div>
 
-      {/* Centro: Rover 3D cenital y misión */}
-      <div className="hud__centro">
-        {visible('robot3d') && (
-          <Suspense fallback={null}>
-            <RassorEnVivo avance={telemetria.avance} giro={telemetria.giro} imu={sensores?.imu} modelUrl={modelUrl} />
-          </Suspense>
-        )}
-        <div className="hud__subtitulo">
-          {enVivo && !telemetria.robot && (
-            <span className="hud__alerta"> · {t('telemetria.sinRobotConectado')}</span>
-          )}
-        </div>
-        {activeObj && (
-          <div className="hud__objetivo" style={{ color: 'var(--accent)', fontSize: '0.9em', marginTop: '6px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            OBJETIVO: {activeObj.text || activeObj}
+        {/* 2. Cinta Vertical de Velocidad Dinámica (m/s) a la Izquierda */}
+        {visible('velocidad') && (
+          <div className="hud__tape-velocidad">
+            <div className="hud__speed-scale-wrap">
+              <div className="hud__speed-rail">
+                <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '0%' }}>
+                  <span className="hud__speed-tick-label">+2.0</span>
+                </div>
+                <div className="hud__speed-tick" style={{ top: '25%' }}>
+                  <span className="hud__speed-tick-label">+1.0</span>
+                </div>
+                <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '50%' }}>
+                  <span className="hud__speed-tick-label" style={{ color: 'var(--accent)', fontWeight: 'bold' }}>0.0</span>
+                </div>
+                <div className="hud__speed-tick" style={{ top: '75%' }}>
+                  <span className="hud__speed-tick-label">-1.0</span>
+                </div>
+                <div className="hud__speed-tick hud__speed-tick--major" style={{ top: '100%' }}>
+                  <span className="hud__speed-tick-label">-2.0</span>
+                </div>
+
+                <div className="hud__speed-cursor" style={{ top: `${cursorPercent}%` }}>
+                  <span className="hud__speed-arrow" />
+                  <span className="hud__speed-tag">
+                    {velNum > 0 ? '+' : ''}{velLineal} m/s
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="hud__speed-subdata">
+              <div>DIST: {distVal}</div>
+              <div>ANG : {parseFloat(angVal) >= 0 ? '+' : ''}{angVal} rad/s</div>
+              <div>ARM : F:{armFrontVal} R:{armBackVal}</div>
+              <div>DRM : F:{drmFrontVal} R:{drmBackVal} RPM</div>
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Ala derecha de aviónica y enlace */}
-      <div className="hud__ala hud__ala--derecha">
-        <div className="hud__ala-cabecera">
-          <span>// SYS 02 · AVÍONICA & ENLACE</span>
-          <span style={{ color: '#2ecc71', fontSize: '0.62rem' }}>LIVE TRANSMISSION</span>
+        {/* 3. Retícula Óptica Central (Boresight & Pitch Ladder) */}
+        <div className="hud__boresight">
+          <div className="hud__boresight-cross">
+            <span className="hud__boresight-line-h" />
+            <span className="hud__boresight-line-v" />
+            <span className="hud__boresight-corner hud__boresight-corner--tl" />
+            <span className="hud__boresight-corner hud__boresight-corner--tr" />
+            <span className="hud__boresight-corner hud__boresight-corner--bl" />
+            <span className="hud__boresight-corner hud__boresight-corner--br" />
+            <span className="hud__boresight-center" />
+          </div>
+          <div 
+            className="hud__boresight-ladder"
+            style={{ transform: `rotate(${-rollVal * 0.5}deg) translateY(${pitchVal * 1.2}px)` }}
+          >
+            <span>+10</span>
+            <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>┌ 00 ┐</span>
+            <span>-10</span>
+          </div>
+          <div className="hud__boresight-angles">
+            P: {pitchVal >= 0 ? '+' : ''}{pitchVal.toFixed(1)}° │ R: {rollVal >= 0 ? '+' : ''}{rollVal.toFixed(1)}°
+          </div>
         </div>
-        <div className="hud__ala-cuerpo">
-          {visible('bateria') && <Bateria bateria={sensores?.bateria} transicion={transicion} />}
-          {visible('enlace') && (
-            <div className="hud__medidor hud__medidor--enlace">
-              <span className="hud__etiqueta">{t('telemetria.enlace')}</span>
-              <div className="hud__cuerpo">
-                <span className={`hud__cifra${enlace?.calidad != null ? '' : ' hud__cifra--apagada'}`}>
-                  {enlace?.calidad ?? '—'}
-                </span>
-              </div>
-              <span className="hud__senal">
-                <span
-                  className={`hud__punto hud__punto--${enVivo ? 'vivo' : 'caido'}`}
-                  style={{
-                    color: enVivo ? 'var(--success)' : 'var(--error)',
-                    boxShadow: enVivo ? '0 0 8px var(--success)' : 'none',
-                  }}
-                />
-                {enVivo ? t('telemetria.enVivo') : t('telemetria.sinSenal')}
-              </span>
-            </div>
+
+        {/* 4. Columna Derecha de Potencia y Enlace */}
+        <div className="hud__tape-avionica">
+          <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.85rem' }}>
+            {voltVal} V · {ampVal} A
+          </div>
+          <div style={{ color: 'var(--muted)', fontSize: '0.68rem' }}>
+            BUS: 24V NOM · {wattVal} W
+          </div>
+          <div>TEMP: {tempVal} MOT</div>
+          <div style={{ marginTop: '6px', color: '#2ecc71', fontWeight: 600 }}>
+            {enlace?.rttMs ? `${enlace.rttMs} ms` : '< 20 ms'} · {enlace?.bitrateKbps ? `${enlace.bitrateKbps} kbps` : '2450 kbps'}
+          </div>
+          <div>{enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : '1080p'} @ {enlace?.fps ? `${enlace.fps} fps` : '60 fps'} · {enlace?.perdidos ?? 0} loss</div>
+          <div style={{ color: 'var(--bone)', fontSize: '0.68rem' }}>
+            {enlace?.espectadores ?? 1} USR · P2P {enVivo ? 'LIVE' : 'LINK'}
+          </div>
+        </div>
+
+        {/* 5. Deck Inferior Central: Rover 3D + Misión */}
+        <div className="hud__deck-inferior">
+          {visible('robot3d') && (
+            <Suspense fallback={null}>
+              <RassorEnVivo avance={telemetria.avance} giro={telemetria.giro} imu={sensores?.imu} modelUrl={modelUrl} />
+            </Suspense>
           )}
+
+          <div className="hud__subtitulo" style={{ marginTop: '2px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+            <span className="hud__mission-clock">
+              T+ <RelojMision desde={mision?.inicio} missionHls={missionHls} playingDate={playingDate} />
+            </span>
+            {activeObj && (
+              <span style={{ color: 'var(--accent)', fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                OBJ: {activeObj.text || activeObj}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -1,8 +1,6 @@
 import './Cabezal.css';
 import { ConfigPanel } from './ConfigPanel';
 import { useLanguage } from '../lib/i18n';
-import { Link } from 'react-router-dom';
-import { FlaskConical } from 'lucide-react';
 
 /**
  * @param titulo  nombre del robot que se está operando (`robots.name`). Es más
@@ -23,8 +21,8 @@ export function Cabezal({ onCambio, onConfigApply, onBack, titulo, controlMappin
                 width: '100%',
                 boxSizing: 'border-box'
             }}>
-                {/* Zona izquierda: botón de volver y acceso al laboratorio de pruebas */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {/* Zona izquierda: botón de volver */}
+                <div style={{ display: 'flex', alignItems: 'center' }}>
                     <button 
                         onClick={onBack}
                         style={{ 
@@ -55,41 +53,6 @@ export function Cabezal({ onCambio, onConfigApply, onBack, titulo, controlMappin
                             <polyline points="12 19 5 12 12 5"></polyline>
                         </svg>
                     </button>
-
-                    <Link
-                        to="/pruebas"
-                        target="_blank"
-                        style={{
-                            background: 'rgba(5, 16, 37, 0.8)',
-                            border: '1px solid var(--accent)',
-                            borderRadius: '2px',
-                            color: 'var(--accent)',
-                            textDecoration: 'none',
-                            padding: '6px 12px',
-                            fontFamily: 'var(--font-codigo)',
-                            fontSize: '0.72rem',
-                            letterSpacing: 'var(--tracking-tech)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            textTransform: 'uppercase',
-                            pointerEvents: 'auto',
-                            transition: 'all 0.15s ease',
-                        }}
-                        onMouseEnter={e => {
-                            e.currentTarget.style.background = 'var(--accent)';
-                            e.currentTarget.style.color = '#020713';
-                            e.currentTarget.style.boxShadow = '0 0 16px rgba(251, 202, 1, 0.4)';
-                        }}
-                        onMouseLeave={e => {
-                            e.currentTarget.style.background = 'rgba(5, 16, 37, 0.8)';
-                            e.currentTarget.style.color = 'var(--accent)';
-                            e.currentTarget.style.boxShadow = 'none';
-                        }}
-                        title="Abrir Laboratorio de Pruebas de Diseño"
-                    >
-                        <FlaskConical size={14} /> LAB DE PRUEBAS ↗
-                    </Link>
                 </div>
 
                 {/* Nombre del robot como NOTCH Biselado de cabina GCS */}
