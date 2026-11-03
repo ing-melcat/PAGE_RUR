@@ -2233,9 +2233,12 @@ textarea:focus-visible {
    ================================================================== */
 .titulo-panel {
   margin: 0;
-  font-size: var(--t-md);
+  font-family: var(--font-titulo);
+  font-size: 2rem;
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
 }
 
 .titulo-panel--acento {

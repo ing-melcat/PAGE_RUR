@@ -27,7 +27,7 @@ export const DashboardMain = ({ user, setView }: any) => {
         transition={{ delay: 0.1 }}
       >
         <div>
-          <h1>{t('dashboard.panelPrincipal')}</h1>
+          <h1 style={{ margin: '0 0 8px 0', fontSize: '2rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: '1.1', fontWeight: 400 }}>{t('dashboard.panelPrincipal')}</h1>
         </div>
       </motion.div>
 

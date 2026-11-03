@@ -40,13 +40,13 @@ export function ModeSelect({ onSelectMode, onBack }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', minHeight: '600px' }}>
       {/* HEADER */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '32px', borderBottom: '1px solid var(--border)', paddingBottom: '20px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '32px', borderBottom: '1px solid var(--border)', paddingBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontFamily: 'var(--font-codigo)', fontSize: '0.72rem', color: 'var(--accent)', letterSpacing: 'var(--tracking-tech)', background: 'var(--accent-muted)', padding: '3px 8px', border: '1px solid rgba(251, 202, 1, 0.3)' }}>
             GCS // FLIGHT CONTROL LINK
           </span>
         </div>
-        <h2 style={{ margin: 0, fontSize: 'clamp(2.2rem, 5vw, 3.2rem)', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: '1', fontWeight: 400 }}>
+        <h2 style={{ margin: 0, fontSize: '2rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: '1.1', fontWeight: 400 }}>
           {t('operador.modo.titulo')}
         </h2>
         <p style={{ ...S.label, textTransform: 'none', margin: 0, color: 'var(--muted)', fontSize: '0.85rem' }}>{t('operador.modo.subtitulo')}</p>

@@ -1023,7 +1023,7 @@ export default function App() {
             </motion.section>
           )}
           {view === "transmision" && user && puede(user, "transmision.gestionar") && (
-            <motion.section key="transmision" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
+            <motion.section key="transmision" className="full-container" style={{ maxWidth: '1440px', margin: '40px auto', padding: '0 40px', width: '100%', display: 'flex', flexDirection: 'column' }} {...pageTransition}>
               <Suspense fallback={
                 <div style={{ height: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
                   <Loader2 className="animate-spin" size={64} />
@@ -1037,7 +1037,7 @@ export default function App() {
             </motion.section>
           )}
           {view === "robot_selection" && user && puede(user, "robots.operar") && (
-            <motion.section key="robot_selection" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
+            <motion.section key="robot_selection" className="full-container" style={{ maxWidth: '1440px', margin: '40px auto', padding: '0 40px', width: '100%', display: 'flex', flexDirection: 'column' }} {...pageTransition}>
               <Suspense fallback={
                 <div style={{ height: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
                   <Loader2 className="animate-spin" size={64} style={{ marginBottom: '24px' }} />
@@ -1076,7 +1076,7 @@ export default function App() {
           )}
 
           {view === "modo_control" && user && puede(user, "robots.operar") && (
-            <motion.section key="modo_control" className="full-container" style={{ maxWidth: '100%', padding: '0 40px' }} {...pageTransition}>
+            <motion.section key="modo_control" className="full-container" style={{ maxWidth: '1440px', margin: '40px auto', padding: '0 40px', width: '100%', display: 'flex', flexDirection: 'column' }} {...pageTransition}>
               <ModeSelect
                 onBack={() => setView("robot_selection")}
                 onSelectMode={(modo: string) => {
@@ -1140,7 +1140,7 @@ export default function App() {
             </motion.section>
           )}
           {view === "admin_config" && (
-            <motion.section key="admin_config" className="full-container" style={{ maxWidth: '1600px', padding: '0 40px' }} {...pageTransition}>
+            <motion.section key="admin_config" className="full-container" style={{ maxWidth: '1440px', margin: '40px auto', padding: '0 40px', width: '100%', display: 'flex', flexDirection: 'column' }} {...pageTransition}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', textAlign: 'left', flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '16px', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
                     <div>
