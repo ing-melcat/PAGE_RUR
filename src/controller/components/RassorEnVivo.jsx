@@ -300,15 +300,38 @@ function ModeloGLB({ url, imu }) {
   const grupo = useRef();
   const { scene } = useGLTF(url);
 
-  const { escalaModelo, desplazamiento } = useMemo(() => {
-    const caja = new THREE.Box3().setFromObject(scene);
+  const { clon, escalaModelo, desplazamiento } = useMemo(() => {
+    const clon = scene.clone(true);
+
+    // Detección de orientación de exportación CAD:
+    // En software CAD (SolidWorks, Inventor, Rhino), el eje Z suele ser la vertical (altura)
+    // y el eje Y la longitud del robot. Three.js usa Y como vertical (arriba).
+    // Si la longitud inicial en Y supera la altura en Z, rotamos -90° sobre X
+    // para que el robot descanse horizontalmente en el plano X-Z (ruedas sobre el suelo).
+    const cajaInicial = new THREE.Box3().setFromObject(clon);
+    const tamInicial = new THREE.Vector3();
+    cajaInicial.getSize(tamInicial);
+
+    if (tamInicial.y > tamInicial.z * 1.2) {
+      clon.rotation.x = -Math.PI / 2;
+    }
+
+    // Calculamos el bounding box con la rotación ya aplicada
+    const wrapper = new THREE.Group();
+    wrapper.add(clon);
+    wrapper.updateMatrixWorld(true);
+
+    const caja = new THREE.Box3().setFromObject(wrapper);
     const tam = new THREE.Vector3();
     caja.getSize(tam);
     const centro = new THREE.Vector3();
     caja.getCenter(centro);
+
     const k = LARGO_OBJETIVO / Math.max(tam.x, tam.y, tam.z);
     return {
+      clon,
       escalaModelo: k,
+      // Centrado en X/Z y apoyado sobre el suelo en Y = 0
       desplazamiento: [-centro.x * k, -caja.min.y * k, -centro.z * k],
     };
   }, [scene]);
@@ -327,7 +350,7 @@ function ModeloGLB({ url, imu }) {
 
   return (
     <group ref={grupo} dispose={null}>
-      <primitive object={scene.clone()} scale={escalaModelo} position={desplazamiento} />
+      <primitive object={clon} scale={escalaModelo} position={desplazamiento} />
     </group>
   );
 }
@@ -343,18 +366,18 @@ export function RassorEnVivo({ avance, giro, imu, escala = 1, modelUrl }) {
   return (
     <div className="hud__robot3d" style={{ width: 200 * escala, height: 120 * escala }}>
       <Canvas
-        // Casi cenital. La vista desde arriba es la que deja leer de un
-        // vistazo hacia dónde apuntan las guías; el poco ángulo que queda es
-        // solo para que el robot no se lea como una mancha plana.
-        camera={{ position: [0, 3.2, 0.95], fov: 34 }}
+        // Vista cenital / desde arriba. Permite leer claramente la posición
+        // del robot y hacia dónde apuntan las guías de trayectoria, con una leve
+        // perspectiva para apreciar el volumen 3D y tambores.
+        camera={{ position: [0, 3.8, 0.5], fov: 36 }}
         gl={{ alpha: true, antialias: true }}
         dpr={[1, 2]}
         style={{ background: 'transparent' }}
-        onCreated={({ camera }) => camera.lookAt(0, 0, 0)}
+        onCreated={({ camera }) => camera.lookAt(0, 0.2, -0.1)}
       >
-        <ambientLight intensity={1} />
+        <ambientLight intensity={1.1} />
         <directionalLight position={[2, 6, 3]} intensity={1.5} />
-        <directionalLight position={[-3, 2, -2]} intensity={0.45} color="#8ab4ff" />
+        <directionalLight position={[-3, 2, -2]} intensity={0.5} color="#8ab4ff" />
 
         <SombraApoyo />
         <Guias avance={avance} giro={giro} />
