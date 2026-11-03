@@ -60,12 +60,12 @@ export default function PaginaPruebas() {
   const [potenciaActuadores, setPotenciaActuadores] = useState<number>(100);
 
   // Opciones de título en blanco para el modo manual (solicitud del operador)
-  const [opcionTituloManual, setOpcionTituloManual] = useState<'cabina' | 'teleoperacion' | 'mando' | 'terrestre'>('cabina');
+  const [opcionTituloManual, setOpcionTituloManual] = useState<'mando' | 'cabina' | 'teleoperacion' | 'terrestre'>('mando');
 
-  const titulosManual: Record<'cabina' | 'teleoperacion' | 'mando' | 'terrestre', string> = {
+  const titulosManual: Record<'mando' | 'cabina' | 'teleoperacion' | 'terrestre', string> = {
+    mando: 'MANDO DIRECTO',
     cabina: 'CABINA DE CONTROL GCS',
     teleoperacion: 'ESTACIÓN DE TELEOPERACIÓN TERRESTRE',
-    mando: 'SISTEMA DE MANDO DIRECTO GCS',
     terrestre: 'TELEOPERACIÓN TERRESTRE GCS',
   };
   const [switchLuces, setSwitchLuces] = useState<boolean>(true);
@@ -312,7 +312,7 @@ export default function PaginaPruebas() {
                 </div>
 
                 <div>
-                  <h3 style={{ margin: '0 0 6px', fontFamily: 'var(--font-titulo)', fontSize: '1.8rem', color: 'var(--text)', letterSpacing: '0.04em' }}>
+                  <h3 style={{ margin: '0 0 6px', fontFamily: 'var(--font-titulo)', fontSize: '1.8rem', color: '#ffffff', letterSpacing: '0.04em' }}>
                     {titulosManual[opcionTituloManual]}
                   </h3>
                   <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.85rem', lineHeight: 1.6 }}>
@@ -372,7 +372,7 @@ export default function PaginaPruebas() {
                 </div>
 
                 <div>
-                  <h3 style={{ margin: '0 0 6px', fontFamily: 'var(--font-titulo)', fontSize: '1.8rem', color: 'var(--text)', letterSpacing: '0.04em' }}>
+                  <h3 style={{ margin: '0 0 6px', fontFamily: 'var(--font-titulo)', fontSize: '1.8rem', color: '#ffffff', letterSpacing: '0.04em' }}>
                     ENLACE HÁPTICO ESPACIAL (6DOF)
                   </h3>
                   <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.85rem', lineHeight: 1.6 }}>
@@ -713,7 +713,7 @@ export default function PaginaPruebas() {
                     <span className="tactical-badge tactical-badge--online">60 HZ P2P</span>
                   </div>
 
-                  <h4 style={{ margin: 0, fontFamily: 'var(--font-titulo)', fontSize: '1.4rem', color: 'var(--text)', letterSpacing: '0.04em' }}>
+                  <h4 style={{ margin: 0, fontFamily: 'var(--font-titulo)', fontSize: '1.4rem', color: '#ffffff', letterSpacing: '0.04em' }}>
                     {titulosManual[opcionTituloManual]}
                   </h4>
                   

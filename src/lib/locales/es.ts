@@ -158,7 +158,7 @@ export const es = {
       vrTitulo: 'Enlace Háptico Espacial (VR)',
       vrDescripcion: 'Control con los mandos del visor y apuntado de cámara por movimiento de cabeza.',
       vrTooltip: 'Disponible cuando se pruebe con las gafas en la universidad.',
-      manualTitulo: 'Cabina de Control GCS',
+      manualTitulo: 'Mando Directo',
       manualDescripcion: 'Mando, teclado o pantalla táctil, con joystick en pantalla para apuntar la cámara.',
       vrAvisoBeta: 'Beta: escrito con el visor en mente, aún sin probar en el Vive físico.',
       volver: '← Volver',

@@ -100,7 +100,7 @@ export function ModeSelect({ onSelectMode, onBack }) {
             <Gamepad2 size={26} color="var(--accent)" />
           </div>
 
-          <h3 style={{ margin: 0, fontSize: '1.4rem', fontFamily: 'var(--font-titulo)', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 400 }}>
+          <h3 style={{ margin: 0, fontSize: '1.4rem', fontFamily: 'var(--font-titulo)', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 400 }}>
             {t('operador.modo.manualTitulo')}
           </h3>
 
