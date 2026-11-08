@@ -521,16 +521,16 @@ export function BarraTelemetria({
         };
       }
       case 'bitrate':
-        return { titulo: t('telemetria.bitrate'), valor: enlace?.bitrateKbps, unidad: t('telemetria.kbps'), ancho: '5ch' };
+        return { titulo: t('telemetria.bitrate'), valor: enlace?.bitrateKbps != null ? enlace.bitrateKbps : (isRobotConnected ? 0 : null), unidad: t('telemetria.kbps'), ancho: '5ch' };
       case 'video':
         return {
           titulo: t('telemetria.video'),
-          valor: enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : null,
+          valor: enlace?.ancho ? `${enlace.ancho}×${enlace.alto}` : (isRobotConnected ? 'STBY' : null),
           unidad: enlace?.fps != null ? `${enlace.fps} ${t('telemetria.fps')}` : null,
           ancho: '12ch',
         };
       case 'perdida':
-        return { titulo: t('telemetria.perdida'), valor: enlace?.perdidos, unidad: t('telemetria.paquetes'), ancho: '6ch' };
+        return { titulo: t('telemetria.perdida'), valor: enlace?.perdidos != null ? enlace.perdidos : (isRobotConnected ? 0 : null), unidad: t('telemetria.paquetes'), ancho: '6ch' };
       case 'audiencia':
         return { titulo: t('telemetria.espectadores'), valor: audiencia ?? enlace?.espectadores, ancho: '3ch' };
       default:
@@ -934,6 +934,21 @@ export function BarraTelemetria({
   }
 
   // MODO ESENCIAL (Táctil, Top-Corners HUD con zona de seguridad de 60px)
+  const listaWidgetsCompactos = WIDGETS
+    .filter((w) => activos.includes(w.id) && w.id !== 'audiencia')
+    .map((w) => {
+      const lectura = lecturaCompacta(w.id);
+      if (!lectura) return null;
+      const tieneContenido = Boolean(lectura.contenido || (lectura.valor != null && lectura.valor !== ''));
+      if (!tieneContenido) return null;
+      return { id: w.id, lectura };
+    })
+    .filter(Boolean);
+
+  const mitadWidgets = Math.ceil(listaWidgetsCompactos.length / 2);
+  const widgetsCompactosIzq = listaWidgetsCompactos.slice(0, mitadWidgets);
+  const widgetsCompactosDer = listaWidgetsCompactos.slice(mitadWidgets);
+
   return (
     <div
       style={{
@@ -963,22 +978,18 @@ export function BarraTelemetria({
         </div>
 
         {/* Píldora de Widgets Izquierda */}
-        {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(0, Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).length > 0 && (
+        {widgetsCompactosIzq.length > 0 && (
           <div className="cabezal-terminal-btn" style={{ cursor: 'default', pointerEvents: 'auto', padding: '5px 10px' }}>
             <span className="cabezal-terminal-btn-bracket">[</span>
-            {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(0, Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).map(({ id }, i) => {
-              const lectura = lecturaCompacta(id);
-              if (!lectura) return null;
-              return (
-                <Fragment key={id}>
-                  {i > 0 && <span style={{ color: 'rgba(251, 202, 1, 0.4)', margin: '0 5px' }}>│</span>}
-                  <span style={{ fontSize: '0.8rem', color: 'var(--bone)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
-                    {lectura.contenido || lectura.valor}
-                    {lectura.unidad && <span style={{ fontSize: '0.7rem', marginLeft: '2px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
-                  </span>
-                </Fragment>
-              );
-            })}
+            {widgetsCompactosIzq.map(({ id, lectura }, i) => (
+              <Fragment key={id}>
+                {i > 0 && <span style={{ color: 'rgba(251, 202, 1, 0.4)', margin: '0 5px' }}>│</span>}
+                <span style={{ fontSize: '0.8rem', color: 'var(--bone)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
+                  {lectura.contenido || lectura.valor}
+                  {lectura.unidad && <span style={{ fontSize: '0.7rem', marginLeft: '2px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
+                </span>
+              </Fragment>
+            ))}
             <span className="cabezal-terminal-btn-bracket">]</span>
           </div>
         )}
@@ -990,22 +1001,18 @@ export function BarraTelemetria({
         maxWidth: '50vw', pointerEvents: 'auto',
       }}>
          {/* Píldora de Widgets Derecha */}
-         {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).length > 0 && (
+         {widgetsCompactosDer.length > 0 && (
            <div className="cabezal-terminal-btn" style={{ cursor: 'default', pointerEvents: 'auto', padding: '5px 10px' }}>
              <span className="cabezal-terminal-btn-bracket">[</span>
-             {WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').slice(Math.ceil(WIDGETS.filter((w) => activos.includes(w.id) && w.id !== 'audiencia').length / 2)).map(({ id }, i) => {
-               const lectura = lecturaCompacta(id);
-               if (!lectura) return null;
-               return (
-                 <Fragment key={id}>
-                   {i > 0 && <span style={{ color: 'rgba(251, 202, 1, 0.4)', margin: '0 5px' }}>│</span>}
-                   <span style={{ fontSize: '0.8rem', color: 'var(--bone)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
-                     {lectura.contenido || lectura.valor}
-                     {lectura.unidad && <span style={{ fontSize: '0.7rem', marginLeft: '2px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
-                   </span>
-                 </Fragment>
-               );
-             })}
+             {widgetsCompactosDer.map(({ id, lectura }, i) => (
+               <Fragment key={id}>
+                 {i > 0 && <span style={{ color: 'rgba(251, 202, 1, 0.4)', margin: '0 5px' }}>│</span>}
+                 <span style={{ fontSize: '0.8rem', color: 'var(--bone)', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
+                   {lectura.contenido || lectura.valor}
+                   {lectura.unidad && <span style={{ fontSize: '0.7rem', marginLeft: '2px', color: 'var(--muted)' }}>{lectura.unidad}</span>}
+                 </span>
+               </Fragment>
+             ))}
              <span className="cabezal-terminal-btn-bracket">]</span>
            </div>
          )}
