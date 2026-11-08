@@ -159,14 +159,7 @@
 }
 
 .cabezal-notch-robot {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
-}
-
-@media (hover: hover) {
-  .cabezal-notch-robot:hover {
-    transform: translateY(2px);
-    box-shadow: 0 6px 18px rgba(251, 202, 1, 0.45);
-  }
+  pointer-events: none;
 }
 
 

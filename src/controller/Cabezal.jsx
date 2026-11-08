@@ -36,19 +36,16 @@ export function Cabezal({ onCambio, onConfigApply, onBack, titulo, controlMappin
                     </button>
                 </div>
 
-                {/* Nombre del robot como NOTCH Biselado de cabina GCS */}
+                {/* Nombre del robot como NOTCH Biselado de cabina GCS (Informativo estático, sin interacción de ratón) */}
                 <div style={{ 
                     position: 'absolute', 
                     top: 0, 
                     left: '50%', 
                     transform: 'translateX(-50%)', 
                     zIndex: 110,
-                    pointerEvents: 'auto'
+                    pointerEvents: 'none'
                 }}>
-                    <div
-                        className="cabezal-notch-robot"
-                        title={titulo || 'RASSOR-UI'}
-                    >
+                    <div className="cabezal-notch-robot">
                         <span className="cabezal-notch-sub">
                             SYS // ACTIVE UNIT
                         </span>

@@ -112,7 +112,7 @@
     align-items: center;
     justify-content: center;
     user-select: none;
-    cursor: default;
+    pointer-events: none;
     box-shadow: 0 4px 16px rgba(251, 202, 1, 0.35);
 }
 
