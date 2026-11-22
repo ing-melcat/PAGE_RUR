@@ -457,10 +457,10 @@
   background: linear-gradient(
     to top,
     var(--background) 0%,
-    rgba(2, 7, 19, .82) 18%,
-    rgba(2, 7, 19, .5) 42%,
-    rgba(2, 7, 19, .12) 72%,
-    rgba(2, 7, 19, 0) 100%
+    rgba(7, 14, 22, .82) 18%,
+    rgba(7, 14, 22, .5) 42%,
+    rgba(7, 14, 22, .12) 72%,
+    rgba(7, 14, 22, 0) 100%
   );
 }
 

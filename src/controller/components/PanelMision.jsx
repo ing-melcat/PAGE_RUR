@@ -111,7 +111,7 @@ export function PanelMision({ robotId, mission, onMissionUpdate, isPublicEvent, 
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
           placeholder={txtNuevoObj}
           style={{
-            flex: 1, background: 'rgba(2, 7, 19, 0.7)', border: '1px solid rgba(251, 202, 1, 0.35)',
+            flex: 1, background: 'rgba(7, 14, 22, 0.7)', border: '1px solid rgba(251, 202, 1, 0.35)',
             color: 'var(--bone)', padding: '6px 10px', borderRadius: '2px',
             fontFamily: 'var(--font-codigo), monospace', fontSize: '0.78rem',
             outline: 'none'
