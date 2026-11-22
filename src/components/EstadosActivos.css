@@ -47,7 +47,7 @@
   padding: 5px 12px 5px 8px;
   border: 1px solid var(--border);
   border-radius: 2px;
-  background: #05070d;
+  background: var(--background);
   transition: border-color var(--mov-rapido) ease;
 }
 
@@ -84,6 +84,11 @@
     position: absolute;
     z-index: -1;
     inset: -1px;
+    width: auto;
+    height: auto;
+    transform: none;
+    mix-blend-mode: normal;
+    pointer-events: none;
     border-radius: inherit;
     /* El grosor del contorno: es el ancho de la banda que la máscara deja
        ver, no un borde de verdad. */

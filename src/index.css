@@ -1913,7 +1913,7 @@ button > *,
 }
 
 /* Haz de luz de barrido tecnológico blanco en hover */
-button::before, .action-card::before, .logout-btn-small::before, .paginador-btn::before {
+button:not(.estados)::before, .action-card::before, .logout-btn-small::before, .paginador-btn::before {
   content: '';
   position: absolute;
   top: 0;
@@ -1936,7 +1936,7 @@ button::before, .action-card::before, .logout-btn-small::before, .paginador-btn:
 }
 
 @media (any-hover: hover) {
-  button:hover:not(:disabled)::before,
+  button:not(.estados):hover:not(:disabled)::before,
   .action-card:hover:not(:disabled)::before,
   .logout-btn-small:hover:not(:disabled)::before,
   .paginador-btn:hover:not(:disabled)::before {
