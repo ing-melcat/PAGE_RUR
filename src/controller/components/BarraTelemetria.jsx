@@ -82,7 +82,7 @@ function CalidadEnlace({ conectado, enlace, t }) {
 const STORAGE_KEY = 'rur_telemetria_widgets_v1';
 
 const TARJETA = {
-  background: 'rgba(2, 7, 19, 0.96)',
+  background: 'rgba(11, 12, 13, 0.96)',
   border: '1px solid var(--accent)',
   borderRadius: '2px',
   boxShadow: '0 8px 24px rgba(0, 0, 0, 0.85), inset 0 0 1px rgba(251, 202, 1, 0.3)',

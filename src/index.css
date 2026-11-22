@@ -39,12 +39,12 @@
   --tracking-wide: 0.25em;
   --tracking-ultra: 0.38em;
 
-  /* PALETA OFICIAL RUR */
-  --background: #020713; /* Fondo principal (más oscuro que la base para contraste) */
-  --surface: #051025; /* Azul oscuro institucional (Base) */
-  --surface-strong: #0a1a3a; /* Variante ligeramente más clara para hovers */
+  /* PALETA OFICIAL RUR (Rebranding gris oscuro) */
+  --background: #0b0c0d; /* Fondo principal casi negro en el lado de gris oscuro */
+  --surface: #131416; /* Gris oscuro base para superficies y tarjetas */
+  --surface-strong: #1c1e21; /* Variante ligeramente más clara para hovers */
   --text: #EBF0F6; /* Gris claro institucional para textos */
-  --muted: #8c9bb0; /* Texto secundario apagado */
+  --muted: #91959c; /* Texto secundario apagado */
   --bone: #F5F3E9; /* Color Hueso */
   --border: rgba(245, 243, 233, 0.15); /* Líneas estructurales color hueso translúcido */
   --accent: #FBCA01; /* Amarillo institucional (Resaltados) */
@@ -337,9 +337,9 @@ h1 {
 
 .cabecera-publicacion__volver {
   /* Sobre una foto clara el botón necesita algo de cuerpo propio: es el
-     mismo azul de la superficie, casi transparente, lo justo para que el
+     mismo gris oscuro de la superficie, casi transparente, lo justo para que el
      texto no se apoye directamente en la imagen. */
-  background: rgba(5, 16, 37, 0.55);
+  background: rgba(19, 20, 22, 0.55);
   padding: 6px 16px;
   border-radius: 4px;
   font-family: var(--font-ibm-mono), monospace;
@@ -411,7 +411,7 @@ h1 {
   /* Funde la foto con la superficie sólida del cuerpo -- casi transparente
      arriba, opaca del todo al llegar a --surface, para que portada y
      contenido no se corten con una línea dura. */
-  background: linear-gradient(180deg, rgba(2,7,19,0.1) 0%, rgba(2,7,19,0.35) 55%, var(--surface) 100%);
+  background: linear-gradient(180deg, rgba(11,12,13,0.1) 0%, rgba(11,12,13,0.35) 55%, var(--surface) 100%);
   pointer-events: none;
 }
 
@@ -425,10 +425,10 @@ h1 {
 }
 
 /* Sin foto se pinta igualmente el velo, con un degradado suave sobre el
-   azul institucional -- así el borde inferior funde con el cuerpo
+   fondo oscuro -- así el borde inferior funde con el cuerpo
    exactamente igual que cuando sí hay foto. */
 .portada-publicacion--compacta .portada-publicacion__velo {
-  background: linear-gradient(180deg, rgba(2,7,19,0) 0%, rgba(2,7,19,0.25) 55%, var(--surface) 100%);
+  background: linear-gradient(180deg, rgba(11,12,13,0) 0%, rgba(11,12,13,0.25) 55%, var(--surface) 100%);
 }
 
 .portada-publicacion__eyebrow {
@@ -695,7 +695,7 @@ h1 {
   /* Más oscuro que --surface a propósito: un bloque de código se lee como
      una "ventana de editor" incrustada, y para eso tiene que hundirse
      respecto de la superficie de lectura, no confundirse con ella. */
-  background: #0a0f1e;
+  background: #090a0b;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1.1em 1.3em;
@@ -1315,7 +1315,7 @@ h1 {
   padding: 24px;
   min-height: calc(100vh - 60px);
   min-height: calc(100dvh - 60px);
-  background: rgba(2, 7, 19, 0.5); /* Slight tint over background */
+  background: rgba(11, 12, 13, 0.5); /* Slight tint over background */
 }
 
 .main-content {
@@ -2188,7 +2188,7 @@ textarea:focus-visible {
    una sombra oscura lo separa del fondo sin cambiar el color. */
 .hero a:focus-visible,
 .landing-hero a:focus-visible {
-  box-shadow: 0 0 0 4px rgba(2, 7, 19, .75);
+  box-shadow: 0 0 0 4px rgba(11, 12, 13, .75);
 }
 
 /* ==================================================================
