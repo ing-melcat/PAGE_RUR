@@ -255,27 +255,46 @@
   }
 }
 
+/* Blindar .logo-card contra los estilos y haces de luz globales de .action-card */
+.logo-card::before,
+.logo-card::after {
+  display: none !important;
+}
+
 @media (any-hover: hover) {
+  .logo-card:hover {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: var(--background) !important;
+    box-shadow: 0 5px 20px rgba(251, 202, 1, 0.35) !important;
+    transform: translateY(-2px) !important;
+  }
+
   .logo-card:hover .logo-text-default {
     transform: translateY(-100%) !important;
     opacity: 0 !important;
   }
-}
 
-.logo-card:hover .logo-text-hover {
-  transform: translateY(0) !important;
-  opacity: 1 !important;
-  color: var(--background) !important;
-}
+  .logo-card:hover .logo-text-hover {
+    transform: translateY(0) !important;
+    opacity: 1 !important;
+    color: var(--background) !important;
+  }
 
-@media (any-hover: hover) {
   .logo-card:hover .logo-img-default {
     opacity: 0 !important;
   }
-}
 
-.logo-card:hover .logo-img-hover {
-  opacity: 1 !important;
+  .logo-card:hover .logo-img-hover {
+    opacity: 1 !important;
+  }
+
+  .logo-card:hover .logo-text-default,
+  .logo-card:hover .logo-text-hover,
+  .logo-card:hover .logo-img-default,
+  .logo-card:hover .logo-img-hover {
+    animation: none !important;
+  }
 }
 
 /* Auto animacion cada 19.1 segundos */
@@ -283,22 +302,6 @@
 .logo-card .logo-text-hover { animation: sweepIn 19.1s infinite; }
 .logo-card .logo-img-default { animation: fadeOutAnim 19.1s infinite; }
 .logo-card .logo-img-hover { animation: fadeInAnim 19.1s infinite; }
-
-/* El selector ocupa varias líneas y solo la última llevaba el `{`, así que
-   al proteger los hover del táctil se partió por la mitad. Envuelto entero. */
-@media (any-hover: hover) {
-  .logo-card:hover .logo-text-default,
-  .logo-card:hover .logo-text-hover,
-  .logo-card:hover .logo-img-default,
-  .logo-card:hover .logo-img-hover,
-  .logo-card:hover::after {
-    animation: none !important;
-  }
-}
-
-.logo-card::after {
-  display: none !important;
-}
 
 @keyframes sweepOut {
   0%, 78.53% { transform: translateY(0); opacity: 1; }
