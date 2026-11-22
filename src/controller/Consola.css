@@ -270,12 +270,12 @@ button.boton:hover {
 @media (hover: hover) {
   .control-btn:hover {
     border-color: var(--accent);
-    color: #0b0c0d;
+    color: #070e16;
     background-color: var(--accent);
     box-shadow: 0 0 18px rgba(251, 202, 1, 0.55);
   }
   .control-btn:hover * {
-    color: #0b0c0d !important;
+    color: #070e16 !important;
   }
 }
 
@@ -849,7 +849,7 @@ div#container>.Datos {
   font-size: var(--t-base);
   border-radius: 2px;
   border: 1px solid rgba(251, 202, 1, 0.45);
-  background: rgba(11, 12, 13, 0.75);
+  background: rgba(7, 14, 22, 0.75);
   color: var(--accent);
   padding: 0;
 }
@@ -871,7 +871,7 @@ div#container>.Datos {
   height: 24px;
   border-radius: 2px;
   border: 1px dashed rgba(251, 202, 1, 0.3);
-  background: rgba(11, 12, 13, 0.6);
+  background: rgba(7, 14, 22, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -922,7 +922,7 @@ div#container>.Datos {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   border-radius: 2px;
-  background: rgba(11, 12, 13, 0.65);
+  background: rgba(7, 14, 22, 0.65);
   color: var(--muted);
   border: 1px solid rgba(251, 202, 1, 0.3);
 }
@@ -985,7 +985,7 @@ div#container>.Datos {
 #joystick div[data-testid="joystick-base"],
 #camera-joystick div[data-testid="joystick-base"] {
   border: 1px solid rgba(251, 202, 1, 0.45) !important;
-  background: rgba(11, 12, 13, 0.75) !important;
+  background: rgba(7, 14, 22, 0.75) !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8), inset 0 0 12px rgba(251, 202, 1, 0.06) !important;
 }
 

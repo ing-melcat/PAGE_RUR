@@ -33,7 +33,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, Estado> {
       <div style={{
         minHeight: '100vh', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: '16px',
-        background: 'var(--background, #0b0c0d)', color: 'var(--text, #EBF0F6)',
+        background: 'var(--background, #070e16)', color: 'var(--text, #EBF0F6)',
         fontFamily: 'var(--font-ibm-mono, monospace)', padding: '40px', textAlign: 'center',
       }}>
         <h1 style={{ color: 'var(--accent, #FBCA01)', fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
